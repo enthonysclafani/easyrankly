@@ -10,25 +10,25 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Repository for the easyrankly_redirects table.
+ * Repository for the erankly_redirects table.
  */
-final class EasyRankly_Redirects_Repository {
+final class ERankly_Redirects_Repository {
 	/**
 	 * Non-autoloaded option containing frontend-ready active rules.
 	 */
-	private const RUNTIME_RULES_OPTION = 'easyrankly_redirects_runtime_rules';
+	private const RUNTIME_RULES_OPTION = 'erankly_redirects_runtime_rules';
 
 	/**
 	 * Sentinel value stored in object cache when no exact redirect exists for a hash.
 	 */
-	private const NO_REDIRECT_SENTINEL = '__easyrankly_no_redirect__';
+	private const NO_REDIRECT_SENTINEL = '__erankly_no_redirect__';
 
 	/**
 	 * Object cache group.
 	 *
 	 * @var string
 	 */
-	private string $cache_group = 'easyrankly_redirects';
+	private string $cache_group = 'erankly_redirects';
 
 	/**
 	 * Database table name.
@@ -59,7 +59,7 @@ final class EasyRankly_Redirects_Repository {
 	public static function get_table_name(): string {
 		global $wpdb;
 
-		return $wpdb->prefix . 'easyrankly_redirects';
+		return $wpdb->prefix . 'erankly_redirects';
 	}
 
 	/**
@@ -69,7 +69,7 @@ final class EasyRankly_Redirects_Repository {
 	 * @return string
 	 */
 	public function get_cache_key( string $source_hash ): string {
-		return 'easyrankly_redirect_' . $source_hash;
+		return 'erankly_redirect_' . $source_hash;
 	}
 
 	/**
@@ -207,7 +207,7 @@ final class EasyRankly_Redirects_Repository {
 	public function invalidate_runtime_rules(): void {
 		$this->runtime_rules = null;
 		delete_option( self::RUNTIME_RULES_OPTION );
-		easyrankly_redirects_flush_external_caches();
+		erankly_redirects_flush_external_caches();
 	}
 
 	/**
@@ -534,7 +534,7 @@ final class EasyRankly_Redirects_Repository {
 		 * @param int $sample_rate Sampling rate.
 		 * @param int $id          Redirect ID.
 		 */
-		$sample_rate = max( 1, (int) apply_filters( 'easyrankly_redirect_hit_sample_rate', 10, $id ) );
+		$sample_rate = max( 1, (int) apply_filters( 'erankly_redirect_hit_sample_rate', 10, $id ) );
 
 		if ( $sample_rate > 1 && 1 !== wp_rand( 1, $sample_rate ) ) {
 			return;

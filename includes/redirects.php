@@ -16,20 +16,20 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Database schema version for the redirects table.
  */
-define( 'EASYRANKLY_REDIRECTS_DB_VERSION', '1.0.0' );
+define( 'ERANKLY_REDIRECTS_DB_VERSION', '1.0.0' );
 
 /**
  * Option name tracking the installed redirects table version.
  */
-define( 'EASYRANKLY_REDIRECTS_DB_VERSION_OPTION', 'easyrankly_redirects_db_version' );
+define( 'ERANKLY_REDIRECTS_DB_VERSION_OPTION', 'erankly_redirects_db_version' );
 
 /**
  * Whether the redirect feature is enabled in settings.
  *
  * @return bool
  */
-function easyrankly_redirects_enabled(): bool {
-	return ! empty( easyrankly_get_setting( 'enable_redirects' ) );
+function erankly_redirects_enabled(): bool {
+	return ! empty( erankly_get_setting( 'enable_redirects' ) );
 }
 
 /**
@@ -41,35 +41,35 @@ function easyrankly_redirects_enabled(): bool {
  *
  * @return void
  */
-function easyrankly_redirects_boot(): void {
-	if ( ! easyrankly_redirects_enabled() ) {
+function erankly_redirects_boot(): void {
+	if ( ! erankly_redirects_enabled() ) {
 		return;
 	}
 
-	require_once EASYRANKLY_PATH . 'includes/redirects/class-easyrankly-redirects-normalizer.php';
-	require_once EASYRANKLY_PATH . 'includes/redirects/class-easyrankly-redirects-activator.php';
-	require_once EASYRANKLY_PATH . 'includes/redirects/class-easyrankly-redirects-repository.php';
-	require_once EASYRANKLY_PATH . 'includes/redirects/class-easyrankly-redirects-runner.php';
-	easyrankly_redirects_maybe_upgrade_db();
+	require_once ERANKLY_PATH . 'includes/redirects/class-erankly-redirects-normalizer.php';
+	require_once ERANKLY_PATH . 'includes/redirects/class-erankly-redirects-activator.php';
+	require_once ERANKLY_PATH . 'includes/redirects/class-erankly-redirects-repository.php';
+	require_once ERANKLY_PATH . 'includes/redirects/class-erankly-redirects-runner.php';
+	erankly_redirects_maybe_upgrade_db();
 
-	$repository = new EasyRankly_Redirects_Repository();
+	$repository = new ERankly_Redirects_Repository();
 
-	$runner = new EasyRankly_Redirects_Runner( $repository );
+	$runner = new ERankly_Redirects_Runner( $repository );
 	$runner->register_hooks();
 
 	$page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin routing.
 
-	if ( is_admin() && 'easyrankly' === $page ) {
-		require_once EASYRANKLY_PATH . 'includes/redirects/class-easyrankly-redirects-admin.php';
+	if ( is_admin() && 'erankly' === $page ) {
+		require_once ERANKLY_PATH . 'includes/redirects/class-erankly-redirects-admin.php';
 
-		$admin = new EasyRankly_Redirects_Admin( $repository );
+		$admin = new ERankly_Redirects_Admin( $repository );
 		$admin->register_hooks();
 
 		// Shared instance for the settings page redirect management renderer.
-		$GLOBALS['easyrankly_redirects_admin'] = $admin;
+		$GLOBALS['erankly_redirects_admin'] = $admin;
 	}
 }
-add_action( 'plugins_loaded', 'easyrankly_redirects_boot', 5 );
+add_action( 'plugins_loaded', 'erankly_redirects_boot', 5 );
 
 /**
  * Creates the redirects table on first use and ensures the schema is current.
@@ -80,15 +80,15 @@ add_action( 'plugins_loaded', 'easyrankly_redirects_boot', 5 );
  *
  * @return void
  */
-function easyrankly_redirects_maybe_upgrade_db(): void {
-	$installed = (string) get_option( EASYRANKLY_REDIRECTS_DB_VERSION_OPTION, '' );
+function erankly_redirects_maybe_upgrade_db(): void {
+	$installed = (string) get_option( ERANKLY_REDIRECTS_DB_VERSION_OPTION, '' );
 
-	if ( EASYRANKLY_REDIRECTS_DB_VERSION === $installed ) {
+	if ( ERANKLY_REDIRECTS_DB_VERSION === $installed ) {
 		return;
 	}
 
-	EasyRankly_Redirects_Activator::activate();
-	update_option( EASYRANKLY_REDIRECTS_DB_VERSION_OPTION, EASYRANKLY_REDIRECTS_DB_VERSION, false );
+	ERankly_Redirects_Activator::activate();
+	update_option( ERANKLY_REDIRECTS_DB_VERSION_OPTION, ERANKLY_REDIRECTS_DB_VERSION, false );
 }
 
 /**
@@ -102,7 +102,7 @@ function easyrankly_redirects_maybe_upgrade_db(): void {
  *
  * @return void
  */
-function easyrankly_redirects_flush_external_caches(): void {
+function erankly_redirects_flush_external_caches(): void {
 	static $flushed = false;
 
 	if ( $flushed ) {
@@ -154,7 +154,7 @@ function easyrankly_redirects_flush_external_caches(): void {
 	 *
 	 * @since 1.0.0
 	 */
-	do_action( 'easyrankly_redirects_caches_flushed' );
+	do_action( 'erankly_redirects_caches_flushed' );
 }
 
 /**
@@ -165,14 +165,14 @@ function easyrankly_redirects_flush_external_caches(): void {
  *
  * @return void
  */
-function easyrankly_redirects_render_panel(): void {
-	if ( ! easyrankly_redirects_enabled() ) {
+function erankly_redirects_render_panel(): void {
+	if ( ! erankly_redirects_enabled() ) {
 		return;
 	}
 
-	$admin = $GLOBALS['easyrankly_redirects_admin'] ?? null;
+	$admin = $GLOBALS['erankly_redirects_admin'] ?? null;
 
-	if ( $admin instanceof EasyRankly_Redirects_Admin ) {
+	if ( $admin instanceof ERankly_Redirects_Admin ) {
 		$admin->render_panel();
 	}
 }

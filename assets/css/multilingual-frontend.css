@@ -6,18 +6,18 @@
  * users override colours, radius, and spacing without touching this file.
  *
  * BEM class reference:
- *  .erml-switcher          — [easyrankly_language_switcher] wrapper <form>
+ *  .erml-switcher          — [erankly_language_switcher] wrapper <form>
  *  .erml-switcher__label   — screen-reader label
  *  .erml-switcher__select  — <select> element
  *  .erml-switcher__option  — each <option>
  *
- *  .erml-notice            — [easyrankly_translation_notice] <div> wrapper
+ *  .erml-notice            — [erankly_translation_notice] <div> wrapper
  *  .erml-notice__close     — dismiss × button
  *  .erml-notice__title     — configurable heading tag
  *  .erml-notice__text      — configurable paragraph tag
  *  .erml-notice__link      — link to the translated article
  *
- * Handle: easyrankly-multilingual-frontend
+ * Handle: erankly-multilingual-frontend
  *
  * @package EasyRankly
  */
@@ -41,7 +41,7 @@
 	--erml-gap:             0.625rem;
 }
 
-/* Language Switcher — [easyrankly_language_switcher] */
+/* Language Switcher — [erankly_language_switcher] */
 
 :where(.erml-switcher) {
 	position:    relative;
@@ -103,7 +103,7 @@
 	outline-offset: 2px;
 }
 
-/* Translation Notice — [easyrankly_translation_notice] */
+/* Translation Notice — [erankly_translation_notice] */
 
 :where(.erml-notice) {
 	position:         relative;

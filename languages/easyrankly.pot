@@ -2,7 +2,7 @@
 # This file is distributed under the GPL-2.0-or-later.
 msgid ""
 msgstr ""
-"Project-Id-Version: EasyRankly 1.0.0\n"
+"Project-Id-Version: EasyRankly 0.2.0\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/easyrankly\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -316,7 +316,7 @@ msgid "Total pages"
 msgstr ""
 
 #: admin/meta-box.php:544
-#: includes/multilingual/class-easyrankly-ml-admin.php:765
+#: includes/multilingual/class-erankly-ml-admin.php:765
 msgid "Site"
 msgstr ""
 
@@ -371,7 +371,7 @@ msgid "JSON-LD schema"
 msgstr ""
 
 #: admin/meta-box.php:610
-#: includes/redirects/class-easyrankly-redirects-admin.php:347
+#: includes/redirects/class-erankly-redirects-admin.php:347
 msgid "Delete"
 msgstr ""
 
@@ -437,7 +437,7 @@ msgstr ""
 #: admin/settings-page.php:586
 #: includes/admin.php:297
 #: includes/admin.php:363
-#: includes/multilingual/class-easyrankly-ml-admin.php:699
+#: includes/multilingual/class-erankly-ml-admin.php:699
 #: assets/js/editor.js:313
 #: assets/js/editor.js:509
 msgid "Remove"
@@ -447,7 +447,7 @@ msgstr ""
 #: admin/setup-wizard.php:121
 #: admin/setup-wizard.php:147
 #: admin/setup-wizard.php:163
-#: includes/multilingual/class-easyrankly-ml-admin.php:498
+#: includes/multilingual/class-erankly-ml-admin.php:498
 msgid "Permission denied."
 msgstr ""
 
@@ -1582,13 +1582,13 @@ msgstr ""
 
 #: includes/health.php:921
 #: includes/health.php:928
-#: includes/redirects/class-easyrankly-redirects-admin.php:340
+#: includes/redirects/class-erankly-redirects-admin.php:340
 msgid "Yes"
 msgstr ""
 
 #: includes/health.php:923
 #: includes/health.php:930
-#: includes/redirects/class-easyrankly-redirects-admin.php:340
+#: includes/redirects/class-erankly-redirects-admin.php:340
 msgid "No"
 msgstr ""
 
@@ -1771,7 +1771,7 @@ msgid "No Rank Math data found."
 msgstr ""
 
 #: includes/import-export.php:903
-#: includes/redirects/class-easyrankly-redirects-admin.php:145
+#: includes/redirects/class-erankly-redirects-admin.php:145
 msgid "Security check failed. Please try again."
 msgstr ""
 
@@ -1801,412 +1801,412 @@ msgstr ""
 msgid "Search results for %s"
 msgstr ""
 
-#: includes/multilingual/class-easyrankly-ml-admin.php:77
+#: includes/multilingual/class-erankly-ml-admin.php:77
 msgid "EasyRankly multilingual post relations."
 msgstr ""
 
-#: includes/multilingual/class-easyrankly-ml-admin.php:154
+#: includes/multilingual/class-erankly-ml-admin.php:154
 msgid "You are not allowed to edit these translations."
 msgstr ""
 
-#: includes/multilingual/class-easyrankly-ml-admin.php:158
+#: includes/multilingual/class-erankly-ml-admin.php:158
 msgid "Invalid translation data."
 msgstr ""
 
-#: includes/multilingual/class-easyrankly-ml-admin.php:643
+#: includes/multilingual/class-erankly-ml-admin.php:643
 msgid "Link this content to its equivalent on other sites in the network. Linked items are exposed to search engines as alternate language versions."
 msgstr ""
 
-#: includes/multilingual/class-easyrankly-ml-admin.php:688
+#: includes/multilingual/class-erankly-ml-admin.php:688
 msgid "Search posts, pages, or terms…"
 msgstr ""
 
-#: includes/multilingual/class-easyrankly-ml-admin.php:719
+#: includes/multilingual/class-erankly-ml-admin.php:719
 msgid "No translatable sites yet"
 msgstr ""
 
 #. translators: %s: opening and closing anchor tags for the Network Admin settings link.
-#: includes/multilingual/class-easyrankly-ml-admin.php:725
+#: includes/multilingual/class-erankly-ml-admin.php:725
 #, php-format
 msgid "Enable one or more sites in %1$sNetwork Admin → Settings → EasyRankly → Multilingual%2$s, then return here to link translations."
 msgstr ""
 
-#: includes/multilingual/class-easyrankly-ml-admin.php:730
+#: includes/multilingual/class-erankly-ml-admin.php:730
 msgid "Ask a network administrator to enable sites in the EasyRankly network settings, then return here to link translations."
 msgstr ""
 
-#: includes/multilingual/class-easyrankly-ml-admin.php:756
+#: includes/multilingual/class-erankly-ml-admin.php:756
 msgid "Assign a language to each site, choose which sites take part in multilingual output, and pick the default (x-default) site search engines should fall back to. Codes are BCP-47 (for example it, en; add a region like en-US only to target a specific country)."
 msgstr ""
 
-#: includes/multilingual/class-easyrankly-ml-admin.php:766
+#: includes/multilingual/class-erankly-ml-admin.php:766
 msgid "Language code"
 msgstr ""
 
-#: includes/multilingual/class-easyrankly-ml-admin.php:767
-#: includes/multilingual/class-easyrankly-ml-admin.php:803
+#: includes/multilingual/class-erankly-ml-admin.php:767
+#: includes/multilingual/class-erankly-ml-admin.php:803
 msgid "Enabled"
 msgstr ""
 
-#: includes/multilingual/class-easyrankly-ml-admin.php:768
-#: includes/multilingual/class-easyrankly-ml-admin.php:930
-#: includes/multilingual/class-easyrankly-ml-admin.php:964
+#: includes/multilingual/class-erankly-ml-admin.php:768
+#: includes/multilingual/class-erankly-ml-admin.php:930
+#: includes/multilingual/class-erankly-ml-admin.php:964
 msgid "Default"
 msgstr ""
 
 #. translators: %s: site name.
-#: includes/multilingual/class-easyrankly-ml-admin.php:795
+#: includes/multilingual/class-erankly-ml-admin.php:795
 #, php-format
 msgid "Language code for %s"
 msgstr ""
 
 #. translators: %s: site name.
-#: includes/multilingual/class-easyrankly-ml-admin.php:796
+#: includes/multilingual/class-erankly-ml-admin.php:796
 msgid "Code derived from the site locale (used when left blank)."
 msgstr ""
 
-#: includes/multilingual/class-easyrankly-ml-admin.php:797
+#: includes/multilingual/class-erankly-ml-admin.php:797
 msgid "auto:"
 msgstr ""
 
-#: includes/multilingual/class-easyrankly-ml-admin.php:809
+#: includes/multilingual/class-erankly-ml-admin.php:809
 msgid "Default (x-default)"
 msgstr ""
 
-#: includes/multilingual/class-easyrankly-ml-admin.php:823
-#: includes/multilingual/class-easyrankly-ml-admin.php:829
+#: includes/multilingual/class-erankly-ml-admin.php:823
+#: includes/multilingual/class-erankly-ml-admin.php:829
 msgid "Translation Notice texts"
 msgstr ""
 
-#: includes/multilingual/class-easyrankly-ml-admin.php:825
-msgid "Write the text of the [easyrankly_translation_notice] banner once per language. A visitor reading an article in another language sees the banner only when a version exists in their own language, written in their own language with the text from the matching site below. Use the {language} token to insert the native language name (e.g. \"Italiano\"). Leave a site blank to never show the banner for that language."
+#: includes/multilingual/class-erankly-ml-admin.php:825
+msgid "Write the text of the [erankly_translation_notice] banner once per language. A visitor reading an article in another language sees the banner only when a version exists in their own language, written in their own language with the text from the matching site below. Use the {language} token to insert the native language name (e.g. \"Italiano\"). Leave a site blank to never show the banner for that language."
 msgstr ""
 
-#: includes/multilingual/class-easyrankly-ml-admin.php:873
+#: includes/multilingual/class-erankly-ml-admin.php:873
 msgid "Title"
 msgstr ""
 
-#: includes/multilingual/class-easyrankly-ml-admin.php:880
+#: includes/multilingual/class-erankly-ml-admin.php:880
 msgid "e.g. This article is also available in your language"
 msgstr ""
 
-#: includes/multilingual/class-easyrankly-ml-admin.php:884
+#: includes/multilingual/class-erankly-ml-admin.php:884
 msgid "Text"
 msgstr ""
 
-#: includes/multilingual/class-easyrankly-ml-admin.php:891
+#: includes/multilingual/class-erankly-ml-admin.php:891
 msgid "e.g. Read this content in {language}."
 msgstr ""
 
-#: includes/multilingual/class-easyrankly-ml-admin.php:895
+#: includes/multilingual/class-erankly-ml-admin.php:895
 msgid "Link label"
 msgstr ""
 
-#: includes/multilingual/class-easyrankly-ml-admin.php:902
+#: includes/multilingual/class-erankly-ml-admin.php:902
 msgid "e.g. Read the {language} version"
 msgstr ""
 
-#: includes/multilingual/class-easyrankly-ml-admin.php:911
+#: includes/multilingual/class-erankly-ml-admin.php:911
 msgid "Save Changes"
 msgstr ""
 
-#: includes/multilingual/class-easyrankly-ml-admin.php:916
+#: includes/multilingual/class-erankly-ml-admin.php:916
 msgid "Frontend Shortcodes"
 msgstr ""
 
-#: includes/multilingual/class-easyrankly-ml-admin.php:918
+#: includes/multilingual/class-erankly-ml-admin.php:918
 msgid "Drop either shortcode into your single-post templates or post content to give readers a language-switching UI."
 msgstr ""
 
-#: includes/multilingual/class-easyrankly-ml-admin.php:921
+#: includes/multilingual/class-erankly-ml-admin.php:921
 msgid "1. Language Switcher"
 msgstr ""
 
-#: includes/multilingual/class-easyrankly-ml-admin.php:923
+#: includes/multilingual/class-erankly-ml-admin.php:923
 msgid "Renders a <select> listing all linked translation languages. Selecting one navigates the visitor to that version of the article."
 msgstr ""
 
-#: includes/multilingual/class-easyrankly-ml-admin.php:929
-#: includes/multilingual/class-easyrankly-ml-admin.php:963
+#: includes/multilingual/class-erankly-ml-admin.php:929
+#: includes/multilingual/class-erankly-ml-admin.php:963
 msgid "Attribute"
 msgstr ""
 
-#: includes/multilingual/class-easyrankly-ml-admin.php:931
-#: includes/multilingual/class-easyrankly-ml-admin.php:965
+#: includes/multilingual/class-erankly-ml-admin.php:931
+#: includes/multilingual/class-erankly-ml-admin.php:965
 msgid "Description"
 msgstr ""
 
-#: includes/multilingual/class-easyrankly-ml-admin.php:937
-#: includes/multilingual/class-easyrankly-ml-admin.php:981
+#: includes/multilingual/class-erankly-ml-admin.php:937
+#: includes/multilingual/class-erankly-ml-admin.php:981
 msgid "none"
 msgstr ""
 
-#: includes/multilingual/class-easyrankly-ml-admin.php:938
+#: includes/multilingual/class-erankly-ml-admin.php:938
 msgid "Extra CSS class(es) added to the <form> wrapper."
 msgstr ""
 
-#: includes/multilingual/class-easyrankly-ml-admin.php:942
-#: includes/multilingual/class-easyrankly-ml-shortcodes.php:102
+#: includes/multilingual/class-erankly-ml-admin.php:942
+#: includes/multilingual/class-erankly-ml-shortcodes.php:102
 msgid "Choose a language"
 msgstr ""
 
-#: includes/multilingual/class-easyrankly-ml-admin.php:943
+#: includes/multilingual/class-erankly-ml-admin.php:943
 msgid "Accessible (screen-reader) label for the <select>. Visible to assistive technology only."
 msgstr ""
 
-#: includes/multilingual/class-easyrankly-ml-admin.php:948
+#: includes/multilingual/class-erankly-ml-admin.php:948
 msgid "Example:"
 msgstr ""
 
-#: includes/multilingual/class-easyrankly-ml-admin.php:952
+#: includes/multilingual/class-erankly-ml-admin.php:952
 msgid "2. Translation Notice"
 msgstr ""
 
-#: includes/multilingual/class-easyrankly-ml-admin.php:954
+#: includes/multilingual/class-erankly-ml-admin.php:954
 msgid "Renders a dismissible notice <div>. It stays hidden server-side and is revealed by JavaScript only when the visitor's browser language matches an available translation, then displays the text configured for that language in the \"Translation Notice texts\" section above. When no version exists in the reader's language the card stays completely invisible. Dismissals are remembered in localStorage."
 msgstr ""
 
-#: includes/multilingual/class-easyrankly-ml-admin.php:958
+#: includes/multilingual/class-erankly-ml-admin.php:958
 msgid "The notice texts are no longer passed as attributes: they are managed globally per language in the section above, so the banner always appears in the reader's own language. Only presentation attributes remain:"
 msgstr ""
 
-#: includes/multilingual/class-easyrankly-ml-admin.php:972
+#: includes/multilingual/class-erankly-ml-admin.php:972
 msgid "HTML tag for the heading. Allowed: h1 h2 h3 h4 h5 h6 p span div."
 msgstr ""
 
-#: includes/multilingual/class-easyrankly-ml-admin.php:977
+#: includes/multilingual/class-erankly-ml-admin.php:977
 msgid "HTML tag for the paragraph. Allowed: p span div."
 msgstr ""
 
-#: includes/multilingual/class-easyrankly-ml-admin.php:982
+#: includes/multilingual/class-erankly-ml-admin.php:982
 msgid "Extra CSS class(es) added to the <div> wrapper."
 msgstr ""
 
-#: includes/multilingual/class-easyrankly-ml-admin.php:988
+#: includes/multilingual/class-erankly-ml-admin.php:988
 msgid "The {language} token (inside the global texts) is replaced client-side with the matched translation's native language name (e.g. \"Italiano\"). Example:"
 msgstr ""
 
-#: includes/multilingual/class-easyrankly-ml-shortcodes.php:259
+#: includes/multilingual/class-erankly-ml-shortcodes.php:259
 msgid "Dismiss"
 msgstr ""
 
-#: includes/redirects/class-easyrankly-redirects-admin.php:110
+#: includes/redirects/class-erankly-redirects-admin.php:110
 msgid "Edit Redirect"
 msgstr ""
 
-#: includes/redirects/class-easyrankly-redirects-admin.php:110
-#: includes/redirects/class-easyrankly-redirects-admin.php:272
+#: includes/redirects/class-erankly-redirects-admin.php:110
+#: includes/redirects/class-erankly-redirects-admin.php:272
 msgid "Add Redirect"
 msgstr ""
 
-#: includes/redirects/class-easyrankly-redirects-admin.php:119
-#: includes/redirects/class-easyrankly-redirects-admin.php:120
+#: includes/redirects/class-erankly-redirects-admin.php:119
+#: includes/redirects/class-erankly-redirects-admin.php:120
 msgid "Search source path"
 msgstr ""
 
-#: includes/redirects/class-easyrankly-redirects-admin.php:121
+#: includes/redirects/class-erankly-redirects-admin.php:121
 msgid "Search"
 msgstr ""
 
-#: includes/redirects/class-easyrankly-redirects-admin.php:123
+#: includes/redirects/class-erankly-redirects-admin.php:123
 msgid "Clear"
 msgstr ""
 
-#: includes/redirects/class-easyrankly-redirects-admin.php:144
+#: includes/redirects/class-erankly-redirects-admin.php:144
 msgid "Please check the redirect fields and try again."
 msgstr ""
 
-#: includes/redirects/class-easyrankly-redirects-admin.php:146
+#: includes/redirects/class-erankly-redirects-admin.php:146
 msgid "The redirect could not be saved. A duplicate source may already exist."
 msgstr ""
 
-#: includes/redirects/class-easyrankly-redirects-admin.php:147
+#: includes/redirects/class-erankly-redirects-admin.php:147
 msgid "The redirect could not be deleted."
 msgstr ""
 
-#: includes/redirects/class-easyrankly-redirects-admin.php:148
+#: includes/redirects/class-erankly-redirects-admin.php:148
 msgid "The redirect status could not be changed."
 msgstr ""
 
-#: includes/redirects/class-easyrankly-redirects-admin.php:150
+#: includes/redirects/class-erankly-redirects-admin.php:150
 msgid "An error occurred."
 msgstr ""
 
-#: includes/redirects/class-easyrankly-redirects-admin.php:160
+#: includes/redirects/class-erankly-redirects-admin.php:160
 msgid "Redirect created."
 msgstr ""
 
-#: includes/redirects/class-easyrankly-redirects-admin.php:161
+#: includes/redirects/class-erankly-redirects-admin.php:161
 msgid "Redirect updated."
 msgstr ""
 
-#: includes/redirects/class-easyrankly-redirects-admin.php:162
+#: includes/redirects/class-erankly-redirects-admin.php:162
 msgid "Redirect deleted."
 msgstr ""
 
-#: includes/redirects/class-easyrankly-redirects-admin.php:163
+#: includes/redirects/class-erankly-redirects-admin.php:163
 msgid "Redirect status updated."
 msgstr ""
 
-#: includes/redirects/class-easyrankly-redirects-admin.php:206
+#: includes/redirects/class-erankly-redirects-admin.php:206
 msgid "Source URL"
 msgstr ""
 
-#: includes/redirects/class-easyrankly-redirects-admin.php:211
+#: includes/redirects/class-erankly-redirects-admin.php:211
 msgid "Target URL"
 msgstr ""
 
-#: includes/redirects/class-easyrankly-redirects-admin.php:217
+#: includes/redirects/class-erankly-redirects-admin.php:217
 msgid "HTTP Code"
 msgstr ""
 
-#: includes/redirects/class-easyrankly-redirects-admin.php:228
+#: includes/redirects/class-erankly-redirects-admin.php:228
 msgid "Apply to"
 msgstr ""
 
-#: includes/redirects/class-easyrankly-redirects-admin.php:230
-#: includes/redirects/class-easyrankly-redirects-admin.php:386
+#: includes/redirects/class-erankly-redirects-admin.php:230
+#: includes/redirects/class-erankly-redirects-admin.php:386
 msgid "Everyone"
 msgstr ""
 
-#: includes/redirects/class-easyrankly-redirects-admin.php:231
+#: includes/redirects/class-erankly-redirects-admin.php:231
 msgid "Logged-out users only"
 msgstr ""
 
-#: includes/redirects/class-easyrankly-redirects-admin.php:232
+#: includes/redirects/class-erankly-redirects-admin.php:232
 msgid "Logged-in users only"
 msgstr ""
 
-#: includes/redirects/class-easyrankly-redirects-admin.php:239
+#: includes/redirects/class-erankly-redirects-admin.php:239
 msgid "Required role"
 msgstr ""
 
-#: includes/redirects/class-easyrankly-redirects-admin.php:241
+#: includes/redirects/class-erankly-redirects-admin.php:241
 msgid "— Any logged-in user —"
 msgstr ""
 
-#: includes/redirects/class-easyrankly-redirects-admin.php:249
+#: includes/redirects/class-erankly-redirects-admin.php:249
 msgid "Only applies when \"Apply to\" is set to logged-in users."
 msgstr ""
 
-#: includes/redirects/class-easyrankly-redirects-admin.php:253
+#: includes/redirects/class-erankly-redirects-admin.php:253
 msgid "Match type"
 msgstr ""
 
-#: includes/redirects/class-easyrankly-redirects-admin.php:255
-#: includes/redirects/class-easyrankly-redirects-admin.php:404
+#: includes/redirects/class-erankly-redirects-admin.php:255
+#: includes/redirects/class-erankly-redirects-admin.php:404
 msgid "Exact"
 msgstr ""
 
-#: includes/redirects/class-easyrankly-redirects-admin.php:256
+#: includes/redirects/class-erankly-redirects-admin.php:256
 msgid "Wildcard  (*)"
 msgstr ""
 
-#: includes/redirects/class-easyrankly-redirects-admin.php:257
-#: includes/redirects/class-easyrankly-redirects-admin.php:401
+#: includes/redirects/class-erankly-redirects-admin.php:257
+#: includes/redirects/class-erankly-redirects-admin.php:401
 msgid "Regex"
 msgstr ""
 
-#: includes/redirects/class-easyrankly-redirects-admin.php:259
+#: includes/redirects/class-erankly-redirects-admin.php:259
 msgid "Exact: literal path. Wildcard: use * in source and target (e.g. /old/* → /new/*). Regex: full regular expression."
 msgstr ""
 
-#: includes/redirects/class-easyrankly-redirects-admin.php:263
+#: includes/redirects/class-erankly-redirects-admin.php:263
 msgid "Note"
 msgstr ""
 
-#: includes/redirects/class-easyrankly-redirects-admin.php:263
+#: includes/redirects/class-erankly-redirects-admin.php:263
 msgid "(optional)"
 msgstr ""
 
-#: includes/redirects/class-easyrankly-redirects-admin.php:269
-#: includes/redirects/class-easyrankly-redirects-admin.php:294
+#: includes/redirects/class-erankly-redirects-admin.php:269
+#: includes/redirects/class-erankly-redirects-admin.php:294
 msgid "Active"
 msgstr ""
 
-#: includes/redirects/class-easyrankly-redirects-admin.php:272
+#: includes/redirects/class-erankly-redirects-admin.php:272
 msgid "Update Redirect"
 msgstr ""
 
-#: includes/redirects/class-easyrankly-redirects-admin.php:274
+#: includes/redirects/class-erankly-redirects-admin.php:274
 msgid "Cancel"
 msgstr ""
 
-#: includes/redirects/class-easyrankly-redirects-admin.php:290
+#: includes/redirects/class-erankly-redirects-admin.php:290
 msgid "Source"
 msgstr ""
 
-#: includes/redirects/class-easyrankly-redirects-admin.php:291
+#: includes/redirects/class-erankly-redirects-admin.php:291
 msgid "Target"
 msgstr ""
 
-#: includes/redirects/class-easyrankly-redirects-admin.php:292
+#: includes/redirects/class-erankly-redirects-admin.php:292
 msgid "Code"
 msgstr ""
 
-#: includes/redirects/class-easyrankly-redirects-admin.php:293
+#: includes/redirects/class-erankly-redirects-admin.php:293
 msgid "Type"
 msgstr ""
 
-#: includes/redirects/class-easyrankly-redirects-admin.php:295
+#: includes/redirects/class-erankly-redirects-admin.php:295
 msgid "Condition"
 msgstr ""
 
-#: includes/redirects/class-easyrankly-redirects-admin.php:296
+#: includes/redirects/class-erankly-redirects-admin.php:296
 msgid "Estimated Hits"
 msgstr ""
 
-#: includes/redirects/class-easyrankly-redirects-admin.php:297
+#: includes/redirects/class-erankly-redirects-admin.php:297
 msgid "Last Sampled Hit"
 msgstr ""
 
-#: includes/redirects/class-easyrankly-redirects-admin.php:298
+#: includes/redirects/class-erankly-redirects-admin.php:298
 msgid "Actions"
 msgstr ""
 
-#: includes/redirects/class-easyrankly-redirects-admin.php:303
+#: includes/redirects/class-erankly-redirects-admin.php:303
 msgid "No redirects found."
 msgstr ""
 
-#: includes/redirects/class-easyrankly-redirects-admin.php:343
+#: includes/redirects/class-erankly-redirects-admin.php:343
 msgid "Never"
 msgstr ""
 
-#: includes/redirects/class-easyrankly-redirects-admin.php:345
+#: includes/redirects/class-erankly-redirects-admin.php:345
 msgid "Edit"
 msgstr ""
 
-#: includes/redirects/class-easyrankly-redirects-admin.php:346
+#: includes/redirects/class-erankly-redirects-admin.php:346
 msgid "Disable"
 msgstr ""
 
-#: includes/redirects/class-easyrankly-redirects-admin.php:346
+#: includes/redirects/class-erankly-redirects-admin.php:346
 msgid "Enable"
 msgstr ""
 
-#: includes/redirects/class-easyrankly-redirects-admin.php:368
+#: includes/redirects/class-erankly-redirects-admin.php:368
 msgid "Logged-out only"
 msgstr ""
 
 #. translators: %s: role name.
-#: includes/redirects/class-easyrankly-redirects-admin.php:378
+#: includes/redirects/class-erankly-redirects-admin.php:378
 #, php-format
 msgid "Logged-in (%s)"
 msgstr ""
 
-#: includes/redirects/class-easyrankly-redirects-admin.php:383
+#: includes/redirects/class-erankly-redirects-admin.php:383
 msgid "Logged-in only"
 msgstr ""
 
-#: includes/redirects/class-easyrankly-redirects-admin.php:397
+#: includes/redirects/class-erankly-redirects-admin.php:397
 msgid "Wildcard"
 msgstr ""
 
-#: includes/redirects/class-easyrankly-redirects-admin.php:434
+#: includes/redirects/class-erankly-redirects-admin.php:434
 msgid "&laquo;"
 msgstr ""
 
-#: includes/redirects/class-easyrankly-redirects-admin.php:435
+#: includes/redirects/class-erankly-redirects-admin.php:435
 msgid "&raquo;"
 msgstr ""
 

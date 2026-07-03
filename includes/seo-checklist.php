@@ -12,12 +12,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Minimum featured image width recommended for social sharing.
  */
-const EASYRANKLY_SEO_CHECKLIST_IMAGE_WIDTH = 1200;
+const ERANKLY_SEO_CHECKLIST_IMAGE_WIDTH = 1200;
 
 /**
  * Minimum featured image height recommended for social sharing.
  */
-const EASYRANKLY_SEO_CHECKLIST_IMAGE_HEIGHT = 630;
+const ERANKLY_SEO_CHECKLIST_IMAGE_HEIGHT = 630;
 
 /**
  * Returns the saved SEO checklist preference.
@@ -26,8 +26,8 @@ const EASYRANKLY_SEO_CHECKLIST_IMAGE_HEIGHT = 630;
  *
  * @return bool
  */
-function easyrankly_seo_checklist_preference_enabled(): bool {
-	return (bool) easyrankly_get_setting( 'enable_seo_checklist', 1 );
+function erankly_seo_checklist_preference_enabled(): bool {
+	return (bool) erankly_get_setting( 'enable_seo_checklist', 1 );
 }
 
 /**
@@ -38,9 +38,9 @@ function easyrankly_seo_checklist_preference_enabled(): bool {
  *
  * @return bool
  */
-function easyrankly_seo_checklist_enabled(): bool {
-	return (bool) easyrankly_get_setting( 'simplified_mode', 1 )
-		&& easyrankly_seo_checklist_preference_enabled();
+function erankly_seo_checklist_enabled(): bool {
+	return (bool) erankly_get_setting( 'simplified_mode', 1 )
+		&& erankly_seo_checklist_preference_enabled();
 }
 
 /**
@@ -48,13 +48,13 @@ function easyrankly_seo_checklist_enabled(): bool {
  *
  * @return string
  */
-function easyrankly_seo_checklist_docs_url(): string {
+function erankly_seo_checklist_docs_url(): string {
 	/**
 	 * Filters the SEO checklist documentation URL.
 	 *
 	 * @param string $url Documentation URL.
 	 */
-	return (string) apply_filters( 'easyrankly_seo_checklist_docs_url', 'https://docs.easyrankly.com/seo-checklist/' );
+	return (string) apply_filters( 'erankly_seo_checklist_docs_url', 'https://docs.easyrankly.com/seo-checklist/' );
 }
 
 /**
@@ -62,23 +62,23 @@ function easyrankly_seo_checklist_docs_url(): string {
  *
  * @return void
  */
-function easyrankly_seo_checklist_boot(): void {
-	if ( ! easyrankly_seo_checklist_enabled() ) {
+function erankly_seo_checklist_boot(): void {
+	if ( ! erankly_seo_checklist_enabled() ) {
 		return;
 	}
 
 	if ( is_admin() ) {
-		add_action( 'admin_enqueue_scripts', 'easyrankly_seo_checklist_admin_enqueue' );
-		add_action( 'admin_footer', 'easyrankly_seo_checklist_render_admin' );
+		add_action( 'admin_enqueue_scripts', 'erankly_seo_checklist_admin_enqueue' );
+		add_action( 'admin_footer', 'erankly_seo_checklist_render_admin' );
 		return;
 	}
 
-	if ( ! easyrankly_is_frontend_html_request() ) {
+	if ( ! erankly_is_frontend_html_request() ) {
 		return;
 	}
 
-	add_action( 'wp_enqueue_scripts', 'easyrankly_seo_checklist_frontend_enqueue' );
-	add_action( 'wp_footer', 'easyrankly_seo_checklist_render_frontend' );
+	add_action( 'wp_enqueue_scripts', 'erankly_seo_checklist_frontend_enqueue' );
+	add_action( 'wp_footer', 'erankly_seo_checklist_render_frontend' );
 }
 
 /**
@@ -86,14 +86,14 @@ function easyrankly_seo_checklist_boot(): void {
  *
  * @return WP_Post|null
  */
-function easyrankly_seo_checklist_get_admin_post(): ?WP_Post {
+function erankly_seo_checklist_get_admin_post(): ?WP_Post {
 	$screen = get_current_screen();
 
 	if ( ! $screen instanceof WP_Screen || 'post' !== $screen->base ) {
 		return null;
 	}
 
-	if ( ! array_key_exists( $screen->post_type, easyrankly_get_public_post_types() ) ) {
+	if ( ! array_key_exists( $screen->post_type, erankly_get_public_post_types() ) ) {
 		return null;
 	}
 
@@ -107,7 +107,7 @@ function easyrankly_seo_checklist_get_admin_post(): ?WP_Post {
  *
  * @return WP_Post|null
  */
-function easyrankly_seo_checklist_get_frontend_post(): ?WP_Post {
+function erankly_seo_checklist_get_frontend_post(): ?WP_Post {
 	if ( ! is_singular() || is_preview() || is_customize_preview() ) {
 		return null;
 	}
@@ -118,7 +118,7 @@ function easyrankly_seo_checklist_get_frontend_post(): ?WP_Post {
 		return null;
 	}
 
-	if ( ! array_key_exists( $post->post_type, easyrankly_get_public_post_types() ) ) {
+	if ( ! array_key_exists( $post->post_type, erankly_get_public_post_types() ) ) {
 		return null;
 	}
 
@@ -134,8 +134,8 @@ function easyrankly_seo_checklist_get_frontend_post(): ?WP_Post {
  *
  * @return void
  */
-function easyrankly_seo_checklist_admin_enqueue(): void {
-	if ( ! easyrankly_seo_checklist_get_admin_post() instanceof WP_Post ) {
+function erankly_seo_checklist_admin_enqueue(): void {
+	if ( ! erankly_seo_checklist_get_admin_post() instanceof WP_Post ) {
 		return;
 	}
 
@@ -147,7 +147,7 @@ function easyrankly_seo_checklist_admin_enqueue(): void {
 		? array( 'wp-data', 'wp-edit-post' )
 		: array( 'wp-api-fetch' );
 
-	easyrankly_seo_checklist_enqueue_assets( $deps );
+	erankly_seo_checklist_enqueue_assets( $deps );
 }
 
 /**
@@ -155,12 +155,12 @@ function easyrankly_seo_checklist_admin_enqueue(): void {
  *
  * @return void
  */
-function easyrankly_seo_checklist_frontend_enqueue(): void {
-	if ( ! easyrankly_seo_checklist_get_frontend_post() instanceof WP_Post ) {
+function erankly_seo_checklist_frontend_enqueue(): void {
+	if ( ! erankly_seo_checklist_get_frontend_post() instanceof WP_Post ) {
 		return;
 	}
 
-	easyrankly_seo_checklist_enqueue_assets( array() );
+	erankly_seo_checklist_enqueue_assets( array() );
 }
 
 /**
@@ -169,19 +169,19 @@ function easyrankly_seo_checklist_frontend_enqueue(): void {
  * @param array<int,string> $script_deps Script dependencies.
  * @return void
  */
-function easyrankly_seo_checklist_enqueue_assets( array $script_deps ): void {
+function erankly_seo_checklist_enqueue_assets( array $script_deps ): void {
 	wp_enqueue_style(
-		'easyrankly-seo-checklist',
-		EASYRANKLY_URL . 'assets/css/seo-checklist.css',
+		'erankly-seo-checklist',
+		ERANKLY_URL . 'assets/css/seo-checklist.css',
 		array(),
-		EASYRANKLY_VERSION
+		ERANKLY_VERSION
 	);
 
 	wp_enqueue_script(
-		'easyrankly-seo-checklist',
-		EASYRANKLY_URL . 'assets/js/seo-checklist.js',
+		'erankly-seo-checklist',
+		ERANKLY_URL . 'assets/js/seo-checklist.js',
 		$script_deps,
-		EASYRANKLY_VERSION,
+		ERANKLY_VERSION,
 		true
 	);
 }
@@ -191,11 +191,11 @@ function easyrankly_seo_checklist_enqueue_assets( array $script_deps ): void {
  *
  * @return void
  */
-function easyrankly_seo_checklist_render_admin(): void {
-	$post = easyrankly_seo_checklist_get_admin_post();
+function erankly_seo_checklist_render_admin(): void {
+	$post = erankly_seo_checklist_get_admin_post();
 
 	if ( $post instanceof WP_Post ) {
-		easyrankly_render_seo_checklist( $post );
+		erankly_render_seo_checklist( $post );
 	}
 }
 
@@ -204,11 +204,11 @@ function easyrankly_seo_checklist_render_admin(): void {
  *
  * @return void
  */
-function easyrankly_seo_checklist_render_frontend(): void {
-	$post = easyrankly_seo_checklist_get_frontend_post();
+function erankly_seo_checklist_render_frontend(): void {
+	$post = erankly_seo_checklist_get_frontend_post();
 
 	if ( $post instanceof WP_Post ) {
-		easyrankly_render_seo_checklist( $post );
+		erankly_render_seo_checklist( $post );
 	}
 }
 
@@ -218,25 +218,25 @@ function easyrankly_seo_checklist_render_frontend(): void {
  * @param int $post_id Post ID.
  * @return array<string,array{label:string,done:bool}>
  */
-function easyrankly_get_seo_checklist_items( int $post_id ): array {
+function erankly_get_seo_checklist_items( int $post_id ): array {
 	$thumbnail_done = false;
 	$thumbnail_id   = (int) get_post_thumbnail_id( $post_id );
 
 	if ( $thumbnail_id > 0 ) {
 		$image          = wp_get_attachment_image_src( $thumbnail_id, 'full' );
 		$thumbnail_done = is_array( $image )
-			&& (int) $image[1] >= EASYRANKLY_SEO_CHECKLIST_IMAGE_WIDTH
-			&& (int) $image[2] >= EASYRANKLY_SEO_CHECKLIST_IMAGE_HEIGHT;
+			&& (int) $image[1] >= ERANKLY_SEO_CHECKLIST_IMAGE_WIDTH
+			&& (int) $image[2] >= ERANKLY_SEO_CHECKLIST_IMAGE_HEIGHT;
 	}
 
 	return array(
 		'title'          => array(
 			'label' => __( 'Meta title', 'easyrankly' ),
-			'done'  => '' !== easyrankly_get_post_meta_string( $post_id, 'title' ),
+			'done'  => '' !== erankly_get_post_meta_string( $post_id, 'title' ),
 		),
 		'description'    => array(
 			'label' => __( 'Meta description', 'easyrankly' ),
-			'done'  => '' !== easyrankly_get_post_meta_string( $post_id, 'description' ),
+			'done'  => '' !== erankly_get_post_meta_string( $post_id, 'description' ),
 		),
 		'featured_image' => array(
 			'label' => __( 'Featured image', 'easyrankly' ),
@@ -251,7 +251,7 @@ function easyrankly_get_seo_checklist_items( int $post_id ): array {
  * @param array<string,array{label:string,done:bool}> $items Checklist items.
  * @return string One of 'incomplete', 'partial' or 'complete'.
  */
-function easyrankly_get_seo_checklist_status( array $items ): string {
+function erankly_get_seo_checklist_status( array $items ): string {
 	$done = count( array_filter( wp_list_pluck( $items, 'done' ) ) );
 
 	if ( 0 === $done ) {
@@ -267,37 +267,37 @@ function easyrankly_get_seo_checklist_status( array $items ): string {
  * @param WP_Post $post Post object.
  * @return void
  */
-function easyrankly_render_seo_checklist( WP_Post $post ): void {
-	$items  = easyrankly_get_seo_checklist_items( $post->ID );
-	$status = easyrankly_get_seo_checklist_status( $items );
+function erankly_render_seo_checklist( WP_Post $post ): void {
+	$items  = erankly_get_seo_checklist_items( $post->ID );
+	$status = erankly_get_seo_checklist_status( $items );
 	$done   = count( array_filter( wp_list_pluck( $items, 'done' ) ) );
 	?>
-	<div class="easyrankly-seo-checklist is-<?php echo esc_attr( $status ); ?>" data-easyrankly-seo-checklist data-easyrankly-min-width="<?php echo esc_attr( (string) EASYRANKLY_SEO_CHECKLIST_IMAGE_WIDTH ); ?>" data-easyrankly-min-height="<?php echo esc_attr( (string) EASYRANKLY_SEO_CHECKLIST_IMAGE_HEIGHT ); ?>">
-		<div class="easyrankly-seo-checklist-panel" id="easyrankly-seo-checklist-panel" data-easyrankly-seo-checklist-panel hidden>
-			<div class="easyrankly-seo-checklist-header">
-				<span class="easyrankly-seo-checklist-title"><?php esc_html_e( 'SEO checklist', 'easyrankly' ); ?></span>
-				<span class="easyrankly-seo-checklist-count" data-easyrankly-seo-checklist-count><?php echo esc_html( $done . '/' . count( $items ) ); ?></span>
+	<div class="erankly-seo-checklist is-<?php echo esc_attr( $status ); ?>" data-erankly-seo-checklist data-erankly-min-width="<?php echo esc_attr( (string) ERANKLY_SEO_CHECKLIST_IMAGE_WIDTH ); ?>" data-erankly-min-height="<?php echo esc_attr( (string) ERANKLY_SEO_CHECKLIST_IMAGE_HEIGHT ); ?>">
+		<div class="erankly-seo-checklist-panel" id="erankly-seo-checklist-panel" data-erankly-seo-checklist-panel hidden>
+			<div class="erankly-seo-checklist-header">
+				<span class="erankly-seo-checklist-title"><?php esc_html_e( 'SEO checklist', 'easyrankly' ); ?></span>
+				<span class="erankly-seo-checklist-count" data-erankly-seo-checklist-count><?php echo esc_html( $done . '/' . count( $items ) ); ?></span>
 			</div>
-			<ul class="easyrankly-seo-checklist-items">
+			<ul class="erankly-seo-checklist-items">
 				<?php foreach ( $items as $key => $item ) : ?>
-				<li class="easyrankly-seo-checklist-item<?php echo $item['done'] ? ' is-done' : ''; ?>" data-easyrankly-seo-checklist-item="<?php echo esc_attr( $key ); ?>">
-					<span class="easyrankly-seo-checklist-check" aria-hidden="true">
+				<li class="erankly-seo-checklist-item<?php echo $item['done'] ? ' is-done' : ''; ?>" data-erankly-seo-checklist-item="<?php echo esc_attr( $key ); ?>">
+					<span class="erankly-seo-checklist-check" aria-hidden="true">
 						<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg>
 					</span>
-					<span class="easyrankly-seo-checklist-label"><?php echo esc_html( $item['label'] ); ?></span>
+					<span class="erankly-seo-checklist-label"><?php echo esc_html( $item['label'] ); ?></span>
 				</li>
 				<?php endforeach; ?>
 			</ul>
-			<a class="easyrankly-seo-checklist-docs" href="<?php echo esc_url( easyrankly_seo_checklist_docs_url() ); ?>" target="_blank" rel="noopener noreferrer">
+			<a class="erankly-seo-checklist-docs" href="<?php echo esc_url( erankly_seo_checklist_docs_url() ); ?>" target="_blank" rel="noopener noreferrer">
 				<?php esc_html_e( 'How to do it', 'easyrankly' ); ?>
 				<span aria-hidden="true">&rarr;</span>
 			</a>
 		</div>
-		<div class="easyrankly-seo-checklist-actions">
-			<button type="button" class="easyrankly-seo-checklist-hide" data-easyrankly-seo-checklist-hide>
+		<div class="erankly-seo-checklist-actions">
+			<button type="button" class="erankly-seo-checklist-hide" data-erankly-seo-checklist-hide>
 				<?php esc_html_e( 'Hide for 10 seconds', 'easyrankly' ); ?>
 			</button>
-			<button type="button" class="easyrankly-seo-checklist-toggle" data-easyrankly-seo-checklist-toggle aria-expanded="false" aria-controls="easyrankly-seo-checklist-panel" aria-label="<?php esc_attr_e( 'SEO checklist', 'easyrankly' ); ?>">
+			<button type="button" class="erankly-seo-checklist-toggle" data-erankly-seo-checklist-toggle aria-expanded="false" aria-controls="erankly-seo-checklist-panel" aria-label="<?php esc_attr_e( 'SEO checklist', 'easyrankly' ); ?>">
 				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
 					<path d="M3 5.5l1.5 1.5L7 4.5"></path>
 					<path d="M3 12l1.5 1.5L7 11"></path>

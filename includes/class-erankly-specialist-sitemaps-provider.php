@@ -12,12 +12,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Injects specialist sitemaps into the core wp-sitemap.xml index.
  */
-final class EasyRankly_Specialist_Sitemaps_Provider extends WP_Sitemaps_Provider {
+final class ERankly_Specialist_Sitemaps_Provider extends WP_Sitemaps_Provider {
 	/**
 	 * Constructor.
 	 */
 	public function __construct() {
-		$this->name = 'easyrankly';
+		$this->name = 'erankly';
 	}
 
 	/**
@@ -28,18 +28,18 @@ final class EasyRankly_Specialist_Sitemaps_Provider extends WP_Sitemaps_Provider
 	public function get_sitemap_entries(): array {
 		$entries = array();
 
-		if ( (bool) easyrankly_get_setting( 'enable_news_sitemap', 0 ) && easyrankly_count_news_sitemap_posts() > 0 ) {
+		if ( (bool) erankly_get_setting( 'enable_news_sitemap', 0 ) && erankly_count_news_sitemap_posts() > 0 ) {
 			$entries[] = array(
 				'loc'     => $this->get_specialist_sitemap_url( 'news', 1 ),
-				'lastmod' => easyrankly_get_news_sitemap_lastmod(),
+				'lastmod' => erankly_get_news_sitemap_lastmod(),
 			);
 		}
 
-		if ( (bool) easyrankly_get_setting( 'enable_image_sitemap', 0 ) ) {
-			$image_count = easyrankly_count_image_sitemap_items();
+		if ( (bool) erankly_get_setting( 'enable_image_sitemap', 0 ) ) {
+			$image_count = erankly_count_image_sitemap_items();
 
 			if ( $image_count > 0 ) {
-				$pages = (int) ceil( $image_count / EASYRANKLY_SITEMAP_PER_PAGE );
+				$pages = (int) ceil( $image_count / ERANKLY_SITEMAP_PER_PAGE );
 
 				for ( $page = 1; $page <= $pages; $page++ ) {
 					$entries[] = array(
@@ -49,11 +49,11 @@ final class EasyRankly_Specialist_Sitemaps_Provider extends WP_Sitemaps_Provider
 			}
 		}
 
-		if ( (bool) easyrankly_get_setting( 'enable_video_sitemap', 0 ) ) {
-			$video_count = easyrankly_count_video_sitemap_posts();
+		if ( (bool) erankly_get_setting( 'enable_video_sitemap', 0 ) ) {
+			$video_count = erankly_count_video_sitemap_posts();
 
 			if ( $video_count > 0 ) {
-				$pages = (int) ceil( $video_count / EASYRANKLY_SITEMAP_PER_PAGE );
+				$pages = (int) ceil( $video_count / ERANKLY_SITEMAP_PER_PAGE );
 
 				for ( $page = 1; $page <= $pages; $page++ ) {
 					$entries[] = array(
@@ -99,7 +99,7 @@ final class EasyRankly_Specialist_Sitemaps_Provider extends WP_Sitemaps_Provider
 		global $wp_rewrite;
 
 		if ( ! $wp_rewrite->using_permalinks() ) {
-			return home_url( '/?easyrankly_sitemap=' . $type . '&easyrankly_sitemap_page=' . $page );
+			return home_url( '/?erankly_sitemap=' . $type . '&erankly_sitemap_page=' . $page );
 		}
 
 		return home_url( sprintf( '/sitemap-%s-%d.xml', $type, $page ) );

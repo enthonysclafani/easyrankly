@@ -1,38 +1,38 @@
-.easyrankly-settings form {
+.erankly-settings form {
 	margin-top: 16px;
 	max-width: 1180px;
 }
 
-.easyrankly-settings-fields,
-.easyrankly-defaults-section,
-.easyrankly-schema-block,
-.easyrankly-schema-builder,
-.easyrankly-io {
+.erankly-settings-fields,
+.erankly-defaults-section,
+.erankly-schema-block,
+.erankly-schema-builder,
+.erankly-io {
 	max-width: 920px;
 }
 
-.easyrankly-field {
+.erankly-field {
 	margin: 0 0 16px;
 	min-width: 0;
 }
 
 /*
- * Shared admin UI classes. Several selectors below (easyrankly-section-divider,
- * easyrankly-status-description, easyrankly-inline-status, easyrankly-error-text,
- * easyrankly-option-list*, easyrankly-settings-table, is-success/is-error) are
+ * Shared admin UI classes. Several selectors below (erankly-section-divider,
+ * erankly-status-description, erankly-inline-status, erankly-error-text,
+ * erankly-option-list*, erankly-settings-table, is-success/is-error) are
  * not referenced by the free plugin's own markup: they are consumed by the
  * EasyRankly Pro add-on, which renders its panels inside this settings screen.
  * Do not remove them as "unused".
  */
-.easyrankly-section-divider {
+.erankly-section-divider {
 	margin: 24px 0;
 }
 
-.easyrankly-status-description {
+.erankly-status-description {
 	margin: 2px 0 8px;
 }
 
-.easyrankly-inline-status {
+.erankly-inline-status {
 	align-items: center;
 	display: inline-flex;
 	font-size: 12px;
@@ -41,94 +41,94 @@
 	line-height: 1.4;
 }
 
-.easyrankly-inline-status.is-success {
+.erankly-inline-status.is-success {
 	color: #1a7f37;
 }
 
-.easyrankly-inline-status.is-error,
-.easyrankly-error-text {
+.erankly-inline-status.is-error,
+.erankly-error-text {
 	color: #b32d2e;
 }
 
-.easyrankly-inline-status .dashicons {
+.erankly-inline-status .dashicons {
 	font-size: 14px;
 	height: 14px;
 	width: 14px;
 }
 
-.easyrankly-option-list {
+.erankly-option-list {
 	gap: 4px 16px;
 }
 
-.easyrankly-option-list-inline {
+.erankly-option-list-inline {
 	display: flex;
 	flex-wrap: wrap;
 }
 
-.easyrankly-option-list-stacked {
+.erankly-option-list-stacked {
 	display: grid;
 }
 
-.easyrankly-settings-table {
+.erankly-settings-table {
 	max-width: 900px;
 }
 
-.easyrankly-schema-identity-fields,
-.easyrankly-inline-fields {
+.erankly-schema-identity-fields,
+.erankly-inline-fields {
 	column-gap: 16px;
 	display: grid;
 	grid-template-columns: minmax(0, 1fr);
 	row-gap: 6px;
 }
 
-.easyrankly-schema-identity-fields.is-person {
+.erankly-schema-identity-fields.is-person {
 	grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-.easyrankly-schema-identity-fields .easyrankly-field select.widefat,
-.easyrankly-inline-fields .easyrankly-field input.widefat {
+.erankly-schema-identity-fields .erankly-field select.widefat,
+.erankly-inline-fields .erankly-field input.widefat {
 	max-width: none;
 	width: 100%;
 }
 
-.easyrankly-schema-identity-fields .easyrankly-field,
-.easyrankly-inline-fields .easyrankly-field {
+.erankly-schema-identity-fields .erankly-field,
+.erankly-inline-fields .erankly-field {
 	margin-bottom: 0;
 }
 
-.easyrankly-inline-fields {
+.erankly-inline-fields {
 	margin: 8px 0 16px;
 }
 
-.easyrankly-inline-fields-two-columns {
+.erankly-inline-fields-two-columns {
 	grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-.easyrankly-schema-person-reference-description {
+.erankly-schema-person-reference-description {
 	display: block;
 	grid-column: 1 / -1;
 	margin: 0 0 16px;
 }
 
 /* Shared autocomplete used by Person references and multilingual links. */
-.easyrankly-autocomplete-control {
+.erankly-autocomplete-control {
 	align-items: center;
 	display: grid;
 	gap: 8px;
 	grid-template-columns: minmax(0, 1fr) auto;
 }
 
-.easyrankly-autocomplete-value,
-.easyrankly-autocomplete-search {
+.erankly-autocomplete-value,
+.erankly-autocomplete-search {
 	grid-column: 1;
 	min-width: 0;
 }
 
-.easyrankly-autocomplete-search {
+.erankly-autocomplete-search {
 	position: relative;
 }
 
-.easyrankly-autocomplete-results {
+.erankly-autocomplete-results {
 	background: #fff;
 	border: 1px solid #c3c4c7;
 	border-radius: 0 0 4px 4px;
@@ -145,17 +145,17 @@
 	z-index: 1000;
 }
 
-.easyrankly-autocomplete-results li {
+.erankly-autocomplete-results li {
 	border-bottom: 1px solid #f0f0f1;
 	margin: 0;
 	padding: 0;
 }
 
-.easyrankly-autocomplete-results li:last-child {
+.erankly-autocomplete-results li:last-child {
 	border-bottom: none;
 }
 
-.easyrankly-autocomplete-item {
+.erankly-autocomplete-item {
 	background: none;
 	border: 0;
 	cursor: pointer;
@@ -167,53 +167,53 @@
 	width: 100%;
 }
 
-.easyrankly-autocomplete-item:hover,
-.easyrankly-autocomplete-item:focus {
+.erankly-autocomplete-item:hover,
+.erankly-autocomplete-item:focus {
 	background: #f0f6fc;
 	color: #135e96;
 	outline: none;
 }
 
-.easyrankly-autocomplete-status {
+.erankly-autocomplete-status {
 	color: #757575;
 	font-size: 13px;
 	padding: 8px 12px;
 }
 
-.easyrankly-field > label,
-.easyrankly-field > strong,
-.easyrankly-field > legend {
+.erankly-field > label,
+.erankly-field > strong,
+.erankly-field > legend {
 	display: block;
 	margin: 0 0 4px;
 }
 
-.easyrankly-field select.widefat {
+.erankly-field select.widefat {
 	max-width: 360px;
 }
 
 @media screen and (max-width: 782px) {
-	.easyrankly-schema-identity-fields.is-person,
-	.easyrankly-inline-fields-two-columns {
+	.erankly-schema-identity-fields.is-person,
+	.erankly-inline-fields-two-columns {
 		grid-template-columns: minmax(0, 1fr);
 	}
 }
 
-.easyrankly-settings textarea,
-.easyrankly-meta-box textarea {
+.erankly-settings textarea,
+.erankly-meta-box textarea {
 	resize: vertical;
 }
 
-.easyrankly-schema-block {
+.erankly-schema-block {
 	background: #fff;
 	border: 1px solid #949494;
 	border-radius: 4px;
 }
 
-.easyrankly-schema-builder {
+.erankly-schema-builder {
 	margin: 16px 0;
 }
 
-.easyrankly-settings-details {
+.erankly-settings-details {
 	background: #fff;
 	border: 1px solid #949494;
 	border-radius: 4px;
@@ -221,7 +221,7 @@
 	overflow: hidden;
 }
 
-.easyrankly-settings-details > summary {
+.erankly-settings-details > summary {
 	align-items: center;
 	cursor: pointer;
 	display: flex;
@@ -232,16 +232,16 @@
 	padding: 12px 14px;
 }
 
-.easyrankly-settings-details > summary::-webkit-details-marker {
+.erankly-settings-details > summary::-webkit-details-marker {
 	display: none;
 }
 
-.easyrankly-settings-details[open] > summary {
+.erankly-settings-details[open] > summary {
 	border-bottom: 1px solid #949494;
 }
 
-.easyrankly-settings-details > summary::after,
-.easyrankly-schema-block-header::after {
+.erankly-settings-details > summary::after,
+.erankly-schema-block-header::after {
 	border-bottom: 2px solid;
 	border-right: 2px solid;
 	content: "";
@@ -252,34 +252,34 @@
 	width: 7px;
 }
 
-.easyrankly-settings-details > summary::after {
+.erankly-settings-details > summary::after {
 	flex-shrink: 0;
 	margin-left: auto;
 }
 
-.easyrankly-settings-details[open] > summary::after,
-.easyrankly-schema-block[open] > .easyrankly-schema-block-header::after {
+.erankly-settings-details[open] > summary::after,
+.erankly-schema-block[open] > .erankly-schema-block-header::after {
 	transform: rotate(-135deg);
 }
 
-.easyrankly-settings-details-content {
+.erankly-settings-details-content {
 	padding: 16px 14px 1px;
 }
 
-.easyrankly-schema-panel {
+.erankly-schema-panel {
 	padding: 16px 14px 1px;
 }
 
-.easyrankly-local-business-fields {
+.erankly-local-business-fields {
 	margin-top: 16px;
 }
 
-.easyrankly-opening-hours {
+.erankly-opening-hours {
 	border-top: 1px solid #dcdcde;
 	margin: 16px 0;
 }
 
-.easyrankly-opening-hours-row {
+.erankly-opening-hours-row {
 	align-items: center;
 	border-bottom: 1px solid #dcdcde;
 	display: grid;
@@ -288,182 +288,192 @@
 	padding: 10px 0;
 }
 
-.easyrankly-opening-intervals {
+.erankly-opening-intervals {
 	display: flex;
 	flex-wrap: wrap;
 	gap: 8px;
 }
 
-.easyrankly-opening-intervals > span {
+.erankly-opening-intervals > span {
 	align-items: center;
 	display: inline-flex;
 	gap: 5px;
 }
 
 @media screen and (max-width: 782px) {
-	.easyrankly-opening-hours-row {
+	.erankly-opening-hours-row {
 		align-items: start;
 		grid-template-columns: 1fr;
 	}
 }
 
-.easyrankly-defaults-section {
+.erankly-defaults-section {
 	margin-top: 24px;
 }
 
-.easyrankly-defaults-section h3 {
+.erankly-defaults-section h3 {
 	font-size: 14px;
 	margin: 0 0 8px;
 }
 
-.easyrankly-default-tabs {
+.erankly-default-tabs {
 	margin: 0 0 24px;
 }
 
-.easyrankly-default-tabs-bar {
+.erankly-default-tabs-bar {
 	align-items: flex-end;
 	display: flex;
 	gap: 8px;
 }
 
-.easyrankly-default-tabs-bar .easyrankly-tabs {
+.erankly-default-tabs-bar .erankly-tabs {
 	flex: 1 1 auto;
 }
 
-.easyrankly-linked-defaults-toggle {
+.erankly-linked-defaults-toggle {
 	flex: 0 0 auto;
 	margin: 0 4px 4px 0;
 	white-space: nowrap;
 }
 
-.easyrankly-default-linked-label,
-.easyrankly-default-tabs.is-linked .easyrankly-default-entity-label {
+.erankly-default-linked-label,
+.erankly-default-tabs.is-linked .erankly-default-entity-label {
 	display: none;
 }
 
-.easyrankly-default-tabs.is-linked .easyrankly-default-linked-label {
+.erankly-default-tabs.is-linked .erankly-default-linked-label {
 	display: inline;
 }
 
 /* The postbox .inside already pads the bottom; avoid doubling it up. */
-.easyrankly-meta-box .easyrankly-field:last-child {
+.erankly-meta-box .erankly-field:last-child {
 	margin-bottom: 0;
 }
 
-.easyrankly-meta-box .description {
+.erankly-meta-box .description {
 	display: block;
 	margin-top: 4px;
 }
 
-.easyrankly-default-tabs.is-linked .easyrankly-tab,
-.easyrankly-tab:disabled {
+.erankly-default-tabs.is-linked .erankly-tab,
+.erankly-tab:disabled {
 	color: #a7aaad;
 	cursor: default;
 	pointer-events: none;
 }
 
-.easyrankly-redirect-management {
+.erankly-redirect-management {
 	margin-top: 16px;
 }
 
-.easyrankly-tab-panel {
+.erankly-tab-panel {
 	margin-top: 16px;
 }
 
-.easyrankly-default-tab-panel {
+/* Without JavaScript, expose every settings panel and hide inactive tab controls. */
+.no-js .erankly-settings .erankly-settings-tabs {
+	display: none;
+}
+
+.no-js .erankly-settings .erankly-tab-panel[hidden],
+.no-js .erankly-settings [data-erankly-advanced-panel][hidden] {
+	display: block !important;
+}
+
+.erankly-default-tab-panel {
 	margin-top: 0;
 	padding-top: 16px;
 }
 
-.easyrankly-global-meta-default > h4 {
+.erankly-global-meta-default > h4 {
 	margin: 0 0 12px;
 }
 
-.easyrankly-character-counter {
+.erankly-character-counter {
 	color: #646970;
 	display: block;
 	margin-top: 4px;
 }
 
-.easyrankly-character-counter.is-warning {
+.erankly-character-counter.is-warning {
 	color: #b32d2e;
 }
 
-.easyrankly-media-preview {
+.erankly-media-preview {
 	margin: 0 0 8px;
 	min-height: 0;
 }
 
-.easyrankly-media-preview img {
+.erankly-media-preview img {
 	display: block;
 	height: auto;
 	max-height: 120px;
 	max-width: 220px;
 }
 
-.easyrankly-media-url-field {
+.erankly-media-url-field {
 	margin: 8px 0 0;
 }
 
 /* Flex-wrap keeps the buttons usable in narrow containers such as the
    block editor sidebar meta boxes, without a dedicated media query. */
-.easyrankly-media-url-control {
+.erankly-media-url-control {
 	align-items: flex-start;
 	display: flex;
 	flex-wrap: wrap;
 	gap: 8px;
 }
 
-.easyrankly-media-url-control .easyrankly-variable-field {
+.erankly-media-url-control .erankly-variable-field {
 	flex: 1 1 220px;
 	min-width: 0;
 }
 
-.easyrankly-media-url-preview {
+.erankly-media-url-preview {
 	margin-top: 8px;
 }
 
-.easyrankly-checkboxes {
+.erankly-checkboxes {
 	border: 0;
 	padding: 0;
 }
 
-.easyrankly-checkboxes legend {
+.erankly-checkboxes legend {
 	margin-bottom: 4px;
 }
 
-.easyrankly-visibility-defaults legend {
+.erankly-visibility-defaults legend {
 	margin-bottom: 8px;
 }
 
-.easyrankly-checkbox-options {
+.erankly-checkbox-options {
 	display: flex;
 	flex-wrap: wrap;
 	gap: 6px 20px;
 }
 
-.easyrankly-visibility-defaults .easyrankly-checkbox-options label {
+.erankly-visibility-defaults .erankly-checkbox-options label {
 	align-items: center;
 	display: inline-flex;
 	line-height: 1.4;
 	margin: 0;
 }
 
-.easyrankly-visibility-defaults .easyrankly-checkbox-options input[type="checkbox"] {
+.erankly-visibility-defaults .erankly-checkbox-options input[type="checkbox"] {
 	margin: 0 4px 0 0;
 }
 
-.easyrankly-variable-field {
+.erankly-variable-field {
 	position: relative;
 }
 
-.easyrankly-variable-field .widefat,
-.easyrankly-variable-field .regular-text,
-.easyrankly-variable-field .large-text {
+.erankly-variable-field .widefat,
+.erankly-variable-field .regular-text,
+.erankly-variable-field .large-text {
 	padding-right: 36px;
 }
 
-.easyrankly-variable-trigger {
+.erankly-variable-trigger {
 	align-items: center;
 	background: transparent;
 	border: 0;
@@ -482,13 +492,13 @@
 	z-index: 2;
 }
 
-.easyrankly-variable-trigger svg {
+.erankly-variable-trigger svg {
 	display: block;
 	height: 16px;
 	width: 16px;
 }
 
-.easyrankly-variable-menu {
+.erankly-variable-menu {
 	background: #fff;
 	border: 1px solid #c3c4c7;
 	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
@@ -504,17 +514,17 @@
 	z-index: 10000;
 }
 
-.easyrankly-variable-search {
+.erankly-variable-search {
 	box-sizing: border-box;
 	margin: 0 0 8px;
 	width: 100%;
 }
 
-.easyrankly-variable-group + .easyrankly-variable-group {
+.erankly-variable-group + .erankly-variable-group {
 	margin-top: 8px;
 }
 
-.easyrankly-variable-group-title {
+.erankly-variable-group-title {
 	color: #646970;
 	font-size: 11px;
 	font-weight: 600;
@@ -523,7 +533,7 @@
 	text-transform: uppercase;
 }
 
-.easyrankly-variable-option {
+.erankly-variable-option {
 	background: transparent;
 	border: 0;
 	border-radius: 2px;
@@ -539,34 +549,34 @@
 	width: 100%;
 }
 
-.easyrankly-variable-option:hover,
-.easyrankly-variable-option:focus {
+.erankly-variable-option:hover,
+.erankly-variable-option:focus {
 	background: #f0f6fc;
 	color: #135e96;
 	outline: 0;
 }
 
-.easyrankly-variable-option code {
+.erankly-variable-option code {
 	color: #646970;
 	font-size: 11px;
 	white-space: nowrap;
 }
 
-.easyrankly-schema-blocks {
+.erankly-schema-blocks {
 	display: grid;
 	gap: 8px;
 }
 
-.easyrankly-schema-blocks.is-empty {
+.erankly-schema-blocks.is-empty {
 	display: none;
 }
 
-.easyrankly-schema-block {
+.erankly-schema-block {
 	margin: 0;
 	overflow: hidden;
 }
 
-.easyrankly-schema-block-header {
+.erankly-schema-block-header {
 	align-items: center;
 	background: #fff;
 	cursor: pointer;
@@ -576,60 +586,60 @@
 	padding: 0 8px 0 14px;
 }
 
-.easyrankly-schema-block-header::-webkit-details-marker {
+.erankly-schema-block-header::-webkit-details-marker {
 	display: none;
 }
 
-.easyrankly-schema-block[open] > .easyrankly-schema-block-header {
+.erankly-schema-block[open] > .erankly-schema-block-header {
 	border-bottom: 1px solid #949494;
 }
 
-.easyrankly-schema-targeting {
+.erankly-schema-targeting {
 	margin: 0 0 16px;
 	padding: 0;
 }
 
-.easyrankly-schema-targeting legend {
+.erankly-schema-targeting legend {
 	font-weight: 600;
 	padding: 0 4px;
 }
 
-.easyrankly-schema-targeting label {
+.erankly-schema-targeting label {
 	display: block;
 	margin: 4px 0;
 }
 
-.easyrankly-schema-targeting-grid {
+.erankly-schema-targeting-grid {
 	display: grid;
 	gap: 16px;
 	grid-template-columns: repeat(2, minmax(0, 1fr));
 	margin-top: 12px;
 }
 
-.easyrankly-schema-title {
+.erankly-schema-title {
 	font-weight: 600;
 	line-height: 1.4;
 	padding: 12px 0;
 }
 
-.easyrankly-schema-row-actions {
+.erankly-schema-row-actions {
 	align-items: center;
 	display: flex;
 	gap: 8px;
 	justify-content: flex-end;
 }
 
-.easyrankly-schema-panel {
+.erankly-schema-panel {
 	background: #fff;
 }
 
-.easyrankly-schema-field {
+.erankly-schema-field {
 	display: block;
 	margin: 0;
 	min-width: 0;
 }
 
-.easyrankly-schema-field > span {
+.erankly-schema-field > span {
 	color: #3c434a;
 	display: block;
 	font-weight: 600;
@@ -637,120 +647,120 @@
 	margin-bottom: 4px;
 }
 
-.easyrankly-schema-field .widefat {
+.erankly-schema-field .widefat {
 	min-height: 32px;
 }
 
-.easyrankly-schema-field textarea,
-.easyrankly-schema-field .easyrankly-variable-field {
+.erankly-schema-field textarea,
+.erankly-schema-field .erankly-variable-field {
 	width: 100%;
 }
 
-.easyrankly-schema-field textarea.widefat {
+.erankly-schema-field textarea.widefat {
 	min-height: 74px;
 }
 
-.easyrankly-schema-field textarea[rows="8"] {
+.erankly-schema-field textarea[rows="8"] {
 	min-height: 190px;
 }
 
-.easyrankly-schema-field textarea + .easyrankly-variable-trigger {
+.erankly-schema-field textarea + .erankly-variable-trigger {
 	top: 16px;
 }
 
-.easyrankly-schema-actions {
+.erankly-schema-actions {
 	margin: 16px 0;
 }
 
-.easyrankly-global-meta-default {
+.erankly-global-meta-default {
 	margin: 0 0 24px;
 	max-width: none;
 }
 
-.easyrankly-global-meta-default h4 {
+.erankly-global-meta-default h4 {
 	font-size: 14px;
 	margin: 0 0 8px;
 }
 
-.easyrankly-additional-contexts {
+.erankly-additional-contexts {
 	border-top: 1px solid #dcdcde;
 	margin-top: 24px;
 	padding-top: 16px;
 }
 
-.easyrankly-additional-contexts h4 {
+.erankly-additional-contexts h4 {
 	font-size: 14px;
 	margin: 0 0 8px;
 }
 
-.easyrankly-global-meta-default label {
+.erankly-global-meta-default label {
 	display: block;
 	margin: 0 0 4px;
 }
 
-.easyrankly-term-meta-box {
+.erankly-term-meta-box {
 	max-width: 900px;
 }
 
 @media (max-width: 782px) {
-	.easyrankly-schema-block-header {
+	.erankly-schema-block-header {
 		padding: 0 10px 0 14px;
 	}
 
-	.easyrankly-schema-row-actions {
+	.erankly-schema-row-actions {
 		align-self: start;
 	}
 
-	.easyrankly-schema-field > span {
+	.erankly-schema-field > span {
 		padding-top: 0;
 	}
 }
 
 /* Import / Export */
-.easyrankly-io-section {
+.erankly-io-section {
 	margin: 0 0 24px;
 }
 
-.easyrankly-io-section h3 {
+.erankly-io-section h3 {
 	font-size: 14px;
 	margin: 0 0 8px;
 }
 
-.easyrankly-io-section .description {
+.erankly-io-section .description {
 	margin-top: 0;
 }
 
-.easyrankly-io-form input[type="file"] {
+.erankly-io-form input[type="file"] {
 	margin: 8px 12px 8px 0;
 }
 
-.easyrankly-io-third-party {
+.erankly-io-third-party {
 	display: flex;
 	flex-wrap: wrap;
 	gap: 16px 40px;
 	margin-top: 12px;
 }
 
-.easyrankly-io-third-party form {
+.erankly-io-third-party form {
 	flex: 1 1 240px;
 }
 
-.easyrankly-io-third-party strong {
+.erankly-io-third-party strong {
 	display: block;
 	margin-bottom: 8px;
 }
 
-.easyrankly-bloat-view-simple .easyrankly-field {
+.erankly-bloat-view-simple .erankly-field {
 	max-width: 640px;
 }
 
 /* First-run setup wizard */
-.easyrankly-setup {
+.erankly-setup {
 	margin: 48px auto 0;
 	max-width: 760px;
 }
 
-.easyrankly-setup-card {
+.erankly-setup-card {
 	background: #fff;
 	border: 1px solid #c3c4c7;
 	border-radius: 2px;
@@ -758,35 +768,35 @@
 	overflow: hidden;
 }
 
-.easyrankly-setup-header,
-.easyrankly-setup-content {
+.erankly-setup-header,
+.erankly-setup-content {
 	padding: 24px 32px;
 }
 
-.easyrankly-setup-header {
+.erankly-setup-header {
 	border-bottom: 1px solid #dcdcde;
 }
 
-.easyrankly-setup-header h1,
-.easyrankly-setup-content h2 {
+.erankly-setup-header h1,
+.erankly-setup-content h2 {
 	margin-top: 0;
 }
 
-.easyrankly-setup-header h1 {
+.erankly-setup-header h1 {
 	margin-bottom: 8px;
 }
 
-.easyrankly-setup-content h2 {
+.erankly-setup-content h2 {
 	margin-bottom: 12px;
 }
 
-.easyrankly-setup-header p {
+.erankly-setup-header p {
 	color: #50575e;
 	font-size: 14px;
 	margin-bottom: 0;
 }
 
-.easyrankly-setup-steps {
+.erankly-setup-steps {
 	display: grid;
 	grid-template-columns: repeat(3, 1fr);
 	list-style: none;
@@ -794,7 +804,7 @@
 	padding: 0;
 }
 
-.easyrankly-setup-steps li {
+.erankly-setup-steps li {
 	background: #f6f7f7;
 	border-bottom: 1px solid #dcdcde;
 	color: #646970;
@@ -803,11 +813,11 @@
 	text-align: center;
 }
 
-.easyrankly-setup-steps li + li {
+.erankly-setup-steps li + li {
 	border-left: 1px solid #dcdcde;
 }
 
-.easyrankly-setup-steps li.is-current {
+.erankly-setup-steps li.is-current {
 	background: #fff;
 	border-bottom-color: #2271b1;
 	box-shadow: inset 0 -3px #2271b1;
@@ -815,11 +825,11 @@
 	font-weight: 600;
 }
 
-.easyrankly-setup-steps li.is-complete {
+.erankly-setup-steps li.is-complete {
 	color: #50575e;
 }
 
-.easyrankly-setup-steps li.is-complete::before {
+.erankly-setup-steps li.is-complete::before {
 	color: #2271b1;
 	content: "\f147";
 	display: inline-block;
@@ -828,24 +838,24 @@
 	vertical-align: -3px;
 }
 
-.easyrankly-setup-section {
+.erankly-setup-section {
 	border: 0;
 	margin: 0 0 24px;
 	padding: 0;
 }
 
-.easyrankly-setup-section legend {
+.erankly-setup-section legend {
 	font-size: 16px;
 	font-weight: 600;
 	margin-bottom: 12px;
 }
 
-.easyrankly-setup-section > label:not(.easyrankly-setup-choice) {
+.erankly-setup-section > label:not(.erankly-setup-choice) {
 	display: block;
 	margin-bottom: 6px;
 }
 
-.easyrankly-setup-choice {
+.erankly-setup-choice {
 	align-items: flex-start;
 	background: #fff;
 	border: 1px solid #c3c4c7;
@@ -858,48 +868,48 @@
 	transition: background-color .1s ease-in-out, border-color .1s ease-in-out;
 }
 
-.easyrankly-setup-choice:hover {
+.erankly-setup-choice:hover {
 	border-color: #8c8f94;
 }
 
-.easyrankly-setup-choice:has(input:checked) {
+.erankly-setup-choice:has(input:checked) {
 	background: #f0f6fc;
 	border-color: #2271b1;
 	box-shadow: inset 0 0 0 1px #2271b1;
 }
 
-.easyrankly-setup-choice:focus-within {
+.erankly-setup-choice:focus-within {
 	border-color: #2271b1;
 	box-shadow: 0 0 0 1px #2271b1;
 }
 
-.easyrankly-setup-choice input {
+.erankly-setup-choice input {
 	margin-top: 3px;
 }
 
-.easyrankly-setup-choice strong,
-.easyrankly-setup-choice small {
+.erankly-setup-choice strong,
+.erankly-setup-choice small {
 	display: block;
 }
 
-.easyrankly-setup-choice small {
+.erankly-setup-choice small {
 	color: #646970;
 	line-height: 1.5;
 	margin-top: 4px;
 }
 
-.easyrankly-setup-summary {
+.erankly-setup-summary {
 	background: #f0f6fc;
 	border-left: 4px solid #2271b1;
 	margin: 20px 0 24px;
 	padding: 12px 16px;
 }
 
-.easyrankly-setup-summary p {
+.erankly-setup-summary p {
 	margin: 6px 0;
 }
 
-.easyrankly-setup-actions {
+.erankly-setup-actions {
 	align-items: center;
 	display: flex;
 	flex-wrap: wrap;
@@ -907,21 +917,21 @@
 	margin-top: 24px;
 }
 
-.easyrankly-setup-actions form {
+.erankly-setup-actions form {
 	margin: 0;
 }
 
 @media screen and (max-width: 782px) {
-	.easyrankly-setup {
+	.erankly-setup {
 		margin: 16px 10px 0 0;
 	}
 
-	.easyrankly-setup-header,
-	.easyrankly-setup-content {
+	.erankly-setup-header,
+	.erankly-setup-content {
 		padding: 20px;
 	}
 
-	.easyrankly-setup-steps li {
+	.erankly-setup-steps li {
 		padding: 10px 6px;
 	}
 }

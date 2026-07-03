@@ -3,9 +3,9 @@
  * Frontend shortcodes for the Multilingual module.
  *
  * Registers:
- *  - [easyrankly_language_switcher] — a <select> to navigate between
+ *  - [erankly_language_switcher] — a <select> to navigate between
  *    translations of the current article.
- *  - [easyrankly_translation_notice] — a dismissible <div> card that appears
+ *  - [erankly_translation_notice] — a dismissible <div> card that appears
  *    only when the visitor's browser language matches an available translation.
  *    Its texts are managed globally per language in the network settings, so the
  *    notice is shown in the reader's own language.
@@ -25,21 +25,21 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Registers the frontend shortcodes and assets for the multilingual module.
  */
-final class EasyRankly_ML_Shortcodes {
+final class ERankly_ML_Shortcodes {
 
 	/**
 	 * Repository instance.
 	 *
-	 * @var EasyRankly_ML_Repository
+	 * @var ERankly_ML_Repository
 	 */
-	private EasyRankly_ML_Repository $repo;
+	private ERankly_ML_Repository $repo;
 
 	/**
 	 * Constructor.
 	 *
-	 * @param EasyRankly_ML_Repository $repo Repository instance.
+	 * @param ERankly_ML_Repository $repo Repository instance.
 	 */
-	public function __construct( EasyRankly_ML_Repository $repo ) {
+	public function __construct( ERankly_ML_Repository $repo ) {
 		$this->repo = $repo;
 	}
 
@@ -50,8 +50,8 @@ final class EasyRankly_ML_Shortcodes {
 	 */
 	public function register_hooks(): void {
 		add_action( 'wp_enqueue_scripts', array( $this, 'register_assets' ) );
-		add_shortcode( 'easyrankly_language_switcher', array( $this, 'render_switcher' ) );
-		add_shortcode( 'easyrankly_translation_notice', array( $this, 'render_notice' ) );
+		add_shortcode( 'erankly_language_switcher', array( $this, 'render_switcher' ) );
+		add_shortcode( 'erankly_translation_notice', array( $this, 'render_notice' ) );
 	}
 
 	/**
@@ -64,25 +64,25 @@ final class EasyRankly_ML_Shortcodes {
 	 */
 	public function register_assets(): void {
 		wp_register_style(
-			'easyrankly-multilingual-frontend',
-			EASYRANKLY_URL . 'assets/css/multilingual-frontend.css',
+			'erankly-multilingual-frontend',
+			ERANKLY_URL . 'assets/css/multilingual-frontend.css',
 			array(),
-			EASYRANKLY_VERSION
+			ERANKLY_VERSION
 		);
 
 		wp_register_script(
-			'easyrankly-multilingual-frontend',
-			EASYRANKLY_URL . 'assets/js/multilingual-frontend.js',
+			'erankly-multilingual-frontend',
+			ERANKLY_URL . 'assets/js/multilingual-frontend.js',
 			array(),
-			EASYRANKLY_VERSION,
+			ERANKLY_VERSION,
 			true
 		);
 	}
 
-	// Shortcode: [easyrankly_language_switcher].
+	// Shortcode: [erankly_language_switcher].
 
 	/**
-	 * Renders the [easyrankly_language_switcher] shortcode.
+	 * Renders the [erankly_language_switcher] shortcode.
 	 *
 	 * Supported attributes:
 	 *  - class  (string) Extra CSS class(es) for the wrapper <form>.
@@ -92,7 +92,7 @@ final class EasyRankly_ML_Shortcodes {
 	 * @return string HTML output or empty string.
 	 */
 	public function render_switcher( $atts ): string {
-		if ( ! is_singular() || ! class_exists( 'EasyRankly_ML_Sites' ) ) {
+		if ( ! is_singular() || ! class_exists( 'ERankly_ML_Sites' ) ) {
 			return '';
 		}
 
@@ -102,7 +102,7 @@ final class EasyRankly_ML_Shortcodes {
 				'label' => __( 'Choose a language', 'easyrankly' ),
 			),
 			$atts,
-			'easyrankly_language_switcher'
+			'erankly_language_switcher'
 		);
 
 		$post_id      = (int) get_queried_object_id();
@@ -113,16 +113,16 @@ final class EasyRankly_ML_Shortcodes {
 			return '';
 		}
 
-		wp_enqueue_style( 'easyrankly-multilingual-frontend' );
-		wp_enqueue_script( 'easyrankly-multilingual-frontend' );
+		wp_enqueue_style( 'erankly-multilingual-frontend' );
+		wp_enqueue_script( 'erankly-multilingual-frontend' );
 
 		$uid         = 'erml-switcher-' . $post_id;
-		$extra_class = '' !== $atts['class'] ? ' ' . esc_attr( sanitize_html_class( $atts['class'] ) ) : '';
+		$extra_class = sanitize_html_class( $atts['class'] );
 		$label       = sanitize_text_field( $atts['label'] );
 
 		ob_start();
 		?>
-<form class="erml-switcher<?php echo $extra_class; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- sanitized above. ?>">
+<form class="<?php echo esc_attr( trim( 'erml-switcher ' . $extra_class ) ); ?>">
 	<label class="erml-switcher__label screen-reader-text" for="<?php echo esc_attr( $uid ); ?>">
 		<?php echo esc_html( $label ); ?>
 	</label>
@@ -149,10 +149,10 @@ final class EasyRankly_ML_Shortcodes {
 		return (string) ob_get_clean();
 	}
 
-	// Shortcode: [easyrankly_translation_notice].
+	// Shortcode: [erankly_translation_notice].
 
 	/**
-	 * Renders the [easyrankly_translation_notice] shortcode.
+	 * Renders the [erankly_translation_notice] shortcode.
 	 *
 	 * The notice is rendered server-side but starts hidden; JavaScript reveals it
 	 * only when the visitor's browser language matches an available translation
@@ -178,7 +178,7 @@ final class EasyRankly_ML_Shortcodes {
 	 * @return string HTML output or empty string.
 	 */
 	public function render_notice( $atts ): string {
-		if ( ! is_singular() || ! class_exists( 'EasyRankly_ML_Sites' ) ) {
+		if ( ! is_singular() || ! class_exists( 'ERankly_ML_Sites' ) ) {
 			return '';
 		}
 
@@ -189,7 +189,7 @@ final class EasyRankly_ML_Shortcodes {
 				'class'     => '',
 			),
 			$atts,
-			'easyrankly_translation_notice'
+			'erankly_translation_notice'
 		);
 
 		// Sanitise HTML tag choices against allow-lists.
@@ -214,7 +214,7 @@ final class EasyRankly_ML_Shortcodes {
 		$json_data = array();
 
 		foreach ( $others as $t ) {
-			$notice = EasyRankly_ML_Sites::get_notice( (int) $t['blog_id'] );
+			$notice = ERankly_ML_Sites::get_notice( (int) $t['blog_id'] );
 
 			if ( '' === $notice['title'] && '' === $notice['text'] && '' === $notice['link'] ) {
 				continue;
@@ -240,11 +240,11 @@ final class EasyRankly_ML_Shortcodes {
 			return '';
 		}
 
-		wp_enqueue_style( 'easyrankly-multilingual-frontend' );
-		wp_enqueue_script( 'easyrankly-multilingual-frontend' );
+		wp_enqueue_style( 'erankly-multilingual-frontend' );
+		wp_enqueue_script( 'erankly-multilingual-frontend' );
 
-		$current_hreflang = EasyRankly_ML_Sites::get_hreflang( get_current_blog_id() );
-		$extra_class      = '' !== $atts['class'] ? ' ' . esc_attr( sanitize_html_class( $atts['class'] ) ) : '';
+		$current_hreflang = ERankly_ML_Sites::get_hreflang( get_current_blog_id() );
+		$extra_class      = sanitize_html_class( $atts['class'] );
 		$title_tag        = tag_escape( $title_tag );
 		$text_tag         = tag_escape( $text_tag );
 
@@ -252,7 +252,7 @@ final class EasyRankly_ML_Shortcodes {
 		// Built as a single line (no newlines) so wpautop can't inject stray <br>/<p>
 		// tags when the shortcode sits inside post content. Each fragment is escaped
 		// as it's concatenated, so the result is safe to return.
-		$html  = '<div class="erml-notice' . $extra_class . '" hidden data-erml-notice';
+		$html  = '<div class="' . esc_attr( trim( 'erml-notice ' . $extra_class ) ) . '" hidden data-erml-notice';
 		$html .= ' data-post-id="' . esc_attr( (string) $post_id ) . '"';
 		$html .= ' data-current-lang="' . esc_attr( $current_hreflang ) . '"';
 		$html .= ' data-translations="' . esc_attr( $json ) . '">';
@@ -294,10 +294,10 @@ final class EasyRankly_ML_Shortcodes {
 			return array(
 				array(
 					'blog_id'    => $current_blog_id,
-					'hreflang'   => EasyRankly_ML_Sites::get_hreflang( $current_blog_id ),
+					'hreflang'   => ERankly_ML_Sites::get_hreflang( $current_blog_id ),
 					'url'        => (string) get_permalink( $post_id ),
 					'name'       => (string) get_blog_option( $current_blog_id, 'blogname' ),
-					'native'     => self::native_name( EasyRankly_ML_Sites::get_hreflang( $current_blog_id ) ),
+					'native'     => self::native_name( ERankly_ML_Sites::get_hreflang( $current_blog_id ) ),
 					'is_current' => true,
 				),
 			);
@@ -322,14 +322,14 @@ final class EasyRankly_ML_Shortcodes {
 			}
 			$seen[ $bid ] = true;
 			$oid          = (int) $row['object_id'];
-			$site         = EasyRankly_ML_Sites::get( $bid );
+			$site         = ERankly_ML_Sites::get( $bid );
 
 			// Skip sites that are not enabled in the multilingual settings.
 			if ( empty( $site['enabled'] ) ) {
 				continue;
 			}
 
-			$hreflang   = EasyRankly_ML_Sites::get_hreflang( $bid );
+			$hreflang   = ERankly_ML_Sites::get_hreflang( $bid );
 			$is_current = ( $bid === $current_blog_id );
 			$url        = $this->resolve_url( $bid, $oid );
 
@@ -363,9 +363,9 @@ final class EasyRankly_ML_Shortcodes {
 	 * Resolves the navigable permalink for a post on a given blog.
 	 *
 	 * The switcher is a human-facing navigation control, so it intentionally links
-	 * to any *published* translation regardless of its `_easyrankly_noindex` flag —
+	 * to any *published* translation regardless of its `_erankly_noindex` flag —
 	 * a reader must still be able to reach a published page even when it is hidden
-	 * from search engines. This differs from EasyRankly_ML_Resolver::resolve_url(),
+	 * from search engines. This differs from ERankly_ML_Resolver::resolve_url(),
 	 * which builds the hreflang <head> alternates and must exclude noindex pages.
 	 *
 	 * Returns an empty string only when the post is not publicly viewable
@@ -380,7 +380,7 @@ final class EasyRankly_ML_Shortcodes {
 		$is_same      = ( $blog_id === $current_blog );
 
 		if ( ! $is_same ) {
-			EasyRankly_ML_Sites::switch_to_blog_for_link( $blog_id );
+			ERankly_ML_Sites::switch_to_blog_for_link( $blog_id );
 		}
 
 		$url = '';
@@ -393,7 +393,7 @@ final class EasyRankly_ML_Shortcodes {
 			}
 		} finally {
 			if ( ! $is_same ) {
-				EasyRankly_ML_Sites::restore_blog_for_link();
+				ERankly_ML_Sites::restore_blog_for_link();
 			}
 		}
 
@@ -406,7 +406,7 @@ final class EasyRankly_ML_Shortcodes {
 	 * Returns the native display name for a BCP-47 language code.
 	 *
 	 * The built-in map covers the most widely used languages. The result is
-	 * filterable via the `easyrankly_ml_language_native_name` filter for custom
+	 * filterable via the `erankly_ml_language_native_name` filter for custom
 	 * overrides or additions.
 	 *
 	 * Examples: "it" → "Italiano", "en-US" → "English", "zh-Hant" → "中文".
@@ -485,6 +485,6 @@ final class EasyRankly_ML_Shortcodes {
 		 * @param string $name     Native language name.
 		 * @param string $hreflang Original BCP-47 language code (e.g. "en-US").
 		 */
-		return (string) apply_filters( 'easyrankly_ml_language_native_name', $name, $hreflang );
+		return (string) apply_filters( 'erankly_ml_language_native_name', $name, $hreflang );
 	}
 }

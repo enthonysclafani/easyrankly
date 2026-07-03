@@ -15,8 +15,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @param array<string,mixed> $args Arguments.
  * @return string
  */
-function easyrankly_breadcrumbs( array $args = array() ): string {
-	if ( ! (bool) easyrankly_get_setting( 'enable_breadcrumbs', 1 ) ) {
+function erankly_breadcrumbs( array $args = array() ): string {
+	if ( ! (bool) erankly_get_setting( 'enable_breadcrumbs', 1 ) ) {
 		return '';
 	}
 
@@ -28,13 +28,13 @@ function easyrankly_breadcrumbs( array $args = array() ): string {
 		)
 	);
 
-	$items = easyrankly_get_breadcrumb_items();
+	$items = erankly_get_breadcrumb_items();
 
 	if ( count( $items ) < 2 ) {
 		return '';
 	}
 
-	$html  = '<nav class="easyrankly-breadcrumbs" aria-label="' . esc_attr__( 'Breadcrumbs', 'easyrankly' ) . '">';
+	$html  = '<nav class="erankly-breadcrumbs" aria-label="' . esc_attr__( 'Breadcrumbs', 'easyrankly' ) . '">';
 	$html .= '<ol>';
 
 	$last_index = count( $items ) - 1;
@@ -67,10 +67,26 @@ function easyrankly_breadcrumbs( array $args = array() ): string {
 	 * @param string                  $html  Breadcrumbs HTML.
 	 * @param array<int,array<string,string>> $items Breadcrumb items.
 	 */
-	$html = (string) apply_filters( 'easyrankly_breadcrumbs_html', $html, $items );
+	$html = (string) apply_filters( 'erankly_breadcrumbs_html', $html, $items );
+
+	$allowed_html        = wp_kses_allowed_html( 'post' );
+	$allowed_html['nav'] = array(
+		'aria-label' => true,
+		'class'      => true,
+		'id'         => true,
+	);
+
+	foreach ( array( 'a', 'li', 'ol', 'span' ) as $tag ) {
+		$allowed_html[ $tag ]                 = isset( $allowed_html[ $tag ] ) ? $allowed_html[ $tag ] : array();
+		$allowed_html[ $tag ]['aria-current'] = true;
+		$allowed_html[ $tag ]['class']        = true;
+		$allowed_html[ $tag ]['id']           = true;
+	}
+
+	$html = wp_kses( $html, $allowed_html );
 
 	if ( (bool) $args['echo'] ) {
-		echo $html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+		echo wp_kses( $html, $allowed_html );
 	}
 
 	return $html;
@@ -82,20 +98,20 @@ function easyrankly_breadcrumbs( array $args = array() ): string {
  * @param int $post_id Post ID.
  * @return string
  */
-function easyrankly_get_post_breadcrumb_name( int $post_id ): string {
-	if ( (bool) easyrankly_get_setting( 'simplified_mode', 1 ) ) {
-		$name = easyrankly_get_post_meta_string( $post_id, 'title' );
+function erankly_get_post_breadcrumb_name( int $post_id ): string {
+	if ( (bool) erankly_get_setting( 'simplified_mode', 1 ) ) {
+		$name = erankly_get_post_meta_string( $post_id, 'title' );
 
 		if ( '' !== $name ) {
-			$name = easyrankly_replace_variables( $name, $post_id, array( 'seo_title' ) );
+			$name = erankly_replace_variables( $name, $post_id, array( 'seo_title' ) );
 		}
 	} else {
-		$name = easyrankly_get_post_meta_string( $post_id, 'breadcrumb_name' );
+		$name = erankly_get_post_meta_string( $post_id, 'breadcrumb_name' );
 	}
 
-	$name = '' !== $name ? easyrankly_normalize_seo_text( $name ) : get_the_title( $post_id );
+	$name = '' !== $name ? erankly_normalize_seo_text( $name ) : get_the_title( $post_id );
 
-	return (string) apply_filters( 'easyrankly_post_breadcrumb_name', $name, $post_id );
+	return (string) apply_filters( 'erankly_post_breadcrumb_name', $name, $post_id );
 }
 
 /**
@@ -103,7 +119,7 @@ function easyrankly_get_post_breadcrumb_name( int $post_id ): string {
  *
  * @return array<int,array<string,string>>
  */
-function easyrankly_get_breadcrumb_items(): array {
+function erankly_get_breadcrumb_items(): array {
 	static $resolved = null;
 
 	if ( null !== $resolved ) {
@@ -164,13 +180,13 @@ function easyrankly_get_breadcrumb_items(): array {
 
 		foreach ( $ancestors as $ancestor_id ) {
 			$items[] = array(
-				'name' => easyrankly_get_post_breadcrumb_name( $ancestor_id ),
+				'name' => erankly_get_post_breadcrumb_name( $ancestor_id ),
 				'url'  => get_permalink( $ancestor_id ),
 			);
 		}
 
 		$items[] = array(
-			'name' => easyrankly_get_post_breadcrumb_name( $post_id ),
+			'name' => erankly_get_post_breadcrumb_name( $post_id ),
 			'url'  => '',
 		);
 	} elseif ( is_category() || is_tag() || is_tax() ) {
@@ -219,7 +235,7 @@ function easyrankly_get_breadcrumb_items(): array {
 	 *
 	 * @param array<int,array<string,string>> $items Breadcrumb items.
 	 */
-	$resolved = apply_filters( 'easyrankly_breadcrumb_items', $items );
+	$resolved = apply_filters( 'erankly_breadcrumb_items', $items );
 
 	return is_array( $resolved ) ? $resolved : array();
 }
@@ -229,8 +245,8 @@ function easyrankly_get_breadcrumb_items(): array {
  *
  * @return array<string,mixed>
  */
-function easyrankly_schema_breadcrumb_list(): array {
-	$items = easyrankly_get_breadcrumb_items();
+function erankly_schema_breadcrumb_list(): array {
+	$items = erankly_get_breadcrumb_items();
 
 	if ( count( $items ) < 2 ) {
 		return array();
@@ -240,7 +256,7 @@ function easyrankly_schema_breadcrumb_list(): array {
 
 	foreach ( $items as $index => $item ) {
 		$name = isset( $item['name'] ) ? (string) $item['name'] : '';
-		$url  = isset( $item['url'] ) ? (string) $item['url'] : easyrankly_get_canonical();
+		$url  = isset( $item['url'] ) ? (string) $item['url'] : erankly_get_canonical();
 
 		if ( '' === $name ) {
 			continue;
@@ -251,7 +267,7 @@ function easyrankly_schema_breadcrumb_list(): array {
 				'@type'    => 'ListItem',
 				'position' => $index + 1,
 				'name'     => $name,
-				'item'     => '' !== $url ? $url : easyrankly_get_canonical(),
+				'item'     => '' !== $url ? $url : erankly_get_canonical(),
 			)
 		);
 	}
@@ -262,9 +278,9 @@ function easyrankly_schema_breadcrumb_list(): array {
 
 	$schema = array(
 		'@type'           => 'BreadcrumbList',
-		'@id'             => easyrankly_get_canonical() . '#breadcrumb',
+		'@id'             => erankly_get_canonical() . '#breadcrumb',
 		'itemListElement' => $list,
 	);
 
-	return apply_filters( 'easyrankly_schema_breadcrumb_list', $schema, $items );
+	return apply_filters( 'erankly_schema_breadcrumb_list', $schema, $items );
 }

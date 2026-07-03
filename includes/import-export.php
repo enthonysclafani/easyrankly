@@ -16,7 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Export file format version. Bumped when the JSON structure changes.
  */
-define( 'EASYRANKLY_EXPORT_FORMAT', '1.0' );
+define( 'ERANKLY_EXPORT_FORMAT', '1.0' );
 
 /**
  * Loads redirect class files on demand even when the module is disabled.
@@ -26,13 +26,13 @@ define( 'EASYRANKLY_EXPORT_FORMAT', '1.0' );
  *
  * @return void
  */
-function easyrankly_ensure_redirect_classes_available(): void {
-	$base = EASYRANKLY_PATH . 'includes/redirects/';
+function erankly_ensure_redirect_classes_available(): void {
+	$base = ERANKLY_PATH . 'includes/redirects/';
 
 	$files = array(
-		'class-easyrankly-redirects-normalizer.php',
-		'class-easyrankly-redirects-activator.php',
-		'class-easyrankly-redirects-repository.php',
+		'class-erankly-redirects-normalizer.php',
+		'class-erankly-redirects-activator.php',
+		'class-erankly-redirects-repository.php',
 	);
 
 	foreach ( $files as $file ) {
@@ -48,11 +48,11 @@ function easyrankly_ensure_redirect_classes_available(): void {
  *
  * @return string
  */
-function easyrankly_import_export_url(): string {
+function erankly_import_export_url(): string {
 	return add_query_arg(
 		array(
-			'page'           => 'easyrankly',
-			'easyrankly_tab' => 'import-export',
+			'page'        => 'erankly',
+			'erankly_tab' => 'import-export',
 		),
 		admin_url( 'options-general.php' )
 	);
@@ -63,7 +63,7 @@ function easyrankly_import_export_url(): string {
  *
  * @return void
  */
-function easyrankly_import_export_handle_actions(): void {
+function erankly_import_export_handle_actions(): void {
 	// On Multisite the settings option is a network option; gate write access accordingly.
 	$required_cap = is_multisite() ? 'manage_network_options' : 'manage_options';
 
@@ -73,34 +73,34 @@ function easyrankly_import_export_handle_actions(): void {
 
 	$page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
 
-	if ( 'easyrankly' !== $page ) {
+	if ( 'erankly' !== $page ) {
 		return;
 	}
 
 	// Export is a nonce-protected GET link that streams a download.
-	if ( isset( $_GET['easyrankly_io_action'] ) && 'export' === sanitize_key( wp_unslash( $_GET['easyrankly_io_action'] ) ) ) {
+	if ( isset( $_GET['erankly_io_action'] ) && 'export' === sanitize_key( wp_unslash( $_GET['erankly_io_action'] ) ) ) {
 		// check_admin_referer() dies on failure, so no error branch is needed.
-		check_admin_referer( 'easyrankly_io_export' );
+		check_admin_referer( 'erankly_io_export' );
 
-		easyrankly_export_download();
+		erankly_export_download();
 	}
 
-	if ( ! isset( $_POST['easyrankly_io_action'] ) ) {
+	if ( ! isset( $_POST['erankly_io_action'] ) ) {
 		return;
 	}
 
-	$action = sanitize_key( wp_unslash( $_POST['easyrankly_io_action'] ) );
+	$action = sanitize_key( wp_unslash( $_POST['erankly_io_action'] ) );
 
 	if ( 'import' === $action ) {
-		easyrankly_import_export_handle_import();
+		erankly_import_export_handle_import();
 	}
 
 	if ( 'yoast' === $action ) {
-		easyrankly_import_export_handle_third_party( 'yoast' );
+		erankly_import_export_handle_third_party( 'yoast' );
 	}
 
 	if ( 'rankmath' === $action ) {
-		easyrankly_import_export_handle_third_party( 'rankmath' );
+		erankly_import_export_handle_third_party( 'rankmath' );
 	}
 }
 
@@ -109,18 +109,18 @@ function easyrankly_import_export_handle_actions(): void {
  *
  * @return void
  */
-function easyrankly_import_export_handle_import(): void {
-	check_admin_referer( 'easyrankly_io_import' );
+function erankly_import_export_handle_import(): void {
+	check_admin_referer( 'erankly_io_import' );
 
 	if (
-		empty( $_FILES['easyrankly_import_file'] ) ||
-		! isset( $_FILES['easyrankly_import_file']['tmp_name'], $_FILES['easyrankly_import_file']['error'] ) ||
-		UPLOAD_ERR_OK !== (int) $_FILES['easyrankly_import_file']['error']
+		empty( $_FILES['erankly_import_file'] ) ||
+		! isset( $_FILES['erankly_import_file']['tmp_name'], $_FILES['erankly_import_file']['error'] ) ||
+		UPLOAD_ERR_OK !== (int) $_FILES['erankly_import_file']['error']
 	) {
-		easyrankly_import_export_redirect( array( 'easyrankly_io_notice' => 'invalid' ) );
+		erankly_import_export_redirect( array( 'erankly_io_notice' => 'invalid' ) );
 	}
 
-	$tmp_name = (string) $_FILES['easyrankly_import_file']['tmp_name']; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+	$tmp_name = (string) $_FILES['erankly_import_file']['tmp_name']; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 
 	if ( ! function_exists( 'WP_Filesystem' ) ) {
 		require_once ABSPATH . 'wp-admin/includes/file.php';
@@ -131,24 +131,28 @@ function easyrankly_import_export_handle_import(): void {
 	$contents = ( $wp_filesystem instanceof WP_Filesystem_Base ) ? $wp_filesystem->get_contents( $tmp_name ) : false;
 
 	if ( false === $contents || '' === trim( (string) $contents ) ) {
-		easyrankly_import_export_redirect( array( 'easyrankly_io_notice' => 'invalid' ) );
+		erankly_import_export_redirect( array( 'erankly_io_notice' => 'invalid' ) );
 	}
 
 	$data = json_decode( (string) $contents, true );
 
-	if ( JSON_ERROR_NONE !== json_last_error() || ! is_array( $data ) || ( $data['plugin'] ?? '' ) !== 'easyrankly' ) {
-		easyrankly_import_export_redirect( array( 'easyrankly_io_notice' => 'invalid' ) );
+	$plugin_id = is_array( $data ) && isset( $data['plugin'] ) && is_string( $data['plugin'] )
+		? sanitize_key( $data['plugin'] )
+		: '';
+
+	if ( JSON_ERROR_NONE !== json_last_error() || ! is_array( $data ) || ! in_array( $plugin_id, array( 'erankly', 'easyrankly' ), true ) ) {
+		erankly_import_export_redirect( array( 'erankly_io_notice' => 'invalid' ) );
 	}
 
-	$counts = easyrankly_import_apply( $data );
+	$counts = erankly_import_apply( $data );
 
-	easyrankly_import_export_redirect(
+	erankly_import_export_redirect(
 		array(
-			'easyrankly_io_notice' => 'imported',
-			'er_settings'          => (int) $counts['settings'],
-			'er_redirects'         => (int) $counts['redirects'],
-			'er_post_meta'         => (int) $counts['post_meta'],
-			'er_term_meta'         => (int) $counts['term_meta'],
+			'erankly_io_notice' => 'imported',
+			'er_settings'       => (int) $counts['settings'],
+			'er_redirects'      => (int) $counts['redirects'],
+			'er_post_meta'      => (int) $counts['post_meta'],
+			'er_term_meta'      => (int) $counts['term_meta'],
 		)
 	);
 }
@@ -159,16 +163,16 @@ function easyrankly_import_export_handle_import(): void {
  * @param string $source Source plugin: yoast|rankmath.
  * @return void
  */
-function easyrankly_import_export_handle_third_party( string $source ): void {
-	check_admin_referer( 'easyrankly_io_' . $source );
+function erankly_import_export_handle_third_party( string $source ): void {
+	check_admin_referer( 'erankly_io_' . $source );
 
-	$counts = easyrankly_import_third_party( $source );
+	$counts = erankly_import_third_party( $source );
 
-	easyrankly_import_export_redirect(
+	erankly_import_export_redirect(
 		array(
-			'easyrankly_io_notice' => $source,
-			'er_post_meta'         => (int) $counts['post_meta'],
-			'er_term_meta'         => (int) $counts['term_meta'],
+			'erankly_io_notice' => $source,
+			'er_post_meta'      => (int) $counts['post_meta'],
+			'er_term_meta'      => (int) $counts['term_meta'],
 		)
 	);
 }
@@ -179,8 +183,8 @@ function easyrankly_import_export_handle_third_party( string $source ): void {
  * @param array<string,mixed> $args Query args.
  * @return void
  */
-function easyrankly_import_export_redirect( array $args ): void {
-	wp_safe_redirect( add_query_arg( $args, easyrankly_import_export_url() ) );
+function erankly_import_export_redirect( array $args ): void {
+	wp_safe_redirect( add_query_arg( $args, erankly_import_export_url() ) );
 	exit;
 }
 
@@ -191,18 +195,18 @@ function easyrankly_import_export_redirect( array $args ): void {
  *
  * @return array<string,mixed>
  */
-function easyrankly_export_build_data(): array {
+function erankly_export_build_data(): array {
 	global $wpdb;
 
-	$meta_keys = array_keys( easyrankly_get_meta_keys() );
+	$meta_keys = array_keys( erankly_get_meta_keys() );
 
 	$data = array(
-		'plugin'      => 'easyrankly',
-		'format'      => EASYRANKLY_EXPORT_FORMAT,
-		'version'     => EASYRANKLY_VERSION,
+		'plugin'      => 'erankly',
+		'format'      => ERANKLY_EXPORT_FORMAT,
+		'version'     => ERANKLY_VERSION,
 		'exported_at' => gmdate( 'c' ),
 		'site_url'    => home_url(),
-		'settings'    => easyrankly_get_plugin_option( EASYRANKLY_OPTION, array() ),
+		'settings'    => erankly_get_plugin_option( ERANKLY_OPTION, array() ),
 		'redirects'   => array(),
 		'post_meta'   => array(),
 		'term_meta'   => array(),
@@ -210,10 +214,10 @@ function easyrankly_export_build_data(): array {
 
 	// Always export redirects when the table has data, even if the module is off —
 	// that data should stay portable regardless of the feature toggle.
-	easyrankly_ensure_redirect_classes_available();
+	erankly_ensure_redirect_classes_available();
 
-	if ( class_exists( 'EasyRankly_Redirects_Repository' ) ) {
-		$repository = new EasyRankly_Redirects_Repository();
+	if ( class_exists( 'ERankly_Redirects_Repository' ) ) {
+		$repository = new ERankly_Redirects_Repository();
 		// get_all_for_export() returns an empty array when the table does not exist.
 		$data['redirects'] = $repository->get_all_for_export();
 	}
@@ -266,9 +270,9 @@ function easyrankly_export_build_data(): array {
  *
  * @return void
  */
-function easyrankly_export_download(): void {
-	$data     = easyrankly_export_build_data();
-	$filename = 'easyrankly-export-' . gmdate( 'Y-m-d-His' ) . '.json';
+function erankly_export_download(): void {
+	$data     = erankly_export_build_data();
+	$filename = 'erankly-export-' . gmdate( 'Y-m-d-His' ) . '.json';
 
 	nocache_headers();
 	header( 'Content-Type: application/json; charset=utf-8' );
@@ -286,7 +290,7 @@ function easyrankly_export_download(): void {
  * @param array<string,mixed> $data Decoded export data.
  * @return array{settings:int,redirects:int,post_meta:int,term_meta:int}
  */
-function easyrankly_import_apply( array $data ): array {
+function erankly_import_apply( array $data ): array {
 	$counts = array(
 		'settings'  => 0,
 		'redirects' => 0,
@@ -295,31 +299,31 @@ function easyrankly_import_apply( array $data ): array {
 	);
 
 	// Settings.
-	if ( isset( $data['settings'] ) && is_array( $data['settings'] ) && function_exists( 'easyrankly_sanitize_settings' ) ) {
-		$clean = easyrankly_sanitize_settings( $data['settings'] );
-		easyrankly_update_plugin_option( EASYRANKLY_OPTION, $clean );
+	if ( isset( $data['settings'] ) && is_array( $data['settings'] ) && function_exists( 'erankly_sanitize_settings' ) ) {
+		$clean = erankly_sanitize_settings( $data['settings'] );
+		erankly_update_plugin_option( ERANKLY_OPTION, $clean );
 		$counts['settings'] = 1;
 	}
 
 	// Redirects — restore regardless of whether the module is currently enabled.
 	// The redirect table is created on demand so data is never lost.
 	if ( ! empty( $data['redirects'] ) && is_array( $data['redirects'] ) ) {
-		easyrankly_ensure_redirect_classes_available();
+		erankly_ensure_redirect_classes_available();
 
-		if ( class_exists( 'EasyRankly_Redirects_Repository' ) && class_exists( 'EasyRankly_Redirects_Normalizer' ) ) {
+		if ( class_exists( 'ERankly_Redirects_Repository' ) && class_exists( 'ERankly_Redirects_Normalizer' ) ) {
 			// Make sure the DB table exists even if the module was never activated.
-			if ( class_exists( 'EasyRankly_Redirects_Activator' ) ) {
-				EasyRankly_Redirects_Activator::activate();
+			if ( class_exists( 'ERankly_Redirects_Activator' ) ) {
+				ERankly_Redirects_Activator::activate();
 			}
 
-			$repository = new EasyRankly_Redirects_Repository();
+			$repository = new ERankly_Redirects_Repository();
 
 			foreach ( $data['redirects'] as $row ) {
 				if ( ! is_array( $row ) ) {
 					continue;
 				}
 
-				$redirect = easyrankly_import_prepare_redirect( $row );
+				$redirect = erankly_import_prepare_redirect( $row );
 
 				if ( null === $redirect ) {
 					continue;
@@ -334,7 +338,7 @@ function easyrankly_import_apply( array $data ): array {
 
 	// Post meta.
 	if ( ! empty( $data['post_meta'] ) && is_array( $data['post_meta'] ) ) {
-		$allowed = easyrankly_get_meta_keys();
+		$allowed = erankly_get_meta_keys();
 
 		foreach ( $data['post_meta'] as $entry ) {
 			if ( ! is_array( $entry ) ) {
@@ -350,14 +354,14 @@ function easyrankly_import_apply( array $data ): array {
 
 			// wp_slash(): update_post_meta() unslashes its input, which would strip
 			// literal backslashes from the imported value.
-			update_post_meta( $post_id, $key, wp_slash( easyrankly_sanitize_registered_meta( $entry['value'] ?? '', $key ) ) );
+			update_post_meta( $post_id, $key, wp_slash( erankly_sanitize_registered_meta( $entry['value'] ?? '', $key ) ) );
 			++$counts['post_meta'];
 		}
 	}
 
 	// Term meta.
 	if ( ! empty( $data['term_meta'] ) && is_array( $data['term_meta'] ) ) {
-		$allowed = easyrankly_get_meta_keys();
+		$allowed = erankly_get_meta_keys();
 
 		foreach ( $data['term_meta'] as $entry ) {
 			if ( ! is_array( $entry ) ) {
@@ -371,7 +375,7 @@ function easyrankly_import_apply( array $data ): array {
 				continue;
 			}
 
-			update_term_meta( $term_id, $key, wp_slash( easyrankly_sanitize_registered_meta( $entry['value'] ?? '', $key ) ) );
+			update_term_meta( $term_id, $key, wp_slash( erankly_sanitize_registered_meta( $entry['value'] ?? '', $key ) ) );
 			++$counts['term_meta'];
 		}
 	}
@@ -385,15 +389,15 @@ function easyrankly_import_apply( array $data ): array {
  * @param array<string,mixed> $row Redirect row from the export file.
  * @return array<string,mixed>|null
  */
-function easyrankly_import_prepare_redirect( array $row ): ?array {
+function erankly_import_prepare_redirect( array $row ): ?array {
 	$is_wildcard = ! empty( $row['is_wildcard'] ) ? 1 : 0;
 	$is_regex    = ( ! $is_wildcard && ! empty( $row['is_regex'] ) ) ? 1 : 0;
 
 	$source_path = isset( $row['source_path'] )
-		? EasyRankly_Redirects_Normalizer::normalize_source( sanitize_text_field( (string) $row['source_path'] ), (bool) $is_regex, (bool) $is_wildcard )
+		? ERankly_Redirects_Normalizer::normalize_source( sanitize_text_field( (string) $row['source_path'] ), (bool) $is_regex, (bool) $is_wildcard )
 		: '';
 	$target_url  = isset( $row['target_url'] )
-		? EasyRankly_Redirects_Normalizer::normalize_target_url( (string) $row['target_url'] )
+		? ERankly_Redirects_Normalizer::normalize_target_url( (string) $row['target_url'] )
 		: '';
 
 	if ( '' === $source_path || '' === $target_url ) {
@@ -408,13 +412,13 @@ function easyrankly_import_prepare_redirect( array $row ): ?array {
 
 	$status_code = isset( $row['status_code'] ) ? absint( $row['status_code'] ) : 301;
 
-	if ( ! EasyRankly_Redirects_Normalizer::is_valid_status_code( $status_code ) ) {
+	if ( ! ERankly_Redirects_Normalizer::is_valid_status_code( $status_code ) ) {
 		$status_code = 301;
 	}
 
 	return array(
 		'source_path'   => $source_path,
-		'source_hash'   => EasyRankly_Redirects_Normalizer::source_hash( $source_path ),
+		'source_hash'   => ERankly_Redirects_Normalizer::source_hash( $source_path ),
 		'target_url'    => $target_url,
 		'status_code'   => $status_code,
 		'is_regex'      => $is_regex,
@@ -437,18 +441,18 @@ function easyrankly_import_prepare_redirect( array $row ): ?array {
  * @param string $source Source plugin: yoast|rankmath.
  * @return array{post_meta:int,term_meta:int}
  */
-function easyrankly_import_third_party( string $source ): array {
+function erankly_import_third_party( string $source ): array {
 	$counts = array(
 		'post_meta' => 0,
 		'term_meta' => 0,
 	);
 
-	easyrankly_import_third_party_posts( $source, $counts );
+	erankly_import_third_party_posts( $source, $counts );
 
 	if ( 'yoast' === $source ) {
-		easyrankly_import_yoast_terms( $counts );
+		erankly_import_yoast_terms( $counts );
 	} else {
-		easyrankly_import_rankmath_terms( $counts );
+		erankly_import_rankmath_terms( $counts );
 	}
 
 	return $counts;
@@ -461,10 +465,10 @@ function easyrankly_import_third_party( string $source ): array {
  * @param array{post_meta:int,term_meta:int} $counts Running counts (by reference).
  * @return void
  */
-function easyrankly_import_third_party_posts( string $source, array &$counts ): void {
+function erankly_import_third_party_posts( string $source, array &$counts ): void {
 	global $wpdb;
 
-	$source_keys = easyrankly_third_party_source_keys( $source );
+	$source_keys = erankly_third_party_source_keys( $source );
 
 	if ( empty( $source_keys ) ) {
 		return;
@@ -495,10 +499,10 @@ function easyrankly_import_third_party_posts( string $source, array &$counts ): 
 		}
 
 		$mapped = 'yoast' === $source
-			? easyrankly_map_yoast_meta( $meta )
-			: easyrankly_map_rankmath_meta( $meta );
+			? erankly_map_yoast_meta( $meta )
+			: erankly_map_rankmath_meta( $meta );
 
-		$counts['post_meta'] += easyrankly_apply_imported_meta( 'post', $post_id, $mapped );
+		$counts['post_meta'] += erankly_apply_imported_meta( 'post', $post_id, $mapped );
 	}
 }
 
@@ -508,7 +512,7 @@ function easyrankly_import_third_party_posts( string $source, array &$counts ): 
  * @param array{post_meta:int,term_meta:int} $counts Running counts (by reference).
  * @return void
  */
-function easyrankly_import_yoast_terms( array &$counts ): void {
+function erankly_import_yoast_terms( array &$counts ): void {
 	$taxonomy_meta = get_option( 'wpseo_taxonomy_meta' );
 
 	if ( ! is_array( $taxonomy_meta ) ) {
@@ -527,8 +531,8 @@ function easyrankly_import_yoast_terms( array &$counts ): void {
 				continue;
 			}
 
-			$mapped               = easyrankly_map_yoast_meta( $meta, true );
-			$counts['term_meta'] += easyrankly_apply_imported_meta( 'term', $term_id, $mapped );
+			$mapped               = erankly_map_yoast_meta( $meta, true );
+			$counts['term_meta'] += erankly_apply_imported_meta( 'term', $term_id, $mapped );
 		}
 	}
 }
@@ -539,10 +543,10 @@ function easyrankly_import_yoast_terms( array &$counts ): void {
  * @param array{post_meta:int,term_meta:int} $counts Running counts (by reference).
  * @return void
  */
-function easyrankly_import_rankmath_terms( array &$counts ): void {
+function erankly_import_rankmath_terms( array &$counts ): void {
 	global $wpdb;
 
-	$source_keys = easyrankly_third_party_source_keys( 'rankmath' );
+	$source_keys = erankly_third_party_source_keys( 'rankmath' );
 
 	if ( empty( $source_keys ) ) {
 		return;
@@ -572,8 +576,8 @@ function easyrankly_import_rankmath_terms( array &$counts ): void {
 			continue;
 		}
 
-		$mapped               = easyrankly_map_rankmath_meta( $meta );
-		$counts['term_meta'] += easyrankly_apply_imported_meta( 'term', $term_id, $mapped );
+		$mapped               = erankly_map_rankmath_meta( $meta );
+		$counts['term_meta'] += erankly_apply_imported_meta( 'term', $term_id, $mapped );
 	}
 }
 
@@ -585,7 +589,7 @@ function easyrankly_import_rankmath_terms( array &$counts ): void {
  * @param array<string,mixed> $mapped      EasyRankly meta key => value.
  * @return int Number of fields written.
  */
-function easyrankly_apply_imported_meta( string $object_type, int $object_id, array $mapped ): int {
+function erankly_apply_imported_meta( string $object_type, int $object_id, array $mapped ): int {
 	$written = 0;
 
 	foreach ( $mapped as $key => $value ) {
@@ -602,7 +606,7 @@ function easyrankly_apply_imported_meta( string $object_type, int $object_id, ar
 			continue;
 		}
 
-		$clean = easyrankly_sanitize_registered_meta( $value, $key );
+		$clean = erankly_sanitize_registered_meta( $value, $key );
 
 		if ( '' === $clean || false === $clean ) {
 			continue;
@@ -628,7 +632,7 @@ function easyrankly_apply_imported_meta( string $object_type, int $object_id, ar
  * @param string $source Source plugin: yoast|rankmath.
  * @return array<int,string>
  */
-function easyrankly_third_party_source_keys( string $source ): array {
+function erankly_third_party_source_keys( string $source ): array {
 	if ( 'yoast' === $source ) {
 		return array(
 			'_yoast_wpseo_title',
@@ -670,7 +674,7 @@ function easyrankly_third_party_source_keys( string $source ): array {
  * @param bool                $is_term Whether the keys use the wpseo_taxonomy_meta short form.
  * @return array<string,mixed>
  */
-function easyrankly_map_yoast_meta( array $meta, bool $is_term = false ): array {
+function erankly_map_yoast_meta( array $meta, bool $is_term = false ): array {
 	// Term meta in wpseo_taxonomy_meta uses short keys (wpseo_title); post meta
 	// uses the full prefix (_yoast_wpseo_title). Normalize to the short form.
 	$prefix = $is_term ? 'wpseo_' : '_yoast_wpseo_';
@@ -679,30 +683,30 @@ function easyrankly_map_yoast_meta( array $meta, bool $is_term = false ): array 
 	};
 
 	$mapped = array(
-		'_easyrankly_title'               => easyrankly_import_convert_variables( $get( 'title' ), 'yoast' ),
-		'_easyrankly_description'         => easyrankly_import_convert_variables( $is_term ? $get( 'desc' ) : $get( 'metadesc' ), 'yoast' ),
-		'_easyrankly_canonical'           => $get( 'canonical' ),
-		'_easyrankly_breadcrumb_name'     => $get( 'bctitle' ),
-		'_easyrankly_og_title'            => easyrankly_import_convert_variables( $get( 'opengraph-title' ), 'yoast' ),
-		'_easyrankly_og_description'      => easyrankly_import_convert_variables( $get( 'opengraph-description' ), 'yoast' ),
-		'_easyrankly_social_image_url'    => $get( 'opengraph-image' ),
-		'_easyrankly_og_image_id'         => absint( $get( 'opengraph-image-id' ) ),
-		'_easyrankly_twitter_title'       => easyrankly_import_convert_variables( $get( 'twitter-title' ), 'yoast' ),
-		'_easyrankly_twitter_description' => easyrankly_import_convert_variables( $get( 'twitter-description' ), 'yoast' ),
+		'_erankly_title'               => erankly_import_convert_variables( $get( 'title' ), 'yoast' ),
+		'_erankly_description'         => erankly_import_convert_variables( $is_term ? $get( 'desc' ) : $get( 'metadesc' ), 'yoast' ),
+		'_erankly_canonical'           => $get( 'canonical' ),
+		'_erankly_breadcrumb_name'     => $get( 'bctitle' ),
+		'_erankly_og_title'            => erankly_import_convert_variables( $get( 'opengraph-title' ), 'yoast' ),
+		'_erankly_og_description'      => erankly_import_convert_variables( $get( 'opengraph-description' ), 'yoast' ),
+		'_erankly_social_image_url'    => $get( 'opengraph-image' ),
+		'_erankly_og_image_id'         => absint( $get( 'opengraph-image-id' ) ),
+		'_erankly_twitter_title'       => erankly_import_convert_variables( $get( 'twitter-title' ), 'yoast' ),
+		'_erankly_twitter_description' => erankly_import_convert_variables( $get( 'twitter-description' ), 'yoast' ),
 	);
 
 	// Robots: Yoast stores "1" for noindex and "1" for nofollow; the advanced
 	// field is a comma list that may contain "noarchive".
 	if ( '1' === $get( 'meta-robots-noindex' ) || 'noindex' === $get( 'noindex' ) ) {
-		$mapped['_easyrankly_noindex'] = true;
+		$mapped['_erankly_noindex'] = true;
 	}
 
 	if ( '1' === $get( 'meta-robots-nofollow' ) ) {
-		$mapped['_easyrankly_nofollow'] = true;
+		$mapped['_erankly_nofollow'] = true;
 	}
 
 	if ( false !== strpos( $get( 'meta-robots-adv' ), 'noarchive' ) ) {
-		$mapped['_easyrankly_noarchive'] = true;
+		$mapped['_erankly_noarchive'] = true;
 	}
 
 	return $mapped;
@@ -714,23 +718,23 @@ function easyrankly_map_yoast_meta( array $meta, bool $is_term = false ): array 
  * @param array<string,mixed> $meta Source meta.
  * @return array<string,mixed>
  */
-function easyrankly_map_rankmath_meta( array $meta ): array {
+function erankly_map_rankmath_meta( array $meta ): array {
 	$get = static function ( string $key ) use ( $meta ): string {
 		return isset( $meta[ $key ] ) ? (string) $meta[ $key ] : '';
 	};
 
 	$mapped = array(
-		'_easyrankly_title'               => easyrankly_import_convert_variables( $get( 'rank_math_title' ), 'rankmath' ),
-		'_easyrankly_description'         => easyrankly_import_convert_variables( $get( 'rank_math_description' ), 'rankmath' ),
-		'_easyrankly_canonical'           => $get( 'rank_math_canonical_url' ),
-		'_easyrankly_breadcrumb_name'     => $get( 'rank_math_breadcrumb_title' ),
-		'_easyrankly_og_title'            => easyrankly_import_convert_variables( $get( 'rank_math_facebook_title' ), 'rankmath' ),
-		'_easyrankly_og_description'      => easyrankly_import_convert_variables( $get( 'rank_math_facebook_description' ), 'rankmath' ),
-		'_easyrankly_social_image_url'    => $get( 'rank_math_facebook_image' ),
-		'_easyrankly_og_image_id'         => absint( $get( 'rank_math_facebook_image_id' ) ),
-		'_easyrankly_twitter_title'       => easyrankly_import_convert_variables( $get( 'rank_math_twitter_title' ), 'rankmath' ),
-		'_easyrankly_twitter_description' => easyrankly_import_convert_variables( $get( 'rank_math_twitter_description' ), 'rankmath' ),
-		'_easyrankly_twitter_image_id'    => absint( $get( 'rank_math_twitter_image_id' ) ),
+		'_erankly_title'               => erankly_import_convert_variables( $get( 'rank_math_title' ), 'rankmath' ),
+		'_erankly_description'         => erankly_import_convert_variables( $get( 'rank_math_description' ), 'rankmath' ),
+		'_erankly_canonical'           => $get( 'rank_math_canonical_url' ),
+		'_erankly_breadcrumb_name'     => $get( 'rank_math_breadcrumb_title' ),
+		'_erankly_og_title'            => erankly_import_convert_variables( $get( 'rank_math_facebook_title' ), 'rankmath' ),
+		'_erankly_og_description'      => erankly_import_convert_variables( $get( 'rank_math_facebook_description' ), 'rankmath' ),
+		'_erankly_social_image_url'    => $get( 'rank_math_facebook_image' ),
+		'_erankly_og_image_id'         => absint( $get( 'rank_math_facebook_image_id' ) ),
+		'_erankly_twitter_title'       => erankly_import_convert_variables( $get( 'rank_math_twitter_title' ), 'rankmath' ),
+		'_erankly_twitter_description' => erankly_import_convert_variables( $get( 'rank_math_twitter_description' ), 'rankmath' ),
+		'_erankly_twitter_image_id'    => absint( $get( 'rank_math_twitter_image_id' ) ),
 	);
 
 	// Robots is a serialized array such as ["noindex","nofollow","noarchive"].
@@ -738,15 +742,15 @@ function easyrankly_map_rankmath_meta( array $meta ): array {
 
 	if ( is_array( $robots ) ) {
 		if ( in_array( 'noindex', $robots, true ) ) {
-			$mapped['_easyrankly_noindex'] = true;
+			$mapped['_erankly_noindex'] = true;
 		}
 
 		if ( in_array( 'nofollow', $robots, true ) ) {
-			$mapped['_easyrankly_nofollow'] = true;
+			$mapped['_erankly_nofollow'] = true;
 		}
 
 		if ( in_array( 'noarchive', $robots, true ) ) {
-			$mapped['_easyrankly_noarchive'] = true;
+			$mapped['_erankly_noarchive'] = true;
 		}
 	}
 
@@ -763,7 +767,7 @@ function easyrankly_map_rankmath_meta( array $meta ): array {
  * @param string $source Source plugin: yoast|rankmath.
  * @return string
  */
-function easyrankly_import_convert_variables( string $value, string $source ): string {
+function erankly_import_convert_variables( string $value, string $source ): string {
 	$value = (string) $value;
 
 	if ( '' === $value ) {
@@ -821,7 +825,7 @@ function easyrankly_import_convert_variables( string $value, string $source ): s
  *
  * @return void
  */
-function easyrankly_import_export_render_panel(): void {
+function erankly_import_export_render_panel(): void {
 	// On Multisite the settings option is a network option; mirror the write-access gate.
 	$required_cap = is_multisite() ? 'manage_network_options' : 'manage_options';
 
@@ -829,39 +833,39 @@ function easyrankly_import_export_render_panel(): void {
 		return;
 	}
 
-	$export_url   = wp_nonce_url( add_query_arg( 'easyrankly_io_action', 'export', easyrankly_import_export_url() ), 'easyrankly_io_export' );
-	$has_yoast    = easyrankly_third_party_data_exists( 'yoast' );
-	$has_rankmath = easyrankly_third_party_data_exists( 'rankmath' );
-	$action_url   = easyrankly_import_export_url();
+	$export_url   = wp_nonce_url( add_query_arg( 'erankly_io_action', 'export', erankly_import_export_url() ), 'erankly_io_export' );
+	$has_yoast    = erankly_third_party_data_exists( 'yoast' );
+	$has_rankmath = erankly_third_party_data_exists( 'rankmath' );
+	$action_url   = erankly_import_export_url();
 
-	easyrankly_import_export_render_notice();
+	erankly_import_export_render_notice();
 	?>
-	<div class="easyrankly-io">
-		<section class="easyrankly-io-section">
+	<div class="erankly-io">
+		<section class="erankly-io-section">
 			<h3><?php esc_html_e( 'Export', 'easyrankly' ); ?></h3>
 			<p class="description"><?php esc_html_e( 'Download a single JSON file containing all EasyRankly data: settings, redirects, and the SEO metadata for posts and terms. Keep it as a backup or import it on another site.', 'easyrankly' ); ?></p>
 			<p><a class="button button-primary" href="<?php echo esc_url( $export_url ); ?>"><?php esc_html_e( 'Export all data', 'easyrankly' ); ?></a></p>
 		</section>
 
-		<section class="easyrankly-io-section">
+		<section class="erankly-io-section">
 			<h3><?php esc_html_e( 'Import', 'easyrankly' ); ?></h3>
 			<p class="description"><?php esc_html_e( 'Upload a JSON file previously exported by EasyRankly. Settings and redirects are replaced; post and term metadata is matched by ID and overwritten.', 'easyrankly' ); ?></p>
-			<form method="post" action="<?php echo esc_url( $action_url ); ?>" enctype="multipart/form-data" class="easyrankly-io-form">
-				<?php wp_nonce_field( 'easyrankly_io_import' ); ?>
-				<input type="hidden" name="easyrankly_io_action" value="import">
-				<input type="file" name="easyrankly_import_file" accept=".json,application/json" required>
+			<form method="post" action="<?php echo esc_url( $action_url ); ?>" enctype="multipart/form-data" class="erankly-io-form">
+				<?php wp_nonce_field( 'erankly_io_import' ); ?>
+				<input type="hidden" name="erankly_io_action" value="import">
+				<input type="file" name="erankly_import_file" accept=".json,application/json" required>
 				<?php submit_button( __( 'Import file', 'easyrankly' ), 'secondary', 'submit', false ); ?>
 			</form>
 		</section>
 
-		<section class="easyrankly-io-section">
+		<section class="erankly-io-section">
 			<h3><?php esc_html_e( 'Import from other plugins', 'easyrankly' ); ?></h3>
 			<p class="description"><?php esc_html_e( 'Copy the useful SEO metadata (titles, descriptions, canonical URLs, social tags, robots flags and breadcrumb labels) from another plugin into EasyRankly. Existing EasyRankly values are never overwritten, and irrelevant data is ignored.', 'easyrankly' ); ?></p>
 
-			<div class="easyrankly-io-third-party">
+			<div class="erankly-io-third-party">
 				<form method="post" action="<?php echo esc_url( $action_url ); ?>">
-					<?php wp_nonce_field( 'easyrankly_io_yoast' ); ?>
-					<input type="hidden" name="easyrankly_io_action" value="yoast">
+					<?php wp_nonce_field( 'erankly_io_yoast' ); ?>
+					<input type="hidden" name="erankly_io_action" value="yoast">
 					<strong><?php esc_html_e( 'Yoast SEO', 'easyrankly' ); ?></strong>
 					<?php if ( $has_yoast ) : ?>
 						<?php submit_button( __( 'Import from Yoast SEO', 'easyrankly' ), 'secondary', 'submit', false ); ?>
@@ -871,8 +875,8 @@ function easyrankly_import_export_render_panel(): void {
 				</form>
 
 				<form method="post" action="<?php echo esc_url( $action_url ); ?>">
-					<?php wp_nonce_field( 'easyrankly_io_rankmath' ); ?>
-					<input type="hidden" name="easyrankly_io_action" value="rankmath">
+					<?php wp_nonce_field( 'erankly_io_rankmath' ); ?>
+					<input type="hidden" name="erankly_io_action" value="rankmath">
 					<strong><?php esc_html_e( 'Rank Math', 'easyrankly' ); ?></strong>
 					<?php if ( $has_rankmath ) : ?>
 						<?php submit_button( __( 'Import from Rank Math', 'easyrankly' ), 'secondary', 'submit', false ); ?>
@@ -891,8 +895,8 @@ function easyrankly_import_export_render_panel(): void {
  *
  * @return void
  */
-function easyrankly_import_export_render_notice(): void {
-	$notice = isset( $_GET['easyrankly_io_notice'] ) ? sanitize_key( wp_unslash( $_GET['easyrankly_io_notice'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+function erankly_import_export_render_notice(): void {
+	$notice = isset( $_GET['erankly_io_notice'] ) ? sanitize_key( wp_unslash( $_GET['erankly_io_notice'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 
 	if ( '' === $notice ) {
 		return;
@@ -945,14 +949,14 @@ function easyrankly_import_export_render_notice(): void {
  * @param string $source Source plugin: yoast|rankmath.
  * @return bool
  */
-function easyrankly_third_party_data_exists( string $source ): bool {
+function erankly_third_party_data_exists( string $source ): bool {
 	global $wpdb;
 
 	if ( 'yoast' === $source && is_array( get_option( 'wpseo_taxonomy_meta' ) ) ) {
 		return true;
 	}
 
-	$source_keys  = easyrankly_third_party_source_keys( $source );
+	$source_keys  = erankly_third_party_source_keys( $source );
 	$placeholders = implode( ', ', array_fill( 0, count( $source_keys ), '%s' ) );
 	$found        = $wpdb->get_var( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Lightweight presence check for importer availability.
 		$wpdb->prepare(

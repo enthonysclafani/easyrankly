@@ -14,7 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * @return bool
  */
-function easyrankly_detect_external_seo_head_owner(): bool {
+function erankly_detect_external_seo_head_owner(): bool {
 	static $result = null;
 
 	if ( null !== $result ) {
@@ -47,15 +47,15 @@ function easyrankly_detect_external_seo_head_owner(): bool {
  *
  * @return bool
  */
-function easyrankly_should_output_head(): bool {
-	$should_output = easyrankly_is_frontend_html_request() && ! easyrankly_detect_external_seo_head_owner();
+function erankly_should_output_head(): bool {
+	$should_output = erankly_is_frontend_html_request() && ! erankly_detect_external_seo_head_owner();
 
 	/**
 	 * Filters whether EasyRankly renders head metadata.
 	 *
 	 * @param bool $should_output True to render metadata.
 	 */
-	return (bool) apply_filters( 'easyrankly_enable_head_output', $should_output );
+	return (bool) apply_filters( 'erankly_enable_head_output', $should_output );
 }
 
 /**
@@ -64,7 +64,7 @@ function easyrankly_should_output_head(): bool {
  * @param string $url URL.
  * @return string
  */
-function easyrankly_localize_url( string $url ): string {
+function erankly_localize_url( string $url ): string {
 	if ( function_exists( 'pll_home_url' ) && home_url( '/' ) === $url ) {
 		$pll_url = pll_home_url();
 
@@ -78,7 +78,7 @@ function easyrankly_localize_url( string $url ): string {
 	 *
 	 * @param string $url URL.
 	 */
-	return (string) apply_filters( 'easyrankly_localized_url', $url );
+	return (string) apply_filters( 'erankly_localized_url', $url );
 }
 
 /**
@@ -86,7 +86,7 @@ function easyrankly_localize_url( string $url ): string {
  *
  * @return bool
  */
-function easyrankly_is_woocommerce_active(): bool {
+function erankly_is_woocommerce_active(): bool {
 	return function_exists( 'wc_get_product' );
 }
 
@@ -95,15 +95,15 @@ function easyrankly_is_woocommerce_active(): bool {
  *
  * @return bool
  */
-function easyrankly_woocommerce_structured_data_enabled(): bool {
-	$enabled = easyrankly_is_woocommerce_active() && class_exists( 'WC_Structured_Data' );
+function erankly_woocommerce_structured_data_enabled(): bool {
+	$enabled = erankly_is_woocommerce_active() && class_exists( 'WC_Structured_Data' );
 
 	/**
 	 * Filters whether WooCommerce owns Product structured data output.
 	 *
 	 * @param bool $enabled True when WooCommerce Product JSON-LD should be treated as active.
 	 */
-	return (bool) apply_filters( 'easyrankly_woocommerce_structured_data_enabled', $enabled );
+	return (bool) apply_filters( 'erankly_woocommerce_structured_data_enabled', $enabled );
 }
 
 /**
@@ -112,8 +112,8 @@ function easyrankly_woocommerce_structured_data_enabled(): bool {
  * @param int $post_id Product post ID.
  * @return bool
  */
-function easyrankly_should_render_woocommerce_product_schema( int $post_id ): bool {
-	$should_render = ! easyrankly_woocommerce_structured_data_enabled();
+function erankly_should_render_woocommerce_product_schema( int $post_id ): bool {
+	$should_render = ! erankly_woocommerce_structured_data_enabled();
 
 	/**
 	 * Filters whether EasyRankly outputs automatic Product schema for WooCommerce products.
@@ -123,7 +123,7 @@ function easyrankly_should_render_woocommerce_product_schema( int $post_id ): bo
 	 * @param bool $should_render True to output EasyRankly Product schema.
 	 * @param int  $post_id       Product post ID.
 	 */
-	return (bool) apply_filters( 'easyrankly_render_woocommerce_product_schema', $should_render, $post_id );
+	return (bool) apply_filters( 'erankly_render_woocommerce_product_schema', $should_render, $post_id );
 }
 
 /**
@@ -131,12 +131,12 @@ function easyrankly_should_render_woocommerce_product_schema( int $post_id ): bo
  *
  * When a known SEO plugin that ships its own sitemap system is active the
  * virtual video/news sitemaps served by EasyRankly must not run concurrently.
- * Site admins can override with the {@see 'easyrankly_enable_sitemaps_with_external_seo'} filter.
+ * Site admins can override with the {@see 'erankly_enable_sitemaps_with_external_seo'} filter.
  *
  * @return bool True when EasyRankly should suppress its own sitemap output.
  */
-function easyrankly_should_suppress_sitemaps(): bool {
-	$suppress = easyrankly_detect_external_seo_head_owner();
+function erankly_should_suppress_sitemaps(): bool {
+	$suppress = erankly_detect_external_seo_head_owner();
 
 	/**
 	 * Filters whether EasyRankly suppresses its own sitemap output when an external SEO plugin is active.
@@ -145,7 +145,7 @@ function easyrankly_should_suppress_sitemaps(): bool {
 	 *
 	 * @param bool $suppress True to suppress EasyRankly sitemaps.
 	 */
-	return (bool) apply_filters( 'easyrankly_enable_sitemaps_with_external_seo', $suppress );
+	return (bool) apply_filters( 'erankly_enable_sitemaps_with_external_seo', $suppress );
 }
 
 /**
@@ -154,12 +154,12 @@ function easyrankly_should_suppress_sitemaps(): bool {
  *
  * @return void
  */
-function easyrankly_compatibility_notice_external_seo(): void {
+function erankly_compatibility_notice_external_seo(): void {
 	if ( ! current_user_can( 'manage_options' ) ) {
 		return;
 	}
 
-	if ( ! easyrankly_detect_external_seo_head_owner() ) {
+	if ( ! erankly_detect_external_seo_head_owner() ) {
 		return;
 	}
 
@@ -167,7 +167,7 @@ function easyrankly_compatibility_notice_external_seo(): void {
 
 	// Limit to EasyRankly pages and the plugin list to avoid polluting all admin screens.
 	if ( $screen instanceof WP_Screen ) {
-		$show = str_contains( (string) $screen->id, 'easyrankly' )
+		$show = str_contains( (string) $screen->id, 'erankly' )
 			|| 'plugins' === $screen->base;
 
 		if ( ! $show ) {
@@ -188,7 +188,7 @@ function easyrankly_compatibility_notice_external_seo(): void {
 	</div>
 	<?php
 }
-add_action( 'admin_notices', 'easyrankly_compatibility_notice_external_seo' );
+add_action( 'admin_notices', 'erankly_compatibility_notice_external_seo' );
 
 /**
  * Returns WooCommerce product schema additions when available.
@@ -196,8 +196,8 @@ add_action( 'admin_notices', 'easyrankly_compatibility_notice_external_seo' );
  * @param int $post_id Post ID.
  * @return array<string,mixed>
  */
-function easyrankly_get_woocommerce_product_data( int $post_id ): array {
-	if ( 'product' !== get_post_type( $post_id ) || ! easyrankly_is_woocommerce_active() || ! easyrankly_should_render_woocommerce_product_schema( $post_id ) ) {
+function erankly_get_woocommerce_product_data( int $post_id ): array {
+	if ( 'product' !== get_post_type( $post_id ) || ! erankly_is_woocommerce_active() || ! erankly_should_render_woocommerce_product_schema( $post_id ) ) {
 		return array();
 	}
 
@@ -212,11 +212,11 @@ function easyrankly_get_woocommerce_product_data( int $post_id ): array {
 		'@type'       => 'Product',
 		'@id'         => $permalink . '#product',
 		'name'        => $product->get_name(),
-		'description' => easyrankly_trim_text( '' !== $product->get_short_description() ? $product->get_short_description() : $product->get_description(), 500 ),
+		'description' => erankly_trim_text( '' !== $product->get_short_description() ? $product->get_short_description() : $product->get_description(), 500 ),
 		'url'         => $permalink,
 	);
 
-	$image = easyrankly_get_og_image();
+	$image = erankly_get_og_image();
 
 	if ( '' !== $image ) {
 		$data['image'] = $image;
@@ -228,7 +228,7 @@ function easyrankly_get_woocommerce_product_data( int $post_id ): array {
 		$data['sku'] = $sku;
 	}
 
-	$brand = easyrankly_get_woocommerce_product_brand( $post_id );
+	$brand = erankly_get_woocommerce_product_brand( $post_id );
 
 	if ( '' !== $brand ) {
 		$data['brand'] = array(
@@ -279,7 +279,7 @@ function easyrankly_get_woocommerce_product_data( int $post_id ): array {
  * @param int $post_id Product post ID.
  * @return string
  */
-function easyrankly_get_woocommerce_product_brand( int $post_id ): string {
+function erankly_get_woocommerce_product_brand( int $post_id ): string {
 	$taxonomies = array( 'product_brand', 'pa_brand', 'pwb-brand' );
 
 	foreach ( $taxonomies as $taxonomy ) {

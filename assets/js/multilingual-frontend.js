@@ -3,10 +3,10 @@
  *
  * Handles two shortcodes:
  *
- * 1. Language Switcher [easyrankly_language_switcher]
+ * 1. Language Switcher [erankly_language_switcher]
  *    Navigates to the selected language URL when the <select> value changes.
  *
- * 2. Translation Notice [easyrankly_translation_notice]
+ * 2. Translation Notice [erankly_translation_notice]
  *    Reveals the notice card when the visitor's browser language matches an
  *    available translation, fills it with that language's globally configured
  *    texts, and remembers dismissals via localStorage.

@@ -4,21 +4,21 @@
 	var STATUS_CLASSES = ['is-incomplete', 'is-partial', 'is-complete'];
 
 	function setup() {
-		var root = document.querySelector('[data-easyrankly-seo-checklist]');
+		var root = document.querySelector('[data-erankly-seo-checklist]');
 
 		if (!root) {
 			return;
 		}
 
-		var toggle = root.querySelector('[data-easyrankly-seo-checklist-toggle]');
-		var panel = root.querySelector('[data-easyrankly-seo-checklist-panel]');
-		var count = root.querySelector('[data-easyrankly-seo-checklist-count]');
-		var minWidth = parseInt(root.getAttribute('data-easyrankly-min-width'), 10) || 1200;
-		var minHeight = parseInt(root.getAttribute('data-easyrankly-min-height'), 10) || 630;
+		var toggle = root.querySelector('[data-erankly-seo-checklist-toggle]');
+		var panel = root.querySelector('[data-erankly-seo-checklist-panel]');
+		var count = root.querySelector('[data-erankly-seo-checklist-count]');
+		var minWidth = parseInt(root.getAttribute('data-erankly-min-width'), 10) || 1200;
+		var minHeight = parseInt(root.getAttribute('data-erankly-min-height'), 10) || 630;
 		var state = {};
 
-		root.querySelectorAll('[data-easyrankly-seo-checklist-item]').forEach(function (item) {
-			state[item.getAttribute('data-easyrankly-seo-checklist-item')] = item.classList.contains('is-done');
+		root.querySelectorAll('[data-erankly-seo-checklist-item]').forEach(function (item) {
+			state[item.getAttribute('data-erankly-seo-checklist-item')] = item.classList.contains('is-done');
 		});
 
 		function apply() {
@@ -35,7 +35,7 @@
 			}
 
 			keys.forEach(function (key) {
-				var item = root.querySelector('[data-easyrankly-seo-checklist-item="' + key + '"]');
+				var item = root.querySelector('[data-erankly-seo-checklist-item="' + key + '"]');
 
 				if (item) {
 					item.classList.toggle('is-done', state[key]);
@@ -101,7 +101,7 @@
 	// Hides the whole checklist for 10 seconds so the content underneath
 	// becomes visible, then brings it back.
 	function bindSnooze(root, toggle, panel) {
-		var hide = root.querySelector('[data-easyrankly-seo-checklist-hide]');
+		var hide = root.querySelector('[data-erankly-seo-checklist-hide]');
 
 		if (!hide) {
 			return;
@@ -129,8 +129,8 @@
 	// Classic editor: the meta box title and description fields.
 	function bindClassicFields(update) {
 		var fields = {
-			title: document.getElementById('easyrankly-title'),
-			description: document.getElementById('easyrankly-description')
+			title: document.getElementById('erankly-title'),
+			description: document.getElementById('erankly-description')
 		};
 
 		Object.keys(fields).forEach(function (key) {
@@ -196,8 +196,8 @@
 			var editor = select('core/editor');
 			var meta = editor.getEditedPostAttribute('meta') || {};
 
-			update('title', '' !== String(meta._easyrankly_title || '').trim());
-			update('description', '' !== String(meta._easyrankly_description || '').trim());
+			update('title', '' !== String(meta._erankly_title || '').trim());
+			update('description', '' !== String(meta._erankly_description || '').trim());
 
 			var mediaId = editor.getEditedPostAttribute('featured_media') || 0;
 

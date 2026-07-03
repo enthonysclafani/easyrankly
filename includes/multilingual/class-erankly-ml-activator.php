@@ -12,7 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Creates or upgrades the network-wide hreflang relations table.
  */
-final class EasyRankly_ML_Activator {
+final class ERankly_ML_Activator {
 
 	/**
 	 * Creates the table using dbDelta so it is idempotent.
@@ -24,7 +24,7 @@ final class EasyRankly_ML_Activator {
 
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 
-		$table_name      = EasyRankly_ML_Repository::get_table_name();
+		$table_name      = ERankly_ML_Repository::get_table_name();
 		$charset_collate = $wpdb->get_charset_collate();
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange -- dbDelta is the WordPress-sanctioned DDL API.

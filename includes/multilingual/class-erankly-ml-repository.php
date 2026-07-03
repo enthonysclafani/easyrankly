@@ -12,14 +12,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Database access for the easyrankly_ml_relations table.
+ * Database access for the erankly_ml_relations table.
  */
-final class EasyRankly_ML_Repository {
+final class ERankly_ML_Repository {
 
 	/**
 	 * Object cache group.
 	 */
-	private const CACHE_GROUP = 'easyrankly_ml';
+	private const CACHE_GROUP = 'erankly_ml';
 
 	/**
 	 * Returns the full table name (uses base_prefix so it is network-wide).
@@ -28,7 +28,7 @@ final class EasyRankly_ML_Repository {
 	 */
 	public static function get_table_name(): string {
 		global $wpdb;
-		return $wpdb->base_prefix . 'easyrankly_ml_relations';
+		return $wpdb->base_prefix . 'erankly_ml_relations';
 	}
 
 	// Read.

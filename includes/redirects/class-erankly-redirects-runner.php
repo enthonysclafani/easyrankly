@@ -12,20 +12,20 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Performs frontend redirect matching.
  */
-final class EasyRankly_Redirects_Runner {
+final class ERankly_Redirects_Runner {
 	/**
 	 * Redirect repository.
 	 *
-	 * @var EasyRankly_Redirects_Repository
+	 * @var ERankly_Redirects_Repository
 	 */
-	private EasyRankly_Redirects_Repository $repository;
+	private ERankly_Redirects_Repository $repository;
 
 	/**
 	 * Constructor.
 	 *
-	 * @param EasyRankly_Redirects_Repository $repository Redirect repository.
+	 * @param ERankly_Redirects_Repository $repository Redirect repository.
 	 */
-	public function __construct( EasyRankly_Redirects_Repository $repository ) {
+	public function __construct( ERankly_Redirects_Repository $repository ) {
 		$this->repository = $repository;
 	}
 
@@ -44,16 +44,18 @@ final class EasyRankly_Redirects_Runner {
 			return;
 		}
 
-		$request_uri = isset( $_SERVER['REQUEST_URI'] ) ? (string) wp_unslash( $_SERVER['REQUEST_URI'] ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		$request_uri = isset( $_SERVER['REQUEST_URI'] ) && is_string( $_SERVER['REQUEST_URI'] )
+			? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_URI'] ) )
+			: '';
 
 		if ( '' === $request_uri ) {
 			return;
 		}
 
-		$current_path    = EasyRankly_Redirects_Normalizer::normalize_path( $request_uri );
-			$source_hash = EasyRankly_Redirects_Normalizer::source_hash( $current_path );
-			$redirect    = $this->repository->get_exact_rule_cached( $source_hash );
-			$target_url  = '';
+		$current_path = ERankly_Redirects_Normalizer::normalize_path( $request_uri );
+		$source_hash  = ERankly_Redirects_Normalizer::source_hash( $current_path );
+		$redirect     = $this->repository->get_exact_rule_cached( $source_hash );
+		$target_url   = '';
 
 		if ( $redirect ) {
 			$target_url = (string) $redirect['target_url'];
@@ -63,13 +65,13 @@ final class EasyRankly_Redirects_Runner {
 
 			if ( $redirect ) {
 				if ( ! empty( $redirect['is_wildcard'] ) ) {
-					$target_url = EasyRankly_Redirects_Normalizer::apply_wildcard_target(
+					$target_url = ERankly_Redirects_Normalizer::apply_wildcard_target(
 						(string) $redirect['source_path'],
 						$current_path,
 						(string) $redirect['target_url']
 					);
 				} else {
-					$target_url = EasyRankly_Redirects_Normalizer::apply_regex_target(
+					$target_url = ERankly_Redirects_Normalizer::apply_regex_target(
 						(string) $redirect['source_path'],
 						$current_path,
 						(string) $redirect['target_url']
@@ -84,18 +86,18 @@ final class EasyRankly_Redirects_Runner {
 
 		$status_code = (int) $redirect['status_code'];
 
-		if ( ! EasyRankly_Redirects_Normalizer::is_valid_status_code( $status_code ) ) {
+		if ( ! ERankly_Redirects_Normalizer::is_valid_status_code( $status_code ) ) {
 			return;
 		}
 
-		$target_url = EasyRankly_Redirects_Normalizer::normalize_target_url( $target_url );
+		$target_url = ERankly_Redirects_Normalizer::normalize_target_url( $target_url );
 
 		if ( '' === $target_url || $this->is_loop( $current_path, $target_url ) ) {
 			return;
 		}
 
 		// Global setting: never redirect administrators.
-		if ( easyrankly_get_setting( 'redirect_exclude_admins', 0 ) && current_user_can( 'manage_options' ) ) {
+		if ( erankly_get_setting( 'redirect_exclude_admins', 0 ) && current_user_can( 'manage_options' ) ) {
 			return;
 		}
 
@@ -161,15 +163,6 @@ final class EasyRankly_Redirects_Runner {
 			return null;
 		}
 
-		// Lower the PCRE limits so a catastrophic (backtracking-heavy) stored pattern
-		// bails out in microseconds instead of stalling the request. When a limit is
-		// hit preg_match() returns false, which the strict 1 === check below treats as
-		// "no match" — the matching stays fail-safe.
-		// phpcs:disable WordPress.PHP.IniSet.Risky -- Deliberately *tightening* the PCRE limits as a ReDoS safeguard; both are restored to their previous values below.
-		$prev_backtrack = ini_set( 'pcre.backtrack_limit', '100000' );
-		$prev_recursion = ini_set( 'pcre.recursion_limit', '100000' );
-		// phpcs:enable WordPress.PHP.IniSet.Risky
-
 		set_error_handler( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_set_error_handler -- Temporarily suppresses invalid stored regex warnings during matching.
 			static function (): bool {
 				return true;
@@ -179,9 +172,9 @@ final class EasyRankly_Redirects_Runner {
 		$match = null;
 		foreach ( $redirects as $redirect ) {
 			if ( ! empty( $redirect['is_wildcard'] ) ) {
-				$pattern = EasyRankly_Redirects_Normalizer::build_wildcard_pattern( (string) $redirect['source_path'] );
+				$pattern = ERankly_Redirects_Normalizer::build_wildcard_pattern( (string) $redirect['source_path'] );
 			} else {
-				$pattern = EasyRankly_Redirects_Normalizer::build_regex_pattern( (string) $redirect['source_path'] );
+				$pattern = ERankly_Redirects_Normalizer::build_regex_pattern( (string) $redirect['source_path'] );
 			}
 
 			if ( 1 === preg_match( $pattern, $current_path ) ) {
@@ -191,15 +184,6 @@ final class EasyRankly_Redirects_Runner {
 		}
 
 		restore_error_handler();
-
-		// phpcs:disable WordPress.PHP.IniSet.Risky -- Restoring the caller's previous PCRE limits.
-		if ( false !== $prev_backtrack ) {
-			ini_set( 'pcre.backtrack_limit', $prev_backtrack );
-		}
-		if ( false !== $prev_recursion ) {
-			ini_set( 'pcre.recursion_limit', $prev_recursion );
-		}
-		// phpcs:enable WordPress.PHP.IniSet.Risky
 
 		return $match;
 	}
@@ -212,7 +196,7 @@ final class EasyRankly_Redirects_Runner {
 	 * @return bool
 	 */
 	private function is_loop( string $current_path, string $target_url ): bool {
-		$target_path = EasyRankly_Redirects_Normalizer::target_to_local_path( $target_url );
+		$target_path = ERankly_Redirects_Normalizer::target_to_local_path( $target_url );
 
 		return null !== $target_path && $target_path === $current_path;
 	}
@@ -223,11 +207,11 @@ final class EasyRankly_Redirects_Runner {
 	 * @param string $target_url Target URL.
 	 */
 	private function allow_safe_external_host_for_target( string $target_url ): void {
-		if ( EasyRankly_Redirects_Normalizer::is_internal_url( $target_url ) ) {
+		if ( ERankly_Redirects_Normalizer::is_internal_url( $target_url ) ) {
 			return;
 		}
 
-		if ( ! EasyRankly_Redirects_Normalizer::is_safe_absolute_url( $target_url ) ) {
+		if ( ! ERankly_Redirects_Normalizer::is_safe_absolute_url( $target_url ) ) {
 			return;
 		}
 

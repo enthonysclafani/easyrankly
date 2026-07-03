@@ -14,8 +14,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * @return void
  */
-function easyrankly_bloat_bootstrap(): void {
-	$settings = easyrankly_get_settings();
+function erankly_bloat_bootstrap(): void {
+	$settings = erankly_get_settings();
 
 	if ( ! empty( $settings['bloat_remove_emoji'] ) ) {
 		remove_action( 'wp_head', 'print_emoji_detection_script', 7 );
@@ -25,8 +25,8 @@ function easyrankly_bloat_bootstrap(): void {
 		remove_filter( 'the_content_feed', 'wp_staticize_emoji' );
 		remove_filter( 'comment_text_rss', 'wp_staticize_emoji' );
 		remove_filter( 'wp_mail', 'wp_staticize_emoji_for_email' );
-		add_filter( 'wp_resource_hints', 'easyrankly_bloat_remove_emoji_dns_prefetch', 10, 2 );
-		add_filter( 'tiny_mce_plugins', 'easyrankly_bloat_disable_emoji_tinymce' );
+		add_filter( 'wp_resource_hints', 'erankly_bloat_remove_emoji_dns_prefetch', 10, 2 );
+		add_filter( 'tiny_mce_plugins', 'erankly_bloat_disable_emoji_tinymce' );
 	}
 
 	if ( ! empty( $settings['bloat_remove_generator'] ) ) {
@@ -66,25 +66,25 @@ function easyrankly_bloat_bootstrap(): void {
 	}
 
 	if ( ! empty( $settings['bloat_remove_jquery_migrate'] ) ) {
-		add_action( 'wp_default_scripts', 'easyrankly_bloat_remove_jquery_migrate' );
+		add_action( 'wp_default_scripts', 'erankly_bloat_remove_jquery_migrate' );
 	}
 
 	if ( ! empty( $settings['bloat_disable_self_pingbacks'] ) ) {
-		add_action( 'pre_ping', 'easyrankly_bloat_disable_self_pingbacks' );
+		add_action( 'pre_ping', 'erankly_bloat_disable_self_pingbacks' );
 	}
 
 	if ( ! empty( $settings['bloat_remove_dashicons'] ) ) {
-		add_action( 'wp_enqueue_scripts', 'easyrankly_bloat_remove_dashicons', 100 );
+		add_action( 'wp_enqueue_scripts', 'erankly_bloat_remove_dashicons', 100 );
 	}
 
 	if ( ! empty( $settings['bloat_disable_heartbeat'] ) ) {
-		add_action( 'wp_enqueue_scripts', 'easyrankly_bloat_disable_heartbeat', 1 );
+		add_action( 'wp_enqueue_scripts', 'erankly_bloat_disable_heartbeat', 1 );
 	}
 
 	if ( ! empty( $settings['bloat_disable_xmlrpc'] ) ) {
 		add_filter( 'xmlrpc_enabled', '__return_false' );
-		add_filter( 'xmlrpc_methods', 'easyrankly_bloat_remove_pingback_methods' );
-		add_filter( 'wp_headers', 'easyrankly_bloat_remove_x_pingback_header' );
+		add_filter( 'xmlrpc_methods', 'erankly_bloat_remove_pingback_methods' );
+		add_filter( 'wp_headers', 'erankly_bloat_remove_x_pingback_header' );
 	}
 }
 
@@ -95,7 +95,7 @@ function easyrankly_bloat_bootstrap(): void {
  * @param string           $relation_type Relation type.
  * @return array<int,mixed>
  */
-function easyrankly_bloat_remove_emoji_dns_prefetch( array $urls, string $relation_type ): array {
+function erankly_bloat_remove_emoji_dns_prefetch( array $urls, string $relation_type ): array {
 	if ( 'dns-prefetch' !== $relation_type ) {
 		return $urls;
 	}
@@ -117,7 +117,7 @@ function easyrankly_bloat_remove_emoji_dns_prefetch( array $urls, string $relati
  * @param array<int,string> $plugins TinyMCE plugins list.
  * @return array<int,string>
  */
-function easyrankly_bloat_disable_emoji_tinymce( array $plugins ): array {
+function erankly_bloat_disable_emoji_tinymce( array $plugins ): array {
 	return array_values( array_filter( $plugins, static fn( string $p ) => 'wpemoji' !== $p ) );
 }
 
@@ -127,7 +127,7 @@ function easyrankly_bloat_disable_emoji_tinymce( array $plugins ): array {
  * @param WP_Scripts $scripts Scripts registry.
  * @return void
  */
-function easyrankly_bloat_remove_jquery_migrate( WP_Scripts $scripts ): void {
+function erankly_bloat_remove_jquery_migrate( WP_Scripts $scripts ): void {
 	if ( is_admin() || ! isset( $scripts->registered['jquery'] ) ) {
 		return;
 	}
@@ -147,7 +147,7 @@ function easyrankly_bloat_remove_jquery_migrate( WP_Scripts $scripts ): void {
  * @param array<int,string> $links Pingback URLs (passed by reference).
  * @return void
  */
-function easyrankly_bloat_disable_self_pingbacks( array &$links ): void {
+function erankly_bloat_disable_self_pingbacks( array &$links ): void {
 	$home = (string) get_option( 'home' );
 
 	foreach ( $links as $key => $link ) {
@@ -162,7 +162,7 @@ function easyrankly_bloat_disable_self_pingbacks( array &$links ): void {
  *
  * @return void
  */
-function easyrankly_bloat_remove_dashicons(): void {
+function erankly_bloat_remove_dashicons(): void {
 	if ( ! is_user_logged_in() ) {
 		wp_dequeue_style( 'dashicons' );
 		wp_deregister_style( 'dashicons' );
@@ -174,7 +174,7 @@ function easyrankly_bloat_remove_dashicons(): void {
  *
  * @return void
  */
-function easyrankly_bloat_disable_heartbeat(): void {
+function erankly_bloat_disable_heartbeat(): void {
 	wp_dequeue_script( 'heartbeat' );
 	wp_deregister_script( 'heartbeat' );
 }
@@ -189,7 +189,7 @@ function easyrankly_bloat_disable_heartbeat(): void {
  * @param array<string,mixed> $methods Registered XML-RPC methods.
  * @return array<string,mixed>
  */
-function easyrankly_bloat_remove_pingback_methods( array $methods ): array {
+function erankly_bloat_remove_pingback_methods( array $methods ): array {
 	unset( $methods['pingback.ping'], $methods['pingback.extensions.getPingbacks'] );
 
 	return $methods;
@@ -201,7 +201,7 @@ function easyrankly_bloat_remove_pingback_methods( array $methods ): array {
  * @param array<string,string> $headers HTTP headers.
  * @return array<string,string>
  */
-function easyrankly_bloat_remove_x_pingback_header( array $headers ): array {
+function erankly_bloat_remove_x_pingback_header( array $headers ): array {
 	unset( $headers['X-Pingback'] );
 
 	return $headers;

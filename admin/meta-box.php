@@ -14,7 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * @return void
  */
-function easyrankly_register_meta_box(): void {
+function erankly_register_meta_box(): void {
 	$screen = get_current_screen();
 
 	// Gutenberg renders the React document panels instead of legacy meta boxes.
@@ -22,15 +22,15 @@ function easyrankly_register_meta_box(): void {
 		return;
 	}
 
-	foreach ( easyrankly_get_public_post_types() as $post_type => $object ) {
+	foreach ( erankly_get_public_post_types() as $post_type => $object ) {
 		if ( ! $object->show_ui ) {
 			continue;
 		}
 
 		add_meta_box(
-			'easyrankly',
+			'erankly',
 			__( 'EasyRankly', 'easyrankly' ),
-			'easyrankly_render_meta_box',
+			'erankly_render_meta_box',
 			$post_type,
 			'normal',
 			'default'
@@ -43,16 +43,16 @@ function easyrankly_register_meta_box(): void {
  *
  * @return void
  */
-function easyrankly_register_taxonomy_fields(): void {
-	foreach ( easyrankly_get_public_taxonomies() as $taxonomy => $object ) {
+function erankly_register_taxonomy_fields(): void {
+	foreach ( erankly_get_public_taxonomies() as $taxonomy => $object ) {
 		if ( ! $object->show_ui ) {
 			continue;
 		}
 
-		add_action( $taxonomy . '_add_form_fields', 'easyrankly_render_add_term_fields' );
-		add_action( $taxonomy . '_edit_form_fields', 'easyrankly_render_edit_term_fields' );
-		add_action( 'created_' . $taxonomy, 'easyrankly_save_term_fields' );
-		add_action( 'edited_' . $taxonomy, 'easyrankly_save_term_fields' );
+		add_action( $taxonomy . '_add_form_fields', 'erankly_render_add_term_fields' );
+		add_action( $taxonomy . '_edit_form_fields', 'erankly_render_edit_term_fields' );
+		add_action( 'created_' . $taxonomy, 'erankly_save_term_fields' );
+		add_action( 'edited_' . $taxonomy, 'erankly_save_term_fields' );
 	}
 }
 
@@ -64,17 +64,17 @@ function easyrankly_register_taxonomy_fields(): void {
  * @param int     $limit Character limit.
  * @return string
  */
-function easyrankly_get_post_global_meta_placeholder( WP_Post $post, string $field, int $limit ): string {
-	$template = easyrankly_get_global_post_type_meta( $post->post_type, $field );
+function erankly_get_post_global_meta_placeholder( WP_Post $post, string $field, int $limit ): string {
+	$template = erankly_get_global_post_type_meta( $post->post_type, $field );
 
 	if ( '' === $template ) {
 		return '';
 	}
 
 	$exclude = 'description' === $field ? array( 'meta_description' ) : array( 'seo_title' );
-	$value   = easyrankly_replace_variables( $template, $post->ID, $exclude );
+	$value   = erankly_replace_variables( $template, $post->ID, $exclude );
 
-	return easyrankly_trim_text( $value, $limit );
+	return erankly_trim_text( $value, $limit );
 }
 
 /**
@@ -85,14 +85,14 @@ function easyrankly_get_post_global_meta_placeholder( WP_Post $post, string $fie
  * @param int    $limit   Character limit.
  * @return string
  */
-function easyrankly_get_post_global_social_placeholder( int $post_id, string $setting, int $limit ): string {
-	$template = (string) easyrankly_get_setting( $setting, '' );
+function erankly_get_post_global_social_placeholder( int $post_id, string $setting, int $limit ): string {
+	$template = (string) erankly_get_setting( $setting, '' );
 
 	if ( '' === $template ) {
 		return '';
 	}
 
-	return easyrankly_trim_text( easyrankly_replace_variables( $template, $post_id ), $limit );
+	return erankly_trim_text( erankly_replace_variables( $template, $post_id ), $limit );
 }
 
 /**
@@ -102,8 +102,8 @@ function easyrankly_get_post_global_social_placeholder( int $post_id, string $se
  * @param string $field    Metadata field.
  * @return string
  */
-function easyrankly_get_term_global_meta_placeholder( string $taxonomy, string $field ): string {
-	return easyrankly_get_global_taxonomy_meta( $taxonomy, $field );
+function erankly_get_term_global_meta_placeholder( string $taxonomy, string $field ): string {
+	return erankly_get_global_taxonomy_meta( $taxonomy, $field );
 }
 
 /**
@@ -112,45 +112,45 @@ function easyrankly_get_term_global_meta_placeholder( string $taxonomy, string $
  * @param WP_Post $post Post object.
  * @return void
  */
-function easyrankly_render_post_general_fields( WP_Post $post ): void {
-	$title                   = easyrankly_get_post_meta_string( $post->ID, 'title' );
-	$description             = easyrankly_get_post_meta_string( $post->ID, 'description' );
-	$canonical               = easyrankly_get_post_meta_string( $post->ID, 'canonical' );
-	$breadcrumb_name         = easyrankly_get_post_meta_string( $post->ID, 'breadcrumb_name' );
-	$breadcrumbs_enabled     = (bool) easyrankly_get_setting( 'enable_breadcrumbs', 1 );
-	$simplified_mode         = (bool) easyrankly_get_setting( 'simplified_mode', 1 );
-	$title_placeholder       = easyrankly_get_post_global_meta_placeholder( $post, 'title', 70 );
-	$description_placeholder = easyrankly_get_post_global_meta_placeholder( $post, 'description', 160 );
+function erankly_render_post_general_fields( WP_Post $post ): void {
+	$title                   = erankly_get_post_meta_string( $post->ID, 'title' );
+	$description             = erankly_get_post_meta_string( $post->ID, 'description' );
+	$canonical               = erankly_get_post_meta_string( $post->ID, 'canonical' );
+	$breadcrumb_name         = erankly_get_post_meta_string( $post->ID, 'breadcrumb_name' );
+	$breadcrumbs_enabled     = (bool) erankly_get_setting( 'enable_breadcrumbs', 1 );
+	$simplified_mode         = (bool) erankly_get_setting( 'simplified_mode', 1 );
+	$title_placeholder       = erankly_get_post_global_meta_placeholder( $post, 'title', 70 );
+	$description_placeholder = erankly_get_post_global_meta_placeholder( $post, 'description', 160 );
 	?>
-	<div class="easyrankly-field">
-		<label for="easyrankly-title"><strong><?php esc_html_e( 'Meta title', 'easyrankly' ); ?></strong></label>
-		<div class="easyrankly-variable-field" data-easyrankly-variable-field>
-			<input id="easyrankly-title" class="widefat easyrankly-counted-field" type="text" name="easyrankly_title" value="<?php echo esc_attr( $title ); ?>" placeholder="<?php echo esc_attr( $title_placeholder ); ?>" data-easyrankly-limit="65" data-easyrankly-counter="easyrankly-title-counter" data-easyrankly-warning="<?php esc_attr_e( 'recommended max', 'easyrankly' ); ?>">
-			<?php easyrankly_render_variable_picker(); ?>
+	<div class="erankly-field">
+		<label for="erankly-title"><strong><?php esc_html_e( 'Meta title', 'easyrankly' ); ?></strong></label>
+		<div class="erankly-variable-field" data-erankly-variable-field>
+			<input id="erankly-title" class="widefat erankly-counted-field" type="text" name="erankly_title" value="<?php echo esc_attr( $title ); ?>" placeholder="<?php echo esc_attr( $title_placeholder ); ?>" data-erankly-limit="65" data-erankly-counter="erankly-title-counter" data-erankly-warning="<?php esc_attr_e( 'recommended max', 'easyrankly' ); ?>">
+			<?php erankly_render_variable_picker(); ?>
 		</div>
-		<span id="easyrankly-title-counter" class="easyrankly-character-counter" aria-live="polite"></span>
+		<span id="erankly-title-counter" class="erankly-character-counter" aria-live="polite"></span>
 	</div>
-	<div class="easyrankly-field">
-		<label for="easyrankly-description"><strong><?php esc_html_e( 'Meta description', 'easyrankly' ); ?></strong></label>
-		<div class="easyrankly-variable-field" data-easyrankly-variable-field>
-			<textarea id="easyrankly-description" class="widefat easyrankly-counted-field" rows="3" name="easyrankly_description" placeholder="<?php echo esc_attr( $description_placeholder ); ?>" data-easyrankly-limit="160" data-easyrankly-counter="easyrankly-description-counter" data-easyrankly-warning="<?php esc_attr_e( 'recommended max', 'easyrankly' ); ?>"><?php echo esc_textarea( $description ); ?></textarea>
-			<?php easyrankly_render_variable_picker(); ?>
+	<div class="erankly-field">
+		<label for="erankly-description"><strong><?php esc_html_e( 'Meta description', 'easyrankly' ); ?></strong></label>
+		<div class="erankly-variable-field" data-erankly-variable-field>
+			<textarea id="erankly-description" class="widefat erankly-counted-field" rows="3" name="erankly_description" placeholder="<?php echo esc_attr( $description_placeholder ); ?>" data-erankly-limit="160" data-erankly-counter="erankly-description-counter" data-erankly-warning="<?php esc_attr_e( 'recommended max', 'easyrankly' ); ?>"><?php echo esc_textarea( $description ); ?></textarea>
+			<?php erankly_render_variable_picker(); ?>
 		</div>
-		<span id="easyrankly-description-counter" class="easyrankly-character-counter" aria-live="polite"></span>
+		<span id="erankly-description-counter" class="erankly-character-counter" aria-live="polite"></span>
 	</div>
 	<?php if ( ! $simplified_mode ) : ?>
-	<div class="easyrankly-field">
-		<label for="easyrankly-canonical"><strong><?php esc_html_e( 'Canonical URL', 'easyrankly' ); ?></strong></label>
-		<div class="easyrankly-variable-field" data-easyrankly-variable-field>
-			<input id="easyrankly-canonical" class="widefat" type="text" name="easyrankly_canonical" value="<?php echo esc_attr( $canonical ); ?>">
-			<?php easyrankly_render_variable_picker(); ?>
+	<div class="erankly-field">
+		<label for="erankly-canonical"><strong><?php esc_html_e( 'Canonical URL', 'easyrankly' ); ?></strong></label>
+		<div class="erankly-variable-field" data-erankly-variable-field>
+			<input id="erankly-canonical" class="widefat" type="text" name="erankly_canonical" value="<?php echo esc_attr( $canonical ); ?>">
+			<?php erankly_render_variable_picker(); ?>
 		</div>
 	</div>
 	<?php endif; ?>
 	<?php if ( $breadcrumbs_enabled && ! $simplified_mode ) : ?>
-	<div class="easyrankly-field">
-		<label for="easyrankly-breadcrumb-name"><strong><?php esc_html_e( 'Breadcrumb name', 'easyrankly' ); ?></strong></label>
-		<input id="easyrankly-breadcrumb-name" class="widefat" type="text" name="easyrankly_breadcrumb_name" value="<?php echo esc_attr( $breadcrumb_name ); ?>" placeholder="<?php echo esc_attr( get_the_title( $post ) ); ?>" maxlength="120">
+	<div class="erankly-field">
+		<label for="erankly-breadcrumb-name"><strong><?php esc_html_e( 'Breadcrumb name', 'easyrankly' ); ?></strong></label>
+		<input id="erankly-breadcrumb-name" class="widefat" type="text" name="erankly_breadcrumb_name" value="<?php echo esc_attr( $breadcrumb_name ); ?>" placeholder="<?php echo esc_attr( get_the_title( $post ) ); ?>" maxlength="120">
 		<span class="description"><?php esc_html_e( 'Optional short name used in visible breadcrumbs and BreadcrumbList schema.', 'easyrankly' ); ?></span>
 	</div>
 	<?php endif; ?>
@@ -163,66 +163,66 @@ function easyrankly_render_post_general_fields( WP_Post $post ): void {
  * @param WP_Post $post Post object.
  * @return void
  */
-function easyrankly_render_post_social_fields( WP_Post $post ): void {
-	$og_title                   = easyrankly_get_post_meta_string( $post->ID, 'og_title' );
-	$og_description             = easyrankly_get_post_meta_string( $post->ID, 'og_description' );
-	$twitter_title              = easyrankly_get_post_meta_string( $post->ID, 'twitter_title' );
-	$twitter_desc               = easyrankly_get_post_meta_string( $post->ID, 'twitter_description' );
-	$twitter_card               = easyrankly_get_post_meta_string( $post->ID, 'twitter_card_type' );
-	$social_image_url           = easyrankly_get_post_meta_string( $post->ID, 'social_image_url' );
-	$og_title_placeholder       = easyrankly_get_post_global_social_placeholder( $post->ID, 'default_og_title', 60 );
-	$og_description_placeholder = easyrankly_get_post_global_social_placeholder( $post->ID, 'default_og_description', 200 );
-	$twitter_title_placeholder  = easyrankly_get_post_global_social_placeholder( $post->ID, 'default_twitter_title', 70 );
-	$twitter_desc_placeholder   = easyrankly_get_post_global_social_placeholder( $post->ID, 'default_twitter_description', 200 );
-	$social_image_placeholder   = easyrankly_get_post_global_social_placeholder( $post->ID, 'default_social_image_url', 2048 );
+function erankly_render_post_social_fields( WP_Post $post ): void {
+	$og_title                   = erankly_get_post_meta_string( $post->ID, 'og_title' );
+	$og_description             = erankly_get_post_meta_string( $post->ID, 'og_description' );
+	$twitter_title              = erankly_get_post_meta_string( $post->ID, 'twitter_title' );
+	$twitter_desc               = erankly_get_post_meta_string( $post->ID, 'twitter_description' );
+	$twitter_card               = erankly_get_post_meta_string( $post->ID, 'twitter_card_type' );
+	$social_image_url           = erankly_get_post_meta_string( $post->ID, 'social_image_url' );
+	$og_title_placeholder       = erankly_get_post_global_social_placeholder( $post->ID, 'default_og_title', 60 );
+	$og_description_placeholder = erankly_get_post_global_social_placeholder( $post->ID, 'default_og_description', 200 );
+	$twitter_title_placeholder  = erankly_get_post_global_social_placeholder( $post->ID, 'default_twitter_title', 70 );
+	$twitter_desc_placeholder   = erankly_get_post_global_social_placeholder( $post->ID, 'default_twitter_description', 200 );
+	$social_image_placeholder   = erankly_get_post_global_social_placeholder( $post->ID, 'default_social_image_url', 2048 );
 	?>
-	<div class="easyrankly-field">
-		<label for="easyrankly-og-title"><strong><?php esc_html_e( 'Open Graph Title', 'easyrankly' ); ?></strong></label>
-		<div class="easyrankly-variable-field" data-easyrankly-variable-field>
-			<input id="easyrankly-og-title" class="widefat easyrankly-counted-field" type="text" name="easyrankly_og_title" value="<?php echo esc_attr( $og_title ); ?>" placeholder="<?php echo esc_attr( $og_title_placeholder ); ?>" data-easyrankly-limit="60" data-easyrankly-counter="easyrankly-og-title-counter" data-easyrankly-warning="<?php esc_attr_e( 'recommended max', 'easyrankly' ); ?>">
-			<?php easyrankly_render_variable_picker(); ?>
+	<div class="erankly-field">
+		<label for="erankly-og-title"><strong><?php esc_html_e( 'Open Graph Title', 'easyrankly' ); ?></strong></label>
+		<div class="erankly-variable-field" data-erankly-variable-field>
+			<input id="erankly-og-title" class="widefat erankly-counted-field" type="text" name="erankly_og_title" value="<?php echo esc_attr( $og_title ); ?>" placeholder="<?php echo esc_attr( $og_title_placeholder ); ?>" data-erankly-limit="60" data-erankly-counter="erankly-og-title-counter" data-erankly-warning="<?php esc_attr_e( 'recommended max', 'easyrankly' ); ?>">
+			<?php erankly_render_variable_picker(); ?>
 		</div>
-		<span id="easyrankly-og-title-counter" class="easyrankly-character-counter" aria-live="polite"></span>
+		<span id="erankly-og-title-counter" class="erankly-character-counter" aria-live="polite"></span>
 	</div>
-	<div class="easyrankly-field">
-		<label for="easyrankly-og-description"><strong><?php esc_html_e( 'Open Graph Description', 'easyrankly' ); ?></strong></label>
-		<div class="easyrankly-variable-field" data-easyrankly-variable-field>
-			<textarea id="easyrankly-og-description" class="widefat easyrankly-counted-field" rows="3" name="easyrankly_og_description" placeholder="<?php echo esc_attr( $og_description_placeholder ); ?>" data-easyrankly-limit="200" data-easyrankly-counter="easyrankly-og-description-counter" data-easyrankly-warning="<?php esc_attr_e( 'recommended max', 'easyrankly' ); ?>"><?php echo esc_textarea( $og_description ); ?></textarea>
-			<?php easyrankly_render_variable_picker(); ?>
+	<div class="erankly-field">
+		<label for="erankly-og-description"><strong><?php esc_html_e( 'Open Graph Description', 'easyrankly' ); ?></strong></label>
+		<div class="erankly-variable-field" data-erankly-variable-field>
+			<textarea id="erankly-og-description" class="widefat erankly-counted-field" rows="3" name="erankly_og_description" placeholder="<?php echo esc_attr( $og_description_placeholder ); ?>" data-erankly-limit="200" data-erankly-counter="erankly-og-description-counter" data-erankly-warning="<?php esc_attr_e( 'recommended max', 'easyrankly' ); ?>"><?php echo esc_textarea( $og_description ); ?></textarea>
+			<?php erankly_render_variable_picker(); ?>
 		</div>
-		<span id="easyrankly-og-description-counter" class="easyrankly-character-counter" aria-live="polite"></span>
+		<span id="erankly-og-description-counter" class="erankly-character-counter" aria-live="polite"></span>
 	</div>
-	<div class="easyrankly-field">
-		<label for="easyrankly-twitter-title"><strong><?php esc_html_e( 'X (Twitter) Title', 'easyrankly' ); ?></strong></label>
-		<div class="easyrankly-variable-field" data-easyrankly-variable-field>
-			<input id="easyrankly-twitter-title" class="widefat easyrankly-counted-field" type="text" name="easyrankly_twitter_title" value="<?php echo esc_attr( $twitter_title ); ?>" placeholder="<?php echo esc_attr( $twitter_title_placeholder ); ?>" data-easyrankly-limit="70" data-easyrankly-counter="easyrankly-twitter-title-counter" data-easyrankly-warning="<?php esc_attr_e( 'recommended max', 'easyrankly' ); ?>">
-			<?php easyrankly_render_variable_picker(); ?>
+	<div class="erankly-field">
+		<label for="erankly-twitter-title"><strong><?php esc_html_e( 'X (Twitter) Title', 'easyrankly' ); ?></strong></label>
+		<div class="erankly-variable-field" data-erankly-variable-field>
+			<input id="erankly-twitter-title" class="widefat erankly-counted-field" type="text" name="erankly_twitter_title" value="<?php echo esc_attr( $twitter_title ); ?>" placeholder="<?php echo esc_attr( $twitter_title_placeholder ); ?>" data-erankly-limit="70" data-erankly-counter="erankly-twitter-title-counter" data-erankly-warning="<?php esc_attr_e( 'recommended max', 'easyrankly' ); ?>">
+			<?php erankly_render_variable_picker(); ?>
 		</div>
-		<span id="easyrankly-twitter-title-counter" class="easyrankly-character-counter" aria-live="polite"></span>
+		<span id="erankly-twitter-title-counter" class="erankly-character-counter" aria-live="polite"></span>
 	</div>
-	<div class="easyrankly-field">
-		<label for="easyrankly-twitter-description"><strong><?php esc_html_e( 'X (Twitter) Description', 'easyrankly' ); ?></strong></label>
-		<div class="easyrankly-variable-field" data-easyrankly-variable-field>
-			<textarea id="easyrankly-twitter-description" class="widefat easyrankly-counted-field" rows="3" name="easyrankly_twitter_description" placeholder="<?php echo esc_attr( $twitter_desc_placeholder ); ?>" data-easyrankly-limit="200" data-easyrankly-counter="easyrankly-twitter-description-counter" data-easyrankly-warning="<?php esc_attr_e( 'recommended max', 'easyrankly' ); ?>"><?php echo esc_textarea( $twitter_desc ); ?></textarea>
-			<?php easyrankly_render_variable_picker(); ?>
+	<div class="erankly-field">
+		<label for="erankly-twitter-description"><strong><?php esc_html_e( 'X (Twitter) Description', 'easyrankly' ); ?></strong></label>
+		<div class="erankly-variable-field" data-erankly-variable-field>
+			<textarea id="erankly-twitter-description" class="widefat erankly-counted-field" rows="3" name="erankly_twitter_description" placeholder="<?php echo esc_attr( $twitter_desc_placeholder ); ?>" data-erankly-limit="200" data-erankly-counter="erankly-twitter-description-counter" data-erankly-warning="<?php esc_attr_e( 'recommended max', 'easyrankly' ); ?>"><?php echo esc_textarea( $twitter_desc ); ?></textarea>
+			<?php erankly_render_variable_picker(); ?>
 		</div>
-		<span id="easyrankly-twitter-description-counter" class="easyrankly-character-counter" aria-live="polite"></span>
+		<span id="erankly-twitter-description-counter" class="erankly-character-counter" aria-live="polite"></span>
 	</div>
-	<div class="easyrankly-field">
-		<label for="easyrankly-twitter-card-type"><strong><?php esc_html_e( 'X (Twitter) Card Type', 'easyrankly' ); ?></strong></label>
-		<select id="easyrankly-twitter-card-type" class="widefat" name="easyrankly_twitter_card_type">
+	<div class="erankly-field">
+		<label for="erankly-twitter-card-type"><strong><?php esc_html_e( 'X (Twitter) Card Type', 'easyrankly' ); ?></strong></label>
+		<select id="erankly-twitter-card-type" class="widefat" name="erankly_twitter_card_type">
 			<option value="" <?php selected( $twitter_card, '' ); ?>><?php esc_html_e( 'Default (summary_large_image)', 'easyrankly' ); ?></option>
 			<option value="summary" <?php selected( $twitter_card, 'summary' ); ?>>summary</option>
 		</select>
 	</div>
-	<div class="easyrankly-field">
-		<label for="easyrankly-social-image-url"><strong><?php esc_html_e( 'Social Image URL', 'easyrankly' ); ?></strong></label>
+	<div class="erankly-field">
+		<label for="erankly-social-image-url"><strong><?php esc_html_e( 'Social Image URL', 'easyrankly' ); ?></strong></label>
 		<?php
-		easyrankly_render_media_url_field(
-			'easyrankly-social-image-url',
-			'easyrankly_social_image_url',
+		erankly_render_media_url_field(
+			'erankly-social-image-url',
+			'erankly_social_image_url',
 			$social_image_url,
-			'' !== $social_image_placeholder ? $social_image_placeholder : easyrankly_default_social_image_placeholder()
+			'' !== $social_image_placeholder ? $social_image_placeholder : erankly_default_social_image_placeholder()
 		);
 		?>
 	</div>
@@ -235,37 +235,37 @@ function easyrankly_render_post_social_fields( WP_Post $post ): void {
  * @param WP_Post $post Post object.
  * @return void
  */
-function easyrankly_render_post_visibility_fields( WP_Post $post ): void {
-	$noindex                  = easyrankly_get_post_meta_bool( $post->ID, 'noindex' );
-	$nofollow                 = easyrankly_get_post_meta_bool( $post->ID, 'nofollow' );
-	$noarchive                = easyrankly_get_post_meta_bool( $post->ID, 'noarchive' );
-	$disable_sitemap          = easyrankly_get_post_meta_bool( $post->ID, 'disable_sitemap' );
-	$simplified_mode          = (bool) easyrankly_get_setting( 'simplified_mode', 1 );
+function erankly_render_post_visibility_fields( WP_Post $post ): void {
+	$noindex                  = erankly_get_post_meta_bool( $post->ID, 'noindex' );
+	$nofollow                 = erankly_get_post_meta_bool( $post->ID, 'nofollow' );
+	$noarchive                = erankly_get_post_meta_bool( $post->ID, 'noarchive' );
+	$disable_sitemap          = erankly_get_post_meta_bool( $post->ID, 'disable_sitemap' );
+	$simplified_mode          = (bool) erankly_get_setting( 'simplified_mode', 1 );
 	$hide_from_search_results = $noindex && $disable_sitemap;
-	$exclude_search           = easyrankly_get_post_meta_bool( $post->ID, 'exclude_search' );
-	$exclude_archive          = easyrankly_get_post_meta_bool( $post->ID, 'exclude_archive' );
-	$exclude_from_news        = easyrankly_get_post_meta_bool( $post->ID, 'exclude_from_news' );
+	$exclude_search           = erankly_get_post_meta_bool( $post->ID, 'exclude_search' );
+	$exclude_archive          = erankly_get_post_meta_bool( $post->ID, 'exclude_archive' );
+	$exclude_from_news        = erankly_get_post_meta_bool( $post->ID, 'exclude_from_news' );
 	?>
-	<fieldset class="easyrankly-field easyrankly-checkboxes">
+	<fieldset class="erankly-field erankly-checkboxes">
 		<?php if ( $simplified_mode ) : ?>
-			<label><input type="checkbox" name="easyrankly_hide_from_search_results" value="1" <?php checked( $hide_from_search_results ); ?>> <?php esc_html_e( 'Hide from search results', 'easyrankly' ); ?></label>
+			<label><input type="checkbox" name="erankly_hide_from_search_results" value="1" <?php checked( $hide_from_search_results ); ?>> <?php esc_html_e( 'Hide from search results', 'easyrankly' ); ?></label>
 			<span class="description"><?php esc_html_e( 'Sets noindex and removes this page from the sitemap. Does not affect nofollow or noarchive — use Advanced settings to control those separately.', 'easyrankly' ); ?></span>
 		<?php else : ?>
-			<label><input type="checkbox" name="easyrankly_noindex" value="1" <?php checked( $noindex ); ?>> <?php esc_html_e( 'Noindex', 'easyrankly' ); ?></label><br>
-			<label><input type="checkbox" name="easyrankly_nofollow" value="1" <?php checked( $nofollow ); ?>> <?php esc_html_e( 'Nofollow', 'easyrankly' ); ?></label><br>
-			<label><input type="checkbox" name="easyrankly_noarchive" value="1" <?php checked( $noarchive ); ?>> <?php esc_html_e( 'Noarchive', 'easyrankly' ); ?></label><br>
-			<label><input type="checkbox" name="easyrankly_disable_sitemap" value="1" <?php checked( $disable_sitemap ); ?>> <?php esc_html_e( 'Disable sitemap', 'easyrankly' ); ?></label>
+			<label><input type="checkbox" name="erankly_noindex" value="1" <?php checked( $noindex ); ?>> <?php esc_html_e( 'Noindex', 'easyrankly' ); ?></label><br>
+			<label><input type="checkbox" name="erankly_nofollow" value="1" <?php checked( $nofollow ); ?>> <?php esc_html_e( 'Nofollow', 'easyrankly' ); ?></label><br>
+			<label><input type="checkbox" name="erankly_noarchive" value="1" <?php checked( $noarchive ); ?>> <?php esc_html_e( 'Noarchive', 'easyrankly' ); ?></label><br>
+			<label><input type="checkbox" name="erankly_disable_sitemap" value="1" <?php checked( $disable_sitemap ); ?>> <?php esc_html_e( 'Disable sitemap', 'easyrankly' ); ?></label>
 		<?php endif; ?>
 	</fieldset>
-	<fieldset class="easyrankly-field easyrankly-checkboxes">
+	<fieldset class="erankly-field erankly-checkboxes">
 		<legend><strong><?php esc_html_e( 'Archive Settings', 'easyrankly' ); ?></strong></legend>
-		<label><input type="checkbox" name="easyrankly_exclude_search" value="1" <?php checked( $exclude_search ); ?>> <?php esc_html_e( 'Exclude this page from all search queries on this site', 'easyrankly' ); ?></label><br>
-		<label><input type="checkbox" name="easyrankly_exclude_archive" value="1" <?php checked( $exclude_archive ); ?>> <?php esc_html_e( 'Exclude this page from all archive queries on this site.', 'easyrankly' ); ?></label>
+		<label><input type="checkbox" name="erankly_exclude_search" value="1" <?php checked( $exclude_search ); ?>> <?php esc_html_e( 'Exclude this page from all search queries on this site', 'easyrankly' ); ?></label><br>
+		<label><input type="checkbox" name="erankly_exclude_archive" value="1" <?php checked( $exclude_archive ); ?>> <?php esc_html_e( 'Exclude this page from all archive queries on this site.', 'easyrankly' ); ?></label>
 	</fieldset>
-	<?php if ( (bool) easyrankly_get_setting( 'enable_news_sitemap', 0 ) ) : ?>
-	<fieldset class="easyrankly-field easyrankly-checkboxes">
+	<?php if ( (bool) erankly_get_setting( 'enable_news_sitemap', 0 ) ) : ?>
+	<fieldset class="erankly-field erankly-checkboxes">
 		<legend><strong><?php esc_html_e( 'Google News Settings', 'easyrankly' ); ?></strong></legend>
-		<label><input type="checkbox" name="easyrankly_exclude_from_news" value="1" <?php checked( $exclude_from_news ); ?>> <?php esc_html_e( 'Exclude this page from Google News sitemap', 'easyrankly' ); ?></label>
+		<label><input type="checkbox" name="erankly_exclude_from_news" value="1" <?php checked( $exclude_from_news ); ?>> <?php esc_html_e( 'Exclude this page from Google News sitemap', 'easyrankly' ); ?></label>
 	</fieldset>
 	<?php endif; ?>
 	<?php
@@ -277,39 +277,39 @@ function easyrankly_render_post_visibility_fields( WP_Post $post ): void {
  * @param WP_Post $post Post object.
  * @return void
  */
-function easyrankly_render_meta_box( WP_Post $post ): void {
-	wp_nonce_field( 'easyrankly_save_meta_box', 'easyrankly_meta_box_nonce' );
-	$simplified_mode = (bool) easyrankly_get_setting( 'simplified_mode', 1 );
+function erankly_render_meta_box( WP_Post $post ): void {
+	wp_nonce_field( 'erankly_save_meta_box', 'erankly_meta_box_nonce' );
+	$simplified_mode = (bool) erankly_get_setting( 'simplified_mode', 1 );
 	?>
-	<div class="easyrankly-meta-box">
-		<div class="nav-tab-wrapper wp-clearfix easyrankly-tabs" role="tablist" aria-label="<?php esc_attr_e( 'SEO settings', 'easyrankly' ); ?>">
-			<button type="button" class="nav-tab nav-tab-active easyrankly-tab is-active" id="easyrankly-tab-general" role="tab" aria-selected="true" aria-controls="easyrankly-panel-general" data-easyrankly-tab="general"><?php esc_html_e( 'Search appearance', 'easyrankly' ); ?></button>
+	<div class="erankly-meta-box">
+		<div class="nav-tab-wrapper wp-clearfix erankly-tabs" role="tablist" aria-label="<?php esc_attr_e( 'SEO settings', 'easyrankly' ); ?>">
+			<button type="button" class="nav-tab nav-tab-active erankly-tab is-active" id="erankly-tab-general" role="tab" aria-selected="true" aria-controls="erankly-panel-general" data-erankly-tab="general"><?php esc_html_e( 'Search appearance', 'easyrankly' ); ?></button>
 			<?php if ( ! $simplified_mode ) : ?>
-			<button type="button" class="nav-tab easyrankly-tab" id="easyrankly-tab-social" role="tab" aria-selected="false" aria-controls="easyrankly-panel-social" data-easyrankly-tab="social"><?php esc_html_e( 'Social sharing', 'easyrankly' ); ?></button>
+			<button type="button" class="nav-tab erankly-tab" id="erankly-tab-social" role="tab" aria-selected="false" aria-controls="erankly-panel-social" data-erankly-tab="social"><?php esc_html_e( 'Social sharing', 'easyrankly' ); ?></button>
 			<?php endif; ?>
-			<button type="button" class="nav-tab easyrankly-tab" id="easyrankly-tab-visibility" role="tab" aria-selected="false" aria-controls="easyrankly-panel-visibility" data-easyrankly-tab="visibility"><?php esc_html_e( 'Search visibility', 'easyrankly' ); ?></button>
-			<?php if ( is_multisite() && function_exists( 'easyrankly_multilingual_enabled' ) && easyrankly_multilingual_enabled() ) : ?>
-			<button type="button" class="nav-tab easyrankly-tab" id="easyrankly-tab-translations" role="tab" aria-selected="false" aria-controls="easyrankly-panel-translations" data-easyrankly-tab="translations"><?php esc_html_e( 'Translations', 'easyrankly' ); ?></button>
+			<button type="button" class="nav-tab erankly-tab" id="erankly-tab-visibility" role="tab" aria-selected="false" aria-controls="erankly-panel-visibility" data-erankly-tab="visibility"><?php esc_html_e( 'Search visibility', 'easyrankly' ); ?></button>
+			<?php if ( is_multisite() && function_exists( 'erankly_multilingual_enabled' ) && erankly_multilingual_enabled() ) : ?>
+			<button type="button" class="nav-tab erankly-tab" id="erankly-tab-translations" role="tab" aria-selected="false" aria-controls="erankly-panel-translations" data-erankly-tab="translations"><?php esc_html_e( 'Translations', 'easyrankly' ); ?></button>
 			<?php endif; ?>
 		</div>
 
-		<div class="easyrankly-tab-panel is-active" id="easyrankly-panel-general" role="tabpanel" aria-labelledby="easyrankly-tab-general" data-easyrankly-panel="general">
-			<?php easyrankly_render_post_general_fields( $post ); ?>
+		<div class="erankly-tab-panel is-active" id="erankly-panel-general" role="tabpanel" aria-labelledby="erankly-tab-general" data-erankly-panel="general">
+			<?php erankly_render_post_general_fields( $post ); ?>
 		</div>
 
 		<?php if ( ! $simplified_mode ) : ?>
-		<div class="easyrankly-tab-panel" id="easyrankly-panel-social" role="tabpanel" aria-labelledby="easyrankly-tab-social" data-easyrankly-panel="social" hidden>
-			<?php easyrankly_render_post_social_fields( $post ); ?>
+		<div class="erankly-tab-panel" id="erankly-panel-social" role="tabpanel" aria-labelledby="erankly-tab-social" data-erankly-panel="social" hidden>
+			<?php erankly_render_post_social_fields( $post ); ?>
 		</div>
 		<?php endif; ?>
 
-		<div class="easyrankly-tab-panel" id="easyrankly-panel-visibility" role="tabpanel" aria-labelledby="easyrankly-tab-visibility" data-easyrankly-panel="visibility" hidden>
-			<?php easyrankly_render_post_visibility_fields( $post ); ?>
+		<div class="erankly-tab-panel" id="erankly-panel-visibility" role="tabpanel" aria-labelledby="erankly-tab-visibility" data-erankly-panel="visibility" hidden>
+			<?php erankly_render_post_visibility_fields( $post ); ?>
 		</div>
 
-		<?php if ( is_multisite() && function_exists( 'easyrankly_multilingual_enabled' ) && easyrankly_multilingual_enabled() && function_exists( 'easyrankly_ml_render_post_translations' ) ) : ?>
-		<div class="easyrankly-tab-panel" id="easyrankly-panel-translations" role="tabpanel" aria-labelledby="easyrankly-tab-translations" data-easyrankly-panel="translations" hidden>
-			<?php easyrankly_ml_render_post_translations( $post ); ?>
+		<?php if ( is_multisite() && function_exists( 'erankly_multilingual_enabled' ) && erankly_multilingual_enabled() && function_exists( 'erankly_ml_render_post_translations' ) ) : ?>
+		<div class="erankly-tab-panel" id="erankly-panel-translations" role="tabpanel" aria-labelledby="erankly-tab-translations" data-erankly-panel="translations" hidden>
+			<?php erankly_ml_render_post_translations( $post ); ?>
 		</div>
 		<?php endif; ?>
 
@@ -323,11 +323,11 @@ function easyrankly_render_meta_box( WP_Post $post ): void {
  * @param string $taxonomy Taxonomy name.
  * @return void
  */
-function easyrankly_render_add_term_fields( string $taxonomy ): void {
+function erankly_render_add_term_fields( string $taxonomy ): void {
 	?>
-	<div class="form-field term-easyrankly-wrap">
+	<div class="form-field term-erankly-wrap">
 		<h2><?php esc_html_e( 'EasyRankly', 'easyrankly' ); ?></h2>
-		<?php easyrankly_render_term_meta_fields( 0, $taxonomy ); ?>
+		<?php erankly_render_term_meta_fields( 0, $taxonomy ); ?>
 	</div>
 	<?php
 }
@@ -338,11 +338,11 @@ function easyrankly_render_add_term_fields( string $taxonomy ): void {
  * @param WP_Term $term Term object.
  * @return void
  */
-function easyrankly_render_edit_term_fields( WP_Term $term ): void {
+function erankly_render_edit_term_fields( WP_Term $term ): void {
 	?>
-	<tr class="form-field term-easyrankly-wrap">
+	<tr class="form-field term-erankly-wrap">
 		<th scope="row"><?php esc_html_e( 'EasyRankly', 'easyrankly' ); ?></th>
-		<td><?php easyrankly_render_term_meta_fields( $term->term_id, $term->taxonomy ); ?></td>
+		<td><?php erankly_render_term_meta_fields( $term->term_id, $term->taxonomy ); ?></td>
 	</tr>
 	<?php
 }
@@ -354,136 +354,136 @@ function easyrankly_render_edit_term_fields( WP_Term $term ): void {
  * @param string $taxonomy Taxonomy name.
  * @return void
  */
-function easyrankly_render_term_meta_fields( int $term_id, string $taxonomy ): void {
-	wp_nonce_field( 'easyrankly_save_term_fields', 'easyrankly_term_fields_nonce' );
+function erankly_render_term_meta_fields( int $term_id, string $taxonomy ): void {
+	wp_nonce_field( 'erankly_save_term_fields', 'erankly_term_fields_nonce' );
 
-	$title                    = $term_id > 0 ? easyrankly_get_term_meta_string( $term_id, 'title' ) : '';
-	$description              = $term_id > 0 ? easyrankly_get_term_meta_string( $term_id, 'description' ) : '';
-	$canonical                = $term_id > 0 ? easyrankly_get_term_meta_string( $term_id, 'canonical' ) : '';
-	$noindex                  = $term_id > 0 && easyrankly_get_term_meta_bool( $term_id, 'noindex' );
-	$nofollow                 = $term_id > 0 && easyrankly_get_term_meta_bool( $term_id, 'nofollow' );
-	$noarchive                = $term_id > 0 && easyrankly_get_term_meta_bool( $term_id, 'noarchive' );
-	$disable_sitemap          = $term_id > 0 && easyrankly_get_term_meta_bool( $term_id, 'disable_sitemap' );
-	$simplified_mode          = (bool) easyrankly_get_setting( 'simplified_mode', 1 );
+	$title                    = $term_id > 0 ? erankly_get_term_meta_string( $term_id, 'title' ) : '';
+	$description              = $term_id > 0 ? erankly_get_term_meta_string( $term_id, 'description' ) : '';
+	$canonical                = $term_id > 0 ? erankly_get_term_meta_string( $term_id, 'canonical' ) : '';
+	$noindex                  = $term_id > 0 && erankly_get_term_meta_bool( $term_id, 'noindex' );
+	$nofollow                 = $term_id > 0 && erankly_get_term_meta_bool( $term_id, 'nofollow' );
+	$noarchive                = $term_id > 0 && erankly_get_term_meta_bool( $term_id, 'noarchive' );
+	$disable_sitemap          = $term_id > 0 && erankly_get_term_meta_bool( $term_id, 'disable_sitemap' );
+	$simplified_mode          = (bool) erankly_get_setting( 'simplified_mode', 1 );
 	$hide_from_search_results = $noindex && $disable_sitemap;
-	$og_title                 = $term_id > 0 ? easyrankly_get_term_meta_string( $term_id, 'og_title' ) : '';
-	$og_description           = $term_id > 0 ? easyrankly_get_term_meta_string( $term_id, 'og_description' ) : '';
-	$twitter_title            = $term_id > 0 ? easyrankly_get_term_meta_string( $term_id, 'twitter_title' ) : '';
-	$twitter_desc             = $term_id > 0 ? easyrankly_get_term_meta_string( $term_id, 'twitter_description' ) : '';
-	$twitter_card             = $term_id > 0 ? easyrankly_get_term_meta_string( $term_id, 'twitter_card_type' ) : '';
-	$social_image_url         = $term_id > 0 ? easyrankly_get_term_meta_string( $term_id, 'social_image_url' ) : '';
+	$og_title                 = $term_id > 0 ? erankly_get_term_meta_string( $term_id, 'og_title' ) : '';
+	$og_description           = $term_id > 0 ? erankly_get_term_meta_string( $term_id, 'og_description' ) : '';
+	$twitter_title            = $term_id > 0 ? erankly_get_term_meta_string( $term_id, 'twitter_title' ) : '';
+	$twitter_desc             = $term_id > 0 ? erankly_get_term_meta_string( $term_id, 'twitter_description' ) : '';
+	$twitter_card             = $term_id > 0 ? erankly_get_term_meta_string( $term_id, 'twitter_card_type' ) : '';
+	$social_image_url         = $term_id > 0 ? erankly_get_term_meta_string( $term_id, 'social_image_url' ) : '';
 	$id_suffix                = $term_id > 0 ? (string) $term_id : sanitize_key( $taxonomy );
-	$title_placeholder        = easyrankly_get_term_global_meta_placeholder( $taxonomy, 'title' );
-	$description_placeholder  = easyrankly_get_term_global_meta_placeholder( $taxonomy, 'description' );
+	$title_placeholder        = erankly_get_term_global_meta_placeholder( $taxonomy, 'title' );
+	$description_placeholder  = erankly_get_term_global_meta_placeholder( $taxonomy, 'description' );
 	?>
-	<div class="easyrankly-meta-box easyrankly-term-meta-box">
-		<div class="nav-tab-wrapper wp-clearfix easyrankly-tabs" role="tablist" aria-label="<?php esc_attr_e( 'SEO settings', 'easyrankly' ); ?>">
-			<button type="button" class="nav-tab nav-tab-active easyrankly-tab is-active" id="easyrankly-term-tab-general-<?php echo esc_attr( $id_suffix ); ?>" role="tab" aria-selected="true" aria-controls="easyrankly-term-panel-general-<?php echo esc_attr( $id_suffix ); ?>" data-easyrankly-tab="term-general-<?php echo esc_attr( $id_suffix ); ?>"><?php esc_html_e( 'Search appearance', 'easyrankly' ); ?></button>
-			<button type="button" class="nav-tab easyrankly-tab" id="easyrankly-term-tab-social-<?php echo esc_attr( $id_suffix ); ?>" role="tab" aria-selected="false" aria-controls="easyrankly-term-panel-social-<?php echo esc_attr( $id_suffix ); ?>" data-easyrankly-tab="term-social-<?php echo esc_attr( $id_suffix ); ?>"><?php esc_html_e( 'Social sharing', 'easyrankly' ); ?></button>
-			<button type="button" class="nav-tab easyrankly-tab" id="easyrankly-term-tab-visibility-<?php echo esc_attr( $id_suffix ); ?>" role="tab" aria-selected="false" aria-controls="easyrankly-term-panel-visibility-<?php echo esc_attr( $id_suffix ); ?>" data-easyrankly-tab="term-visibility-<?php echo esc_attr( $id_suffix ); ?>"><?php esc_html_e( 'Search visibility', 'easyrankly' ); ?></button>
-			<?php if ( is_multisite() && function_exists( 'easyrankly_multilingual_enabled' ) && easyrankly_multilingual_enabled() ) : ?>
-			<button type="button" class="nav-tab easyrankly-tab" id="easyrankly-term-tab-translations-<?php echo esc_attr( $id_suffix ); ?>" role="tab" aria-selected="false" aria-controls="easyrankly-term-panel-translations-<?php echo esc_attr( $id_suffix ); ?>" data-easyrankly-tab="term-translations-<?php echo esc_attr( $id_suffix ); ?>"><?php esc_html_e( 'Translations', 'easyrankly' ); ?></button>
+	<div class="erankly-meta-box erankly-term-meta-box">
+		<div class="nav-tab-wrapper wp-clearfix erankly-tabs" role="tablist" aria-label="<?php esc_attr_e( 'SEO settings', 'easyrankly' ); ?>">
+			<button type="button" class="nav-tab nav-tab-active erankly-tab is-active" id="erankly-term-tab-general-<?php echo esc_attr( $id_suffix ); ?>" role="tab" aria-selected="true" aria-controls="erankly-term-panel-general-<?php echo esc_attr( $id_suffix ); ?>" data-erankly-tab="term-general-<?php echo esc_attr( $id_suffix ); ?>"><?php esc_html_e( 'Search appearance', 'easyrankly' ); ?></button>
+			<button type="button" class="nav-tab erankly-tab" id="erankly-term-tab-social-<?php echo esc_attr( $id_suffix ); ?>" role="tab" aria-selected="false" aria-controls="erankly-term-panel-social-<?php echo esc_attr( $id_suffix ); ?>" data-erankly-tab="term-social-<?php echo esc_attr( $id_suffix ); ?>"><?php esc_html_e( 'Social sharing', 'easyrankly' ); ?></button>
+			<button type="button" class="nav-tab erankly-tab" id="erankly-term-tab-visibility-<?php echo esc_attr( $id_suffix ); ?>" role="tab" aria-selected="false" aria-controls="erankly-term-panel-visibility-<?php echo esc_attr( $id_suffix ); ?>" data-erankly-tab="term-visibility-<?php echo esc_attr( $id_suffix ); ?>"><?php esc_html_e( 'Search visibility', 'easyrankly' ); ?></button>
+			<?php if ( is_multisite() && function_exists( 'erankly_multilingual_enabled' ) && erankly_multilingual_enabled() ) : ?>
+			<button type="button" class="nav-tab erankly-tab" id="erankly-term-tab-translations-<?php echo esc_attr( $id_suffix ); ?>" role="tab" aria-selected="false" aria-controls="erankly-term-panel-translations-<?php echo esc_attr( $id_suffix ); ?>" data-erankly-tab="term-translations-<?php echo esc_attr( $id_suffix ); ?>"><?php esc_html_e( 'Translations', 'easyrankly' ); ?></button>
 			<?php endif; ?>
 		</div>
 
-		<div class="easyrankly-tab-panel is-active" id="easyrankly-term-panel-general-<?php echo esc_attr( $id_suffix ); ?>" role="tabpanel" aria-labelledby="easyrankly-term-tab-general-<?php echo esc_attr( $id_suffix ); ?>" data-easyrankly-panel="term-general-<?php echo esc_attr( $id_suffix ); ?>">
-			<div class="easyrankly-field">
-				<label for="easyrankly-term-title-<?php echo esc_attr( $id_suffix ); ?>"><strong><?php esc_html_e( 'Meta title', 'easyrankly' ); ?></strong></label>
-				<div class="easyrankly-variable-field" data-easyrankly-variable-field>
-					<input id="easyrankly-term-title-<?php echo esc_attr( $id_suffix ); ?>" class="widefat easyrankly-counted-field" type="text" name="easyrankly_title" value="<?php echo esc_attr( $title ); ?>" placeholder="<?php echo esc_attr( $title_placeholder ); ?>" data-easyrankly-limit="65" data-easyrankly-counter="easyrankly-term-title-counter-<?php echo esc_attr( $id_suffix ); ?>" data-easyrankly-warning="<?php esc_attr_e( 'recommended max', 'easyrankly' ); ?>">
-					<?php easyrankly_render_variable_picker(); ?>
+		<div class="erankly-tab-panel is-active" id="erankly-term-panel-general-<?php echo esc_attr( $id_suffix ); ?>" role="tabpanel" aria-labelledby="erankly-term-tab-general-<?php echo esc_attr( $id_suffix ); ?>" data-erankly-panel="term-general-<?php echo esc_attr( $id_suffix ); ?>">
+			<div class="erankly-field">
+				<label for="erankly-term-title-<?php echo esc_attr( $id_suffix ); ?>"><strong><?php esc_html_e( 'Meta title', 'easyrankly' ); ?></strong></label>
+				<div class="erankly-variable-field" data-erankly-variable-field>
+					<input id="erankly-term-title-<?php echo esc_attr( $id_suffix ); ?>" class="widefat erankly-counted-field" type="text" name="erankly_title" value="<?php echo esc_attr( $title ); ?>" placeholder="<?php echo esc_attr( $title_placeholder ); ?>" data-erankly-limit="65" data-erankly-counter="erankly-term-title-counter-<?php echo esc_attr( $id_suffix ); ?>" data-erankly-warning="<?php esc_attr_e( 'recommended max', 'easyrankly' ); ?>">
+					<?php erankly_render_variable_picker(); ?>
 				</div>
-				<span id="easyrankly-term-title-counter-<?php echo esc_attr( $id_suffix ); ?>" class="easyrankly-character-counter" aria-live="polite"></span>
+				<span id="erankly-term-title-counter-<?php echo esc_attr( $id_suffix ); ?>" class="erankly-character-counter" aria-live="polite"></span>
 			</div>
-			<div class="easyrankly-field">
-				<label for="easyrankly-term-description-<?php echo esc_attr( $id_suffix ); ?>"><strong><?php esc_html_e( 'Meta description', 'easyrankly' ); ?></strong></label>
-				<div class="easyrankly-variable-field" data-easyrankly-variable-field>
-					<textarea id="easyrankly-term-description-<?php echo esc_attr( $id_suffix ); ?>" class="widefat easyrankly-counted-field" rows="3" name="easyrankly_description" placeholder="<?php echo esc_attr( $description_placeholder ); ?>" data-easyrankly-limit="160" data-easyrankly-counter="easyrankly-term-description-counter-<?php echo esc_attr( $id_suffix ); ?>" data-easyrankly-warning="<?php esc_attr_e( 'recommended max', 'easyrankly' ); ?>"><?php echo esc_textarea( $description ); ?></textarea>
-					<?php easyrankly_render_variable_picker(); ?>
+			<div class="erankly-field">
+				<label for="erankly-term-description-<?php echo esc_attr( $id_suffix ); ?>"><strong><?php esc_html_e( 'Meta description', 'easyrankly' ); ?></strong></label>
+				<div class="erankly-variable-field" data-erankly-variable-field>
+					<textarea id="erankly-term-description-<?php echo esc_attr( $id_suffix ); ?>" class="widefat erankly-counted-field" rows="3" name="erankly_description" placeholder="<?php echo esc_attr( $description_placeholder ); ?>" data-erankly-limit="160" data-erankly-counter="erankly-term-description-counter-<?php echo esc_attr( $id_suffix ); ?>" data-erankly-warning="<?php esc_attr_e( 'recommended max', 'easyrankly' ); ?>"><?php echo esc_textarea( $description ); ?></textarea>
+					<?php erankly_render_variable_picker(); ?>
 				</div>
-				<span id="easyrankly-term-description-counter-<?php echo esc_attr( $id_suffix ); ?>" class="easyrankly-character-counter" aria-live="polite"></span>
+				<span id="erankly-term-description-counter-<?php echo esc_attr( $id_suffix ); ?>" class="erankly-character-counter" aria-live="polite"></span>
 			</div>
 			<?php if ( ! $simplified_mode ) : ?>
-			<div class="easyrankly-field">
-				<label for="easyrankly-term-canonical-<?php echo esc_attr( $id_suffix ); ?>"><strong><?php esc_html_e( 'Canonical URL', 'easyrankly' ); ?></strong></label>
-				<div class="easyrankly-variable-field" data-easyrankly-variable-field>
-					<input id="easyrankly-term-canonical-<?php echo esc_attr( $id_suffix ); ?>" class="widefat" type="text" name="easyrankly_canonical" value="<?php echo esc_attr( $canonical ); ?>">
-					<?php easyrankly_render_variable_picker(); ?>
+			<div class="erankly-field">
+				<label for="erankly-term-canonical-<?php echo esc_attr( $id_suffix ); ?>"><strong><?php esc_html_e( 'Canonical URL', 'easyrankly' ); ?></strong></label>
+				<div class="erankly-variable-field" data-erankly-variable-field>
+					<input id="erankly-term-canonical-<?php echo esc_attr( $id_suffix ); ?>" class="widefat" type="text" name="erankly_canonical" value="<?php echo esc_attr( $canonical ); ?>">
+					<?php erankly_render_variable_picker(); ?>
 				</div>
 			</div>
 			<?php endif; ?>
 		</div>
 
-		<div class="easyrankly-tab-panel" id="easyrankly-term-panel-social-<?php echo esc_attr( $id_suffix ); ?>" role="tabpanel" aria-labelledby="easyrankly-term-tab-social-<?php echo esc_attr( $id_suffix ); ?>" data-easyrankly-panel="term-social-<?php echo esc_attr( $id_suffix ); ?>" hidden>
-			<div class="easyrankly-field">
-				<label for="easyrankly-term-og-title-<?php echo esc_attr( $id_suffix ); ?>"><strong><?php esc_html_e( 'Open Graph Title', 'easyrankly' ); ?></strong></label>
-				<div class="easyrankly-variable-field" data-easyrankly-variable-field>
-					<input id="easyrankly-term-og-title-<?php echo esc_attr( $id_suffix ); ?>" class="widefat easyrankly-counted-field" type="text" name="easyrankly_og_title" value="<?php echo esc_attr( $og_title ); ?>" data-easyrankly-limit="60" data-easyrankly-counter="easyrankly-term-og-title-counter-<?php echo esc_attr( $id_suffix ); ?>" data-easyrankly-warning="<?php esc_attr_e( 'recommended max', 'easyrankly' ); ?>">
-					<?php easyrankly_render_variable_picker(); ?>
+		<div class="erankly-tab-panel" id="erankly-term-panel-social-<?php echo esc_attr( $id_suffix ); ?>" role="tabpanel" aria-labelledby="erankly-term-tab-social-<?php echo esc_attr( $id_suffix ); ?>" data-erankly-panel="term-social-<?php echo esc_attr( $id_suffix ); ?>" hidden>
+			<div class="erankly-field">
+				<label for="erankly-term-og-title-<?php echo esc_attr( $id_suffix ); ?>"><strong><?php esc_html_e( 'Open Graph Title', 'easyrankly' ); ?></strong></label>
+				<div class="erankly-variable-field" data-erankly-variable-field>
+					<input id="erankly-term-og-title-<?php echo esc_attr( $id_suffix ); ?>" class="widefat erankly-counted-field" type="text" name="erankly_og_title" value="<?php echo esc_attr( $og_title ); ?>" data-erankly-limit="60" data-erankly-counter="erankly-term-og-title-counter-<?php echo esc_attr( $id_suffix ); ?>" data-erankly-warning="<?php esc_attr_e( 'recommended max', 'easyrankly' ); ?>">
+					<?php erankly_render_variable_picker(); ?>
 				</div>
-				<span id="easyrankly-term-og-title-counter-<?php echo esc_attr( $id_suffix ); ?>" class="easyrankly-character-counter" aria-live="polite"></span>
+				<span id="erankly-term-og-title-counter-<?php echo esc_attr( $id_suffix ); ?>" class="erankly-character-counter" aria-live="polite"></span>
 			</div>
-			<div class="easyrankly-field">
-				<label for="easyrankly-term-og-description-<?php echo esc_attr( $id_suffix ); ?>"><strong><?php esc_html_e( 'Open Graph Description', 'easyrankly' ); ?></strong></label>
-				<div class="easyrankly-variable-field" data-easyrankly-variable-field>
-					<textarea id="easyrankly-term-og-description-<?php echo esc_attr( $id_suffix ); ?>" class="widefat easyrankly-counted-field" rows="3" name="easyrankly_og_description" data-easyrankly-limit="200" data-easyrankly-counter="easyrankly-term-og-description-counter-<?php echo esc_attr( $id_suffix ); ?>" data-easyrankly-warning="<?php esc_attr_e( 'recommended max', 'easyrankly' ); ?>"><?php echo esc_textarea( $og_description ); ?></textarea>
-					<?php easyrankly_render_variable_picker(); ?>
+			<div class="erankly-field">
+				<label for="erankly-term-og-description-<?php echo esc_attr( $id_suffix ); ?>"><strong><?php esc_html_e( 'Open Graph Description', 'easyrankly' ); ?></strong></label>
+				<div class="erankly-variable-field" data-erankly-variable-field>
+					<textarea id="erankly-term-og-description-<?php echo esc_attr( $id_suffix ); ?>" class="widefat erankly-counted-field" rows="3" name="erankly_og_description" data-erankly-limit="200" data-erankly-counter="erankly-term-og-description-counter-<?php echo esc_attr( $id_suffix ); ?>" data-erankly-warning="<?php esc_attr_e( 'recommended max', 'easyrankly' ); ?>"><?php echo esc_textarea( $og_description ); ?></textarea>
+					<?php erankly_render_variable_picker(); ?>
 				</div>
-				<span id="easyrankly-term-og-description-counter-<?php echo esc_attr( $id_suffix ); ?>" class="easyrankly-character-counter" aria-live="polite"></span>
+				<span id="erankly-term-og-description-counter-<?php echo esc_attr( $id_suffix ); ?>" class="erankly-character-counter" aria-live="polite"></span>
 			</div>
-			<div class="easyrankly-field">
-				<label for="easyrankly-term-twitter-title-<?php echo esc_attr( $id_suffix ); ?>"><strong><?php esc_html_e( 'X (Twitter) Title', 'easyrankly' ); ?></strong></label>
-				<div class="easyrankly-variable-field" data-easyrankly-variable-field>
-					<input id="easyrankly-term-twitter-title-<?php echo esc_attr( $id_suffix ); ?>" class="widefat easyrankly-counted-field" type="text" name="easyrankly_twitter_title" value="<?php echo esc_attr( $twitter_title ); ?>" data-easyrankly-limit="70" data-easyrankly-counter="easyrankly-term-twitter-title-counter-<?php echo esc_attr( $id_suffix ); ?>" data-easyrankly-warning="<?php esc_attr_e( 'recommended max', 'easyrankly' ); ?>">
-					<?php easyrankly_render_variable_picker(); ?>
+			<div class="erankly-field">
+				<label for="erankly-term-twitter-title-<?php echo esc_attr( $id_suffix ); ?>"><strong><?php esc_html_e( 'X (Twitter) Title', 'easyrankly' ); ?></strong></label>
+				<div class="erankly-variable-field" data-erankly-variable-field>
+					<input id="erankly-term-twitter-title-<?php echo esc_attr( $id_suffix ); ?>" class="widefat erankly-counted-field" type="text" name="erankly_twitter_title" value="<?php echo esc_attr( $twitter_title ); ?>" data-erankly-limit="70" data-erankly-counter="erankly-term-twitter-title-counter-<?php echo esc_attr( $id_suffix ); ?>" data-erankly-warning="<?php esc_attr_e( 'recommended max', 'easyrankly' ); ?>">
+					<?php erankly_render_variable_picker(); ?>
 				</div>
-				<span id="easyrankly-term-twitter-title-counter-<?php echo esc_attr( $id_suffix ); ?>" class="easyrankly-character-counter" aria-live="polite"></span>
+				<span id="erankly-term-twitter-title-counter-<?php echo esc_attr( $id_suffix ); ?>" class="erankly-character-counter" aria-live="polite"></span>
 			</div>
-			<div class="easyrankly-field">
-				<label for="easyrankly-term-twitter-description-<?php echo esc_attr( $id_suffix ); ?>"><strong><?php esc_html_e( 'X (Twitter) Description', 'easyrankly' ); ?></strong></label>
-				<div class="easyrankly-variable-field" data-easyrankly-variable-field>
-					<textarea id="easyrankly-term-twitter-description-<?php echo esc_attr( $id_suffix ); ?>" class="widefat easyrankly-counted-field" rows="3" name="easyrankly_twitter_description" data-easyrankly-limit="200" data-easyrankly-counter="easyrankly-term-twitter-description-counter-<?php echo esc_attr( $id_suffix ); ?>" data-easyrankly-warning="<?php esc_attr_e( 'recommended max', 'easyrankly' ); ?>"><?php echo esc_textarea( $twitter_desc ); ?></textarea>
-					<?php easyrankly_render_variable_picker(); ?>
+			<div class="erankly-field">
+				<label for="erankly-term-twitter-description-<?php echo esc_attr( $id_suffix ); ?>"><strong><?php esc_html_e( 'X (Twitter) Description', 'easyrankly' ); ?></strong></label>
+				<div class="erankly-variable-field" data-erankly-variable-field>
+					<textarea id="erankly-term-twitter-description-<?php echo esc_attr( $id_suffix ); ?>" class="widefat erankly-counted-field" rows="3" name="erankly_twitter_description" data-erankly-limit="200" data-erankly-counter="erankly-term-twitter-description-counter-<?php echo esc_attr( $id_suffix ); ?>" data-erankly-warning="<?php esc_attr_e( 'recommended max', 'easyrankly' ); ?>"><?php echo esc_textarea( $twitter_desc ); ?></textarea>
+					<?php erankly_render_variable_picker(); ?>
 				</div>
-				<span id="easyrankly-term-twitter-description-counter-<?php echo esc_attr( $id_suffix ); ?>" class="easyrankly-character-counter" aria-live="polite"></span>
+				<span id="erankly-term-twitter-description-counter-<?php echo esc_attr( $id_suffix ); ?>" class="erankly-character-counter" aria-live="polite"></span>
 			</div>
-			<div class="easyrankly-field">
-				<label for="easyrankly-term-twitter-card-type-<?php echo esc_attr( $id_suffix ); ?>"><strong><?php esc_html_e( 'X (Twitter) Card Type', 'easyrankly' ); ?></strong></label>
-				<select id="easyrankly-term-twitter-card-type-<?php echo esc_attr( $id_suffix ); ?>" class="widefat" name="easyrankly_twitter_card_type">
+			<div class="erankly-field">
+				<label for="erankly-term-twitter-card-type-<?php echo esc_attr( $id_suffix ); ?>"><strong><?php esc_html_e( 'X (Twitter) Card Type', 'easyrankly' ); ?></strong></label>
+				<select id="erankly-term-twitter-card-type-<?php echo esc_attr( $id_suffix ); ?>" class="widefat" name="erankly_twitter_card_type">
 					<option value="" <?php selected( $twitter_card, '' ); ?>><?php esc_html_e( 'Default (summary_large_image)', 'easyrankly' ); ?></option>
 					<option value="summary" <?php selected( $twitter_card, 'summary' ); ?>>summary</option>
 				</select>
 			</div>
-			<div class="easyrankly-field">
-				<label for="easyrankly-term-social-image-url-<?php echo esc_attr( $id_suffix ); ?>"><strong><?php esc_html_e( 'Social Image URL', 'easyrankly' ); ?></strong></label>
+			<div class="erankly-field">
+				<label for="erankly-term-social-image-url-<?php echo esc_attr( $id_suffix ); ?>"><strong><?php esc_html_e( 'Social Image URL', 'easyrankly' ); ?></strong></label>
 				<?php
-				easyrankly_render_media_url_field(
-					'easyrankly-term-social-image-url-' . $id_suffix,
-					'easyrankly_social_image_url',
+				erankly_render_media_url_field(
+					'erankly-term-social-image-url-' . $id_suffix,
+					'erankly_social_image_url',
 					$social_image_url,
-					easyrankly_default_social_image_placeholder()
+					erankly_default_social_image_placeholder()
 				);
 				?>
 			</div>
 		</div>
 
-		<div class="easyrankly-tab-panel" id="easyrankly-term-panel-visibility-<?php echo esc_attr( $id_suffix ); ?>" role="tabpanel" aria-labelledby="easyrankly-term-tab-visibility-<?php echo esc_attr( $id_suffix ); ?>" data-easyrankly-panel="term-visibility-<?php echo esc_attr( $id_suffix ); ?>" hidden>
-			<fieldset class="easyrankly-field easyrankly-checkboxes">
+		<div class="erankly-tab-panel" id="erankly-term-panel-visibility-<?php echo esc_attr( $id_suffix ); ?>" role="tabpanel" aria-labelledby="erankly-term-tab-visibility-<?php echo esc_attr( $id_suffix ); ?>" data-erankly-panel="term-visibility-<?php echo esc_attr( $id_suffix ); ?>" hidden>
+			<fieldset class="erankly-field erankly-checkboxes">
 				<?php if ( $simplified_mode ) : ?>
-					<label><input type="checkbox" name="easyrankly_hide_from_search_results" value="1" <?php checked( $hide_from_search_results ); ?>> <?php esc_html_e( 'Hide from search results', 'easyrankly' ); ?></label>
+					<label><input type="checkbox" name="erankly_hide_from_search_results" value="1" <?php checked( $hide_from_search_results ); ?>> <?php esc_html_e( 'Hide from search results', 'easyrankly' ); ?></label>
 					<span class="description"><?php esc_html_e( 'Sets noindex and removes this term from the sitemap. Does not affect nofollow or noarchive.', 'easyrankly' ); ?></span>
 				<?php else : ?>
-					<label><input type="checkbox" name="easyrankly_noindex" value="1" <?php checked( $noindex ); ?>> <?php esc_html_e( 'Noindex', 'easyrankly' ); ?></label><br>
-					<label><input type="checkbox" name="easyrankly_nofollow" value="1" <?php checked( $nofollow ); ?>> <?php esc_html_e( 'Nofollow', 'easyrankly' ); ?></label><br>
-					<label><input type="checkbox" name="easyrankly_noarchive" value="1" <?php checked( $noarchive ); ?>> <?php esc_html_e( 'Noarchive', 'easyrankly' ); ?></label><br>
-					<label><input type="checkbox" name="easyrankly_disable_sitemap" value="1" <?php checked( $disable_sitemap ); ?>> <?php esc_html_e( 'Disable sitemap', 'easyrankly' ); ?></label>
+					<label><input type="checkbox" name="erankly_noindex" value="1" <?php checked( $noindex ); ?>> <?php esc_html_e( 'Noindex', 'easyrankly' ); ?></label><br>
+					<label><input type="checkbox" name="erankly_nofollow" value="1" <?php checked( $nofollow ); ?>> <?php esc_html_e( 'Nofollow', 'easyrankly' ); ?></label><br>
+					<label><input type="checkbox" name="erankly_noarchive" value="1" <?php checked( $noarchive ); ?>> <?php esc_html_e( 'Noarchive', 'easyrankly' ); ?></label><br>
+					<label><input type="checkbox" name="erankly_disable_sitemap" value="1" <?php checked( $disable_sitemap ); ?>> <?php esc_html_e( 'Disable sitemap', 'easyrankly' ); ?></label>
 				<?php endif; ?>
 			</fieldset>
 		</div>
 
-		<?php if ( is_multisite() && function_exists( 'easyrankly_multilingual_enabled' ) && easyrankly_multilingual_enabled() && function_exists( 'easyrankly_ml_render_term_translations' ) ) : ?>
-		<div class="easyrankly-tab-panel" id="easyrankly-term-panel-translations-<?php echo esc_attr( $id_suffix ); ?>" role="tabpanel" aria-labelledby="easyrankly-term-tab-translations-<?php echo esc_attr( $id_suffix ); ?>" data-easyrankly-panel="term-translations-<?php echo esc_attr( $id_suffix ); ?>" hidden>
-			<?php easyrankly_ml_render_term_translations( $term_id, $taxonomy ); ?>
+		<?php if ( is_multisite() && function_exists( 'erankly_multilingual_enabled' ) && erankly_multilingual_enabled() && function_exists( 'erankly_ml_render_term_translations' ) ) : ?>
+		<div class="erankly-tab-panel" id="erankly-term-panel-translations-<?php echo esc_attr( $id_suffix ); ?>" role="tabpanel" aria-labelledby="erankly-term-tab-translations-<?php echo esc_attr( $id_suffix ); ?>" data-erankly-panel="term-translations-<?php echo esc_attr( $id_suffix ); ?>" hidden>
+			<?php erankly_ml_render_term_translations( $term_id, $taxonomy ); ?>
 		</div>
 		<?php endif; ?>
 
@@ -497,7 +497,7 @@ function easyrankly_render_term_meta_fields( int $term_id, string $taxonomy ): v
  *
  * @return array<string,array{label:string,variables:array<string,string>}>
  */
-function easyrankly_get_variable_groups(): array {
+function erankly_get_variable_groups(): array {
 	return array(
 		'content'    => array(
 			'label'     => __( 'Content', 'easyrankly' ),
@@ -561,23 +561,23 @@ function easyrankly_get_variable_groups(): array {
  *
  * @return void
  */
-function easyrankly_render_variable_picker(): void {
+function erankly_render_variable_picker(): void {
 	?>
-	<button type="button" class="easyrankly-variable-trigger" data-easyrankly-variable-trigger aria-haspopup="true" aria-expanded="false" title="<?php esc_attr_e( 'Insert variable', 'easyrankly' ); ?>">
+	<button type="button" class="erankly-variable-trigger" data-erankly-variable-trigger aria-haspopup="true" aria-expanded="false" title="<?php esc_attr_e( 'Insert variable', 'easyrankly' ); ?>">
 		<svg aria-hidden="true" focusable="false" viewBox="0 0 256 256">
 			<path d="M43.18,128a29.78,29.78,0,0,1,8,10.26c4.8,9.9,4.8,22,4.8,33.74,0,24.31,1,36,24,36a8,8,0,0,1,0,16c-17.48,0-29.32-6.14-35.2-18.26-4.8-9.9-4.8-22-4.8-33.74,0-24.31-1-36-24-36a8,8,0,0,1,0-16c23,0,24-11.69,24-36,0-11.72,0-23.84,4.8-33.74C50.68,38.14,62.52,32,80,32a8,8,0,0,1,0,16C57,48,56,59.69,56,84c0,11.72,0,23.84-4.8,33.74A29.78,29.78,0,0,1,43.18,128ZM240,120c-23,0-24-11.69-24-36,0-11.72,0-23.84-4.8-33.74C205.32,38.14,193.48,32,176,32a8,8,0,0,0,0,16c23,0,24,11.69,24,36,0,11.72,0,23.84,4.8,33.74a29.78,29.78,0,0,0,8,10.26,29.78,29.78,0,0,0-8,10.26c-4.8,9.9-4.8,22-4.8,33.74,0,24.31-1,36-24,36a8,8,0,0,0,0,16c17.48,0,29.32-6.14,35.2-18.26,4.8-9.9,4.8-22,4.8-33.74,0-24.31,1-36,24-36a8,8,0,0,0,0-16Z"></path>
 		</svg>
 		<span class="screen-reader-text"><?php esc_html_e( 'Insert variable', 'easyrankly' ); ?></span>
 	</button>
-	<div class="easyrankly-variable-menu" data-easyrankly-variable-menu hidden>
-		<input class="easyrankly-variable-search" type="search" data-easyrankly-variable-search placeholder="<?php esc_attr_e( 'Search variables...', 'easyrankly' ); ?>" aria-label="<?php esc_attr_e( 'Search variables', 'easyrankly' ); ?>">
-		<div class="easyrankly-variable-list">
-			<?php foreach ( easyrankly_get_variable_groups() as $group ) : ?>
-				<div class="easyrankly-variable-group" data-easyrankly-variable-group>
-					<div class="easyrankly-variable-group-title"><?php echo esc_html( $group['label'] ); ?></div>
+	<div class="erankly-variable-menu" data-erankly-variable-menu hidden>
+		<input class="erankly-variable-search" type="search" data-erankly-variable-search placeholder="<?php esc_attr_e( 'Search variables...', 'easyrankly' ); ?>" aria-label="<?php esc_attr_e( 'Search variables', 'easyrankly' ); ?>">
+		<div class="erankly-variable-list">
+			<?php foreach ( erankly_get_variable_groups() as $group ) : ?>
+				<div class="erankly-variable-group" data-erankly-variable-group>
+					<div class="erankly-variable-group-title"><?php echo esc_html( $group['label'] ); ?></div>
 					<?php foreach ( $group['variables'] as $key => $label ) : ?>
 						<?php $variable = '{{' . $key . '}}'; ?>
-						<button type="button" class="easyrankly-variable-option" data-easyrankly-variable="<?php echo esc_attr( $variable ); ?>" data-easyrankly-variable-search-text="<?php echo esc_attr( strtolower( $label . ' ' . $key ) ); ?>">
+						<button type="button" class="erankly-variable-option" data-erankly-variable="<?php echo esc_attr( $variable ); ?>" data-erankly-variable-search-text="<?php echo esc_attr( strtolower( $label . ' ' . $key ) ); ?>">
 							<span><?php echo esc_html( $label ); ?></span>
 							<code><?php echo esc_html( $variable ); ?></code>
 						</button>
@@ -598,25 +598,25 @@ function easyrankly_render_variable_picker(): void {
  * @param bool                $is_global   Whether to render global targeting controls.
  * @return void
  */
-function easyrankly_render_schema_block( array $block, string $index, string $name_prefix, bool $is_global = false ): void {
+function erankly_render_schema_block( array $block, string $index, string $name_prefix, bool $is_global = false ): void {
 	$enabled     = ! isset( $block['enabled'] ) || ! empty( $block['enabled'] );
 	$fields      = isset( $block['fields'] ) && is_array( $block['fields'] ) ? $block['fields'] : array();
 	$custom_json = isset( $fields['custom_json'] ) ? (string) $fields['custom_json'] : '';
 	?>
-	<details class="easyrankly-schema-block" data-easyrankly-schema-block>
-		<summary class="easyrankly-schema-block-header">
-			<span class="easyrankly-schema-title"><?php esc_html_e( 'JSON-LD schema', 'easyrankly' ); ?></span>
-			<div class="easyrankly-schema-row-actions">
-				<button type="button" class="button-link button-link-delete" data-easyrankly-remove-schema><?php esc_html_e( 'Delete', 'easyrankly' ); ?></button>
+	<details class="erankly-schema-block" data-erankly-schema-block>
+		<summary class="erankly-schema-block-header">
+			<span class="erankly-schema-title"><?php esc_html_e( 'JSON-LD schema', 'easyrankly' ); ?></span>
+			<div class="erankly-schema-row-actions">
+				<button type="button" class="button-link button-link-delete" data-erankly-remove-schema><?php esc_html_e( 'Delete', 'easyrankly' ); ?></button>
 			</div>
 		</summary>
 		<input type="hidden" name="<?php echo esc_attr( $name_prefix ); ?>[<?php echo esc_attr( $index ); ?>][type]" value="custom">
-		<div class="easyrankly-schema-panel" data-easyrankly-schema-panel>
+		<div class="erankly-schema-panel" data-erankly-schema-panel>
 			<?php if ( $is_global ) : ?>
-				<?php easyrankly_render_schema_targeting_fields( $block, $index, $name_prefix, $enabled ); ?>
+				<?php erankly_render_schema_targeting_fields( $block, $index, $name_prefix, $enabled ); ?>
 			<?php endif; ?>
 
-			<?php easyrankly_render_schema_textarea_field( $index, $name_prefix, 'custom_json', __( 'JSON-LD code', 'easyrankly' ), $custom_json, 10 ); ?>
+			<?php erankly_render_schema_textarea_field( $index, $name_prefix, 'custom_json', __( 'JSON-LD code', 'easyrankly' ), $custom_json, 10 ); ?>
 			<p class="description"><?php esc_html_e( 'Paste one JSON-LD object or use a top-level @graph array for multiple schemas. Supports {{variables}}.', 'easyrankly' ); ?></p>
 		</div>
 	</details>
@@ -632,7 +632,7 @@ function easyrankly_render_schema_block( array $block, string $index, string $na
  * @param bool                $enabled     Whether the block is enabled.
  * @return void
  */
-function easyrankly_render_schema_targeting_fields( array $block, string $index, string $name_prefix, bool $enabled ): void {
+function erankly_render_schema_targeting_fields( array $block, string $index, string $name_prefix, bool $enabled ): void {
 	$target_contexts   = isset( $block['target_contexts'] ) && is_array( $block['target_contexts'] ) ? array_map( 'sanitize_key', $block['target_contexts'] ) : array();
 	$target_post_types = isset( $block['target_post_types'] ) && is_array( $block['target_post_types'] ) ? array_map( 'sanitize_key', $block['target_post_types'] ) : array();
 	$include_items     = isset( $block['include_items'] ) ? (string) $block['include_items'] : '';
@@ -645,14 +645,14 @@ function easyrankly_render_schema_targeting_fields( array $block, string $index,
 		'search'            => __( 'Search results', 'easyrankly' ),
 	);
 	?>
-	<fieldset class="easyrankly-schema-targeting">
+	<fieldset class="erankly-schema-targeting">
 		<legend><?php esc_html_e( 'Global application rules', 'easyrankly' ); ?></legend>
 		<label>
 			<input type="checkbox" name="<?php echo esc_attr( $name_prefix ); ?>[<?php echo esc_attr( $index ); ?>][enabled]" value="1" <?php checked( $enabled ); ?>>
 			<?php esc_html_e( 'Enable this schema block', 'easyrankly' ); ?>
 		</label>
 
-		<div class="easyrankly-schema-targeting-grid">
+		<div class="erankly-schema-targeting-grid">
 			<div>
 				<strong><?php esc_html_e( 'Apply on', 'easyrankly' ); ?></strong>
 				<?php foreach ( $contexts as $context => $label ) : ?>
@@ -665,7 +665,7 @@ function easyrankly_render_schema_targeting_fields( array $block, string $index,
 
 			<div>
 				<strong><?php esc_html_e( 'Post types', 'easyrankly' ); ?></strong>
-				<?php foreach ( easyrankly_get_public_post_types() as $post_type => $object ) : ?>
+				<?php foreach ( erankly_get_public_post_types() as $post_type => $object ) : ?>
 					<label>
 						<input type="checkbox" name="<?php echo esc_attr( $name_prefix ); ?>[<?php echo esc_attr( $index ); ?>][target_post_types][]" value="<?php echo esc_attr( $post_type ); ?>" <?php checked( in_array( $post_type, $target_post_types, true ) ); ?>>
 						<?php echo esc_html( $object->labels->singular_name ); ?>
@@ -674,7 +674,7 @@ function easyrankly_render_schema_targeting_fields( array $block, string $index,
 			</div>
 		</div>
 
-		<div class="easyrankly-schema-targeting-grid">
+		<div class="erankly-schema-targeting-grid">
 			<label>
 				<strong><?php esc_html_e( 'Include IDs or slugs', 'easyrankly' ); ?></strong>
 				<textarea class="widefat" rows="3" name="<?php echo esc_attr( $name_prefix ); ?>[<?php echo esc_attr( $index ); ?>][include_items]"><?php echo esc_textarea( $include_items ); ?></textarea>
@@ -699,13 +699,13 @@ function easyrankly_render_schema_targeting_fields( array $block, string $index,
  * @param int    $rows        Textarea rows.
  * @return void
  */
-function easyrankly_render_schema_textarea_field( string $index, string $name_prefix, string $key, string $label, string $value, int $rows ): void {
+function erankly_render_schema_textarea_field( string $index, string $name_prefix, string $key, string $label, string $value, int $rows ): void {
 	?>
-	<div class="easyrankly-schema-field">
+	<div class="erankly-schema-field">
 		<span><?php echo esc_html( $label ); ?></span>
-		<div class="easyrankly-variable-field" data-easyrankly-variable-field>
+		<div class="erankly-variable-field" data-erankly-variable-field>
 			<textarea class="widefat" rows="<?php echo esc_attr( (string) $rows ); ?>" name="<?php echo esc_attr( $name_prefix ); ?>[<?php echo esc_attr( $index ); ?>][fields][<?php echo esc_attr( $key ); ?>]"><?php echo esc_textarea( $value ); ?></textarea>
-			<?php easyrankly_render_variable_picker(); ?>
+			<?php erankly_render_variable_picker(); ?>
 		</div>
 	</div>
 	<?php
@@ -724,23 +724,23 @@ function easyrankly_render_schema_textarea_field( string $index, string $name_pr
  * @param bool   $show_preview       Whether to render the image thumbnail preview.
  * @return void
  */
-function easyrankly_render_media_url_field( string $id, string $name, string $value, string $placeholder = '', string $attachment_id_name = '', int $attachment_id = 0, bool $show_preview = true ): void {
+function erankly_render_media_url_field( string $id, string $name, string $value, string $placeholder = '', string $attachment_id_name = '', int $attachment_id = 0, bool $show_preview = true ): void {
 	$preview = '' !== $value && false === strpos( $value, '{{' ) ? $value : '';
 	?>
-	<div class="easyrankly-media-url-field" data-easyrankly-media-url-field>
+	<div class="erankly-media-url-field" data-erankly-media-url-field>
 		<?php if ( '' !== $attachment_id_name ) : ?>
-			<input type="hidden" data-easyrankly-media-url-id name="<?php echo esc_attr( $attachment_id_name ); ?>" value="<?php echo esc_attr( (string) $attachment_id ); ?>">
+			<input type="hidden" data-erankly-media-url-id name="<?php echo esc_attr( $attachment_id_name ); ?>" value="<?php echo esc_attr( (string) $attachment_id ); ?>">
 		<?php endif; ?>
-		<div class="easyrankly-media-url-control">
-			<div class="easyrankly-variable-field" data-easyrankly-variable-field>
-				<input id="<?php echo esc_attr( $id ); ?>" class="widefat" type="text" data-easyrankly-media-url-input name="<?php echo esc_attr( $name ); ?>" value="<?php echo esc_attr( $value ); ?>" placeholder="<?php echo esc_attr( $placeholder ); ?>">
-				<?php easyrankly_render_variable_picker(); ?>
+		<div class="erankly-media-url-control">
+			<div class="erankly-variable-field" data-erankly-variable-field>
+				<input id="<?php echo esc_attr( $id ); ?>" class="widefat" type="text" data-erankly-media-url-input name="<?php echo esc_attr( $name ); ?>" value="<?php echo esc_attr( $value ); ?>" placeholder="<?php echo esc_attr( $placeholder ); ?>">
+				<?php erankly_render_variable_picker(); ?>
 			</div>
-			<button type="button" class="button easyrankly-select-media-url" data-easyrankly-select-media-url><?php esc_html_e( 'Select image', 'easyrankly' ); ?></button>
-			<button type="button" class="button easyrankly-clear-media-url" data-easyrankly-clear-media-url><?php esc_html_e( 'Remove', 'easyrankly' ); ?></button>
+			<button type="button" class="button erankly-select-media-url" data-erankly-select-media-url><?php esc_html_e( 'Select image', 'easyrankly' ); ?></button>
+			<button type="button" class="button erankly-clear-media-url" data-erankly-clear-media-url><?php esc_html_e( 'Remove', 'easyrankly' ); ?></button>
 		</div>
 		<?php if ( $show_preview ) : ?>
-			<div class="easyrankly-media-preview easyrankly-media-url-preview" data-easyrankly-media-url-preview>
+			<div class="erankly-media-preview erankly-media-url-preview" data-erankly-media-url-preview>
 				<?php if ( '' !== $preview ) : ?>
 					<img src="<?php echo esc_url( $preview ); ?>" alt="">
 				<?php endif; ?>
@@ -756,8 +756,8 @@ function easyrankly_render_media_url_field( string $id, string $name, string $va
  * @param int $post_id Post ID.
  * @return void
  */
-function easyrankly_save_meta_box( int $post_id ): void {
-	if ( ! isset( $_POST['easyrankly_meta_box_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['easyrankly_meta_box_nonce'] ) ), 'easyrankly_save_meta_box' ) ) {
+function erankly_save_meta_box( int $post_id ): void {
+	if ( ! isset( $_POST['erankly_meta_box_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['erankly_meta_box_nonce'] ) ), 'erankly_save_meta_box' ) ) {
 		return;
 	}
 
@@ -770,48 +770,48 @@ function easyrankly_save_meta_box( int $post_id ): void {
 	}
 
 	$fields = array(
-		'_easyrankly_title'           => 'easyrankly_title',
-		'_easyrankly_description'     => 'easyrankly_description',
-		'_easyrankly_canonical'       => 'easyrankly_canonical',
-		'_easyrankly_breadcrumb_name' => 'easyrankly_breadcrumb_name',
+		'_erankly_title'           => 'erankly_title',
+		'_erankly_description'     => 'erankly_description',
+		'_erankly_canonical'       => 'erankly_canonical',
+		'_erankly_breadcrumb_name' => 'erankly_breadcrumb_name',
 	);
 
 	// The field isn't rendered when breadcrumbs are off, so its POST key is absent —
 	// skip it to keep any previously stored value.
-	if ( ! (bool) easyrankly_get_setting( 'enable_breadcrumbs', 1 ) ) {
-		unset( $fields['_easyrankly_breadcrumb_name'] );
+	if ( ! (bool) erankly_get_setting( 'enable_breadcrumbs', 1 ) ) {
+		unset( $fields['_erankly_breadcrumb_name'] );
 	}
 
 	$fields = array_merge(
 		$fields,
 		array(
-			'_easyrankly_og_title'            => 'easyrankly_og_title',
-			'_easyrankly_og_description'      => 'easyrankly_og_description',
-			'_easyrankly_twitter_title'       => 'easyrankly_twitter_title',
-			'_easyrankly_twitter_description' => 'easyrankly_twitter_description',
-			'_easyrankly_twitter_card_type'   => 'easyrankly_twitter_card_type',
-			'_easyrankly_social_image_url'    => 'easyrankly_social_image_url',
+			'_erankly_og_title'            => 'erankly_og_title',
+			'_erankly_og_description'      => 'erankly_og_description',
+			'_erankly_twitter_title'       => 'erankly_twitter_title',
+			'_erankly_twitter_description' => 'erankly_twitter_description',
+			'_erankly_twitter_card_type'   => 'erankly_twitter_card_type',
+			'_erankly_social_image_url'    => 'erankly_social_image_url',
 		)
 	);
 
-	$simplified_mode = (bool) easyrankly_get_setting( 'simplified_mode', 1 );
+	$simplified_mode = (bool) erankly_get_setting( 'simplified_mode', 1 );
 
 	if ( $simplified_mode ) {
 		unset(
-			$fields['_easyrankly_canonical'],
-			$fields['_easyrankly_breadcrumb_name'],
-			$fields['_easyrankly_og_title'],
-			$fields['_easyrankly_og_description'],
-			$fields['_easyrankly_twitter_title'],
-			$fields['_easyrankly_twitter_description'],
-			$fields['_easyrankly_twitter_card_type'],
-			$fields['_easyrankly_social_image_url']
+			$fields['_erankly_canonical'],
+			$fields['_erankly_breadcrumb_name'],
+			$fields['_erankly_og_title'],
+			$fields['_erankly_og_description'],
+			$fields['_erankly_twitter_title'],
+			$fields['_erankly_twitter_description'],
+			$fields['_erankly_twitter_card_type'],
+			$fields['_erankly_social_image_url']
 		);
 	}
 
 	foreach ( $fields as $key => $field ) {
-		$raw_value = isset( $_POST[ $field ] ) ? wp_unslash( $_POST[ $field ] ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitized by easyrankly_sanitize_registered_meta() on the next line.
-		$value     = easyrankly_sanitize_registered_meta( $raw_value, $key );
+		$raw_value = isset( $_POST[ $field ] ) ? wp_unslash( $_POST[ $field ] ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitized by erankly_sanitize_registered_meta() on the next line.
+		$value     = erankly_sanitize_registered_meta( $raw_value, $key );
 
 		if ( '' === $value || 0 === $value ) {
 			delete_post_meta( $post_id, $key );
@@ -822,23 +822,23 @@ function easyrankly_save_meta_box( int $post_id ): void {
 		}
 	}
 
-	$hide_from_search_results = $simplified_mode && isset( $_POST['easyrankly_hide_from_search_results'] );
+	$hide_from_search_results = $simplified_mode && isset( $_POST['erankly_hide_from_search_results'] );
 
 	// "Hide from search results" sets only noindex + disable_sitemap.
 	$booleans = array(
-		'_easyrankly_noindex'           => $hide_from_search_results || ( ! $simplified_mode && isset( $_POST['easyrankly_noindex'] ) ),
-		'_easyrankly_disable_sitemap'   => $hide_from_search_results || ( ! $simplified_mode && isset( $_POST['easyrankly_disable_sitemap'] ) ),
-		'_easyrankly_exclude_search'    => isset( $_POST['easyrankly_exclude_search'] ),
-		'_easyrankly_exclude_archive'   => isset( $_POST['easyrankly_exclude_archive'] ),
-		'_easyrankly_exclude_from_news' => isset( $_POST['easyrankly_exclude_from_news'] ),
+		'_erankly_noindex'           => $hide_from_search_results || ( ! $simplified_mode && isset( $_POST['erankly_noindex'] ) ),
+		'_erankly_disable_sitemap'   => $hide_from_search_results || ( ! $simplified_mode && isset( $_POST['erankly_disable_sitemap'] ) ),
+		'_erankly_exclude_search'    => isset( $_POST['erankly_exclude_search'] ),
+		'_erankly_exclude_archive'   => isset( $_POST['erankly_exclude_archive'] ),
+		'_erankly_exclude_from_news' => isset( $_POST['erankly_exclude_from_news'] ),
 	);
 
 	// nofollow and noarchive are advanced-only controls: in simplified mode their
 	// checkboxes are not rendered, so leave any stored value untouched (the UI
 	// promises "Hide from search results" does not affect them).
 	if ( ! $simplified_mode ) {
-		$booleans['_easyrankly_nofollow']  = isset( $_POST['easyrankly_nofollow'] );
-		$booleans['_easyrankly_noarchive'] = isset( $_POST['easyrankly_noarchive'] );
+		$booleans['_erankly_nofollow']  = isset( $_POST['erankly_nofollow'] );
+		$booleans['_erankly_noarchive'] = isset( $_POST['erankly_noarchive'] );
 	}
 
 	foreach ( $booleans as $key => $enabled ) {
@@ -856,8 +856,8 @@ function easyrankly_save_meta_box( int $post_id ): void {
  * @param int $term_id Term ID.
  * @return void
  */
-function easyrankly_save_term_fields( int $term_id ): void {
-	if ( ! isset( $_POST['easyrankly_term_fields_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['easyrankly_term_fields_nonce'] ) ), 'easyrankly_save_term_fields' ) ) {
+function erankly_save_term_fields( int $term_id ): void {
+	if ( ! isset( $_POST['erankly_term_fields_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['erankly_term_fields_nonce'] ) ), 'erankly_save_term_fields' ) ) {
 		return;
 	}
 
@@ -866,26 +866,26 @@ function easyrankly_save_term_fields( int $term_id ): void {
 	}
 
 	$fields = array(
-		'_easyrankly_title'               => 'easyrankly_title',
-		'_easyrankly_description'         => 'easyrankly_description',
-		'_easyrankly_canonical'           => 'easyrankly_canonical',
-		'_easyrankly_og_title'            => 'easyrankly_og_title',
-		'_easyrankly_og_description'      => 'easyrankly_og_description',
-		'_easyrankly_twitter_title'       => 'easyrankly_twitter_title',
-		'_easyrankly_twitter_description' => 'easyrankly_twitter_description',
-		'_easyrankly_twitter_card_type'   => 'easyrankly_twitter_card_type',
-		'_easyrankly_social_image_url'    => 'easyrankly_social_image_url',
+		'_erankly_title'               => 'erankly_title',
+		'_erankly_description'         => 'erankly_description',
+		'_erankly_canonical'           => 'erankly_canonical',
+		'_erankly_og_title'            => 'erankly_og_title',
+		'_erankly_og_description'      => 'erankly_og_description',
+		'_erankly_twitter_title'       => 'erankly_twitter_title',
+		'_erankly_twitter_description' => 'erankly_twitter_description',
+		'_erankly_twitter_card_type'   => 'erankly_twitter_card_type',
+		'_erankly_social_image_url'    => 'erankly_social_image_url',
 	);
 
-	$simplified_mode = (bool) easyrankly_get_setting( 'simplified_mode', 1 );
+	$simplified_mode = (bool) erankly_get_setting( 'simplified_mode', 1 );
 
 	if ( $simplified_mode ) {
-		unset( $fields['_easyrankly_canonical'] );
+		unset( $fields['_erankly_canonical'] );
 	}
 
 	foreach ( $fields as $key => $field ) {
-		$raw_value = isset( $_POST[ $field ] ) ? wp_unslash( $_POST[ $field ] ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitized by easyrankly_sanitize_registered_meta() on the next line.
-		$value     = easyrankly_sanitize_registered_meta( $raw_value, $key );
+		$raw_value = isset( $_POST[ $field ] ) ? wp_unslash( $_POST[ $field ] ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitized by erankly_sanitize_registered_meta() on the next line.
+		$value     = erankly_sanitize_registered_meta( $raw_value, $key );
 
 		if ( '' === $value || 0 === $value ) {
 			delete_term_meta( $term_id, $key );
@@ -896,19 +896,19 @@ function easyrankly_save_term_fields( int $term_id ): void {
 		}
 	}
 
-	$hide_from_search_results = $simplified_mode && isset( $_POST['easyrankly_hide_from_search_results'] );
+	$hide_from_search_results = $simplified_mode && isset( $_POST['erankly_hide_from_search_results'] );
 
 	// "Hide from search results" intentionally sets only noindex + disable_sitemap.
 	$booleans = array(
-		'_easyrankly_noindex'         => $hide_from_search_results || ( ! $simplified_mode && isset( $_POST['easyrankly_noindex'] ) ),
-		'_easyrankly_disable_sitemap' => $hide_from_search_results || ( ! $simplified_mode && isset( $_POST['easyrankly_disable_sitemap'] ) ),
+		'_erankly_noindex'         => $hide_from_search_results || ( ! $simplified_mode && isset( $_POST['erankly_noindex'] ) ),
+		'_erankly_disable_sitemap' => $hide_from_search_results || ( ! $simplified_mode && isset( $_POST['erankly_disable_sitemap'] ) ),
 	);
 
 	// nofollow and noarchive are advanced-only controls: in simplified mode their
 	// checkboxes are not rendered, so leave any stored value untouched.
 	if ( ! $simplified_mode ) {
-		$booleans['_easyrankly_nofollow']  = isset( $_POST['easyrankly_nofollow'] );
-		$booleans['_easyrankly_noarchive'] = isset( $_POST['easyrankly_noarchive'] );
+		$booleans['_erankly_nofollow']  = isset( $_POST['erankly_nofollow'] );
+		$booleans['_erankly_noarchive'] = isset( $_POST['erankly_noarchive'] );
 	}
 
 	foreach ( $booleans as $key => $enabled ) {

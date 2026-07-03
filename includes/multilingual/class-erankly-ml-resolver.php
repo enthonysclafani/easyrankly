@@ -15,14 +15,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Resolves hreflang alternates for the current request.
  */
-final class EasyRankly_ML_Resolver {
+final class ERankly_ML_Resolver {
 
 	/**
 	 * Translation-group repository.
 	 *
-	 * @var EasyRankly_ML_Repository
+	 * @var ERankly_ML_Repository
 	 */
-	private EasyRankly_ML_Repository $repo;
+	private ERankly_ML_Repository $repo;
 
 	/**
 	 * When true, noindex translations are included in the resolved alternates.
@@ -40,16 +40,16 @@ final class EasyRankly_ML_Resolver {
 	/**
 	 * Constructor.
 	 *
-	 * @param EasyRankly_ML_Repository $repo Repository instance.
+	 * @param ERankly_ML_Repository $repo Repository instance.
 	 */
-	public function __construct( EasyRankly_ML_Repository $repo ) {
+	public function __construct( ERankly_ML_Repository $repo ) {
 		$this->repo = $repo;
 	}
 
 	/**
 	 * Returns hreflang alternates for the current WordPress request.
 	 *
-	 * Hooked to the `easyrankly_hreflang_alternates` filter with a higher priority
+	 * Hooked to the `erankly_hreflang_alternates` filter with a higher priority
 	 * so it replaces the Polylang-only result when the network ML module is active.
 	 *
 	 * @param array<string,string> $existing Alternates built by earlier providers.
@@ -67,8 +67,8 @@ final class EasyRankly_ML_Resolver {
 			return $this->resolve_simplified( $existing );
 		}
 
-		$enabled_sites = EasyRankly_ML_Sites::get_enabled();
-		$default_blog  = EasyRankly_ML_Sites::get_default_blog_id();
+		$enabled_sites = ERankly_ML_Sites::get_enabled();
+		$default_blog  = ERankly_ML_Sites::get_default_blog_id();
 		$alternates    = array();
 		$default_url   = '';
 
@@ -87,7 +87,7 @@ final class EasyRankly_ML_Resolver {
 				continue;
 			}
 
-			$hreflang = EasyRankly_ML_Sites::get_hreflang( $blog_id );
+			$hreflang = ERankly_ML_Sites::get_hreflang( $blog_id );
 
 			if ( '' === $hreflang ) {
 				continue;
@@ -115,7 +115,7 @@ final class EasyRankly_ML_Resolver {
 	 * Returns the alternates for the current request including noindex translations.
 	 *
 	 * Same resolution as resolve(), but every *published* translation is included
-	 * regardless of its `_easyrankly_noindex` flag. Meant for visitor-facing
+	 * regardless of its `_erankly_noindex` flag. Meant for visitor-facing
 	 * navigation (language redirect, switchers), never for hreflang output.
 	 *
 	 * @param array<string,string> $existing Alternates built by earlier providers.
@@ -174,20 +174,20 @@ final class EasyRankly_ML_Resolver {
 	 * @return array<string,string>
 	 */
 	private function resolve_simplified( array $existing ): array {
-		$enabled_sites = EasyRankly_ML_Sites::get_enabled();
+		$enabled_sites = ERankly_ML_Sites::get_enabled();
 		$current_blog  = get_current_blog_id();
 
 		if ( count( $enabled_sites ) < 2 || ! isset( $enabled_sites[ $current_blog ] ) ) {
 			return $existing;
 		}
 
-		$default_blog = EasyRankly_ML_Sites::get_default_blog_id();
+		$default_blog = ERankly_ML_Sites::get_default_blog_id();
 		$alternates   = array();
 		$default_url  = '';
 
 		if ( is_front_page() ) {
 			foreach ( array_keys( $enabled_sites ) as $blog_id ) {
-				$hreflang = EasyRankly_ML_Sites::get_hreflang( $blog_id );
+				$hreflang = ERankly_ML_Sites::get_hreflang( $blog_id );
 				if ( '' === $hreflang ) {
 					continue;
 				}
@@ -207,9 +207,9 @@ final class EasyRankly_ML_Resolver {
 				return $existing;
 			}
 
-			$current_hreflang = EasyRankly_ML_Sites::get_hreflang( $current_blog );
+			$current_hreflang = ERankly_ML_Sites::get_hreflang( $current_blog );
 			if ( '' !== $current_hreflang ) {
-				$noindex = (bool) get_post_meta( $post->ID, '_easyrankly_noindex', true );
+				$noindex = (bool) get_post_meta( $post->ID, '_erankly_noindex', true );
 				if ( $this->include_noindex || ! $noindex ) {
 					$permalink = get_permalink( $post );
 					if ( $permalink ) {
@@ -225,7 +225,7 @@ final class EasyRankly_ML_Resolver {
 				if ( $blog_id === $current_blog ) {
 					continue;
 				}
-				$hreflang = EasyRankly_ML_Sites::get_hreflang( $blog_id );
+				$hreflang = ERankly_ML_Sites::get_hreflang( $blog_id );
 				if ( '' === $hreflang ) {
 					continue;
 				}
@@ -243,10 +243,10 @@ final class EasyRankly_ML_Resolver {
 				return $existing;
 			}
 
-			$current_hreflang = EasyRankly_ML_Sites::get_hreflang( $current_blog );
+			$current_hreflang = ERankly_ML_Sites::get_hreflang( $current_blog );
 			$term_link        = get_term_link( $term );
 			if ( '' !== $current_hreflang && ! is_wp_error( $term_link ) ) {
-				$noindex = (bool) get_term_meta( $term->term_id, '_easyrankly_noindex', true );
+				$noindex = (bool) get_term_meta( $term->term_id, '_erankly_noindex', true );
 				if ( $this->include_noindex || ! $noindex ) {
 					$alternates[ $current_hreflang ] = (string) $term_link;
 					if ( $current_blog === $default_blog ) {
@@ -259,7 +259,7 @@ final class EasyRankly_ML_Resolver {
 				if ( $blog_id === $current_blog ) {
 					continue;
 				}
-				$hreflang = EasyRankly_ML_Sites::get_hreflang( $blog_id );
+				$hreflang = ERankly_ML_Sites::get_hreflang( $blog_id );
 				if ( '' === $hreflang ) {
 					continue;
 				}
@@ -313,13 +313,13 @@ final class EasyRankly_ML_Resolver {
 		// the SEO set but a URL for the navigable set, so the modes cache apart.
 		$mode      = $this->include_noindex ? 'nav' : 'seo';
 		$cache_key = 'erml_simp_' . $mode . '_' . $blog_id . '_' . $post_type . '_' . md5( $slug );
-		$cached    = wp_cache_get( $cache_key, 'easyrankly_ml' );
+		$cached    = wp_cache_get( $cache_key, 'erankly_ml' );
 
 		if ( false !== $cached ) {
 			return (string) $cached;
 		}
 
-		EasyRankly_ML_Sites::switch_to_blog_for_link( $blog_id );
+		ERankly_ML_Sites::switch_to_blog_for_link( $blog_id );
 
 		$url = '';
 
@@ -339,17 +339,17 @@ final class EasyRankly_ML_Resolver {
 
 			if ( ! empty( $post_ids ) ) {
 				$post_id = (int) reset( $post_ids );
-				$noindex = (bool) get_post_meta( $post_id, '_easyrankly_noindex', true );
+				$noindex = (bool) get_post_meta( $post_id, '_erankly_noindex', true );
 				if ( $this->include_noindex || ! $noindex ) {
 					$permalink = get_permalink( $post_id );
 					$url       = $permalink ? (string) $permalink : '';
 				}
 			}
 		} finally {
-			EasyRankly_ML_Sites::restore_blog_for_link();
+			ERankly_ML_Sites::restore_blog_for_link();
 		}
 
-		wp_cache_set( $cache_key, $url, 'easyrankly_ml', HOUR_IN_SECONDS );
+		wp_cache_set( $cache_key, $url, 'erankly_ml', HOUR_IN_SECONDS );
 
 		return $url;
 	}
@@ -367,20 +367,20 @@ final class EasyRankly_ML_Resolver {
 	private function find_same_term_on_blog( int $blog_id, string $slug, string $taxonomy ): string {
 		$mode      = $this->include_noindex ? 'nav' : 'seo';
 		$cache_key = 'erml_simp_term_' . $mode . '_' . $blog_id . '_' . $taxonomy . '_' . md5( $slug );
-		$cached    = wp_cache_get( $cache_key, 'easyrankly_ml' );
+		$cached    = wp_cache_get( $cache_key, 'erankly_ml' );
 
 		if ( false !== $cached ) {
 			return (string) $cached;
 		}
 
-		EasyRankly_ML_Sites::switch_to_blog_for_link( $blog_id );
+		ERankly_ML_Sites::switch_to_blog_for_link( $blog_id );
 
 		$url = '';
 
 		try {
 			$term = get_term_by( 'slug', $slug, $taxonomy );
 			if ( $term instanceof WP_Term ) {
-				$noindex = (bool) get_term_meta( $term->term_id, '_easyrankly_noindex', true );
+				$noindex = (bool) get_term_meta( $term->term_id, '_erankly_noindex', true );
 				if ( $this->include_noindex || ! $noindex ) {
 					$link = get_term_link( $term );
 					if ( ! is_wp_error( $link ) ) {
@@ -389,10 +389,10 @@ final class EasyRankly_ML_Resolver {
 				}
 			}
 		} finally {
-			EasyRankly_ML_Sites::restore_blog_for_link();
+			ERankly_ML_Sites::restore_blog_for_link();
 		}
 
-		wp_cache_set( $cache_key, $url, 'easyrankly_ml', HOUR_IN_SECONDS );
+		wp_cache_set( $cache_key, $url, 'erankly_ml', HOUR_IN_SECONDS );
 
 		return $url;
 	}
@@ -414,7 +414,7 @@ final class EasyRankly_ML_Resolver {
 		$is_same_blog = ( $blog_id === $current_blog );
 
 		if ( ! $is_same_blog ) {
-			EasyRankly_ML_Sites::switch_to_blog_for_link( $blog_id );
+			ERankly_ML_Sites::switch_to_blog_for_link( $blog_id );
 		}
 
 		$url = '';
@@ -425,7 +425,7 @@ final class EasyRankly_ML_Resolver {
 			} elseif ( 'post' === $object_type ) {
 				$post = get_post( $object_id );
 				if ( $post instanceof WP_Post && 'publish' === $post->post_status ) {
-					$noindex = (bool) get_post_meta( $post->ID, '_easyrankly_noindex', true );
+					$noindex = (bool) get_post_meta( $post->ID, '_erankly_noindex', true );
 					if ( $this->include_noindex || ! $noindex ) {
 						$url = (string) get_permalink( $post );
 					}
@@ -433,7 +433,7 @@ final class EasyRankly_ML_Resolver {
 			} elseif ( 'term' === $object_type ) {
 				$term = get_term( $object_id );
 				if ( $term instanceof WP_Term ) {
-					$noindex = (bool) get_term_meta( $term->term_id, '_easyrankly_noindex', true );
+					$noindex = (bool) get_term_meta( $term->term_id, '_erankly_noindex', true );
 					if ( $this->include_noindex || ! $noindex ) {
 						$link = get_term_link( $term );
 						if ( ! is_wp_error( $link ) ) {
@@ -444,7 +444,7 @@ final class EasyRankly_ML_Resolver {
 			}
 		} finally {
 			if ( ! $is_same_blog ) {
-				EasyRankly_ML_Sites::restore_blog_for_link();
+				ERankly_ML_Sites::restore_blog_for_link();
 			}
 		}
 

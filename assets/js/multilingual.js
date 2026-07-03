@@ -1,24 +1,24 @@
-/* global easyranklyML */
+/* global eranklyML */
 ( function () {
 	'use strict';
 
 	// Network Admin "Default" (x-default) radios. Runs independently of the editor search,
-	// so it must work even when the localized `easyranklyML` object is absent (settings screen).
+	// so it must work even when the localized `eranklyML` object is absent (settings screen).
 	function initDefaultRadios() {
-		const radios = document.querySelectorAll( 'input[name="easyrankly_ml_default_site"]' );
+		const radios = document.querySelectorAll( 'input[name="erankly_ml_default_site"]' );
 
 		if ( ! radios.length ) {
 			return;
 		}
 
 		function sync() {
-			document.querySelectorAll( '.easyrankly-ml-is-default-hidden' ).forEach( ( hidden ) => {
+			document.querySelectorAll( '.erankly-ml-is-default-hidden' ).forEach( ( hidden ) => {
 				hidden.value = '0';
 			} );
 
-			const checked = document.querySelector( 'input[name="easyrankly_ml_default_site"]:checked' );
+			const checked = document.querySelector( 'input[name="erankly_ml_default_site"]:checked' );
 			if ( checked ) {
-				const hidden = document.getElementById( 'easyrankly-ml-is-default-' + checked.value );
+				const hidden = document.getElementById( 'erankly-ml-is-default-' + checked.value );
 				if ( hidden ) {
 					hidden.value = '1';
 				}
@@ -31,11 +31,11 @@
 
 	// Editor — cross-site translation search.
 	function initSearch() {
-		if ( typeof easyranklyML === 'undefined' ) {
+		if ( typeof eranklyML === 'undefined' ) {
 			return;
 		}
 
-		const { restUrl, nonce, i18n } = easyranklyML;
+		const { restUrl, nonce, i18n } = eranklyML;
 
 		/**
 		 * Fetches search results from the REST endpoint.
@@ -71,24 +71,24 @@
 		/**
 		 * Wires a single site row.
 		 *
-		 * @param {HTMLElement} siteEl The .easyrankly-ml-site element.
+		 * @param {HTMLElement} siteEl The .erankly-ml-site element.
 		 */
 		function initSiteRow( siteEl ) {
-			const searchEl  = siteEl.querySelector( '[data-easyrankly-ml-search]' );
-			const linkedEl  = siteEl.querySelector( '[data-easyrankly-ml-linked]' );
-			const input     = siteEl.querySelector( '.easyrankly-ml-search-input' );
-			const listEl    = siteEl.querySelector( '.easyrankly-ml-results' );
-			const idInput     = siteEl.querySelector( '.easyrankly-ml-id-input' );
-			const actionEl    = siteEl.querySelector( '.easyrankly-ml-action-input' );
-			const linkedInput = siteEl.querySelector( '.easyrankly-ml-linked-input' );
-			const unlinkBtn   = siteEl.querySelector( '[data-easyrankly-ml-unlink]' );
+			const searchEl  = siteEl.querySelector( '[data-erankly-ml-search]' );
+			const linkedEl  = siteEl.querySelector( '[data-erankly-ml-linked]' );
+			const input     = siteEl.querySelector( '.erankly-ml-search-input' );
+			const listEl    = siteEl.querySelector( '.erankly-ml-results' );
+			const idInput     = siteEl.querySelector( '.erankly-ml-id-input' );
+			const actionEl    = siteEl.querySelector( '.erankly-ml-action-input' );
+			const linkedInput = siteEl.querySelector( '.erankly-ml-linked-input' );
+			const unlinkBtn   = siteEl.querySelector( '[data-erankly-ml-unlink]' );
 
 			if ( ! searchEl || ! input || ! listEl || ! idInput || ! actionEl ) {
 				return;
 			}
 
-			const blogId  = input.dataset.easyranklyMlBlog;
-			const objType = input.dataset.easyranklyMlType || 'post';
+			const blogId  = input.dataset.eranklyMlBlog;
+			const objType = input.dataset.eranklyMlType || 'post';
 			let timer     = null;
 
 			function closeList() {
@@ -101,7 +101,7 @@
 
 				if ( ! results.length ) {
 					const empty = document.createElement( 'li' );
-					empty.className = 'easyrankly-autocomplete-status easyrankly-ml-no-results';
+					empty.className = 'erankly-autocomplete-status erankly-ml-no-results';
 					empty.textContent = i18n.noResults;
 					listEl.appendChild( empty );
 					listEl.hidden = false;
@@ -115,7 +115,7 @@
 
 					const btn = document.createElement( 'button' );
 					btn.type = 'button';
-					btn.className = 'easyrankly-autocomplete-item easyrankly-ml-result-item';
+					btn.className = 'erankly-autocomplete-item erankly-ml-result-item';
 					btn.textContent = item.title;
 					btn.addEventListener( 'click', () => select( item ) );
 
@@ -130,7 +130,7 @@
 			function search( query ) {
 				listEl.innerHTML = '';
 				const loading = document.createElement( 'li' );
-				loading.className = 'easyrankly-autocomplete-status easyrankly-ml-loading';
+				loading.className = 'erankly-autocomplete-status erankly-ml-loading';
 				loading.textContent = i18n.searching;
 				listEl.appendChild( loading );
 				listEl.hidden = false;
@@ -200,7 +200,7 @@
 			} );
 		}
 
-		document.querySelectorAll( '[data-easyrankly-ml-site]' ).forEach( initSiteRow );
+		document.querySelectorAll( '[data-erankly-ml-site]' ).forEach( initSiteRow );
 	}
 
 	document.addEventListener( 'DOMContentLoaded', () => {

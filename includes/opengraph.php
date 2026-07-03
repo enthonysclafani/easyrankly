@@ -15,16 +15,16 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @param int $post_id Post ID.
  * @return string
  */
-function easyrankly_get_simplified_social_title( int $post_id ): string {
-	$title = easyrankly_get_post_meta_string( $post_id, 'title' );
+function erankly_get_simplified_social_title( int $post_id ): string {
+	$title = erankly_get_post_meta_string( $post_id, 'title' );
 
 	if ( '' !== $title ) {
-		$title = easyrankly_replace_variables( $title, $post_id, array( 'seo_title' ) );
+		$title = erankly_replace_variables( $title, $post_id, array( 'seo_title' ) );
 	} else {
 		$title = get_the_title( $post_id );
 	}
 
-	return easyrankly_normalize_seo_text( $title );
+	return erankly_normalize_seo_text( $title );
 }
 
 /**
@@ -33,11 +33,11 @@ function easyrankly_get_simplified_social_title( int $post_id ): string {
  * @param int $post_id Post ID.
  * @return string
  */
-function easyrankly_get_simplified_social_description( int $post_id ): string {
-	$description = easyrankly_get_post_meta_string( $post_id, 'description' );
+function erankly_get_simplified_social_description( int $post_id ): string {
+	$description = erankly_get_post_meta_string( $post_id, 'description' );
 
 	if ( '' !== $description ) {
-		$description = easyrankly_replace_variables( $description, $post_id, array( 'meta_description' ) );
+		$description = erankly_replace_variables( $description, $post_id, array( 'meta_description' ) );
 	} else {
 		$post = get_post( $post_id );
 
@@ -46,7 +46,7 @@ function easyrankly_get_simplified_social_description( int $post_id ): string {
 		}
 	}
 
-	return easyrankly_normalize_seo_text( $description );
+	return erankly_normalize_seo_text( $description );
 }
 
 /**
@@ -54,15 +54,15 @@ function easyrankly_get_simplified_social_description( int $post_id ): string {
  *
  * @return void
  */
-function easyrankly_render_opengraph_tags(): void {
-	$title         = easyrankly_get_og_title();
-	$description   = easyrankly_get_og_description();
-	$url           = easyrankly_get_canonical();
-	$image         = easyrankly_get_og_image();
-	$twitter_image = easyrankly_get_twitter_image( $image );
-	$twitter_title = easyrankly_get_twitter_title( $title );
-	$twitter_desc  = easyrankly_get_twitter_description( $description );
-	$twitter_site  = easyrankly_get_twitter_site();
+function erankly_render_opengraph_tags(): void {
+	$title         = erankly_get_og_title();
+	$description   = erankly_get_og_description();
+	$url           = erankly_get_canonical();
+	$image         = erankly_get_og_image();
+	$twitter_image = erankly_get_twitter_image( $image );
+	$twitter_title = erankly_get_twitter_title( $title );
+	$twitter_desc  = erankly_get_twitter_description( $description );
+	$twitter_site  = erankly_get_twitter_site();
 	$type          = is_singular( 'post' ) ? 'article' : 'website';
 
 	if ( is_singular() && 'product' === get_post_type() ) {
@@ -77,7 +77,7 @@ function easyrankly_render_opengraph_tags(): void {
 		'og:description'      => $description,
 		'og:url'              => $url,
 		'og:image'            => $image,
-		'twitter:card'        => easyrankly_get_twitter_card_type(),
+		'twitter:card'        => erankly_get_twitter_card_type(),
 		'twitter:site'        => $twitter_site,
 		'twitter:title'       => $twitter_title,
 		'twitter:description' => $twitter_desc,
@@ -89,7 +89,7 @@ function easyrankly_render_opengraph_tags(): void {
 	 *
 	 * @param array<string,string> $tags Tags keyed by property/name.
 	 */
-	$tags = apply_filters( 'easyrankly_opengraph_tags', array_filter( $tags ) );
+	$tags = apply_filters( 'erankly_opengraph_tags', array_filter( $tags ) );
 
 	foreach ( $tags as $property => $content ) {
 		if ( '' === (string) $content ) {
@@ -119,50 +119,50 @@ function easyrankly_render_opengraph_tags(): void {
  * @param int    $limit       Character limit.
  * @return string
  */
-function easyrankly_resolve_social_text( string $meta_key, string $setting_key, string $fallback, int $limit ): string {
+function erankly_resolve_social_text( string $meta_key, string $setting_key, string $fallback, int $limit ): string {
 	$is_title = str_contains( $meta_key, 'title' );
 	$value    = '';
 
-	if ( is_singular() && (bool) easyrankly_get_setting( 'simplified_mode', 1 ) ) {
+	if ( is_singular() && (bool) erankly_get_setting( 'simplified_mode', 1 ) ) {
 		$value = $is_title
-			? easyrankly_get_simplified_social_title( get_queried_object_id() )
-			: easyrankly_get_simplified_social_description( get_queried_object_id() );
+			? erankly_get_simplified_social_title( get_queried_object_id() )
+			: erankly_get_simplified_social_description( get_queried_object_id() );
 	} elseif ( is_singular() ) {
 		$post_id = get_queried_object_id();
-		$value   = easyrankly_get_post_meta_string( $post_id, $meta_key );
+		$value   = erankly_get_post_meta_string( $post_id, $meta_key );
 
 		if ( '' !== $value ) {
-			$value = easyrankly_replace_variables( $value, $post_id );
+			$value = erankly_replace_variables( $value, $post_id );
 		}
 	} elseif ( is_category() || is_tag() || is_tax() ) {
 		$term = get_queried_object();
 
 		if ( $term instanceof WP_Term ) {
-			$value = easyrankly_get_term_meta_string( $term->term_id, $meta_key );
+			$value = erankly_get_term_meta_string( $term->term_id, $meta_key );
 
 			if ( '' !== $value ) {
-				$value = easyrankly_replace_variables( $value );
+				$value = erankly_replace_variables( $value );
 			}
 		}
 	}
 
 	if ( '' === $value ) {
-		$special_key = easyrankly_current_special_page_key();
+		$special_key = erankly_current_special_page_key();
 
 		if ( '' !== $special_key ) {
-			$value = easyrankly_get_global_entity_meta( 'global_special_meta', $special_key, $is_title ? 'title' : 'description' );
+			$value = erankly_get_global_entity_meta( 'global_special_meta', $special_key, $is_title ? 'title' : 'description' );
 
 			if ( '' !== $value ) {
-				$value = easyrankly_replace_variables( $value, 0, array( $is_title ? 'seo_title' : 'meta_description' ) );
+				$value = erankly_replace_variables( $value, 0, array( $is_title ? 'seo_title' : 'meta_description' ) );
 			}
 		}
 	}
 
 	if ( '' === $value ) {
-		$value = (string) easyrankly_get_setting( $setting_key, '' );
+		$value = (string) erankly_get_setting( $setting_key, '' );
 
 		if ( '' !== $value ) {
-			$value = easyrankly_replace_variables( $value );
+			$value = erankly_replace_variables( $value );
 		}
 	}
 
@@ -170,7 +170,7 @@ function easyrankly_resolve_social_text( string $meta_key, string $setting_key, 
 		$value = $fallback;
 	}
 
-	return easyrankly_trim_text( $value, $limit );
+	return erankly_trim_text( $value, $limit );
 }
 
 /**
@@ -178,15 +178,15 @@ function easyrankly_resolve_social_text( string $meta_key, string $setting_key, 
  *
  * @return string
  */
-function easyrankly_get_og_title(): string {
-	$title = easyrankly_resolve_social_text( 'og_title', 'default_og_title', easyrankly_get_title(), 60 );
+function erankly_get_og_title(): string {
+	$title = erankly_resolve_social_text( 'og_title', 'default_og_title', erankly_get_title(), 60 );
 
 	/**
 	 * Filters the computed Open Graph title.
 	 *
 	 * @param string $title Computed Open Graph title.
 	 */
-	return (string) apply_filters( 'easyrankly_og_title', $title );
+	return (string) apply_filters( 'erankly_og_title', $title );
 }
 
 /**
@@ -194,15 +194,15 @@ function easyrankly_get_og_title(): string {
  *
  * @return string
  */
-function easyrankly_get_og_description(): string {
-	$description = easyrankly_resolve_social_text( 'og_description', 'default_og_description', easyrankly_get_description(), 200 );
+function erankly_get_og_description(): string {
+	$description = erankly_resolve_social_text( 'og_description', 'default_og_description', erankly_get_description(), 200 );
 
 	/**
 	 * Filters the computed Open Graph description.
 	 *
 	 * @param string $description Computed Open Graph description.
 	 */
-	return (string) apply_filters( 'easyrankly_og_description', $description );
+	return (string) apply_filters( 'erankly_og_description', $description );
 }
 
 /**
@@ -211,15 +211,15 @@ function easyrankly_get_og_description(): string {
  * @param string $fallback Fallback title.
  * @return string
  */
-function easyrankly_get_twitter_title( string $fallback = '' ): string {
-	$title = easyrankly_resolve_social_text( 'twitter_title', 'default_twitter_title', $fallback, 70 );
+function erankly_get_twitter_title( string $fallback = '' ): string {
+	$title = erankly_resolve_social_text( 'twitter_title', 'default_twitter_title', $fallback, 70 );
 
 	/**
 	 * Filters the computed X/Twitter title.
 	 *
 	 * @param string $title Computed X/Twitter title.
 	 */
-	return (string) apply_filters( 'easyrankly_twitter_title', $title );
+	return (string) apply_filters( 'erankly_twitter_title', $title );
 }
 
 /**
@@ -228,15 +228,15 @@ function easyrankly_get_twitter_title( string $fallback = '' ): string {
  * @param string $fallback Fallback description.
  * @return string
  */
-function easyrankly_get_twitter_description( string $fallback = '' ): string {
-	$description = easyrankly_resolve_social_text( 'twitter_description', 'default_twitter_description', $fallback, 200 );
+function erankly_get_twitter_description( string $fallback = '' ): string {
+	$description = erankly_resolve_social_text( 'twitter_description', 'default_twitter_description', $fallback, 200 );
 
 	/**
 	 * Filters the computed X/Twitter description.
 	 *
 	 * @param string $description Computed X/Twitter description.
 	 */
-	return (string) apply_filters( 'easyrankly_twitter_description', $description );
+	return (string) apply_filters( 'erankly_twitter_description', $description );
 }
 
 /**
@@ -244,16 +244,16 @@ function easyrankly_get_twitter_description( string $fallback = '' ): string {
  *
  * @return string
  */
-function easyrankly_get_twitter_card_type(): string {
+function erankly_get_twitter_card_type(): string {
 	$card_type = '';
 
-	if ( is_singular() && ! (bool) easyrankly_get_setting( 'simplified_mode', 1 ) ) {
-		$card_type = easyrankly_get_post_meta_string( get_queried_object_id(), 'twitter_card_type' );
+	if ( is_singular() && ! (bool) erankly_get_setting( 'simplified_mode', 1 ) ) {
+		$card_type = erankly_get_post_meta_string( get_queried_object_id(), 'twitter_card_type' );
 	} elseif ( is_category() || is_tag() || is_tax() ) {
 		$term = get_queried_object();
 
 		if ( $term instanceof WP_Term ) {
-			$card_type = easyrankly_get_term_meta_string( $term->term_id, 'twitter_card_type' );
+			$card_type = erankly_get_term_meta_string( $term->term_id, 'twitter_card_type' );
 		}
 	}
 
@@ -266,7 +266,7 @@ function easyrankly_get_twitter_card_type(): string {
 	 *
 	 * @param string $card_type X/Twitter card type.
 	 */
-	return (string) apply_filters( 'easyrankly_twitter_card_type', $card_type );
+	return (string) apply_filters( 'erankly_twitter_card_type', $card_type );
 }
 
 /**
@@ -274,8 +274,8 @@ function easyrankly_get_twitter_card_type(): string {
  *
  * @return string
  */
-function easyrankly_get_twitter_site(): string {
-	$site = trim( (string) easyrankly_get_setting( 'twitter_site', '' ) );
+function erankly_get_twitter_site(): string {
+	$site = trim( (string) erankly_get_setting( 'twitter_site', '' ) );
 
 	if ( '' !== $site && '@' !== $site[0] ) {
 		$site = '@' . $site;
@@ -286,7 +286,7 @@ function easyrankly_get_twitter_site(): string {
 	 *
 	 * @param string $site X/Twitter site handle.
 	 */
-	return (string) apply_filters( 'easyrankly_twitter_site', $site );
+	return (string) apply_filters( 'erankly_twitter_site', $site );
 }
 
 /**
@@ -295,29 +295,29 @@ function easyrankly_get_twitter_site(): string {
  * @param string $fallback Fallback image URL.
  * @return string
  */
-function easyrankly_get_twitter_image( string $fallback = '' ): string {
+function erankly_get_twitter_image( string $fallback = '' ): string {
 	$image = '';
 
-	if ( is_singular() && ! (bool) easyrankly_get_setting( 'simplified_mode', 1 ) ) {
+	if ( is_singular() && ! (bool) erankly_get_setting( 'simplified_mode', 1 ) ) {
 		$post_id   = get_queried_object_id();
-		$image     = easyrankly_get_post_meta_string( $post_id, 'social_image_url' );
-		$custom_id = absint( get_post_meta( $post_id, '_easyrankly_twitter_image_id', true ) );
+		$image     = erankly_get_post_meta_string( $post_id, 'social_image_url' );
+		$custom_id = absint( get_post_meta( $post_id, '_erankly_twitter_image_id', true ) );
 
 		if ( '' !== $image ) {
-			$image = esc_url_raw( easyrankly_replace_variables( $image, $post_id ) );
+			$image = esc_url_raw( erankly_replace_variables( $image, $post_id ) );
 		}
 
 		if ( '' === $image && $custom_id > 0 ) {
-			$image = easyrankly_get_image_url( $custom_id, 'full' );
+			$image = erankly_get_image_url( $custom_id, 'full' );
 		}
 	} elseif ( is_category() || is_tag() || is_tax() ) {
 		$term = get_queried_object();
 
 		if ( $term instanceof WP_Term ) {
-			$image = easyrankly_get_term_meta_string( $term->term_id, 'social_image_url' );
+			$image = erankly_get_term_meta_string( $term->term_id, 'social_image_url' );
 
 			if ( '' !== $image ) {
-				$image = esc_url_raw( easyrankly_replace_variables( $image ) );
+				$image = esc_url_raw( erankly_replace_variables( $image ) );
 			}
 		}
 	}
@@ -331,7 +331,7 @@ function easyrankly_get_twitter_image( string $fallback = '' ): string {
 	 *
 	 * @param string $image X/Twitter image URL.
 	 */
-	return (string) apply_filters( 'easyrankly_twitter_image', $image );
+	return (string) apply_filters( 'erankly_twitter_image', $image );
 }
 
 /**
@@ -341,8 +341,8 @@ function easyrankly_get_twitter_image( string $fallback = '' ): string {
  *
  * @return void
  */
-function easyrankly_render_oembed_link(): void {
-	$settings = easyrankly_get_settings();
+function erankly_render_oembed_link(): void {
+	$settings = erankly_get_settings();
 
 	// Honour the Bloat tab: if oEmbed removal is active, emit nothing.
 	if ( ! empty( $settings['bloat_remove_oembed'] ) ) {
@@ -353,7 +353,7 @@ function easyrankly_render_oembed_link(): void {
 	// that our single JSON-only link does not appear twice on singular pages.
 	remove_action( 'wp_head', 'wp_oembed_add_discovery_links' );
 
-	$canonical = easyrankly_get_canonical();
+	$canonical = erankly_get_canonical();
 
 	if ( '' === $canonical ) {
 		return;
@@ -370,7 +370,7 @@ function easyrankly_render_oembed_link(): void {
  *
  * @return string
  */
-function easyrankly_get_og_image(): string {
+function erankly_get_og_image(): string {
 	static $resolved = null;
 
 	if ( null !== $resolved ) {
@@ -381,48 +381,48 @@ function easyrankly_get_og_image(): string {
 
 	if ( is_singular() ) {
 		$post_id     = get_queried_object_id();
-		$custom_id   = absint( get_post_meta( $post_id, '_easyrankly_og_image_id', true ) );
+		$custom_id   = absint( get_post_meta( $post_id, '_erankly_og_image_id', true ) );
 		$featured_id = get_post_thumbnail_id( $post_id );
-		$image       = (bool) easyrankly_get_setting( 'simplified_mode', 1 ) ? '' : easyrankly_get_post_meta_string( $post_id, 'social_image_url' );
+		$image       = (bool) erankly_get_setting( 'simplified_mode', 1 ) ? '' : erankly_get_post_meta_string( $post_id, 'social_image_url' );
 
 		if ( '' !== $image ) {
-			$image = esc_url_raw( easyrankly_replace_variables( $image, $post_id ) );
+			$image = esc_url_raw( erankly_replace_variables( $image, $post_id ) );
 		}
 
-		if ( '' === $image && $custom_id > 0 && ! (bool) easyrankly_get_setting( 'simplified_mode', 1 ) ) {
-			$image = easyrankly_get_image_url( $custom_id, 'full' );
+		if ( '' === $image && $custom_id > 0 && ! (bool) erankly_get_setting( 'simplified_mode', 1 ) ) {
+			$image = erankly_get_image_url( $custom_id, 'full' );
 		}
 
 		if ( '' === $image && $featured_id > 0 ) {
-			$image = easyrankly_get_image_url( (int) $featured_id, 'full' );
+			$image = erankly_get_image_url( (int) $featured_id, 'full' );
 		}
 
 		if ( '' === $image ) {
-			$content_images = easyrankly_get_post_content_image_urls( $post_id );
+			$content_images = erankly_get_post_content_image_urls( $post_id );
 			$image          = $content_images[0] ?? '';
 		}
 	} elseif ( is_category() || is_tag() || is_tax() ) {
 		$term = get_queried_object();
 
 		if ( $term instanceof WP_Term ) {
-			$image = easyrankly_get_term_meta_string( $term->term_id, 'social_image_url' );
+			$image = erankly_get_term_meta_string( $term->term_id, 'social_image_url' );
 
 			if ( '' !== $image ) {
-				$image = esc_url_raw( easyrankly_replace_variables( $image ) );
+				$image = esc_url_raw( erankly_replace_variables( $image ) );
 			}
 		}
 	}
 
 	if ( '' === $image ) {
-		$image = esc_url_raw( easyrankly_replace_variables( (string) easyrankly_get_setting( 'default_social_image_url', '' ) ) );
+		$image = esc_url_raw( erankly_replace_variables( (string) erankly_get_setting( 'default_social_image_url', '' ) ) );
 	}
 
 	if ( '' === $image ) {
-		$image = easyrankly_get_image_url( absint( easyrankly_get_setting( 'default_og_image', 0 ) ), 'full' );
+		$image = erankly_get_image_url( absint( erankly_get_setting( 'default_og_image', 0 ) ), 'full' );
 	}
 
 	if ( '' === $image ) {
-		$image = easyrankly_get_organization_logo_url();
+		$image = erankly_get_organization_logo_url();
 	}
 
 	/**
@@ -430,7 +430,7 @@ function easyrankly_get_og_image(): string {
 	 *
 	 * @param string $image Image URL.
 	 */
-	$resolved = (string) apply_filters( 'easyrankly_og_image', $image );
+	$resolved = (string) apply_filters( 'erankly_og_image', $image );
 
 	return $resolved;
 }

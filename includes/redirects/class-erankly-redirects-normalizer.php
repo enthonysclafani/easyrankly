@@ -12,7 +12,17 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Normalizes redirect source paths and validates targets.
  */
-final class EasyRankly_Redirects_Normalizer {
+final class ERankly_Redirects_Normalizer {
+	/**
+	 * Maximum PCRE match operations allowed for one redirect pattern.
+	 */
+	private const PCRE_MATCH_LIMIT = 100000;
+
+	/**
+	 * Maximum PCRE backtracking depth allowed for one redirect pattern.
+	 */
+	private const PCRE_DEPTH_LIMIT = 100000;
+
 	/**
 	 * Valid redirect status codes.
 	 *
@@ -111,7 +121,7 @@ final class EasyRankly_Redirects_Normalizer {
 		$parts   = explode( '*', $source );
 		$escaped = array_map( static fn( string $p ): string => preg_quote( $p, '#' ), $parts );
 
-		return '#^' . implode( '(.+)', $escaped ) . '$#i';
+		return self::get_pcre_limit_prefix() . '^' . implode( '(.+)', $escaped ) . '$#i';
 	}
 
 	/**
@@ -260,7 +270,23 @@ final class EasyRankly_Redirects_Normalizer {
 	 * @return string
 	 */
 	public static function build_regex_pattern( string $regex ): string {
-		return '#(?:' . str_replace( '#', '\#', $regex ) . ')#i';
+		return self::get_pcre_limit_prefix() . '(?:' . str_replace( '#', '\#', $regex ) . ')#i';
+	}
+
+	/**
+	 * Returns a preg pattern prefix with per-pattern resource limits.
+	 *
+	 * PCRE control verbs scope the limits to one pattern execution and do not
+	 * modify PHP configuration for the rest of the request.
+	 *
+	 * @return string
+	 */
+	private static function get_pcre_limit_prefix(): string {
+		return sprintf(
+			'#(*LIMIT_MATCH=%d)(*LIMIT_DEPTH=%d)',
+			self::PCRE_MATCH_LIMIT,
+			self::PCRE_DEPTH_LIMIT
+		);
 	}
 
 	/**
@@ -282,13 +308,6 @@ final class EasyRankly_Redirects_Normalizer {
 
 		$pattern = self::build_regex_pattern( $regex );
 
-		// Lower the PCRE limits so a runaway pattern is caught here, at save time, rather
-		// than on every visitor request. A pattern that exhausts the limit returns false.
-		// phpcs:disable WordPress.PHP.IniSet.Risky -- Deliberately *tightening* the PCRE limits as a ReDoS safeguard; both are restored to their previous values below.
-		$prev_backtrack = ini_set( 'pcre.backtrack_limit', '100000' );
-		$prev_recursion = ini_set( 'pcre.recursion_limit', '100000' );
-		// phpcs:enable WordPress.PHP.IniSet.Risky
-
 		set_error_handler( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_set_error_handler -- Temporarily suppresses invalid user regex warnings during validation.
 			static function (): bool {
 				return true;
@@ -299,20 +318,11 @@ final class EasyRankly_Redirects_Normalizer {
 		$compiles = preg_match( $pattern, '' );
 
 		// Then probe it against an adversarial input: a pattern that backtracks
-		// catastrophically blows past the lowered limit and returns false, so we reject
+		// catastrophically exhausts the per-pattern limit and returns false, so we reject
 		// it before it can ever reach the front-end matcher.
 		$probe = false !== $compiles ? preg_match( $pattern, str_repeat( 'a', 1000 ) . '!' ) : false;
 
 		restore_error_handler();
-
-		// phpcs:disable WordPress.PHP.IniSet.Risky -- Restoring the caller's previous PCRE limits.
-		if ( false !== $prev_backtrack ) {
-			ini_set( 'pcre.backtrack_limit', $prev_backtrack );
-		}
-		if ( false !== $prev_recursion ) {
-			ini_set( 'pcre.recursion_limit', $prev_recursion );
-		}
-		// phpcs:enable WordPress.PHP.IniSet.Risky
 
 		return false !== $compiles && false !== $probe;
 	}

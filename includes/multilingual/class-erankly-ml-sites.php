@@ -15,12 +15,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Manages the network option that maps blog IDs to hreflang codes.
  */
-final class EasyRankly_ML_Sites {
+final class ERankly_ML_Sites {
 
 	/**
 	 * Network option name.
 	 */
-	private const OPTION = 'easyrankly_ml_sites';
+	private const OPTION = 'erankly_ml_sites';
 
 	/**
 	 * Returns the full site map from the network option.
@@ -142,7 +142,7 @@ final class EasyRankly_ML_Sites {
 		 * @param array{title:string,text:string,link:string} $notice   Default texts.
 		 * @param string                                       $hreflang Original BCP-47 language code.
 		 */
-		return (array) apply_filters( 'easyrankly_ml_default_notice', $notice, $hreflang );
+		return (array) apply_filters( 'erankly_ml_default_notice', $notice, $hreflang );
 	}
 
 	/**
@@ -157,7 +157,7 @@ final class EasyRankly_ML_Sites {
 
 		foreach ( $map as $blog_id => $data ) {
 			$blog_id = absint( $blog_id );
-			if ( $blog_id < 1 ) {
+			if ( $blog_id < 1 || ! is_array( $data ) ) {
 				continue;
 			}
 

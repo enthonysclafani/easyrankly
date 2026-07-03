@@ -14,7 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * @return array<string,string>
  */
-function easyrankly_default_post_type_meta_template(): array {
+function erankly_default_post_type_meta_template(): array {
 	return array(
 		'title'       => '{{post_title}} - {{site_name}}',
 		'description' => '{{post_excerpt}}',
@@ -26,7 +26,7 @@ function easyrankly_default_post_type_meta_template(): array {
  *
  * @return array<string,string>
  */
-function easyrankly_default_taxonomy_meta_template(): array {
+function erankly_default_taxonomy_meta_template(): array {
 	return array(
 		'title'       => '{{term_name}} - {{site_name}}',
 		'description' => '{{term_description}}',
@@ -38,7 +38,7 @@ function easyrankly_default_taxonomy_meta_template(): array {
  *
  * @return array<string,string>
  */
-function easyrankly_default_social_meta_template(): array {
+function erankly_default_social_meta_template(): array {
 	return array(
 		'title'       => '{{post_title}} - {{site_name}}',
 		'description' => '{{post_excerpt}}',
@@ -50,7 +50,7 @@ function easyrankly_default_social_meta_template(): array {
  *
  * @return string
  */
-function easyrankly_default_social_image_placeholder(): string {
+function erankly_default_social_image_placeholder(): string {
 	return home_url( '/social-image.webp' );
 }
 
@@ -59,7 +59,7 @@ function easyrankly_default_social_image_placeholder(): string {
  *
  * @return string
  */
-function easyrankly_default_organization_name_template(): string {
+function erankly_default_organization_name_template(): string {
 	return '{{site_name}}';
 }
 
@@ -68,7 +68,7 @@ function easyrankly_default_organization_name_template(): string {
  *
  * @return string
  */
-function easyrankly_default_organization_logo_placeholder(): string {
+function erankly_default_organization_logo_placeholder(): string {
 	return home_url( '/organization-logo.webp' );
 }
 
@@ -77,7 +77,7 @@ function easyrankly_default_organization_logo_placeholder(): string {
  *
  * @return string
  */
-function easyrankly_default_organization_logo_url_template(): string {
+function erankly_default_organization_logo_url_template(): string {
 	return '{{site_icon_url}}';
 }
 
@@ -86,7 +86,7 @@ function easyrankly_default_organization_logo_url_template(): string {
  *
  * @return string
  */
-function easyrankly_get_site_icon_url(): string {
+function erankly_get_site_icon_url(): string {
 	if ( ! function_exists( 'get_site_icon_url' ) ) {
 		return '';
 	}
@@ -99,10 +99,10 @@ function easyrankly_get_site_icon_url(): string {
  *
  * @return string
  */
-function easyrankly_get_organization_logo_url(): string {
+function erankly_get_organization_logo_url(): string {
 	$logo_url = esc_url_raw(
-		easyrankly_replace_variables(
-			(string) easyrankly_get_setting( 'organization_logo_url', '' ),
+		erankly_replace_variables(
+			(string) erankly_get_setting( 'organization_logo_url', '' ),
 			0,
 			array( 'organization_logo', 'site_icon' )
 		)
@@ -112,9 +112,9 @@ function easyrankly_get_organization_logo_url(): string {
 		return $logo_url;
 	}
 
-	$logo = easyrankly_get_image_url( absint( easyrankly_get_setting( 'organization_logo', 0 ) ), 'full' );
+	$logo = erankly_get_image_url( absint( erankly_get_setting( 'organization_logo', 0 ) ), 'full' );
 
-	return '' !== $logo ? $logo : easyrankly_get_site_icon_url();
+	return '' !== $logo ? $logo : erankly_get_site_icon_url();
 }
 
 /**
@@ -122,9 +122,9 @@ function easyrankly_get_organization_logo_url(): string {
  *
  * @return string
  */
-function easyrankly_get_organization_name(): string {
-	$name = easyrankly_replace_variables(
-		(string) easyrankly_get_setting( 'organization_name', easyrankly_default_organization_name_template() ),
+function erankly_get_organization_name(): string {
+	$name = erankly_replace_variables(
+		(string) erankly_get_setting( 'organization_name', erankly_default_organization_name_template() ),
 		0,
 		array( 'organization_name' )
 	);
@@ -139,7 +139,7 @@ function easyrankly_get_organization_name(): string {
  * @param array<string,string> $template Metadata template fields.
  * @return array<string,array<string,string>>
  */
-function easyrankly_build_global_entity_meta_defaults( array $keys, array $template ): array {
+function erankly_build_global_entity_meta_defaults( array $keys, array $template ): array {
 	$defaults = array();
 
 	foreach ( $keys as $key ) {
@@ -167,8 +167,8 @@ function easyrankly_build_global_entity_meta_defaults( array $keys, array $templ
  *
  * @return array<string,array<string,string>>
  */
-function easyrankly_default_global_post_type_meta(): array {
-	return easyrankly_build_global_entity_meta_defaults( array_keys( easyrankly_get_public_post_types() ), easyrankly_default_post_type_meta_template() );
+function erankly_default_global_post_type_meta(): array {
+	return erankly_build_global_entity_meta_defaults( array_keys( erankly_get_public_post_types() ), erankly_default_post_type_meta_template() );
 }
 
 /**
@@ -176,8 +176,35 @@ function easyrankly_default_global_post_type_meta(): array {
  *
  * @return array<string,array<string,string>>
  */
-function easyrankly_default_global_taxonomy_meta(): array {
-	return easyrankly_build_global_entity_meta_defaults( array_keys( easyrankly_get_public_taxonomies() ), easyrankly_default_taxonomy_meta_template() );
+function erankly_default_global_taxonomy_meta(): array {
+	return erankly_build_global_entity_meta_defaults( array_keys( erankly_get_public_taxonomies() ), erankly_default_taxonomy_meta_template() );
+}
+
+/**
+ * Returns the supported special page / archive entity keys.
+ *
+ * Keys only, with no translated labels, so this is safe to call before the
+ * `init` action (for example while assembling default settings on
+ * `plugins_loaded`) without triggering just-in-time translation loading. Use
+ * erankly_special_page_keys() when human-readable labels are required.
+ *
+ * @return array<int,string> List of entity keys.
+ */
+function erankly_special_page_keys_list(): array {
+	/**
+	 * Filters the supported special page entity keys.
+	 *
+	 * @param array<int,string> $keys List of entity keys.
+	 */
+	return array_values(
+		array_filter(
+			(array) apply_filters(
+				'erankly_special_pages',
+				array( 'homepage', 'blog', 'author', 'date', 'search', '404' )
+			),
+			'is_string'
+		)
+	);
 }
 
 /**
@@ -185,12 +212,14 @@ function easyrankly_default_global_taxonomy_meta(): array {
  *
  * These are singleton page types (homepage, blog page, archives, search, 404)
  * that share the same metadata structure as post types and taxonomies but have
- * a single configuration each.
+ * a single configuration each. The labels are translated, so this must only run
+ * on or after the `init` action (i.e. for admin display, never while building
+ * default settings). Use erankly_special_page_keys_list() for the keys alone.
  *
  * @return array<string,string> Map of entity key => admin label.
  */
-function easyrankly_special_page_keys(): array {
-	$keys = array(
+function erankly_special_page_keys(): array {
+	$labels = array(
 		'homepage' => __( 'Homepage', 'easyrankly' ),
 		'blog'     => __( 'Blog page', 'easyrankly' ),
 		'author'   => __( 'Author archive', 'easyrankly' ),
@@ -199,12 +228,13 @@ function easyrankly_special_page_keys(): array {
 		'404'      => __( '404 page', 'easyrankly' ),
 	);
 
-	/**
-	 * Filters the supported special page entities.
-	 *
-	 * @param array<string,string> $keys Map of entity key => admin label.
-	 */
-	return (array) apply_filters( 'easyrankly_special_pages', $keys );
+	$keys = array();
+
+	foreach ( erankly_special_page_keys_list() as $key ) {
+		$keys[ $key ] = $labels[ $key ] ?? $key;
+	}
+
+	return $keys;
 }
 
 /**
@@ -217,7 +247,7 @@ function easyrankly_special_page_keys(): array {
  *
  * @return string Entity key, or '' when the request is not a special page.
  */
-function easyrankly_current_special_page_key(): string {
+function erankly_current_special_page_key(): string {
 	if ( is_search() ) {
 		return 'search';
 	}
@@ -255,7 +285,7 @@ function easyrankly_current_special_page_key(): string {
  *
  * @return array<string,array<string,string|int>>
  */
-function easyrankly_default_global_special_meta(): array {
+function erankly_default_global_special_meta(): array {
 	$hidden_by_key = array(
 		'search' => true,
 		'404'    => true,
@@ -265,7 +295,7 @@ function easyrankly_default_global_special_meta(): array {
 
 	$defaults = array();
 
-	foreach ( array_keys( easyrankly_special_page_keys() ) as $key ) {
+	foreach ( erankly_special_page_keys_list() as $key ) {
 		$flag = ! empty( $hidden_by_key[ $key ] ) ? 1 : 0;
 
 		$defaults[ $key ] = array(
@@ -290,7 +320,7 @@ function easyrankly_default_global_special_meta(): array {
  *
  * @return array<string,array<string,string|bool>> Map of entity key => template status.
  */
-function easyrankly_get_special_page_template_statuses(): array {
+function erankly_get_special_page_template_statuses(): array {
 	static $cache = null;
 
 	if ( null !== $cache ) {
@@ -316,7 +346,7 @@ function easyrankly_get_special_page_template_statuses(): array {
 	$is_block      = function_exists( 'wp_is_block_theme' ) && wp_is_block_theme();
 	$statuses      = array();
 
-	foreach ( array_keys( easyrankly_special_page_keys() ) as $key ) {
+	foreach ( erankly_special_page_keys_list() as $key ) {
 		$statuses[ $key ] = array(
 			'template'       => '',
 			'fallback'       => '',
@@ -396,13 +426,13 @@ function easyrankly_get_special_page_template_statuses(): array {
  *
  * @return array<string,mixed>
  */
-function easyrankly_default_settings(): array {
-	$social_template = easyrankly_default_social_meta_template();
+function erankly_default_settings(): array {
+	$social_template = erankly_default_social_meta_template();
 
 	return array(
-		'organization_name'              => easyrankly_default_organization_name_template(),
+		'organization_name'              => erankly_default_organization_name_template(),
 		'organization_logo'              => 0,
-		'organization_logo_url'          => easyrankly_default_organization_logo_url_template(),
+		'organization_logo_url'          => erankly_default_organization_logo_url_template(),
 		'organization_description'       => '',
 		'organization_email'             => '',
 		'organization_phone'             => '',
@@ -423,11 +453,11 @@ function easyrankly_default_settings(): array {
 		'default_twitter_description'    => $social_template['description'],
 		'social_defaults_linked'         => 1,
 		'twitter_site'                   => '',
-		'global_post_type_meta'          => easyrankly_default_global_post_type_meta(),
+		'global_post_type_meta'          => erankly_default_global_post_type_meta(),
 		'global_post_type_meta_linked'   => 1,
-		'global_taxonomy_meta'           => easyrankly_default_global_taxonomy_meta(),
+		'global_taxonomy_meta'           => erankly_default_global_taxonomy_meta(),
 		'global_taxonomy_meta_linked'    => 1,
-		'global_special_meta'            => easyrankly_default_global_special_meta(),
+		'global_special_meta'            => erankly_default_global_special_meta(),
 		'global_special_meta_linked'     => 0,
 		'schema_identity'                => 'organization',
 		'schema_person_user_id'          => 0,
@@ -439,7 +469,7 @@ function easyrankly_default_settings(): array {
 		'local_business_longitude'       => '',
 		'local_business_menu_url'        => '',
 		'local_business_cuisine'         => '',
-		'local_business_hours'           => easyrankly_default_opening_hours(),
+		'local_business_hours'           => erankly_default_opening_hours(),
 		'global_schema_blocks'           => array(),
 		'simplified_mode'                => 1,
 		'enable_seo_checklist'           => 1,
@@ -486,7 +516,7 @@ function easyrankly_default_settings(): array {
  * @param string $path The root-relative sitemap path (e.g. '/wp-sitemap.xml').
  * @return string The resolved absolute URL.
  */
-function easyrankly_get_sitemap_url( string $path ): string {
+function erankly_get_sitemap_url( string $path ): string {
 	if ( (bool) get_option( 'permalink_structure' ) ) {
 		return home_url( '/' . ltrim( $path, '/' ) );
 	}
@@ -496,7 +526,7 @@ function easyrankly_get_sitemap_url( string $path ): string {
 	}
 
 	if ( preg_match( '/^\/sitemap-(image|video|news)-([0-9]+)\.xml$/', $path, $matches ) ) {
-		return home_url( '/?easyrankly_sitemap=' . $matches[1] . '&easyrankly_sitemap_page=' . $matches[2] );
+		return home_url( '/?erankly_sitemap=' . $matches[1] . '&erankly_sitemap_page=' . $matches[2] );
 	}
 
 	return home_url( '/' . ltrim( $path, '/' ) );
@@ -510,16 +540,8 @@ function easyrankly_get_sitemap_url( string $path ): string {
  *
  * @return string
  */
-function easyrankly_get_sitemap_stylesheet_url(): string {
-	if ( function_exists( 'wp_sitemaps_get_server' ) ) {
-		return wp_sitemaps_get_server()->renderer->get_sitemap_stylesheet_url();
-	}
-
-	if ( (bool) get_option( 'permalink_structure' ) ) {
-		return home_url( '/wp-sitemap.xsl' );
-	}
-
-	return home_url( '/?sitemap-stylesheet=sitemap' );
+function erankly_get_sitemap_stylesheet_url(): string {
+	return wp_sitemaps_get_server()->renderer->get_sitemap_stylesheet_url();
 }
 
 /**
@@ -527,8 +549,8 @@ function easyrankly_get_sitemap_stylesheet_url(): string {
  *
  * @return bool
  */
-function easyrankly_sitemap_enabled(): bool {
-	return (bool) easyrankly_get_setting( 'enable_sitemap', 0 );
+function erankly_sitemap_enabled(): bool {
+	return (bool) erankly_get_setting( 'enable_sitemap', 0 );
 }
 
 /**
@@ -536,8 +558,8 @@ function easyrankly_sitemap_enabled(): bool {
  *
  * @return bool
  */
-function easyrankly_health_enabled(): bool {
-	return (bool) easyrankly_get_setting( 'enable_health', 0 );
+function erankly_health_enabled(): bool {
+	return (bool) erankly_get_setting( 'enable_health', 0 );
 }
 
 /**
@@ -546,7 +568,7 @@ function easyrankly_health_enabled(): bool {
  * @param mixed ...$hook_args Hook arguments (not used, hook may pass any number of args).
  * @return void
  */
-function easyrankly_flush_sitemap_cache( mixed ...$hook_args ): void {
+function erankly_flush_sitemap_cache( mixed ...$hook_args ): void {
 	unset( $hook_args );
 	static $flushed_sites = array();
 
@@ -557,9 +579,9 @@ function easyrankly_flush_sitemap_cache( mixed ...$hook_args ): void {
 	}
 
 	$flushed_sites[ $site_id ] = true;
-	$version                   = (int) get_option( EASYRANKLY_SITEMAP_CACHE_VERSION_OPTION, 1 );
+	$version                   = (int) get_option( ERANKLY_SITEMAP_CACHE_VERSION_OPTION, 1 );
 
-	update_option( EASYRANKLY_SITEMAP_CACHE_VERSION_OPTION, max( 1, $version + 1 ), false );
+	update_option( ERANKLY_SITEMAP_CACHE_VERSION_OPTION, max( 1, $version + 1 ), false );
 }
 
 /**
@@ -568,12 +590,12 @@ function easyrankly_flush_sitemap_cache( mixed ...$hook_args ): void {
  * @param int $post_id Post ID.
  * @return void
  */
-function easyrankly_flush_sitemap_cache_for_post( int $post_id ): void {
+function erankly_flush_sitemap_cache_for_post( int $post_id ): void {
 	if ( wp_is_post_revision( $post_id ) || wp_is_post_autosave( $post_id ) ) {
 		return;
 	}
 
-	easyrankly_flush_sitemap_cache();
+	erankly_flush_sitemap_cache();
 }
 
 /**
@@ -582,9 +604,9 @@ function easyrankly_flush_sitemap_cache_for_post( int $post_id ): void {
  * @param int $post_id Post ID.
  * @return void
  */
-function easyrankly_flush_sitemap_cache_for_deleted_post( int $post_id ): void {
+function erankly_flush_sitemap_cache_for_deleted_post( int $post_id ): void {
 	if ( $post_id > 0 ) {
-		easyrankly_flush_sitemap_cache();
+		erankly_flush_sitemap_cache();
 	}
 }
 
@@ -596,13 +618,13 @@ function easyrankly_flush_sitemap_cache_for_deleted_post( int $post_id ): void {
  * @param WP_Post $post       Post object.
  * @return void
  */
-function easyrankly_flush_sitemap_cache_for_status( string $new_status, string $old_status, WP_Post $post ): void {
+function erankly_flush_sitemap_cache_for_status( string $new_status, string $old_status, WP_Post $post ): void {
 	if ( $new_status === $old_status || wp_is_post_revision( $post->ID ) ) {
 		return;
 	}
 
 	if ( 'publish' === $new_status || 'publish' === $old_status ) {
-		easyrankly_flush_sitemap_cache();
+		erankly_flush_sitemap_cache();
 	}
 }
 
@@ -614,11 +636,11 @@ function easyrankly_flush_sitemap_cache_for_status( string $new_status, string $
  * @param string $meta_key Meta key.
  * @return void
  */
-function easyrankly_flush_sitemap_cache_for_term_meta( mixed $meta_id, int $term_id, string $meta_key ): void {
+function erankly_flush_sitemap_cache_for_term_meta( mixed $meta_id, int $term_id, string $meta_key ): void {
 	unset( $meta_id, $term_id );
 
-	if ( str_starts_with( $meta_key, '_easyrankly_' ) ) {
-		easyrankly_flush_sitemap_cache();
+	if ( str_starts_with( $meta_key, '_erankly_' ) ) {
+		erankly_flush_sitemap_cache();
 	}
 }
 
@@ -631,14 +653,14 @@ function easyrankly_flush_sitemap_cache_for_term_meta( mixed $meta_id, int $term
  * @param string $suffix Cache key suffix.
  * @return string
  */
-function easyrankly_get_sitemap_cache_key( string $suffix ): string {
+function erankly_get_sitemap_cache_key( string $suffix ): string {
 	static $version = null;
 
 	if ( null === $version ) {
-		$version = max( 1, (int) get_option( EASYRANKLY_SITEMAP_CACHE_VERSION_OPTION, 1 ) );
+		$version = max( 1, (int) get_option( ERANKLY_SITEMAP_CACHE_VERSION_OPTION, 1 ) );
 	}
 
-	return EASYRANKLY_SITEMAP_TRANSIENT_PREFIX . $version . '_' . sanitize_key( $suffix );
+	return ERANKLY_SITEMAP_TRANSIENT_PREFIX . $version . '_' . sanitize_key( $suffix );
 }
 
 
@@ -647,22 +669,22 @@ function easyrankly_get_sitemap_cache_key( string $suffix ): string {
  *
  * @return array<string,mixed>
  */
-function easyrankly_get_settings(): array {
-	if ( isset( $GLOBALS['easyrankly_settings_cache'] ) && is_array( $GLOBALS['easyrankly_settings_cache'] ) ) {
-		return $GLOBALS['easyrankly_settings_cache'];
+function erankly_get_settings(): array {
+	if ( isset( $GLOBALS['erankly_settings_cache'] ) && is_array( $GLOBALS['erankly_settings_cache'] ) ) {
+		return $GLOBALS['erankly_settings_cache'];
 	}
 
 	$settings = is_multisite()
-		? get_site_option( EASYRANKLY_OPTION, array() )
-		: get_option( EASYRANKLY_OPTION, array() );
+		? get_site_option( ERANKLY_OPTION, array() )
+		: get_option( ERANKLY_OPTION, array() );
 
 	if ( ! is_array( $settings ) ) {
 		$settings = array();
 	}
 
-	$GLOBALS['easyrankly_settings_cache'] = wp_parse_args( $settings, easyrankly_default_settings() );
+	$GLOBALS['erankly_settings_cache'] = wp_parse_args( $settings, erankly_default_settings() );
 
-	return $GLOBALS['easyrankly_settings_cache'];
+	return $GLOBALS['erankly_settings_cache'];
 }
 
 /**
@@ -670,8 +692,8 @@ function easyrankly_get_settings(): array {
  *
  * @return void
  */
-function easyrankly_clear_settings_cache(): void {
-	unset( $GLOBALS['easyrankly_settings_cache'] );
+function erankly_clear_settings_cache(): void {
+	unset( $GLOBALS['erankly_settings_cache'] );
 }
 
 /**
@@ -679,8 +701,8 @@ function easyrankly_clear_settings_cache(): void {
  *
  * @return bool
  */
-function easyrankly_bloat_enabled(): bool {
-	$settings = easyrankly_get_settings();
+function erankly_bloat_enabled(): bool {
+	$settings = erankly_get_settings();
 	$keys     = array(
 		'bloat_remove_emoji',
 		'bloat_remove_generator',
@@ -713,8 +735,8 @@ function easyrankly_bloat_enabled(): bool {
  * @param mixed  $default_value Default value.
  * @return mixed
  */
-function easyrankly_get_setting( string $key, mixed $default_value = null ): mixed {
-	$settings = easyrankly_get_settings();
+function erankly_get_setting( string $key, mixed $default_value = null ): mixed {
+	$settings = erankly_get_settings();
 
 	return array_key_exists( $key, $settings ) ? $settings[ $key ] : $default_value;
 }
@@ -728,19 +750,19 @@ function easyrankly_get_setting( string $key, mixed $default_value = null ): mix
  * @param mixed $value Raw (unslashed) value.
  * @return string
  */
-function easyrankly_sanitize_text( mixed $value ): string {
+function erankly_sanitize_text( mixed $value ): string {
 	return sanitize_text_field( (string) $value );
 }
 
 /**
  * Sanitizes textarea text without markup.
  *
- * Expects an already-unslashed value (see easyrankly_sanitize_text()).
+ * Expects an already-unslashed value (see erankly_sanitize_text()).
  *
  * @param mixed $value Raw (unslashed) value.
  * @return string
  */
-function easyrankly_sanitize_textarea( mixed $value ): string {
+function erankly_sanitize_textarea( mixed $value ): string {
 	return sanitize_textarea_field( (string) $value );
 }
 
@@ -750,8 +772,8 @@ function easyrankly_sanitize_textarea( mixed $value ): string {
  * @param mixed $value Raw handle or profile URL.
  * @return string
  */
-function easyrankly_sanitize_twitter_handle( mixed $value ): string {
-	$value = trim( easyrankly_sanitize_text( $value ) );
+function erankly_sanitize_twitter_handle( mixed $value ): string {
+	$value = trim( erankly_sanitize_text( $value ) );
 
 	if ( '' === $value ) {
 		return '';
@@ -776,7 +798,7 @@ function easyrankly_sanitize_twitter_handle( mixed $value ): string {
  * @param mixed $value Raw value.
  * @return string
  */
-function easyrankly_sanitize_url( mixed $value ): string {
+function erankly_sanitize_url( mixed $value ): string {
 	$value = trim( (string) $value );
 
 	return '' === $value ? '' : esc_url_raw( $value );
@@ -787,7 +809,7 @@ function easyrankly_sanitize_url( mixed $value ): string {
  *
  * @return array<string,string>
  */
-function easyrankly_get_local_business_types(): array {
+function erankly_get_local_business_types(): array {
 	$types = array(
 		'LocalBusiness'     => __( 'Local business', 'easyrankly' ),
 		'Store'             => __( 'Store', 'easyrankly' ),
@@ -816,7 +838,7 @@ function easyrankly_get_local_business_types(): array {
 	 *
 	 * @param array<string,string> $types LocalBusiness types.
 	 */
-	$types = apply_filters( 'easyrankly_local_business_types', $types );
+	$types = apply_filters( 'erankly_local_business_types', $types );
 
 	if ( ! is_array( $types ) ) {
 		return array();
@@ -839,7 +861,7 @@ function easyrankly_get_local_business_types(): array {
  * @param string $type Schema.org type.
  * @return bool
  */
-function easyrankly_is_food_business_type( string $type ): bool {
+function erankly_is_food_business_type( string $type ): bool {
 	return in_array( $type, array( 'Restaurant', 'CafeOrCoffeeShop', 'BarOrPub', 'Bakery', 'FoodEstablishment' ), true );
 }
 
@@ -849,7 +871,7 @@ function easyrankly_is_food_business_type( string $type ): bool {
  * @param mixed $value Raw path.
  * @return string
  */
-function easyrankly_sanitize_relative_path( mixed $value ): string {
+function erankly_sanitize_relative_path( mixed $value ): string {
 	$value = trim( (string) $value );
 
 	if ( '' === $value || str_starts_with( $value, '//' ) || 1 === preg_match( '#^[a-z][a-z0-9+.-]*:#i', $value ) ) {
@@ -873,8 +895,8 @@ function easyrankly_sanitize_relative_path( mixed $value ): string {
  * @param mixed $value Raw telephone number.
  * @return string
  */
-function easyrankly_sanitize_phone( mixed $value ): string {
-	$value  = easyrankly_sanitize_text( $value );
+function erankly_sanitize_phone( mixed $value ): string {
+	$value  = erankly_sanitize_text( $value );
 	$value  = preg_replace( '/[^0-9+().\-\s]/', '', $value );
 	$digits = is_string( $value ) ? preg_replace( '/\D/', '', $value ) : '';
 
@@ -891,8 +913,8 @@ function easyrankly_sanitize_phone( mixed $value ): string {
  * @param mixed $value Raw country code.
  * @return string
  */
-function easyrankly_sanitize_country_code( mixed $value ): string {
-	$value = strtoupper( easyrankly_sanitize_text( $value ) );
+function erankly_sanitize_country_code( mixed $value ): string {
+	$value = strtoupper( erankly_sanitize_text( $value ) );
 
 	return 1 === preg_match( '/^[A-Z]{2}$/', $value ) ? $value : '';
 }
@@ -905,7 +927,7 @@ function easyrankly_sanitize_country_code( mixed $value ): string {
  * @param float $maximum Maximum value.
  * @return string
  */
-function easyrankly_sanitize_coordinate( mixed $value, float $minimum, float $maximum ): string {
+function erankly_sanitize_coordinate( mixed $value, float $minimum, float $maximum ): string {
 	$value = trim( (string) $value );
 
 	if ( '' === $value || ! is_numeric( $value ) ) {
@@ -927,8 +949,8 @@ function easyrankly_sanitize_coordinate( mixed $value, float $minimum, float $ma
  * @param mixed $value Raw time.
  * @return string
  */
-function easyrankly_sanitize_time( mixed $value ): string {
-	$value = easyrankly_sanitize_text( $value );
+function erankly_sanitize_time( mixed $value ): string {
+	$value = erankly_sanitize_text( $value );
 
 	return 1 === preg_match( '/^(?:[01]\d|2[0-3]):[0-5]\d$/', $value ) ? $value : '';
 }
@@ -938,7 +960,7 @@ function easyrankly_sanitize_time( mixed $value ): string {
  *
  * @return array<string,array{closed:int,intervals:array<int,array{opens:string,closes:string}>}>
  */
-function easyrankly_default_opening_hours(): array {
+function erankly_default_opening_hours(): array {
 	$hours = array();
 
 	foreach ( array( 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday' ) as $day ) {
@@ -966,9 +988,9 @@ function easyrankly_default_opening_hours(): array {
  * @param mixed $value Raw hours.
  * @return array<string,array{closed:int,intervals:array<int,array{opens:string,closes:string}>}>
  */
-function easyrankly_sanitize_opening_hours( mixed $value ): array {
+function erankly_sanitize_opening_hours( mixed $value ): array {
 	$value = is_array( $value ) ? $value : array();
-	$hours = easyrankly_default_opening_hours();
+	$hours = erankly_default_opening_hours();
 
 	foreach ( array_keys( $hours ) as $day ) {
 		$raw_day                 = isset( $value[ $day ] ) && is_array( $value[ $day ] ) ? $value[ $day ] : array();
@@ -977,8 +999,8 @@ function easyrankly_sanitize_opening_hours( mixed $value ): array {
 
 		foreach ( array( 0, 1 ) as $index ) {
 			$raw_interval = isset( $raw_intervals[ $index ] ) && is_array( $raw_intervals[ $index ] ) ? $raw_intervals[ $index ] : array();
-			$opens        = isset( $raw_interval['opens'] ) ? easyrankly_sanitize_time( $raw_interval['opens'] ) : '';
-			$closes       = isset( $raw_interval['closes'] ) ? easyrankly_sanitize_time( $raw_interval['closes'] ) : '';
+			$opens        = isset( $raw_interval['opens'] ) ? erankly_sanitize_time( $raw_interval['opens'] ) : '';
+			$closes       = isset( $raw_interval['closes'] ) ? erankly_sanitize_time( $raw_interval['closes'] ) : '';
 
 			if ( '' === $opens || '' === $closes ) {
 				$opens  = '';
@@ -1002,7 +1024,7 @@ function easyrankly_sanitize_opening_hours( mixed $value ): array {
  * @param int    $limit Character limit.
  * @return string
  */
-function easyrankly_trim_text( string $value, int $limit = 160 ): string {
+function erankly_trim_text( string $value, int $limit = 160 ): string {
 	$value = trim( preg_replace( '/\s+/', ' ', wp_strip_all_tags( $value ) ) );
 
 	$length = function_exists( 'mb_strlen' ) ? mb_strlen( $value ) : strlen( $value );
@@ -1022,7 +1044,7 @@ function easyrankly_trim_text( string $value, int $limit = 160 ): string {
  * @param string $value Raw string.
  * @return string
  */
-function easyrankly_normalize_seo_text( string $value ): string {
+function erankly_normalize_seo_text( string $value ): string {
 	$value = preg_replace( '/\s+/', ' ', wp_strip_all_tags( strip_shortcodes( $value ) ) );
 
 	return is_string( $value ) ? trim( $value ) : '';
@@ -1037,7 +1059,7 @@ function easyrankly_normalize_seo_text( string $value ): string {
  * @param int $post_id Post ID.
  * @return array<int,string>
  */
-function easyrankly_get_post_content_image_urls( int $post_id ): array {
+function erankly_get_post_content_image_urls( int $post_id ): array {
 	$post = get_post( $post_id );
 
 	if ( ! $post instanceof WP_Post || '' === $post->post_content ) {
@@ -1052,7 +1074,7 @@ function easyrankly_get_post_content_image_urls( int $post_id ): array {
 		foreach ( $content_matches[1] as $src ) {
 			$src = esc_url_raw( (string) $src );
 
-			if ( easyrankly_is_absolute_http_url( $src ) ) {
+			if ( erankly_is_absolute_http_url( $src ) ) {
 				$images[] = $src;
 			}
 		}
@@ -1062,7 +1084,7 @@ function easyrankly_get_post_content_image_urls( int $post_id ): array {
 		foreach ( $block_matches as $match ) {
 			$src = esc_url_raw( $match[1] );
 
-			if ( easyrankly_is_absolute_http_url( $src ) ) {
+			if ( erankly_is_absolute_http_url( $src ) ) {
 				$images[] = $src;
 			}
 		}
@@ -1077,7 +1099,7 @@ function easyrankly_get_post_content_image_urls( int $post_id ): array {
  * @param string $url URL.
  * @return bool
  */
-function easyrankly_is_absolute_http_url( string $url ): bool {
+function erankly_is_absolute_http_url( string $url ): bool {
 	$url = esc_url_raw( trim( $url ) );
 
 	if ( '' === $url ) {
@@ -1096,8 +1118,8 @@ function easyrankly_is_absolute_http_url( string $url ): bool {
  * @param string $key     Meta key without plugin prefix.
  * @return string
  */
-function easyrankly_get_post_meta_string( int $post_id, string $key ): string {
-	$value = get_post_meta( $post_id, '_easyrankly_' . $key, true );
+function erankly_get_post_meta_string( int $post_id, string $key ): string {
+	$value = get_post_meta( $post_id, '_erankly_' . $key, true );
 
 	return is_string( $value ) ? trim( $value ) : '';
 }
@@ -1109,8 +1131,8 @@ function easyrankly_get_post_meta_string( int $post_id, string $key ): string {
  * @param string $key     Meta key without plugin prefix.
  * @return bool
  */
-function easyrankly_get_post_meta_bool( int $post_id, string $key ): bool {
-	return '1' === (string) get_post_meta( $post_id, '_easyrankly_' . $key, true );
+function erankly_get_post_meta_bool( int $post_id, string $key ): bool {
+	return '1' === (string) get_post_meta( $post_id, '_erankly_' . $key, true );
 }
 
 /**
@@ -1120,8 +1142,8 @@ function easyrankly_get_post_meta_bool( int $post_id, string $key ): bool {
  * @param string $key     Meta key without plugin prefix.
  * @return string
  */
-function easyrankly_get_term_meta_string( int $term_id, string $key ): string {
-	$value = get_term_meta( $term_id, '_easyrankly_' . $key, true );
+function erankly_get_term_meta_string( int $term_id, string $key ): string {
+	$value = get_term_meta( $term_id, '_erankly_' . $key, true );
 
 	return is_string( $value ) ? trim( $value ) : '';
 }
@@ -1133,8 +1155,8 @@ function easyrankly_get_term_meta_string( int $term_id, string $key ): string {
  * @param string $key     Meta key without plugin prefix.
  * @return bool
  */
-function easyrankly_get_term_meta_bool( int $term_id, string $key ): bool {
-	return '1' === (string) get_term_meta( $term_id, '_easyrankly_' . $key, true );
+function erankly_get_term_meta_bool( int $term_id, string $key ): bool {
+	return '1' === (string) get_term_meta( $term_id, '_erankly_' . $key, true );
 }
 
 /**
@@ -1144,8 +1166,8 @@ function easyrankly_get_term_meta_bool( int $term_id, string $key ): bool {
  * @param string $field     Template field.
  * @return string
  */
-function easyrankly_get_global_post_type_meta( string $post_type, string $field ): string {
-	return easyrankly_get_global_entity_meta( 'global_post_type_meta', $post_type, $field );
+function erankly_get_global_post_type_meta( string $post_type, string $field ): string {
+	return erankly_get_global_entity_meta( 'global_post_type_meta', $post_type, $field );
 }
 
 /**
@@ -1155,8 +1177,8 @@ function easyrankly_get_global_post_type_meta( string $post_type, string $field 
  * @param string $field    Template field.
  * @return string
  */
-function easyrankly_get_global_taxonomy_meta( string $taxonomy, string $field ): string {
-	return easyrankly_get_global_entity_meta( 'global_taxonomy_meta', $taxonomy, $field );
+function erankly_get_global_taxonomy_meta( string $taxonomy, string $field ): string {
+	return erankly_get_global_entity_meta( 'global_taxonomy_meta', $taxonomy, $field );
 }
 
 /**
@@ -1166,8 +1188,8 @@ function easyrankly_get_global_taxonomy_meta( string $taxonomy, string $field ):
  * @param string $field     Directive field.
  * @return bool
  */
-function easyrankly_get_global_post_type_directive( string $post_type, string $field ): bool {
-	return easyrankly_get_global_entity_directive( 'global_post_type_meta', $post_type, $field );
+function erankly_get_global_post_type_directive( string $post_type, string $field ): bool {
+	return erankly_get_global_entity_directive( 'global_post_type_meta', $post_type, $field );
 }
 
 /**
@@ -1177,8 +1199,8 @@ function easyrankly_get_global_post_type_directive( string $post_type, string $f
  * @param string $field    Directive field.
  * @return bool
  */
-function easyrankly_get_global_taxonomy_directive( string $taxonomy, string $field ): bool {
-	return easyrankly_get_global_entity_directive( 'global_taxonomy_meta', $taxonomy, $field );
+function erankly_get_global_taxonomy_directive( string $taxonomy, string $field ): bool {
+	return erankly_get_global_entity_directive( 'global_taxonomy_meta', $taxonomy, $field );
 }
 
 /**
@@ -1189,8 +1211,8 @@ function easyrankly_get_global_taxonomy_directive( string $taxonomy, string $fie
  * @param string $field       Template field.
  * @return string
  */
-function easyrankly_get_global_entity_meta( string $setting_key, string $entity, string $field ): string {
-	$templates = easyrankly_get_setting( $setting_key, array() );
+function erankly_get_global_entity_meta( string $setting_key, string $entity, string $field ): string {
+	$templates = erankly_get_setting( $setting_key, array() );
 
 	if ( ! is_array( $templates ) ) {
 		return '';
@@ -1202,7 +1224,7 @@ function easyrankly_get_global_entity_meta( string $setting_key, string $entity,
 		return is_string( $value ) ? trim( $value ) : '';
 	}
 
-	if ( ! easyrankly_get_setting( $setting_key . '_linked', 1 ) ) {
+	if ( ! erankly_get_setting( $setting_key . '_linked', 1 ) ) {
 		return '';
 	}
 
@@ -1229,12 +1251,12 @@ function easyrankly_get_global_entity_meta( string $setting_key, string $entity,
  * @param string $field       Directive field.
  * @return bool
  */
-function easyrankly_get_global_entity_directive( string $setting_key, string $entity, string $field ): bool {
+function erankly_get_global_entity_directive( string $setting_key, string $entity, string $field ): bool {
 	if ( ! in_array( $field, array( 'noindex', 'nofollow', 'noarchive', 'disable_sitemap' ), true ) ) {
 		return false;
 	}
 
-	$templates = easyrankly_get_setting( $setting_key, array() );
+	$templates = erankly_get_setting( $setting_key, array() );
 
 	if ( ! is_array( $templates ) ) {
 		return false;
@@ -1244,7 +1266,7 @@ function easyrankly_get_global_entity_directive( string $setting_key, string $en
 		return ! empty( $templates[ $entity ][ $field ] );
 	}
 
-	if ( ! easyrankly_get_setting( $setting_key . '_linked', 1 ) ) {
+	if ( ! erankly_get_setting( $setting_key . '_linked', 1 ) ) {
 		return false;
 	}
 
@@ -1265,7 +1287,7 @@ function easyrankly_get_global_entity_directive( string $setting_key, string $en
  * @param array<int,string> $exclude Variables that should not resolve for this call.
  * @return string
  */
-function easyrankly_replace_variables( string $value, int $post_id = 0, array $exclude = array() ): string {
+function erankly_replace_variables( string $value, int $post_id = 0, array $exclude = array() ): string {
 	if ( '' === $value || ! str_contains( $value, '{{' ) ) {
 		return $value;
 	}
@@ -1285,7 +1307,7 @@ function easyrankly_replace_variables( string $value, int $post_id = 0, array $e
 				return '';
 			}
 
-			return easyrankly_get_variable_value( $key, $post_id );
+			return erankly_get_variable_value( $key, $post_id );
 		},
 		$value
 	);
@@ -1298,7 +1320,7 @@ function easyrankly_replace_variables( string $value, int $post_id = 0, array $e
  * @param int    $post_id Optional post ID.
  * @return string
  */
-function easyrankly_replace_json_ld_variables( string $value, int $post_id = 0 ): string {
+function erankly_replace_json_ld_variables( string $value, int $post_id = 0 ): string {
 	if ( '' === $value || ! str_contains( $value, '{{' ) ) {
 		return $value;
 	}
@@ -1310,7 +1332,7 @@ function easyrankly_replace_json_ld_variables( string $value, int $post_id = 0 )
 	return (string) preg_replace_callback(
 		'/{{\s*([a-z0-9_]+)\s*}}/i',
 		static function ( array $matches ) use ( $post_id ): string {
-			$replacement = easyrankly_get_variable_value( strtolower( (string) $matches[1] ), $post_id );
+			$replacement = erankly_get_variable_value( strtolower( (string) $matches[1] ), $post_id );
 			$json        = wp_json_encode( $replacement, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE );
 
 			if ( ! is_string( $json ) ) {
@@ -1330,7 +1352,7 @@ function easyrankly_replace_json_ld_variables( string $value, int $post_id = 0 )
  * @param int    $post_id Optional post ID.
  * @return string
  */
-function easyrankly_get_variable_value( string $key, int $post_id = 0 ): string {
+function erankly_get_variable_value( string $key, int $post_id = 0 ): string {
 	static $resolving = array();
 	static $cache     = array();
 
@@ -1355,7 +1377,7 @@ function easyrankly_get_variable_value( string $key, int $post_id = 0 ): string 
 			break;
 		case 'post_excerpt':
 			if ( $post instanceof WP_Post ) {
-				$value = has_excerpt( $post ) ? get_the_excerpt( $post ) : easyrankly_trim_text( $post->post_content, 160 );
+				$value = has_excerpt( $post ) ? get_the_excerpt( $post ) : erankly_trim_text( $post->post_content, 160 );
 			}
 			break;
 		case 'post_content':
@@ -1376,16 +1398,16 @@ function easyrankly_get_variable_value( string $key, int $post_id = 0 ): string 
 			}
 			break;
 		case 'post_categories':
-			$value = easyrankly_get_post_category_names( $post_id );
+			$value = erankly_get_post_category_names( $post_id );
 			break;
 		case 'seo_title':
-			$value = function_exists( 'easyrankly_get_title' ) ? easyrankly_get_title() : '';
+			$value = function_exists( 'erankly_get_title' ) ? erankly_get_title() : '';
 			break;
 		case 'meta_description':
-			$value = function_exists( 'easyrankly_get_description' ) ? easyrankly_get_description() : '';
+			$value = function_exists( 'erankly_get_description' ) ? erankly_get_description() : '';
 			break;
 		case 'canonical_url':
-			$value = function_exists( 'easyrankly_get_canonical' ) ? easyrankly_get_canonical() : '';
+			$value = function_exists( 'erankly_get_canonical' ) ? erankly_get_canonical() : '';
 			break;
 		case 'featured_image':
 			$image = $post_id > 0 ? get_the_post_thumbnail_url( $post_id, 'full' ) : '';
@@ -1444,18 +1466,18 @@ function easyrankly_get_variable_value( string $key, int $post_id = 0 ): string 
 			$value = get_bloginfo( 'language' );
 			break;
 		case 'organization_name':
-			$value = easyrankly_get_organization_name();
+			$value = erankly_get_organization_name();
 			break;
 		case 'organization_logo':
 		case 'organization_logo_url':
-			$value = easyrankly_get_organization_logo_url();
+			$value = erankly_get_organization_logo_url();
 			break;
 		case 'site_icon':
 		case 'site_icon_url':
-			$value = easyrankly_get_site_icon_url();
+			$value = erankly_get_site_icon_url();
 			break;
 		case 'schema_identity_id':
-			$value = function_exists( 'easyrankly_schema_identity_id' ) ? easyrankly_schema_identity_id() : home_url( '/#organization' );
+			$value = function_exists( 'erankly_schema_identity_id' ) ? erankly_schema_identity_id() : home_url( '/#organization' );
 			break;
 	}
 
@@ -1472,7 +1494,7 @@ function easyrankly_get_variable_value( string $key, int $post_id = 0 ): string 
  * @param int $post_id Post ID.
  * @return string
  */
-function easyrankly_get_post_category_names( int $post_id ): string {
+function erankly_get_post_category_names( int $post_id ): string {
 	if ( $post_id <= 0 ) {
 		return '';
 	}
@@ -1493,7 +1515,7 @@ function easyrankly_get_post_category_names( int $post_id ): string {
  *
  * @return array<string,WP_Post_Type>
  */
-function easyrankly_get_public_post_types(): array {
+function erankly_get_public_post_types(): array {
 	$post_types = get_post_types(
 		array(
 			'public' => true,
@@ -1508,7 +1530,7 @@ function easyrankly_get_public_post_types(): array {
 	 *
 	 * @param array<string,WP_Post_Type> $post_types Public post type objects.
 	 */
-	return apply_filters( 'easyrankly_post_types', $post_types );
+	return apply_filters( 'erankly_post_types', $post_types );
 }
 
 /**
@@ -1516,7 +1538,7 @@ function easyrankly_get_public_post_types(): array {
  *
  * @return array<string,WP_Taxonomy>
  */
-function easyrankly_get_public_taxonomies(): array {
+function erankly_get_public_taxonomies(): array {
 	$taxonomies = get_taxonomies(
 		array(
 			'public' => true,
@@ -1534,7 +1556,7 @@ function easyrankly_get_public_taxonomies(): array {
 	 *
 	 * @param array<string,WP_Taxonomy> $taxonomies Public taxonomy objects.
 	 */
-	return apply_filters( 'easyrankly_taxonomies', $taxonomies );
+	return apply_filters( 'erankly_taxonomies', $taxonomies );
 }
 
 /**
@@ -1543,9 +1565,9 @@ function easyrankly_get_public_taxonomies(): array {
  * @param WP_Taxonomy $taxonomy Taxonomy object.
  * @return string
  */
-function easyrankly_get_taxonomy_admin_label( WP_Taxonomy $taxonomy ): string {
+function erankly_get_taxonomy_admin_label( WP_Taxonomy $taxonomy ): string {
 	$label = $taxonomy->labels->singular_name;
-	$owner = easyrankly_get_taxonomy_owner_label( $taxonomy );
+	$owner = erankly_get_taxonomy_owner_label( $taxonomy );
 
 	if ( '' === $owner ) {
 		return $label;
@@ -1565,7 +1587,7 @@ function easyrankly_get_taxonomy_admin_label( WP_Taxonomy $taxonomy ): string {
  * @param WP_Taxonomy $taxonomy Taxonomy object.
  * @return string
  */
-function easyrankly_get_taxonomy_owner_label( WP_Taxonomy $taxonomy ): string {
+function erankly_get_taxonomy_owner_label( WP_Taxonomy $taxonomy ): string {
 	$object_types = array_values( array_filter( array_map( 'sanitize_key', (array) $taxonomy->object_type ) ) );
 
 	if ( empty( $object_types ) ) {
@@ -1587,7 +1609,7 @@ function easyrankly_get_taxonomy_owner_label( WP_Taxonomy $taxonomy ): string {
  *
  * @return string
  */
-function easyrankly_current_url(): string {
+function erankly_current_url(): string {
 	global $wp;
 
 	$path = isset( $wp->request ) ? ltrim( (string) $wp->request, '/' ) : '';
@@ -1603,7 +1625,7 @@ function easyrankly_current_url(): string {
  * @param string $size          Image size.
  * @return string
  */
-function easyrankly_get_image_url( int $attachment_id, string $size = 'full' ): string {
+function erankly_get_image_url( int $attachment_id, string $size = 'full' ): string {
 	if ( $attachment_id <= 0 ) {
 		return '';
 	}
@@ -1618,8 +1640,8 @@ function easyrankly_get_image_url( int $attachment_id, string $size = 'full' ): 
  *
  * @return array<int,string>
  */
-function easyrankly_get_social_profiles(): array {
-	$profiles = (string) easyrankly_get_setting( 'social_profiles', '' );
+function erankly_get_social_profiles(): array {
+	$profiles = (string) erankly_get_setting( 'social_profiles', '' );
 	$lines    = preg_split( '/\R/', $profiles );
 
 	if ( ! is_array( $lines ) ) {
@@ -1644,22 +1666,49 @@ function easyrankly_get_social_profiles(): array {
  *
  * @return bool
  */
-function easyrankly_is_frontend_html_request(): bool {
+function erankly_is_frontend_html_request(): bool {
 	return ! is_admin() && ! wp_doing_ajax() && ! wp_doing_cron();
 }
 
 /**
- * Emits a text response and exits.
+ * Emits a validated XML response and exits.
  *
- * @param string $body         Response body.
- * @param string $content_type Content-Type header.
+ * @param string $body         XML response body.
+ * @param string $content_type Expected XML content type.
  * @return never
  */
-function easyrankly_send_response( string $body, string $content_type ) {
+function erankly_send_response( string $body, string $content_type ) {
+	if (
+		'application/xml' !== $content_type
+		|| '' === trim( $body )
+		|| str_contains( $body, '<!DOCTYPE' )
+		|| str_contains( $body, '<!ENTITY' )
+		|| ! class_exists( 'DOMDocument' )
+	) {
+		status_header( 500 );
+		exit;
+	}
+
+	// Parse before output so malformed or externally declared XML never reaches
+	// the response stream.
+	$previous_errors              = libxml_use_internal_errors( true );
+	$document                     = new DOMDocument();
+	$document->preserveWhiteSpace = true; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Native DOMDocument property name.
+	$is_valid_xml                 = $document->loadXML( $body, LIBXML_NONET );
+
+	libxml_clear_errors();
+	libxml_use_internal_errors( $previous_errors );
+
+	if ( ! $is_valid_xml ) {
+		status_header( 500 );
+		exit;
+	}
+
 	status_header( 200 );
-	header( 'Content-Type: ' . $content_type . '; charset=' . get_bloginfo( 'charset' ) );
+	header( 'Content-Type: application/xml; charset=' . get_bloginfo( 'charset' ) );
 	header( 'X-Robots-Tag: noindex, follow', true );
-	echo $body; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+
+	$document->save( 'php://output' );
 	exit;
 }
 
@@ -1673,17 +1722,17 @@ function easyrankly_send_response( string $body, string $content_type ) {
  *
  * @return void
  */
-function easyrankly_render_multisite_status(): void {
+function erankly_render_multisite_status(): void {
 	if ( is_multisite() ) {
 		printf(
-			'<span class="easyrankly-ms-status" style="display:inline-flex;align-items:center;gap:3px;font-size:12px;font-weight:400;line-height:1.4;color:#1a7f37;"><span class="dashicons dashicons-yes" style="font-size:14px;width:14px;height:14px;"></span>%s</span>',
+			'<span class="erankly-ms-status" style="display:inline-flex;align-items:center;gap:3px;font-size:12px;font-weight:400;line-height:1.4;color:#1a7f37;"><span class="dashicons dashicons-yes" style="font-size:14px;width:14px;height:14px;"></span>%s</span>',
 			esc_html__( 'WordPress Multisite: Detected', 'easyrankly' )
 		);
 		return;
 	}
 
 	printf(
-		'<span class="easyrankly-ms-status" style="display:inline-flex;align-items:center;gap:3px;font-size:12px;font-weight:400;line-height:1.4;color:#b32d2e;"><span class="dashicons dashicons-no-alt" style="font-size:14px;width:14px;height:14px;"></span>%s</span>',
+		'<span class="erankly-ms-status" style="display:inline-flex;align-items:center;gap:3px;font-size:12px;font-weight:400;line-height:1.4;color:#b32d2e;"><span class="dashicons dashicons-no-alt" style="font-size:14px;width:14px;height:14px;"></span>%s</span>',
 		esc_html__( 'WordPress Multisite: Not detected', 'easyrankly' )
 	);
 }

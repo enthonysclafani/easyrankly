@@ -14,7 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * @return string
  */
-function easyrankly_setup_wizard_capability(): string {
+function erankly_setup_wizard_capability(): string {
 	return is_multisite() ? 'manage_network_options' : 'manage_options';
 }
 
@@ -24,10 +24,10 @@ function easyrankly_setup_wizard_capability(): string {
  * @param string $step Optional wizard step.
  * @return string
  */
-function easyrankly_setup_wizard_url( string $step = '' ): string {
+function erankly_setup_wizard_url( string $step = '' ): string {
 	$url = is_multisite()
-		? network_admin_url( 'settings.php?page=easyrankly-setup' )
-		: admin_url( 'options-general.php?page=easyrankly-setup' );
+		? network_admin_url( 'settings.php?page=erankly-setup' )
+		: admin_url( 'options-general.php?page=erankly-setup' );
 
 	if ( '' !== $step ) {
 		$url = add_query_arg( 'step', sanitize_key( $step ), $url );
@@ -41,10 +41,10 @@ function easyrankly_setup_wizard_url( string $step = '' ): string {
  *
  * @return string
  */
-function easyrankly_setup_wizard_settings_url(): string {
+function erankly_setup_wizard_settings_url(): string {
 	return is_multisite()
-		? network_admin_url( 'settings.php?page=easyrankly' )
-		: admin_url( 'options-general.php?page=easyrankly' );
+		? network_admin_url( 'settings.php?page=erankly' )
+		: admin_url( 'options-general.php?page=erankly' );
 }
 
 /**
@@ -52,19 +52,19 @@ function easyrankly_setup_wizard_settings_url(): string {
  *
  * @return void
  */
-function easyrankly_setup_wizard_register_page(): void {
+function erankly_setup_wizard_register_page(): void {
 	$parent_slug = is_network_admin() ? 'settings.php' : 'options-general.php';
 
 	add_submenu_page(
 		$parent_slug,
 		__( 'EasyRankly setup', 'easyrankly' ),
 		__( 'EasyRankly setup', 'easyrankly' ),
-		easyrankly_setup_wizard_capability(),
-		'easyrankly-setup',
-		'easyrankly_setup_wizard_render'
+		erankly_setup_wizard_capability(),
+		'erankly-setup',
+		'erankly_setup_wizard_render'
 	);
 
-	remove_submenu_page( $parent_slug, 'easyrankly-setup' );
+	remove_submenu_page( $parent_slug, 'erankly-setup' );
 }
 
 /**
@@ -72,10 +72,10 @@ function easyrankly_setup_wizard_register_page(): void {
  *
  * @return void
  */
-function easyrankly_setup_wizard_maybe_redirect(): void {
+function erankly_setup_wizard_maybe_redirect(): void {
 	global $pagenow;
 
-	if ( 'pending' !== easyrankly_get_plugin_option( EASYRANKLY_SETUP_STATUS_OPTION, '' ) ) {
+	if ( 'pending' !== erankly_get_plugin_option( ERANKLY_SETUP_STATUS_OPTION, '' ) ) {
 		return;
 	}
 
@@ -83,7 +83,7 @@ function easyrankly_setup_wizard_maybe_redirect(): void {
 		return;
 	}
 
-	if ( ! current_user_can( easyrankly_setup_wizard_capability() ) ) {
+	if ( ! current_user_can( erankly_setup_wizard_capability() ) ) {
 		return;
 	}
 
@@ -97,7 +97,7 @@ function easyrankly_setup_wizard_maybe_redirect(): void {
 	}
 
 	$page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin routing.
-	if ( 'easyrankly-setup' === $page ) {
+	if ( 'erankly-setup' === $page ) {
 		return;
 	}
 
@@ -105,7 +105,7 @@ function easyrankly_setup_wizard_maybe_redirect(): void {
 		return;
 	}
 
-	wp_safe_redirect( easyrankly_setup_wizard_url() );
+	wp_safe_redirect( erankly_setup_wizard_url() );
 	exit;
 }
 
@@ -114,24 +114,24 @@ function easyrankly_setup_wizard_maybe_redirect(): void {
  *
  * @return void
  */
-function easyrankly_setup_wizard_save(): void {
-	check_admin_referer( 'easyrankly_setup_save' );
+function erankly_setup_wizard_save(): void {
+	check_admin_referer( 'erankly_setup_save' );
 
-	if ( ! current_user_can( easyrankly_setup_wizard_capability() ) ) {
+	if ( ! current_user_can( erankly_setup_wizard_capability() ) ) {
 		wp_die( esc_html__( 'Permission denied.', 'easyrankly' ) );
 	}
 
 	$mode             = isset( $_POST['simplified_mode'] ) ? sanitize_key( wp_unslash( $_POST['simplified_mode'] ) ) : '1';
 	$twitter_site_raw = isset( $_POST['twitter_site'] ) ? sanitize_text_field( wp_unslash( $_POST['twitter_site'] ) ) : '';
-	$settings         = easyrankly_get_settings();
+	$settings         = erankly_get_settings();
 
 	$settings['simplified_mode'] = '0' === $mode ? 0 : 1;
-	$settings['twitter_site']    = easyrankly_sanitize_twitter_handle( $twitter_site_raw );
+	$settings['twitter_site']    = erankly_sanitize_twitter_handle( $twitter_site_raw );
 
-	easyrankly_update_plugin_option( EASYRANKLY_OPTION, $settings );
-	easyrankly_update_plugin_option( EASYRANKLY_SETUP_STATUS_OPTION, 'completed' );
+	erankly_update_plugin_option( ERANKLY_OPTION, $settings );
+	erankly_update_plugin_option( ERANKLY_SETUP_STATUS_OPTION, 'completed' );
 
-	wp_safe_redirect( easyrankly_setup_wizard_url( 'complete' ) );
+	wp_safe_redirect( erankly_setup_wizard_url( 'complete' ) );
 	exit;
 }
 
@@ -140,16 +140,16 @@ function easyrankly_setup_wizard_save(): void {
  *
  * @return void
  */
-function easyrankly_setup_wizard_skip(): void {
-	check_admin_referer( 'easyrankly_setup_skip' );
+function erankly_setup_wizard_skip(): void {
+	check_admin_referer( 'erankly_setup_skip' );
 
-	if ( ! current_user_can( easyrankly_setup_wizard_capability() ) ) {
+	if ( ! current_user_can( erankly_setup_wizard_capability() ) ) {
 		wp_die( esc_html__( 'Permission denied.', 'easyrankly' ) );
 	}
 
-	easyrankly_update_plugin_option( EASYRANKLY_SETUP_STATUS_OPTION, 'skipped' );
+	erankly_update_plugin_option( ERANKLY_SETUP_STATUS_OPTION, 'skipped' );
 
-	wp_safe_redirect( easyrankly_setup_wizard_settings_url() );
+	wp_safe_redirect( erankly_setup_wizard_settings_url() );
 	exit;
 }
 
@@ -158,8 +158,8 @@ function easyrankly_setup_wizard_skip(): void {
  *
  * @return void
  */
-function easyrankly_setup_wizard_render(): void {
-	if ( ! current_user_can( easyrankly_setup_wizard_capability() ) ) {
+function erankly_setup_wizard_render(): void {
+	if ( ! current_user_can( erankly_setup_wizard_capability() ) ) {
 		wp_die( esc_html__( 'Permission denied.', 'easyrankly' ) );
 	}
 
@@ -169,49 +169,49 @@ function easyrankly_setup_wizard_render(): void {
 		$step = 'welcome';
 	}
 
-	$settings = easyrankly_get_settings();
+	$settings = erankly_get_settings();
 	?>
-	<div class="wrap easyrankly-setup">
-		<div class="easyrankly-setup-card">
-			<div class="easyrankly-setup-header">
+	<div class="wrap erankly-setup">
+		<div class="erankly-setup-card">
+			<div class="erankly-setup-header">
 				<h1><?php esc_html_e( 'EasyRankly setup', 'easyrankly' ); ?></h1>
 				<p><?php esc_html_e( 'Configure the few preferences that EasyRankly cannot determine automatically.', 'easyrankly' ); ?></p>
 			</div>
 
-			<ol class="easyrankly-setup-steps" aria-label="<?php esc_attr_e( 'Setup progress', 'easyrankly' ); ?>">
+			<ol class="erankly-setup-steps" aria-label="<?php esc_attr_e( 'Setup progress', 'easyrankly' ); ?>">
 				<li class="<?php echo 'welcome' === $step ? 'is-current' : 'is-complete'; ?>"><?php esc_html_e( 'Welcome', 'easyrankly' ); ?></li>
 				<li class="<?php echo 'configure' === $step ? 'is-current' : ( 'complete' === $step ? 'is-complete' : '' ); ?>"><?php esc_html_e( 'Preferences', 'easyrankly' ); ?></li>
 				<li class="<?php echo 'complete' === $step ? 'is-current' : ''; ?>"><?php esc_html_e( 'Ready', 'easyrankly' ); ?></li>
 			</ol>
 
-			<div class="easyrankly-setup-content">
+			<div class="erankly-setup-content">
 				<?php if ( 'welcome' === $step ) : ?>
 					<h2><?php esc_html_e( 'Welcome to EasyRankly', 'easyrankly' ); ?></h2>
 					<p><?php esc_html_e( 'This short wizard asks for your preferred interface mode and, if available, the X account associated with the site.', 'easyrankly' ); ?></p>
 					<p><?php esc_html_e( 'You can change both choices later from the EasyRankly settings.', 'easyrankly' ); ?></p>
-					<div class="easyrankly-setup-actions">
-						<a class="button button-primary" href="<?php echo esc_url( easyrankly_setup_wizard_url( 'configure' ) ); ?>"><?php esc_html_e( 'Start setup', 'easyrankly' ); ?></a>
+					<div class="erankly-setup-actions">
+						<a class="button button-primary" href="<?php echo esc_url( erankly_setup_wizard_url( 'configure' ) ); ?>"><?php esc_html_e( 'Start setup', 'easyrankly' ); ?></a>
 						<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
-							<input type="hidden" name="action" value="easyrankly_setup_skip">
-							<?php wp_nonce_field( 'easyrankly_setup_skip' ); ?>
+							<input type="hidden" name="action" value="erankly_setup_skip">
+							<?php wp_nonce_field( 'erankly_setup_skip' ); ?>
 							<button type="submit" class="button button-link"><?php esc_html_e( 'Skip for now', 'easyrankly' ); ?></button>
 						</form>
 					</div>
 				<?php elseif ( 'configure' === $step ) : ?>
 					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
-						<input type="hidden" name="action" value="easyrankly_setup_save">
-						<?php wp_nonce_field( 'easyrankly_setup_save' ); ?>
+						<input type="hidden" name="action" value="erankly_setup_save">
+						<?php wp_nonce_field( 'erankly_setup_save' ); ?>
 
-						<fieldset class="easyrankly-setup-section">
+						<fieldset class="erankly-setup-section">
 							<legend><?php esc_html_e( 'Interface mode', 'easyrankly' ); ?></legend>
-							<label class="easyrankly-setup-choice">
+							<label class="erankly-setup-choice">
 								<input type="radio" name="simplified_mode" value="1" <?php checked( ! empty( $settings['simplified_mode'] ) ); ?>>
 								<span>
 									<strong><?php esc_html_e( 'Simplified mode', 'easyrankly' ); ?></strong>
 									<small><?php esc_html_e( 'Recommended. Shows the essential controls and automates advanced SEO defaults.', 'easyrankly' ); ?></small>
 								</span>
 							</label>
-							<label class="easyrankly-setup-choice">
+							<label class="erankly-setup-choice">
 								<input type="radio" name="simplified_mode" value="0" <?php checked( empty( $settings['simplified_mode'] ) ); ?>>
 								<span>
 									<strong><?php esc_html_e( 'Advanced mode', 'easyrankly' ); ?></strong>
@@ -220,26 +220,26 @@ function easyrankly_setup_wizard_render(): void {
 							</label>
 						</fieldset>
 
-						<div class="easyrankly-setup-section">
-							<label for="easyrankly-setup-twitter-site"><strong><?php esc_html_e( 'X (Twitter) Site', 'easyrankly' ); ?></strong></label>
-							<input id="easyrankly-setup-twitter-site" class="regular-text" type="text" name="twitter_site" value="<?php echo esc_attr( (string) $settings['twitter_site'] ); ?>" placeholder="@example" maxlength="64" autocomplete="off">
+						<div class="erankly-setup-section">
+							<label for="erankly-setup-twitter-site"><strong><?php esc_html_e( 'X (Twitter) Site', 'easyrankly' ); ?></strong></label>
+							<input id="erankly-setup-twitter-site" class="regular-text" type="text" name="twitter_site" value="<?php echo esc_attr( (string) $settings['twitter_site'] ); ?>" placeholder="@example" maxlength="64" autocomplete="off">
 							<p class="description"><?php esc_html_e( 'Optional. Enter an @handle or an x.com profile URL. It is used for the twitter:site meta tag.', 'easyrankly' ); ?></p>
 						</div>
 
-						<div class="easyrankly-setup-actions">
+						<div class="erankly-setup-actions">
 							<button type="submit" class="button button-primary"><?php esc_html_e( 'Save and continue', 'easyrankly' ); ?></button>
-							<a class="button" href="<?php echo esc_url( easyrankly_setup_wizard_url() ); ?>"><?php esc_html_e( 'Back', 'easyrankly' ); ?></a>
+							<a class="button" href="<?php echo esc_url( erankly_setup_wizard_url() ); ?>"><?php esc_html_e( 'Back', 'easyrankly' ); ?></a>
 						</div>
 					</form>
 				<?php else : ?>
 					<h2><?php esc_html_e( 'EasyRankly is ready', 'easyrankly' ); ?></h2>
 					<p><?php esc_html_e( 'Your preferences have been saved. You can now review the complete plugin settings or return to the dashboard.', 'easyrankly' ); ?></p>
-					<div class="easyrankly-setup-summary">
+					<div class="erankly-setup-summary">
 						<p><strong><?php esc_html_e( 'Interface mode:', 'easyrankly' ); ?></strong> <?php echo ! empty( $settings['simplified_mode'] ) ? esc_html__( 'Simplified', 'easyrankly' ) : esc_html__( 'Advanced', 'easyrankly' ); ?></p>
 						<p><strong><?php esc_html_e( 'X (Twitter) Site:', 'easyrankly' ); ?></strong> <?php echo '' !== $settings['twitter_site'] ? esc_html( (string) $settings['twitter_site'] ) : esc_html__( 'Not configured', 'easyrankly' ); ?></p>
 					</div>
-					<div class="easyrankly-setup-actions">
-						<a class="button button-primary" href="<?php echo esc_url( easyrankly_setup_wizard_settings_url() ); ?>"><?php esc_html_e( 'Open EasyRankly settings', 'easyrankly' ); ?></a>
+					<div class="erankly-setup-actions">
+						<a class="button button-primary" href="<?php echo esc_url( erankly_setup_wizard_settings_url() ); ?>"><?php esc_html_e( 'Open EasyRankly settings', 'easyrankly' ); ?></a>
 						<a class="button" href="<?php echo esc_url( is_multisite() ? network_admin_url() : admin_url() ); ?>"><?php esc_html_e( 'Return to dashboard', 'easyrankly' ); ?></a>
 					</div>
 				<?php endif; ?>

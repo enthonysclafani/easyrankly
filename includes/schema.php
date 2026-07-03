@@ -14,8 +14,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * @return void
  */
-function easyrankly_render_schema(): void {
-	$graph = easyrankly_get_schema_graph();
+function erankly_render_schema(): void {
+	$graph = erankly_get_schema_graph();
 
 	if ( empty( $graph ) ) {
 		return;
@@ -26,15 +26,19 @@ function easyrankly_render_schema(): void {
 		'@graph'   => array_values( $graph ),
 	);
 
-	// JSON_HEX_TAG and JSON_HEX_AMP escape <, > and & so a value containing "</script>"
-	// can't break out of the script tag. Google still parses the escaped sequences fine.
-	$json = wp_json_encode( $schema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP );
-
-	if ( ! is_string( $json ) || '' === $json ) {
-		return;
-	}
-
-	printf( '<script type="application/ld+json">%s</script>' . "\n", $json ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+	// The JSON_HEX flags prevent values from closing the script element while
+	// preserving valid JSON-LD for search engine parsers.
+	echo '<script type="application/ld+json">';
+	echo wp_json_encode(
+		$schema,
+		JSON_UNESCAPED_SLASHES
+		| JSON_UNESCAPED_UNICODE
+		| JSON_HEX_TAG
+		| JSON_HEX_AMP
+		| JSON_HEX_APOS
+		| JSON_HEX_QUOT
+	);
+	echo '</script>' . "\n";
 }
 
 /**
@@ -42,11 +46,11 @@ function easyrankly_render_schema(): void {
  *
  * @return array<int,array<string,mixed>>
  */
-function easyrankly_get_schema_graph(): array {
-	$graph = is_404() ? array() : easyrankly_schema_foundational_graph();
+function erankly_get_schema_graph(): array {
+	$graph = is_404() ? array() : erankly_schema_foundational_graph();
 
-	$breadcrumbs = function_exists( 'easyrankly_schema_breadcrumb_list' )
-		? easyrankly_schema_breadcrumb_list()
+	$breadcrumbs = function_exists( 'erankly_schema_breadcrumb_list' )
+		? erankly_schema_breadcrumb_list()
 		: array();
 
 	$breadcrumb_id = ! empty( $breadcrumbs ) && isset( $breadcrumbs['@id'] )
@@ -55,39 +59,39 @@ function easyrankly_get_schema_graph(): array {
 
 	if ( is_singular() ) {
 		$post_id = get_queried_object_id();
-		$product = easyrankly_get_woocommerce_product_data( $post_id );
+		$product = erankly_get_woocommerce_product_data( $post_id );
 
-		$graph[] = easyrankly_schema_webpage( $post_id, $breadcrumb_id );
+		$graph[] = erankly_schema_webpage( $post_id, $breadcrumb_id );
 
 		if ( ! empty( $product ) ) {
 			$graph[] = $product;
 		} elseif ( 'post' === get_post_type( $post_id ) ) {
-			$graph[] = easyrankly_schema_article( $post_id );
+			$graph[] = erankly_schema_article( $post_id );
 		}
 
-		$faq = easyrankly_schema_faq( $post_id );
+		$faq = erankly_schema_faq( $post_id );
 
 		if ( ! empty( $faq ) ) {
 			$graph[] = $faq;
 		}
 
-		$local_business = easyrankly_schema_local_business_for_page( $post_id );
+		$local_business = erankly_schema_local_business_for_page( $post_id );
 
 		if ( ! empty( $local_business ) ) {
 			// LocalBusiness references the Organization via parentOrganization. Ensure that
 			// node exists even when the primary identity is a Person (duplicates are removed
-			// later by easyrankly_dedupe_schema_graph()).
-			if ( 'person' === (string) easyrankly_get_setting( 'schema_identity', 'organization' ) ) {
-				$graph[] = easyrankly_schema_organization();
+			// later by erankly_dedupe_schema_graph()).
+			if ( 'person' === (string) erankly_get_setting( 'schema_identity', 'organization' ) ) {
+				$graph[] = erankly_schema_organization();
 			}
 
 			$graph[] = $local_business;
 		}
 	} elseif ( ! is_404() ) {
-		$graph[] = easyrankly_schema_webpage( 0, $breadcrumb_id );
+		$graph[] = erankly_schema_webpage( 0, $breadcrumb_id );
 	}
 
-	foreach ( easyrankly_get_global_schema_graph() as $schema ) {
+	foreach ( erankly_get_global_schema_graph() as $schema ) {
 		$graph[] = $schema;
 	}
 
@@ -100,9 +104,9 @@ function easyrankly_get_schema_graph(): array {
 	 *
 	 * @param array<int,array<string,mixed>> $graph Schema graph.
 	 */
-	$graph = apply_filters( 'easyrankly_schema', array_filter( $graph ) );
+	$graph = apply_filters( 'erankly_schema', array_filter( $graph ) );
 
-	return is_array( $graph ) ? easyrankly_dedupe_schema_graph( $graph ) : array();
+	return is_array( $graph ) ? erankly_dedupe_schema_graph( $graph ) : array();
 }
 
 /**
@@ -110,12 +114,12 @@ function easyrankly_get_schema_graph(): array {
  *
  * @return array<int,array<string,mixed>>
  */
-function easyrankly_schema_foundational_graph(): array {
-	$identity = (string) easyrankly_get_setting( 'schema_identity', 'organization' );
+function erankly_schema_foundational_graph(): array {
+	$identity = (string) erankly_get_setting( 'schema_identity', 'organization' );
 
 	return array(
-		'person' === $identity ? easyrankly_schema_person() : easyrankly_schema_organization(),
-		easyrankly_schema_website(),
+		'person' === $identity ? erankly_schema_person() : erankly_schema_organization(),
+		erankly_schema_website(),
 	);
 }
 
@@ -125,7 +129,7 @@ function easyrankly_schema_foundational_graph(): array {
  * @param array<int,array<string,mixed>> $graph Schema graph.
  * @return array<int,array<string,mixed>>
  */
-function easyrankly_dedupe_schema_graph( array $graph ): array {
+function erankly_dedupe_schema_graph( array $graph ): array {
 	$seen   = array();
 	$unique = array();
 
@@ -153,8 +157,8 @@ function easyrankly_dedupe_schema_graph( array $graph ): array {
  *
  * @return string
  */
-function easyrankly_schema_identity_id(): string {
-	$type = (string) easyrankly_get_setting( 'schema_identity', 'organization' );
+function erankly_schema_identity_id(): string {
+	$type = (string) erankly_get_setting( 'schema_identity', 'organization' );
 
 	return home_url( 'person' === $type ? '/#person' : '/#organization' );
 }
@@ -164,13 +168,13 @@ function easyrankly_schema_identity_id(): string {
  *
  * @return array<string,mixed>
  */
-function easyrankly_schema_organization(): array {
-	$logo    = easyrankly_get_organization_logo_url();
-	$details = easyrankly_get_organization_schema_details();
+function erankly_schema_organization(): array {
+	$logo    = erankly_get_organization_logo_url();
+	$details = erankly_get_organization_schema_details();
 	$schema  = array(
 		'@type' => 'Organization',
 		'@id'   => home_url( '/#organization' ),
-		'name'  => easyrankly_get_organization_name(),
+		'name'  => erankly_get_organization_name(),
 		'url'   => home_url( '/' ),
 	);
 
@@ -180,7 +184,7 @@ function easyrankly_schema_organization(): array {
 		}
 	}
 
-	$address = easyrankly_schema_organization_address();
+	$address = erankly_schema_organization_address();
 
 	if ( ! empty( $address ) ) {
 		$schema['address'] = $address;
@@ -193,7 +197,7 @@ function easyrankly_schema_organization(): array {
 		);
 	}
 
-	$same_as = easyrankly_get_social_profiles();
+	$same_as = erankly_get_social_profiles();
 
 	if ( ! empty( $same_as ) ) {
 		$schema['sameAs'] = $same_as;
@@ -204,7 +208,7 @@ function easyrankly_schema_organization(): array {
 	 *
 	 * @param array<string,mixed> $schema Organization schema.
 	 */
-	return apply_filters( 'easyrankly_schema_organization', $schema );
+	return apply_filters( 'erankly_schema_organization', $schema );
 }
 
 /**
@@ -212,14 +216,14 @@ function easyrankly_schema_organization(): array {
  *
  * @return array<string,string>
  */
-function easyrankly_get_organization_schema_details(): array {
+function erankly_get_organization_schema_details(): array {
 	$details = array(
-		'description' => trim( (string) easyrankly_get_setting( 'organization_description', '' ) ),
-		'email'       => sanitize_email( (string) easyrankly_get_setting( 'organization_email', '' ) ),
-		'telephone'   => easyrankly_sanitize_phone( easyrankly_get_setting( 'organization_phone', '' ) ),
-		'legalName'   => trim( (string) easyrankly_get_setting( 'organization_legal_name', '' ) ),
-		'vatID'       => trim( (string) easyrankly_get_setting( 'organization_vat_id', '' ) ),
-		'taxID'       => trim( (string) easyrankly_get_setting( 'organization_tax_id', '' ) ),
+		'description' => trim( (string) erankly_get_setting( 'organization_description', '' ) ),
+		'email'       => sanitize_email( (string) erankly_get_setting( 'organization_email', '' ) ),
+		'telephone'   => erankly_sanitize_phone( erankly_get_setting( 'organization_phone', '' ) ),
+		'legalName'   => trim( (string) erankly_get_setting( 'organization_legal_name', '' ) ),
+		'vatID'       => trim( (string) erankly_get_setting( 'organization_vat_id', '' ) ),
+		'taxID'       => trim( (string) erankly_get_setting( 'organization_tax_id', '' ) ),
 	);
 
 	/**
@@ -227,7 +231,7 @@ function easyrankly_get_organization_schema_details(): array {
 	 *
 	 * @param array<string,string> $details Organization details.
 	 */
-	$details = apply_filters( 'easyrankly_organization_schema_details', $details );
+	$details = apply_filters( 'erankly_organization_schema_details', $details );
 
 	return is_array( $details ) ? array_filter( $details, 'is_string' ) : array();
 }
@@ -238,14 +242,14 @@ function easyrankly_get_organization_schema_details(): array {
  * @param bool $require_complete Whether LocalBusiness-required fields must exist.
  * @return array<string,string>
  */
-function easyrankly_schema_organization_address( bool $require_complete = false ): array {
+function erankly_schema_organization_address( bool $require_complete = false ): array {
 	$address = array(
 		'@type'           => 'PostalAddress',
-		'streetAddress'   => trim( (string) easyrankly_get_setting( 'organization_street_address', '' ) ),
-		'addressLocality' => trim( (string) easyrankly_get_setting( 'organization_locality', '' ) ),
-		'addressRegion'   => trim( (string) easyrankly_get_setting( 'organization_region', '' ) ),
-		'postalCode'      => trim( (string) easyrankly_get_setting( 'organization_postal_code', '' ) ),
-		'addressCountry'  => easyrankly_sanitize_country_code( easyrankly_get_setting( 'organization_country', '' ) ),
+		'streetAddress'   => trim( (string) erankly_get_setting( 'organization_street_address', '' ) ),
+		'addressLocality' => trim( (string) erankly_get_setting( 'organization_locality', '' ) ),
+		'addressRegion'   => trim( (string) erankly_get_setting( 'organization_region', '' ) ),
+		'postalCode'      => trim( (string) erankly_get_setting( 'organization_postal_code', '' ) ),
+		'addressCountry'  => erankly_sanitize_country_code( erankly_get_setting( 'organization_country', '' ) ),
 	);
 
 	if (
@@ -273,15 +277,15 @@ function easyrankly_schema_organization_address( bool $require_complete = false 
  *
  * @return array<string,mixed>
  */
-function easyrankly_schema_person(): array {
-	$user_id = absint( easyrankly_get_setting( 'schema_person_user_id', 0 ) );
+function erankly_schema_person(): array {
+	$user_id = absint( erankly_get_setting( 'schema_person_user_id', 0 ) );
 	$user    = $user_id > 0 ? get_userdata( $user_id ) : false;
 
 	if ( $user instanceof WP_User ) {
 		$name = trim( (string) $user->display_name );
 
 		if ( '' === $name ) {
-			$name = easyrankly_get_organization_name();
+			$name = erankly_get_organization_name();
 		}
 
 		if ( '' === trim( $name ) ) {
@@ -300,7 +304,7 @@ function easyrankly_schema_person(): array {
 		);
 
 		if ( is_string( $description ) && '' !== trim( $description ) ) {
-			$schema['description'] = easyrankly_trim_text( $description, 500 );
+			$schema['description'] = erankly_trim_text( $description, 500 );
 		}
 
 		if ( is_string( $avatar ) && '' !== $avatar ) {
@@ -316,17 +320,17 @@ function easyrankly_schema_person(): array {
 		 *
 		 * @param array<string,mixed> $schema Person schema.
 		 */
-		return apply_filters( 'easyrankly_schema_person', array_filter( $schema ) );
+		return apply_filters( 'erankly_schema_person', array_filter( $schema ) );
 	}
 
 	$schema = array(
 		'@type' => 'Person',
 		'@id'   => home_url( '/#person' ),
-		'name'  => easyrankly_get_organization_name(),
+		'name'  => erankly_get_organization_name(),
 		'url'   => home_url( '/' ),
 	);
 
-	$same_as = easyrankly_get_social_profiles();
+	$same_as = erankly_get_social_profiles();
 
 	if ( ! empty( $same_as ) ) {
 		$schema['sameAs'] = $same_as;
@@ -337,7 +341,7 @@ function easyrankly_schema_person(): array {
 	 *
 	 * @param array<string,mixed> $schema Person schema.
 	 */
-	return apply_filters( 'easyrankly_schema_person', $schema );
+	return apply_filters( 'erankly_schema_person', $schema );
 }
 
 /**
@@ -345,7 +349,7 @@ function easyrankly_schema_person(): array {
  *
  * @return array<string,mixed>
  */
-function easyrankly_schema_website(): array {
+function erankly_schema_website(): array {
 	$schema = array(
 		'@type'           => 'WebSite',
 		'@id'             => home_url( '/#website' ),
@@ -353,7 +357,7 @@ function easyrankly_schema_website(): array {
 		'name'            => get_bloginfo( 'name' ),
 		'description'     => get_bloginfo( 'description' ),
 		'publisher'       => array(
-			'@id' => easyrankly_schema_identity_id(),
+			'@id' => erankly_schema_identity_id(),
 		),
 		'potentialAction' => array(
 			'@type'       => 'SearchAction',
@@ -367,7 +371,7 @@ function easyrankly_schema_website(): array {
 	 *
 	 * @param array<string,mixed> $schema WebSite schema.
 	 */
-	return apply_filters( 'easyrankly_schema_website', $schema );
+	return apply_filters( 'erankly_schema_website', $schema );
 }
 
 /**
@@ -377,15 +381,15 @@ function easyrankly_schema_website(): array {
  * @param string $breadcrumb_id Optional BreadcrumbList @id to link via the breadcrumb property.
  * @return array<string,mixed>
  */
-function easyrankly_schema_webpage( int $post_id = 0, string $breadcrumb_id = '' ): array {
-	$canonical = easyrankly_get_canonical();
+function erankly_schema_webpage( int $post_id = 0, string $breadcrumb_id = '' ): array {
+	$canonical = erankly_get_canonical();
 	$type      = ( 0 === $post_id && ( is_archive() || is_search() ) ) ? 'CollectionPage' : 'WebPage';
 	$schema    = array(
 		'@type'       => $type,
 		'@id'         => $canonical . '#webpage',
 		'url'         => $canonical,
-		'name'        => easyrankly_get_title(),
-		'description' => easyrankly_get_description(),
+		'name'        => erankly_get_title(),
+		'description' => erankly_get_description(),
 		'isPartOf'    => array(
 			'@id' => home_url( '/#website' ),
 		),
@@ -410,7 +414,7 @@ function easyrankly_schema_webpage( int $post_id = 0, string $breadcrumb_id = ''
 	 * @param array<string,mixed> $schema  WebPage schema.
 	 * @param int                 $post_id Post ID.
 	 */
-	return apply_filters( 'easyrankly_schema_webpage', array_filter( $schema ), $post_id );
+	return apply_filters( 'erankly_schema_webpage', array_filter( $schema ), $post_id );
 }
 
 /**
@@ -419,33 +423,33 @@ function easyrankly_schema_webpage( int $post_id = 0, string $breadcrumb_id = ''
  * @param int $post_id Post ID.
  * @return array<string,mixed>
  */
-function easyrankly_schema_article( int $post_id = 0 ): array {
+function erankly_schema_article( int $post_id = 0 ): array {
 	if ( $post_id <= 0 ) {
 		$post_id = get_queried_object_id();
 	}
 
-	$url       = easyrankly_get_canonical();
+	$url       = erankly_get_canonical();
 	$url       = '' !== $url ? $url : (string) get_permalink( $post_id );
-	$image     = easyrankly_get_og_image();
+	$image     = erankly_get_og_image();
 	$author_id = (int) get_post_field( 'post_author', $post_id );
 	$schema    = array(
 		'@type'            => is_singular( 'post' ) ? 'BlogPosting' : 'Article',
 		'@id'              => $url . '#article',
-		'headline'         => easyrankly_get_title(),
-		'description'      => easyrankly_get_description(),
+		'headline'         => erankly_get_title(),
+		'description'      => erankly_get_description(),
 		'url'              => $url,
 		'datePublished'    => get_the_date( DATE_W3C, $post_id ),
 		'dateModified'     => get_the_modified_date( DATE_W3C, $post_id ),
-		'author'           => easyrankly_schema_article_author( $author_id ),
+		'author'           => erankly_schema_article_author( $author_id ),
 		'publisher'        => array(
-			'@id' => easyrankly_schema_identity_id(),
+			'@id' => erankly_schema_identity_id(),
 		),
 		'mainEntityOfPage' => array(
 			'@id' => $url . '#webpage',
 		),
 	);
 
-	// easyrankly_get_og_image() already falls back through the post thumbnail,
+	// erankly_get_og_image() already falls back through the post thumbnail,
 	// the default OG image and finally the Organization logo.
 	if ( '' !== $image ) {
 		$schema['image'] = $image;
@@ -457,7 +461,7 @@ function easyrankly_schema_article( int $post_id = 0 ): array {
 	 * @param array<string,mixed> $schema  Article schema.
 	 * @param int                 $post_id Post ID.
 	 */
-	return apply_filters( 'easyrankly_schema_article', array_filter( $schema ), $post_id );
+	return apply_filters( 'erankly_schema_article', array_filter( $schema ), $post_id );
 }
 
 /**
@@ -469,7 +473,7 @@ function easyrankly_schema_article( int $post_id = 0 ): array {
  * @param int $author_id Post author user ID.
  * @return array<string,mixed>
  */
-function easyrankly_schema_article_author( int $author_id ): array {
+function erankly_schema_article_author( int $author_id ): array {
 	$author = array(
 		'@type' => 'Person',
 		'name'  => get_the_author_meta( 'display_name', $author_id ),
@@ -481,10 +485,10 @@ function easyrankly_schema_article_author( int $author_id ): array {
 		$author['url'] = $author_url;
 	}
 
-	$identity_user_id = absint( easyrankly_get_setting( 'schema_person_user_id', 0 ) );
+	$identity_user_id = absint( erankly_get_setting( 'schema_person_user_id', 0 ) );
 
 	if (
-		'person' === (string) easyrankly_get_setting( 'schema_identity', 'organization' ) &&
+		'person' === (string) erankly_get_setting( 'schema_identity', 'organization' ) &&
 		$identity_user_id > 0 &&
 		$identity_user_id === $author_id
 	) {
@@ -500,11 +504,11 @@ function easyrankly_schema_article_author( int $author_id ): array {
  * @param int $post_id Post ID.
  * @return array<string,mixed>
  */
-function easyrankly_schema_blogposting( int $post_id = 0 ): array {
-	$schema          = easyrankly_schema_article( $post_id );
+function erankly_schema_blogposting( int $post_id = 0 ): array {
+	$schema          = erankly_schema_article( $post_id );
 	$schema['@type'] = 'BlogPosting';
 
-	return apply_filters( 'easyrankly_schema_blogposting', $schema, $post_id );
+	return apply_filters( 'erankly_schema_blogposting', $schema, $post_id );
 }
 
 /**
@@ -513,7 +517,7 @@ function easyrankly_schema_blogposting( int $post_id = 0 ): array {
  * @param int $post_id Post ID.
  * @return array<string,mixed>
  */
-function easyrankly_schema_faq( int $post_id = 0 ): array {
+function erankly_schema_faq( int $post_id = 0 ): array {
 	$schema = array();
 
 	/**
@@ -524,14 +528,14 @@ function easyrankly_schema_faq( int $post_id = 0 ): array {
 	 * @param array<int,array<string,string>> $items   FAQ items.
 	 * @param int                             $post_id Post ID.
 	 */
-	$items = apply_filters( 'easyrankly_faq_items', array(), $post_id );
+	$items = apply_filters( 'erankly_faq_items', array(), $post_id );
 
 	if ( is_array( $items ) && ! empty( $items ) ) {
 		$entities = array();
 
 		foreach ( $items as $item ) {
-			$question = isset( $item['question'] ) ? easyrankly_trim_text( (string) $item['question'], 120 ) : '';
-			$answer   = isset( $item['answer'] ) ? easyrankly_trim_text( (string) $item['answer'], 500 ) : '';
+			$question = isset( $item['question'] ) ? erankly_trim_text( (string) $item['question'], 120 ) : '';
+			$answer   = isset( $item['answer'] ) ? erankly_trim_text( (string) $item['answer'], 500 ) : '';
 
 			if ( '' === $question || '' === $answer ) {
 				continue;
@@ -550,13 +554,13 @@ function easyrankly_schema_faq( int $post_id = 0 ): array {
 		if ( ! empty( $entities ) ) {
 			$schema = array(
 				'@type'      => 'FAQPage',
-				'@id'        => easyrankly_get_canonical() . '#faqpage',
+				'@id'        => erankly_get_canonical() . '#faqpage',
 				'mainEntity' => $entities,
 			);
 		}
 	}
 
-	return apply_filters( 'easyrankly_schema_faq', $schema, $post_id );
+	return apply_filters( 'erankly_schema_faq', $schema, $post_id );
 }
 
 /**
@@ -565,21 +569,21 @@ function easyrankly_schema_faq( int $post_id = 0 ): array {
  * @param array<string,mixed> $args Service arguments.
  * @return array<string,mixed>
  */
-function easyrankly_schema_service( array $args = array() ): array {
+function erankly_schema_service( array $args = array() ): array {
 	$schema = wp_parse_args(
 		$args,
 		array(
 			'@type'       => 'Service',
-			'name'        => easyrankly_get_title(),
-			'description' => easyrankly_get_description(),
-			'url'         => easyrankly_get_canonical(),
+			'name'        => erankly_get_title(),
+			'description' => erankly_get_description(),
+			'url'         => erankly_get_canonical(),
 			'provider'    => array(
-				'@id' => easyrankly_schema_identity_id(),
+				'@id' => erankly_schema_identity_id(),
 			),
 		)
 	);
 
-	return apply_filters( 'easyrankly_schema_service', array_filter( $schema ), $args );
+	return apply_filters( 'erankly_schema_service', array_filter( $schema ), $args );
 }
 
 /**
@@ -588,18 +592,18 @@ function easyrankly_schema_service( array $args = array() ): array {
  * @param array<string,mixed> $args Business arguments.
  * @return array<string,mixed>
  */
-function easyrankly_schema_localbusiness( array $args = array() ): array {
+function erankly_schema_localbusiness( array $args = array() ): array {
 	$schema = wp_parse_args(
 		$args,
 		array(
 			'@type' => 'LocalBusiness',
 			'@id'   => home_url( '/#localbusiness' ),
-			'name'  => easyrankly_get_organization_name(),
+			'name'  => erankly_get_organization_name(),
 			'url'   => home_url( '/' ),
 		)
 	);
 
-	return apply_filters( 'easyrankly_schema_localbusiness', array_filter( $schema ), $args );
+	return apply_filters( 'erankly_schema_localbusiness', array_filter( $schema ), $args );
 }
 
 /**
@@ -608,12 +612,12 @@ function easyrankly_schema_localbusiness( array $args = array() ): array {
  * @param int $post_id Current singular post ID.
  * @return array<string,mixed>
  */
-function easyrankly_schema_local_business_for_page( int $post_id ): array {
-	if ( ! easyrankly_get_setting( 'enable_local_business', 0 ) || 'page' !== get_post_type( $post_id ) ) {
+function erankly_schema_local_business_for_page( int $post_id ): array {
+	if ( ! erankly_get_setting( 'enable_local_business', 0 ) || 'page' !== get_post_type( $post_id ) ) {
 		return array();
 	}
 
-	$path = easyrankly_sanitize_relative_path( easyrankly_get_setting( 'local_business_page_path', '' ) );
+	$path = erankly_sanitize_relative_path( erankly_get_setting( 'local_business_page_path', '' ) );
 
 	if ( '' === $path ) {
 		return array();
@@ -625,15 +629,15 @@ function easyrankly_schema_local_business_for_page( int $post_id ): array {
 		return array();
 	}
 
-	$name    = trim( easyrankly_get_organization_name() );
-	$address = easyrankly_schema_organization_address( true );
+	$name    = trim( erankly_get_organization_name() );
+	$address = erankly_schema_organization_address( true );
 
 	if ( '' === $name || empty( $address ) ) {
 		return array();
 	}
 
-	$types = easyrankly_get_local_business_types();
-	$type  = (string) easyrankly_get_setting( 'local_business_type', 'LocalBusiness' );
+	$types = erankly_get_local_business_types();
+	$type  = (string) erankly_get_setting( 'local_business_type', 'LocalBusiness' );
 	$type  = isset( $types[ $type ] ) ? $type : 'LocalBusiness';
 	$url   = get_permalink( $page );
 
@@ -641,7 +645,7 @@ function easyrankly_schema_local_business_for_page( int $post_id ): array {
 		return array();
 	}
 
-	$schema = easyrankly_schema_localbusiness(
+	$schema = erankly_schema_localbusiness(
 		array(
 			'@type'              => $type,
 			'@id'                => trailingslashit( $url ) . '#localbusiness',
@@ -653,32 +657,32 @@ function easyrankly_schema_local_business_for_page( int $post_id ): array {
 			),
 		)
 	);
-	$logo   = easyrankly_get_organization_logo_url();
+	$logo   = erankly_get_organization_logo_url();
 
 	if ( '' !== $logo ) {
 		$schema['image'] = $logo;
 	}
 
-	$email = sanitize_email( (string) easyrankly_get_setting( 'organization_email', '' ) );
+	$email = sanitize_email( (string) erankly_get_setting( 'organization_email', '' ) );
 
 	if ( '' !== $email ) {
 		$schema['email'] = $email;
 	}
 
-	$telephone = easyrankly_sanitize_phone( easyrankly_get_setting( 'organization_phone', '' ) );
+	$telephone = erankly_sanitize_phone( erankly_get_setting( 'organization_phone', '' ) );
 
 	if ( '' !== $telephone ) {
 		$schema['telephone'] = $telephone;
 	}
 
-	$price_range = trim( (string) easyrankly_get_setting( 'local_business_price_range', '' ) );
+	$price_range = trim( (string) erankly_get_setting( 'local_business_price_range', '' ) );
 
 	if ( '' !== $price_range ) {
 		$schema['priceRange'] = $price_range;
 	}
 
-	$latitude  = easyrankly_sanitize_coordinate( easyrankly_get_setting( 'local_business_latitude', '' ), -90, 90 );
-	$longitude = easyrankly_sanitize_coordinate( easyrankly_get_setting( 'local_business_longitude', '' ), -180, 180 );
+	$latitude  = erankly_sanitize_coordinate( erankly_get_setting( 'local_business_latitude', '' ), -90, 90 );
+	$longitude = erankly_sanitize_coordinate( erankly_get_setting( 'local_business_longitude', '' ), -180, 180 );
 
 	if ( '' !== $latitude && '' !== $longitude ) {
 		$schema['geo'] = array(
@@ -688,20 +692,20 @@ function easyrankly_schema_local_business_for_page( int $post_id ): array {
 		);
 	}
 
-	$opening_hours = easyrankly_schema_opening_hours();
+	$opening_hours = erankly_schema_opening_hours();
 
 	if ( ! empty( $opening_hours ) ) {
 		$schema['openingHoursSpecification'] = $opening_hours;
 	}
 
-	if ( easyrankly_is_food_business_type( $type ) ) {
-		$menu = easyrankly_sanitize_url( easyrankly_get_setting( 'local_business_menu_url', '' ) );
+	if ( erankly_is_food_business_type( $type ) ) {
+		$menu = erankly_sanitize_url( erankly_get_setting( 'local_business_menu_url', '' ) );
 
 		if ( '' !== $menu ) {
 			$schema['menu'] = $menu;
 		}
 
-		$cuisine = trim( (string) easyrankly_get_setting( 'local_business_cuisine', '' ) );
+		$cuisine = trim( (string) erankly_get_setting( 'local_business_cuisine', '' ) );
 
 		if ( '' !== $cuisine ) {
 			$schema['servesCuisine'] = array_values( array_filter( array_map( 'trim', explode( ',', $cuisine ) ) ) );
@@ -714,7 +718,7 @@ function easyrankly_schema_local_business_for_page( int $post_id ): array {
 	 * @param array<string,mixed> $schema  LocalBusiness schema.
 	 * @param int                 $post_id Location page ID.
 	 */
-	$schema = apply_filters( 'easyrankly_schema_local_business', $schema, $post_id );
+	$schema = apply_filters( 'erankly_schema_local_business', $schema, $post_id );
 
 	return is_array( $schema ) ? array_filter( $schema ) : array();
 }
@@ -725,8 +729,8 @@ function easyrankly_schema_local_business_for_page( int $post_id ): array {
  * @param array<string,mixed>|null $configured_hours Optional hours override.
  * @return array<int,array<string,mixed>>
  */
-function easyrankly_schema_opening_hours( ?array $configured_hours = null ): array {
-	$hours  = easyrankly_sanitize_opening_hours( null === $configured_hours ? easyrankly_get_setting( 'local_business_hours', array() ) : $configured_hours );
+function erankly_schema_opening_hours( ?array $configured_hours = null ): array {
+	$hours  = erankly_sanitize_opening_hours( null === $configured_hours ? erankly_get_setting( 'local_business_hours', array() ) : $configured_hours );
 	$days   = array(
 		'monday'    => 'Monday',
 		'tuesday'   => 'Tuesday',
@@ -789,8 +793,8 @@ function easyrankly_schema_opening_hours( ?array $configured_hours = null ): arr
  *
  * @return array<int,array<string,mixed>>
  */
-function easyrankly_get_global_schema_graph(): array {
-	$blocks = easyrankly_get_setting( 'global_schema_blocks', array() );
+function erankly_get_global_schema_graph(): array {
+	$blocks = erankly_get_setting( 'global_schema_blocks', array() );
 
 	if ( ! is_array( $blocks ) ) {
 		return array();
@@ -804,11 +808,11 @@ function easyrankly_get_global_schema_graph(): array {
 			continue;
 		}
 
-		if ( ! easyrankly_global_schema_block_matches_request( $block ) ) {
+		if ( ! erankly_global_schema_block_matches_request( $block ) ) {
 			continue;
 		}
 
-		$schemas = easyrankly_schema_from_configured_block( $block, $post_id );
+		$schemas = erankly_schema_from_configured_block( $block, $post_id );
 
 		foreach ( $schemas as $schema ) {
 			if ( ! empty( $schema ) ) {
@@ -826,7 +830,7 @@ function easyrankly_get_global_schema_graph(): array {
  * @param array<string,mixed> $block Schema block.
  * @return bool
  */
-function easyrankly_global_schema_block_matches_request( array $block ): bool {
+function erankly_global_schema_block_matches_request( array $block ): bool {
 	if ( empty( $block['enabled'] ) ) {
 		return false;
 	}
@@ -849,11 +853,11 @@ function easyrankly_global_schema_block_matches_request( array $block ): bool {
 		return true;
 	}
 
-	if ( in_array( 'post_type_archive', $contexts, true ) && easyrankly_global_schema_matches_post_type_archive( $block ) ) {
+	if ( in_array( 'post_type_archive', $contexts, true ) && erankly_global_schema_matches_post_type_archive( $block ) ) {
 		return true;
 	}
 
-	if ( in_array( 'singular', $contexts, true ) && easyrankly_global_schema_matches_singular( $block ) ) {
+	if ( in_array( 'singular', $contexts, true ) && erankly_global_schema_matches_singular( $block ) ) {
 		return true;
 	}
 
@@ -866,7 +870,7 @@ function easyrankly_global_schema_block_matches_request( array $block ): bool {
  * @param array<string,mixed> $block Schema block.
  * @return bool
  */
-function easyrankly_global_schema_matches_post_type_archive( array $block ): bool {
+function erankly_global_schema_matches_post_type_archive( array $block ): bool {
 	if ( ! is_post_type_archive() ) {
 		return false;
 	}
@@ -904,7 +908,7 @@ function easyrankly_global_schema_matches_post_type_archive( array $block ): boo
  * @param array<string,mixed> $block Schema block.
  * @return bool
  */
-function easyrankly_global_schema_matches_singular( array $block ): bool {
+function erankly_global_schema_matches_singular( array $block ): bool {
 	if ( ! is_singular() ) {
 		return false;
 	}
@@ -922,7 +926,7 @@ function easyrankly_global_schema_matches_singular( array $block ): bool {
 		return false;
 	}
 
-	if ( easyrankly_schema_target_list_contains_post( isset( $block['exclude_items'] ) ? (string) $block['exclude_items'] : '', $post_id ) ) {
+	if ( erankly_schema_target_list_contains_post( isset( $block['exclude_items'] ) ? (string) $block['exclude_items'] : '', $post_id ) ) {
 		return false;
 	}
 
@@ -932,7 +936,7 @@ function easyrankly_global_schema_matches_singular( array $block ): bool {
 		return true;
 	}
 
-	return easyrankly_schema_target_list_contains_post( $include_items, $post_id );
+	return erankly_schema_target_list_contains_post( $include_items, $post_id );
 }
 
 /**
@@ -942,7 +946,7 @@ function easyrankly_global_schema_matches_singular( array $block ): bool {
  * @param int    $post_id Post ID.
  * @return bool
  */
-function easyrankly_schema_target_list_contains_post( string $value, int $post_id ): bool {
+function erankly_schema_target_list_contains_post( string $value, int $post_id ): bool {
 	$items = preg_split( '/[\r\n,]+/', $value );
 
 	if ( ! is_array( $items ) || $post_id <= 0 ) {
@@ -978,10 +982,10 @@ function easyrankly_schema_target_list_contains_post( string $value, int $post_i
  * @param int                 $post_id Post ID.
  * @return array<int,array<string,mixed>>
  */
-function easyrankly_schema_from_configured_block( array $block, int $post_id ): array {
+function erankly_schema_from_configured_block( array $block, int $post_id ): array {
 	$type = isset( $block['type'] ) ? (string) $block['type'] : '';
 
-	return 'custom' === $type ? easyrankly_configured_custom_schemas( $block, $post_id ) : array();
+	return 'custom' === $type ? erankly_configured_custom_schemas( $block, $post_id ) : array();
 }
 
 /**
@@ -991,19 +995,19 @@ function easyrankly_schema_from_configured_block( array $block, int $post_id ): 
  * @param int                 $post_id Post ID.
  * @return array<int,array<string,mixed>>
  */
-function easyrankly_configured_custom_schemas( array $block, int $post_id ): array {
-	$json = easyrankly_schema_block_field( $block, 'custom_json', $post_id, true );
+function erankly_configured_custom_schemas( array $block, int $post_id ): array {
+	$json = erankly_schema_block_field( $block, 'custom_json', $post_id, true );
 
 	if ( '' === $json ) {
 		return array();
 	}
 
 	$schemas = array();
-	$decoded = easyrankly_decode_custom_json_ld( easyrankly_replace_json_ld_variables( $json, $post_id ) );
+	$decoded = erankly_decode_custom_json_ld( erankly_replace_json_ld_variables( $json, $post_id ) );
 
 	foreach ( $decoded as $schema ) {
 		if ( ! empty( $schema ) ) {
-			$schemas[] = easyrankly_filter_empty_schema_values( $schema );
+			$schemas[] = erankly_filter_empty_schema_values( $schema );
 		}
 	}
 
@@ -1019,7 +1023,7 @@ function easyrankly_configured_custom_schemas( array $block, int $post_id ): arr
  * @param bool                $raw_value Whether to return the raw stored value.
  * @return string
  */
-function easyrankly_schema_block_field( array $block, string $field, int $post_id, bool $raw_value = false ): string {
+function erankly_schema_block_field( array $block, string $field, int $post_id, bool $raw_value = false ): string {
 	$fields = isset( $block['fields'] ) && is_array( $block['fields'] ) ? $block['fields'] : array();
 	$value  = isset( $fields[ $field ] ) ? trim( (string) $fields[ $field ] ) : '';
 
@@ -1027,7 +1031,7 @@ function easyrankly_schema_block_field( array $block, string $field, int $post_i
 		return $value;
 	}
 
-	return trim( wp_strip_all_tags( easyrankly_replace_variables( $value, $post_id ) ) );
+	return trim( wp_strip_all_tags( erankly_replace_variables( $value, $post_id ) ) );
 }
 
 /**
@@ -1036,10 +1040,10 @@ function easyrankly_schema_block_field( array $block, string $field, int $post_i
  * @param array<string,mixed> $schema Schema data.
  * @return array<string,mixed>
  */
-function easyrankly_filter_empty_schema_values( array $schema ): array {
+function erankly_filter_empty_schema_values( array $schema ): array {
 	foreach ( $schema as $key => $value ) {
 		if ( is_array( $value ) ) {
-			$value = easyrankly_filter_empty_schema_values( $value );
+			$value = erankly_filter_empty_schema_values( $value );
 		}
 
 		if ( array() === $value || '' === $value || null === $value ) {

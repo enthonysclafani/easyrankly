@@ -17,27 +17,27 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * @return array<string,string>
  */
-function easyrankly_get_meta_keys(): array {
+function erankly_get_meta_keys(): array {
 	return array(
-		'_easyrankly_title'               => 'string',
-		'_easyrankly_description'         => 'string',
-		'_easyrankly_canonical'           => 'string',
-		'_easyrankly_breadcrumb_name'     => 'string',
-		'_easyrankly_og_title'            => 'string',
-		'_easyrankly_og_description'      => 'string',
-		'_easyrankly_twitter_title'       => 'string',
-		'_easyrankly_twitter_description' => 'string',
-		'_easyrankly_twitter_card_type'   => 'string',
-		'_easyrankly_social_image_url'    => 'string',
-		'_easyrankly_noindex'             => 'boolean',
-		'_easyrankly_nofollow'            => 'boolean',
-		'_easyrankly_noarchive'           => 'boolean',
-		'_easyrankly_og_image_id'         => 'integer',
-		'_easyrankly_twitter_image_id'    => 'integer',
-		'_easyrankly_disable_sitemap'     => 'boolean',
-		'_easyrankly_exclude_search'      => 'boolean',
-		'_easyrankly_exclude_archive'     => 'boolean',
-		'_easyrankly_exclude_from_news'   => 'boolean',
+		'_erankly_title'               => 'string',
+		'_erankly_description'         => 'string',
+		'_erankly_canonical'           => 'string',
+		'_erankly_breadcrumb_name'     => 'string',
+		'_erankly_og_title'            => 'string',
+		'_erankly_og_description'      => 'string',
+		'_erankly_twitter_title'       => 'string',
+		'_erankly_twitter_description' => 'string',
+		'_erankly_twitter_card_type'   => 'string',
+		'_erankly_social_image_url'    => 'string',
+		'_erankly_noindex'             => 'boolean',
+		'_erankly_nofollow'            => 'boolean',
+		'_erankly_noarchive'           => 'boolean',
+		'_erankly_og_image_id'         => 'integer',
+		'_erankly_twitter_image_id'    => 'integer',
+		'_erankly_disable_sitemap'     => 'boolean',
+		'_erankly_exclude_search'      => 'boolean',
+		'_erankly_exclude_archive'     => 'boolean',
+		'_erankly_exclude_from_news'   => 'boolean',
 	);
 }
 
@@ -46,8 +46,8 @@ function easyrankly_get_meta_keys(): array {
  *
  * @return void
  */
-function easyrankly_register_meta(): void {
-	$meta = easyrankly_get_meta_keys();
+function erankly_register_meta(): void {
+	$meta = erankly_get_meta_keys();
 
 	foreach ( $meta as $key => $type ) {
 		register_post_meta(
@@ -68,7 +68,7 @@ function easyrankly_register_meta(): void {
 					unset( $allowed, $meta_key );
 					return $object_id > 0 ? current_user_can( 'edit_post', $object_id ) : current_user_can( 'edit_posts' );
 				},
-				'sanitize_callback' => 'easyrankly_sanitize_registered_meta',
+				'sanitize_callback' => 'erankly_sanitize_registered_meta',
 			)
 		);
 
@@ -85,7 +85,7 @@ function easyrankly_register_meta(): void {
 					// edit_terms check does not resolve for custom taxonomies.
 					return $object_id > 0 && current_user_can( 'edit_term', $object_id );
 				},
-				'sanitize_callback' => 'easyrankly_sanitize_registered_meta',
+				'sanitize_callback' => 'erankly_sanitize_registered_meta',
 			)
 		);
 	}
@@ -98,39 +98,39 @@ function easyrankly_register_meta(): void {
  * @param string $meta_key Meta key.
  * @return mixed
  */
-function easyrankly_sanitize_registered_meta( mixed $value, string $meta_key ): mixed {
+function erankly_sanitize_registered_meta( mixed $value, string $meta_key ): mixed {
 	switch ( $meta_key ) {
-		case '_easyrankly_title':
-			return easyrankly_sanitize_text( $value );
-		case '_easyrankly_description':
-			return easyrankly_sanitize_textarea( $value );
-		case '_easyrankly_canonical':
-			return easyrankly_sanitize_text( $value );
-		case '_easyrankly_breadcrumb_name':
-			return easyrankly_sanitize_text( $value );
-		case '_easyrankly_social_image_url':
-			return easyrankly_sanitize_text( $value );
-		case '_easyrankly_og_title':
-			return easyrankly_sanitize_text( $value );
-		case '_easyrankly_og_description':
-		case '_easyrankly_twitter_description':
-			return easyrankly_sanitize_textarea( $value );
-		case '_easyrankly_twitter_title':
-			return easyrankly_sanitize_text( $value );
-		case '_easyrankly_twitter_card_type':
-			$value = easyrankly_sanitize_text( $value );
+		case '_erankly_title':
+			return erankly_sanitize_text( $value );
+		case '_erankly_description':
+			return erankly_sanitize_textarea( $value );
+		case '_erankly_canonical':
+			return erankly_sanitize_text( $value );
+		case '_erankly_breadcrumb_name':
+			return erankly_sanitize_text( $value );
+		case '_erankly_social_image_url':
+			return erankly_sanitize_text( $value );
+		case '_erankly_og_title':
+			return erankly_sanitize_text( $value );
+		case '_erankly_og_description':
+		case '_erankly_twitter_description':
+			return erankly_sanitize_textarea( $value );
+		case '_erankly_twitter_title':
+			return erankly_sanitize_text( $value );
+		case '_erankly_twitter_card_type':
+			$value = erankly_sanitize_text( $value );
 
 			return in_array( $value, array( 'summary', 'summary_large_image' ), true ) ? $value : '';
-		case '_easyrankly_og_image_id':
-		case '_easyrankly_twitter_image_id':
+		case '_erankly_og_image_id':
+		case '_erankly_twitter_image_id':
 			return absint( $value );
-		case '_easyrankly_noindex':
-		case '_easyrankly_nofollow':
-		case '_easyrankly_noarchive':
-		case '_easyrankly_disable_sitemap':
-		case '_easyrankly_exclude_search':
-		case '_easyrankly_exclude_archive':
-		case '_easyrankly_exclude_from_news':
+		case '_erankly_noindex':
+		case '_erankly_nofollow':
+		case '_erankly_noarchive':
+		case '_erankly_disable_sitemap':
+		case '_erankly_exclude_search':
+		case '_erankly_exclude_archive':
+		case '_erankly_exclude_from_news':
 			return (bool) $value;
 		default:
 			return $value;
@@ -144,12 +144,12 @@ function easyrankly_sanitize_registered_meta( mixed $value, string $meta_key ): 
  * @param bool  $is_global Whether to sanitize global targeting fields.
  * @return array<int,array<string,mixed>>
  */
-function easyrankly_sanitize_schema_blocks( mixed $value, bool $is_global = false ): array {
+function erankly_sanitize_schema_blocks( mixed $value, bool $is_global = false ): array {
 	// The Settings API already unslashes the input; unslashing again would
 	// corrupt backslashes inside custom JSON-LD (e.g. \" or \uXXXX escapes).
 	$value      = is_array( $value ) ? $value : array();
 	$contexts   = array_fill_keys( array( 'front_page', 'posts_page', 'singular', 'post_type_archive', 'search' ), true );
-	$post_types = array_fill_keys( array_keys( easyrankly_get_public_post_types() ), true );
+	$post_types = array_fill_keys( array_keys( erankly_get_public_post_types() ), true );
 	$blocks     = array();
 
 	foreach ( $value as $block ) {
@@ -166,8 +166,8 @@ function easyrankly_sanitize_schema_blocks( mixed $value, bool $is_global = fals
 			$clean['enabled']           = ! empty( $block['enabled'] ) ? 1 : 0;
 			$clean['target_contexts']   = array();
 			$clean['target_post_types'] = array();
-			$clean['include_items']     = isset( $block['include_items'] ) ? easyrankly_sanitize_schema_target_items( $block['include_items'] ) : '';
-			$clean['exclude_items']     = isset( $block['exclude_items'] ) ? easyrankly_sanitize_schema_target_items( $block['exclude_items'] ) : '';
+			$clean['include_items']     = isset( $block['include_items'] ) ? erankly_sanitize_schema_target_items( $block['include_items'] ) : '';
+			$clean['exclude_items']     = isset( $block['exclude_items'] ) ? erankly_sanitize_schema_target_items( $block['exclude_items'] ) : '';
 
 			if ( isset( $block['target_contexts'] ) && is_array( $block['target_contexts'] ) ) {
 				foreach ( $block['target_contexts'] as $context ) {
@@ -193,14 +193,14 @@ function easyrankly_sanitize_schema_blocks( mixed $value, bool $is_global = fals
 			$clean['target_post_types'] = array_values( array_unique( $clean['target_post_types'] ) );
 		}
 
-		$clean['fields']['custom_json'] = isset( $block['fields']['custom_json'] ) ? easyrankly_sanitize_textarea( $block['fields']['custom_json'] ) : '';
+		$clean['fields']['custom_json'] = isset( $block['fields']['custom_json'] ) ? erankly_sanitize_textarea( $block['fields']['custom_json'] ) : '';
 
-		if ( '' !== trim( (string) $clean['fields']['custom_json'] ) && ! easyrankly_is_valid_custom_json_ld( (string) $clean['fields']['custom_json'] ) ) {
-			easyrankly_add_schema_json_settings_error();
+		if ( '' !== trim( (string) $clean['fields']['custom_json'] ) && ! erankly_is_valid_custom_json_ld( (string) $clean['fields']['custom_json'] ) ) {
+			erankly_add_schema_json_settings_error();
 			continue;
 		}
 
-		if ( ! easyrankly_schema_block_has_content( $clean ) ) {
+		if ( ! erankly_schema_block_has_content( $clean ) ) {
 			continue;
 		}
 
@@ -216,7 +216,7 @@ function easyrankly_sanitize_schema_blocks( mixed $value, bool $is_global = fals
  * @param mixed $value Raw target list.
  * @return string
  */
-function easyrankly_sanitize_schema_target_items( mixed $value ): string {
+function erankly_sanitize_schema_target_items( mixed $value ): string {
 	$items = preg_split( '/[\r\n,]+/', (string) $value );
 
 	if ( ! is_array( $items ) ) {
@@ -244,7 +244,7 @@ function easyrankly_sanitize_schema_target_items( mixed $value ): string {
  * @param array<string,mixed> $block Schema block.
  * @return bool
  */
-function easyrankly_schema_block_has_content( array $block ): bool {
+function erankly_schema_block_has_content( array $block ): bool {
 	return isset( $block['fields']['custom_json'] ) && '' !== trim( (string) $block['fields']['custom_json'] );
 }
 
@@ -253,7 +253,7 @@ function easyrankly_schema_block_has_content( array $block ): bool {
  *
  * @return void
  */
-function easyrankly_add_schema_json_settings_error(): void {
+function erankly_add_schema_json_settings_error(): void {
 	static $added = false;
 
 	if ( $added || ! function_exists( 'add_settings_error' ) ) {
@@ -263,8 +263,8 @@ function easyrankly_add_schema_json_settings_error(): void {
 	$added = true;
 
 	add_settings_error(
-		EASYRANKLY_OPTION,
-		'easyrankly_invalid_json_ld',
+		ERANKLY_OPTION,
+		'erankly_invalid_json_ld',
 		__( 'Custom JSON-LD was not saved because it is not valid. Use one JSON-LD object, an array of objects, or an object with @graph.', 'easyrankly' ),
 		'error'
 	);
@@ -276,8 +276,8 @@ function easyrankly_add_schema_json_settings_error(): void {
  * @param string $json Raw JSON-LD.
  * @return bool
  */
-function easyrankly_is_valid_custom_json_ld( string $json ): bool {
-	return ! empty( easyrankly_decode_custom_json_ld( $json ) );
+function erankly_is_valid_custom_json_ld( string $json ): bool {
+	return ! empty( erankly_decode_custom_json_ld( $json ) );
 }
 
 /**
@@ -288,14 +288,14 @@ function easyrankly_is_valid_custom_json_ld( string $json ): bool {
  * @param string $json Raw JSON-LD.
  * @return array<int,array<string,mixed>>
  */
-function easyrankly_decode_custom_json_ld( string $json ): array {
+function erankly_decode_custom_json_ld( string $json ): array {
 	$decoded = json_decode( $json, true );
 
 	if ( JSON_ERROR_NONE !== json_last_error() || ! is_array( $decoded ) ) {
 		return array();
 	}
 
-	return easyrankly_normalize_custom_json_ld_data( $decoded );
+	return erankly_normalize_custom_json_ld_data( $decoded );
 }
 
 /**
@@ -304,7 +304,7 @@ function easyrankly_decode_custom_json_ld( string $json ): array {
  * @param array<mixed> $decoded Decoded JSON data.
  * @return array<int,array<string,mixed>>
  */
-function easyrankly_normalize_custom_json_ld_data( array $decoded ): array {
+function erankly_normalize_custom_json_ld_data( array $decoded ): array {
 	if ( isset( $decoded['@graph'] ) && is_array( $decoded['@graph'] ) ) {
 		$decoded = $decoded['@graph'];
 	}
@@ -336,17 +336,17 @@ function easyrankly_normalize_custom_json_ld_data( array $decoded ): array {
  * @param WP_Query $query Query object.
  * @return void
  */
-function easyrankly_filter_visibility_queries( WP_Query $query ): void {
+function erankly_filter_visibility_queries( WP_Query $query ): void {
 	if ( is_admin() || wp_doing_ajax() || ! $query->is_main_query() ) {
 		return;
 	}
 
-	if ( $query->is_search() && easyrankly_has_visibility_exclusions( '_easyrankly_exclude_search' ) ) {
-		easyrankly_add_query_exclusion_meta_clause( $query, '_easyrankly_exclude_search' );
+	if ( $query->is_search() && erankly_has_visibility_exclusions( '_erankly_exclude_search' ) ) {
+		erankly_add_query_exclusion_meta_clause( $query, '_erankly_exclude_search' );
 	}
 
-	if ( $query->is_archive() && easyrankly_has_visibility_exclusions( '_easyrankly_exclude_archive' ) ) {
-		easyrankly_add_query_exclusion_meta_clause( $query, '_easyrankly_exclude_archive' );
+	if ( $query->is_archive() && erankly_has_visibility_exclusions( '_erankly_exclude_archive' ) ) {
+		erankly_add_query_exclusion_meta_clause( $query, '_erankly_exclude_archive' );
 	}
 }
 
@@ -359,16 +359,16 @@ function easyrankly_filter_visibility_queries( WP_Query $query ): void {
  * @param string $meta_key Visibility meta key.
  * @return bool
  */
-function easyrankly_has_visibility_exclusions( string $meta_key ): bool {
+function erankly_has_visibility_exclusions( string $meta_key ): bool {
 	global $wpdb;
 
-	$allowed = array( '_easyrankly_exclude_search', '_easyrankly_exclude_archive' );
+	$allowed = array( '_erankly_exclude_search', '_erankly_exclude_archive' );
 
 	if ( ! in_array( $meta_key, $allowed, true ) ) {
 		return false;
 	}
 
-	$cache_key = 'easyrankly_visibility_' . md5( $meta_key );
+	$cache_key = 'erankly_visibility_' . md5( $meta_key );
 	$cached    = get_transient( $cache_key );
 
 	if ( false !== $cached ) {
@@ -399,11 +399,11 @@ function easyrankly_has_visibility_exclusions( string $meta_key ): bool {
  * @param string    $meta_key Meta key.
  * @return void
  */
-function easyrankly_invalidate_visibility_exclusion_cache( int|array $meta_id, int $post_id, string $meta_key ): void {
+function erankly_invalidate_visibility_exclusion_cache( int|array $meta_id, int $post_id, string $meta_key ): void {
 	unset( $meta_id, $post_id );
 
-	if ( in_array( $meta_key, array( '_easyrankly_exclude_search', '_easyrankly_exclude_archive' ), true ) ) {
-		delete_transient( 'easyrankly_visibility_' . md5( $meta_key ) );
+	if ( in_array( $meta_key, array( '_erankly_exclude_search', '_erankly_exclude_archive' ), true ) ) {
+		delete_transient( 'erankly_visibility_' . md5( $meta_key ) );
 	}
 }
 
@@ -414,7 +414,7 @@ function easyrankly_invalidate_visibility_exclusion_cache( int|array $meta_id, i
  * @param string   $meta_key Protected meta key.
  * @return void
  */
-function easyrankly_add_query_exclusion_meta_clause( WP_Query $query, string $meta_key ): void {
+function erankly_add_query_exclusion_meta_clause( WP_Query $query, string $meta_key ): void {
 	$meta_query = $query->get( 'meta_query' );
 	$existing   = is_array( $meta_query ) ? $meta_query : array();
 	$exclusion  = array(
@@ -451,8 +451,8 @@ function easyrankly_add_query_exclusion_meta_clause( WP_Query $query, string $me
  * @param string $title Original title.
  * @return string
  */
-function easyrankly_filter_document_title( string $title ): string {
-	$seo_title = easyrankly_get_title();
+function erankly_filter_document_title( string $title ): string {
+	$seo_title = erankly_get_title();
 
 	return '' !== $seo_title ? $seo_title : $title;
 }
@@ -463,8 +463,8 @@ function easyrankly_filter_document_title( string $title ): string {
  * @param array<string,string> $parts Title parts.
  * @return array<string,string>
  */
-function easyrankly_filter_document_title_parts( array $parts ): array {
-	$seo_title = easyrankly_get_title();
+function erankly_filter_document_title_parts( array $parts ): array {
+	$seo_title = erankly_get_title();
 
 	if ( '' !== $seo_title ) {
 		$parts['title'] = $seo_title;
@@ -479,7 +479,7 @@ function easyrankly_filter_document_title_parts( array $parts ): array {
  *
  * @return string
  */
-function easyrankly_get_title(): string {
+function erankly_get_title(): string {
 	static $resolved = null;
 
 	if ( null !== $resolved ) {
@@ -490,27 +490,27 @@ function easyrankly_get_title(): string {
 
 	if ( is_singular() ) {
 		$post_id = get_queried_object_id();
-		$title   = easyrankly_get_post_meta_string( $post_id, 'title' );
+		$title   = erankly_get_post_meta_string( $post_id, 'title' );
 
 		if ( '' === $title ) {
 			$post_type = get_post_type( $post_id );
 
 			if ( is_string( $post_type ) ) {
-				$title = easyrankly_get_global_post_type_meta( $post_type, 'title' );
+				$title = erankly_get_global_post_type_meta( $post_type, 'title' );
 			}
 		}
 
 		if ( '' === $title ) {
 			$title = single_post_title( '', false );
 		} else {
-			$title = easyrankly_replace_variables( $title, $post_id, array( 'seo_title' ) );
+			$title = erankly_replace_variables( $title, $post_id, array( 'seo_title' ) );
 		}
 	} elseif ( is_home() || is_front_page() ) {
 		$special_key = is_front_page() ? 'homepage' : 'blog';
-		$title       = easyrankly_get_global_entity_meta( 'global_special_meta', $special_key, 'title' );
+		$title       = erankly_get_global_entity_meta( 'global_special_meta', $special_key, 'title' );
 
 		if ( '' !== $title ) {
-			$title = easyrankly_replace_variables( $title, 0, array( 'seo_title' ) );
+			$title = erankly_replace_variables( $title, 0, array( 'seo_title' ) );
 		} else {
 			$title = get_bloginfo( 'name' );
 		}
@@ -518,14 +518,14 @@ function easyrankly_get_title(): string {
 		$term = get_queried_object();
 
 		if ( $term instanceof WP_Term ) {
-			$title = easyrankly_get_term_meta_string( $term->term_id, 'title' );
+			$title = erankly_get_term_meta_string( $term->term_id, 'title' );
 
 			if ( '' === $title ) {
-				$title = easyrankly_get_global_taxonomy_meta( $term->taxonomy, 'title' );
+				$title = erankly_get_global_taxonomy_meta( $term->taxonomy, 'title' );
 			}
 
 			if ( '' !== $title ) {
-				$title = easyrankly_replace_variables( $title, 0, array( 'seo_title' ) );
+				$title = erankly_replace_variables( $title, 0, array( 'seo_title' ) );
 			}
 		}
 
@@ -535,10 +535,10 @@ function easyrankly_get_title(): string {
 	} elseif ( is_post_type_archive() ) {
 		$post_type = get_query_var( 'post_type' );
 		$post_type = is_array( $post_type ) ? reset( $post_type ) : $post_type;
-		$title     = is_string( $post_type ) ? easyrankly_get_global_post_type_meta( $post_type, 'title' ) : '';
+		$title     = is_string( $post_type ) ? erankly_get_global_post_type_meta( $post_type, 'title' ) : '';
 
 		if ( '' !== $title ) {
-			$title = easyrankly_replace_variables( $title, 0, array( 'seo_title' ) );
+			$title = erankly_replace_variables( $title, 0, array( 'seo_title' ) );
 		}
 
 		if ( '' === $title ) {
@@ -546,20 +546,20 @@ function easyrankly_get_title(): string {
 		}
 	} elseif ( is_author() || is_date() ) {
 		$special_key = is_author() ? 'author' : 'date';
-		$title       = easyrankly_get_global_entity_meta( 'global_special_meta', $special_key, 'title' );
+		$title       = erankly_get_global_entity_meta( 'global_special_meta', $special_key, 'title' );
 
 		if ( '' !== $title ) {
-			$title = easyrankly_replace_variables( $title, 0, array( 'seo_title' ) );
+			$title = erankly_replace_variables( $title, 0, array( 'seo_title' ) );
 		} else {
 			$title = get_the_archive_title();
 		}
 	} elseif ( is_archive() ) {
 		$title = get_the_archive_title();
 	} elseif ( is_search() ) {
-		$title = easyrankly_get_global_entity_meta( 'global_special_meta', 'search', 'title' );
+		$title = erankly_get_global_entity_meta( 'global_special_meta', 'search', 'title' );
 
 		if ( '' !== $title ) {
-			$title = easyrankly_replace_variables( $title, 0, array( 'seo_title' ) );
+			$title = erankly_replace_variables( $title, 0, array( 'seo_title' ) );
 		} else {
 			$title = sprintf(
 				/* translators: %s: Search query. */
@@ -568,10 +568,10 @@ function easyrankly_get_title(): string {
 			);
 		}
 	} elseif ( is_404() ) {
-		$title = easyrankly_get_global_entity_meta( 'global_special_meta', '404', 'title' );
+		$title = erankly_get_global_entity_meta( 'global_special_meta', '404', 'title' );
 
 		if ( '' !== $title ) {
-			$title = easyrankly_replace_variables( $title, 0, array( 'seo_title' ) );
+			$title = erankly_replace_variables( $title, 0, array( 'seo_title' ) );
 		} else {
 			$title = __( 'Page not found', 'easyrankly' );
 		}
@@ -580,23 +580,23 @@ function easyrankly_get_title(): string {
 	// Append paginated suffix (e.g. "Page 2 of 5") for any paged context.
 	$current_page = max( (int) get_query_var( 'paged', 0 ), (int) get_query_var( 'page', 0 ) );
 	if ( $current_page > 1 ) {
-		$suffix = trim( (string) easyrankly_get_setting( 'paginated_title_format', '' ) );
+		$suffix = trim( (string) erankly_get_setting( 'paginated_title_format', '' ) );
 		if ( '' !== $suffix ) {
-			$suffix = trim( easyrankly_replace_variables( $suffix, 0, array( 'seo_title' ) ) );
+			$suffix = trim( erankly_replace_variables( $suffix, 0, array( 'seo_title' ) ) );
 			if ( '' !== $suffix ) {
 				$title = trim( $title . ' - ' . $suffix );
 			}
 		}
 	}
 
-	$title = easyrankly_normalize_seo_text( $title );
+	$title = erankly_normalize_seo_text( $title );
 
 	/**
 	 * Filters the computed SEO title.
 	 *
 	 * @param string $title Computed title.
 	 */
-	$resolved = (string) apply_filters( 'easyrankly_title', $title );
+	$resolved = (string) apply_filters( 'erankly_title', $title );
 
 	return $resolved;
 }
@@ -606,7 +606,7 @@ function easyrankly_get_title(): string {
  *
  * @return string
  */
-function easyrankly_get_description(): string {
+function erankly_get_description(): string {
 	static $resolved = null;
 
 	if ( null !== $resolved ) {
@@ -618,13 +618,13 @@ function easyrankly_get_description(): string {
 
 	if ( is_singular() ) {
 		$post_id     = get_queried_object_id();
-		$description = easyrankly_get_post_meta_string( $post_id, 'description' );
+		$description = erankly_get_post_meta_string( $post_id, 'description' );
 
 		if ( '' === $description ) {
 			$post_type = get_post_type( $post_id );
 
 			if ( is_string( $post_type ) ) {
-				$description = easyrankly_get_global_post_type_meta( $post_type, 'description' );
+				$description = erankly_get_global_post_type_meta( $post_type, 'description' );
 			}
 		}
 
@@ -636,20 +636,20 @@ function easyrankly_get_description(): string {
 				$description_generated_fallback = true;
 			}
 		} else {
-			$description = easyrankly_replace_variables( $description, $post_id, array( 'meta_description' ) );
+			$description = erankly_replace_variables( $description, $post_id, array( 'meta_description' ) );
 		}
 	} elseif ( is_category() || is_tag() || is_tax() ) {
 		$term = get_queried_object();
 
 		if ( $term instanceof WP_Term ) {
-			$description = easyrankly_get_term_meta_string( $term->term_id, 'description' );
+			$description = erankly_get_term_meta_string( $term->term_id, 'description' );
 
 			if ( '' === $description ) {
-				$description = easyrankly_get_global_taxonomy_meta( $term->taxonomy, 'description' );
+				$description = erankly_get_global_taxonomy_meta( $term->taxonomy, 'description' );
 			}
 
 			if ( '' !== $description ) {
-				$description = easyrankly_replace_variables( $description, 0, array( 'meta_description' ) );
+				$description = erankly_replace_variables( $description, 0, array( 'meta_description' ) );
 			}
 		}
 
@@ -660,57 +660,57 @@ function easyrankly_get_description(): string {
 	} elseif ( is_post_type_archive() ) {
 		$post_type   = get_query_var( 'post_type' );
 		$post_type   = is_array( $post_type ) ? reset( $post_type ) : $post_type;
-		$description = is_string( $post_type ) ? easyrankly_get_global_post_type_meta( $post_type, 'description' ) : '';
+		$description = is_string( $post_type ) ? erankly_get_global_post_type_meta( $post_type, 'description' ) : '';
 
 		if ( '' !== $description ) {
-			$description = easyrankly_replace_variables( $description, 0, array( 'meta_description' ) );
+			$description = erankly_replace_variables( $description, 0, array( 'meta_description' ) );
 		}
 	} elseif ( is_author() ) {
-		$description = easyrankly_get_global_entity_meta( 'global_special_meta', 'author', 'description' );
+		$description = erankly_get_global_entity_meta( 'global_special_meta', 'author', 'description' );
 
 		if ( '' !== $description ) {
-			$description = easyrankly_replace_variables( $description, 0, array( 'meta_description' ) );
+			$description = erankly_replace_variables( $description, 0, array( 'meta_description' ) );
 		} else {
 			$description                    = get_the_author_meta( 'description', (int) get_queried_object_id() );
 			$description_generated_fallback = true;
 		}
 	} elseif ( is_date() ) {
-		$description = easyrankly_get_global_entity_meta( 'global_special_meta', 'date', 'description' );
+		$description = erankly_get_global_entity_meta( 'global_special_meta', 'date', 'description' );
 
 		if ( '' !== $description ) {
-			$description = easyrankly_replace_variables( $description, 0, array( 'meta_description' ) );
+			$description = erankly_replace_variables( $description, 0, array( 'meta_description' ) );
 		}
 	} elseif ( is_search() ) {
-		$description = easyrankly_get_global_entity_meta( 'global_special_meta', 'search', 'description' );
+		$description = erankly_get_global_entity_meta( 'global_special_meta', 'search', 'description' );
 
 		if ( '' !== $description ) {
-			$description = easyrankly_replace_variables( $description, 0, array( 'meta_description' ) );
+			$description = erankly_replace_variables( $description, 0, array( 'meta_description' ) );
 		}
 	} elseif ( is_404() ) {
-		$description = easyrankly_get_global_entity_meta( 'global_special_meta', '404', 'description' );
+		$description = erankly_get_global_entity_meta( 'global_special_meta', '404', 'description' );
 
 		if ( '' !== $description ) {
-			$description = easyrankly_replace_variables( $description, 0, array( 'meta_description' ) );
+			$description = erankly_replace_variables( $description, 0, array( 'meta_description' ) );
 		}
 	} elseif ( is_home() || is_front_page() ) {
 		$special_key = is_front_page() ? 'homepage' : 'blog';
-		$description = easyrankly_get_global_entity_meta( 'global_special_meta', $special_key, 'description' );
+		$description = erankly_get_global_entity_meta( 'global_special_meta', $special_key, 'description' );
 
 		if ( '' !== $description ) {
-			$description = easyrankly_replace_variables( $description, 0, array( 'meta_description' ) );
+			$description = erankly_replace_variables( $description, 0, array( 'meta_description' ) );
 		} else {
 			$description = get_bloginfo( 'description' );
 		}
 	}
 
-	$description = $description_generated_fallback ? easyrankly_trim_text( strip_shortcodes( $description ), 160 ) : easyrankly_normalize_seo_text( $description );
+	$description = $description_generated_fallback ? erankly_trim_text( strip_shortcodes( $description ), 160 ) : erankly_normalize_seo_text( $description );
 
 	/**
 	 * Filters the computed meta description.
 	 *
 	 * @param string $description Computed description.
 	 */
-	$resolved = (string) apply_filters( 'easyrankly_description', $description );
+	$resolved = (string) apply_filters( 'erankly_description', $description );
 
 	return $resolved;
 }
@@ -720,7 +720,7 @@ function easyrankly_get_description(): string {
  *
  * @return void
  */
-function easyrankly_render_head(): void {
+function erankly_render_head(): void {
 	static $rendered = false;
 
 	if ( $rendered ) {
@@ -728,10 +728,10 @@ function easyrankly_render_head(): void {
 	}
 
 	$rendered    = true;
-	$description = easyrankly_get_description();
-	$canonical   = easyrankly_get_canonical();
+	$description = erankly_get_description();
+	$canonical   = erankly_get_canonical();
 
-	easyrankly_render_head_credit( 'open' );
+	erankly_render_head_credit( 'open' );
 
 	if ( '' !== $description ) {
 		printf( '<meta name="description" content="%s">' . "\n", esc_attr( $description ) );
@@ -741,12 +741,12 @@ function easyrankly_render_head(): void {
 		printf( '<link rel="canonical" href="%s">' . "\n", esc_url( $canonical ) );
 	}
 
-	easyrankly_render_hreflang_alternates();
-	easyrankly_render_opengraph_tags();
-	easyrankly_render_oembed_link();
-	easyrankly_render_schema();
+	erankly_render_hreflang_alternates();
+	erankly_render_opengraph_tags();
+	erankly_render_oembed_link();
+	erankly_render_schema();
 
-	easyrankly_render_head_credit( 'close' );
+	erankly_render_head_credit( 'close' );
 }
 
 /**
@@ -756,16 +756,16 @@ function easyrankly_render_head(): void {
  * are identifiable in the page source. The product name is filterable, which
  * lets a licensed add-on advertise its own product name in the markers while
  * its license is active.
- * Returning an empty string from the `easyrankly_head_credit_name` filter
- * removes the markers entirely (e.g. add_filter( 'easyrankly_head_credit_name', '__return_empty_string' )).
+ * Returning an empty string from the `erankly_head_credit_name` filter
+ * removes the markers entirely (e.g. add_filter( 'erankly_head_credit_name', '__return_empty_string' )).
  *
  * @param string $position Either 'open' (top marker, with version) or 'close' (closing marker).
  * @return void
  */
-function easyrankly_render_head_credit( string $position ): void {
+function erankly_render_head_credit( string $position ): void {
 	// The site owner can switch the markers off from Settings; that choice wins
 	// over any product-name relabeling done by an add-on (e.g. advertising "Premium").
-	if ( ! empty( easyrankly_get_setting( 'hide_head_credit', 0 ) ) ) {
+	if ( ! empty( erankly_get_setting( 'hide_head_credit', 0 ) ) ) {
 		return;
 	}
 
@@ -776,7 +776,7 @@ function easyrankly_render_head_credit( string $position ): void {
 	 *
 	 * @param string $name Product name. Default "EasyRankly". Empty string hides the markers.
 	 */
-	$name = (string) apply_filters( 'easyrankly_head_credit_name', 'EasyRankly' );
+	$name = (string) apply_filters( 'erankly_head_credit_name', 'EasyRankly' );
 
 	// Keep the comment well-formed regardless of what the filter returns: an HTML
 	// comment must not contain a literal "--" or be closed early by "-->".
@@ -790,7 +790,7 @@ function easyrankly_render_head_credit( string $position ): void {
 		printf(
 			'<!-- This site is optimized with the %1$s SEO plugin v%2$s - https://easyrankly.com -->' . "\n",
 			esc_html( $name ),
-			esc_html( EASYRANKLY_VERSION )
+			esc_html( ERANKLY_VERSION )
 		);
 
 		return;
@@ -804,8 +804,8 @@ function easyrankly_render_head_credit( string $position ): void {
  *
  * @return void
  */
-function easyrankly_render_hreflang_alternates(): void {
-	foreach ( easyrankly_get_hreflang_alternates() as $hreflang => $url ) {
+function erankly_render_hreflang_alternates(): void {
+	foreach ( erankly_get_hreflang_alternates() as $hreflang => $url ) {
 		printf(
 			'<link rel="alternate" hreflang="%1$s" href="%2$s">' . "\n",
 			esc_attr( $hreflang ),
@@ -819,8 +819,8 @@ function easyrankly_render_hreflang_alternates(): void {
  *
  * @return array<string,string>
  */
-function easyrankly_get_hreflang_alternates(): array {
-	$alternates = easyrankly_get_polylang_hreflang_alternates();
+function erankly_get_hreflang_alternates(): array {
+	$alternates = erankly_get_polylang_hreflang_alternates();
 
 	/**
 	 * Filters hreflang alternate URLs.
@@ -829,29 +829,29 @@ function easyrankly_get_hreflang_alternates(): array {
 	 *
 	 * @param array<string,string> $alternates Hreflang alternates.
 	 */
-	$alternates = apply_filters( 'easyrankly_hreflang_alternates', $alternates );
+	$alternates = apply_filters( 'erankly_hreflang_alternates', $alternates );
 
-	return easyrankly_clean_hreflang_alternates( $alternates );
+	return erankly_clean_hreflang_alternates( $alternates );
 }
 
 /**
  * Returns the language alternates a visitor can navigate to for the current request.
  *
- * Same shape as easyrankly_get_hreflang_alternates(), but built for human
+ * Same shape as erankly_get_hreflang_alternates(), but built for human
  * navigation rather than search-engine signalling: published translations are
  * included even when they are noindex. Used by visitor-facing features such as
  * a browser-language redirect add-on. Never use this set for hreflang output.
  *
  * @return array<string,string>
  */
-function easyrankly_get_navigable_hreflang_alternates(): array {
+function erankly_get_navigable_hreflang_alternates(): array {
 	// Polylang alternates carry no noindex filtering, so the SEO builder is reused.
-	$alternates = easyrankly_get_polylang_hreflang_alternates();
+	$alternates = erankly_get_polylang_hreflang_alternates();
 
 	// When the network multilingual module is active, replace with its
 	// navigable resolution (includes noindex, excludes unpublished).
-	$resolver = $GLOBALS['easyrankly_ml_resolver'] ?? null;
-	if ( $resolver instanceof EasyRankly_ML_Resolver ) {
+	$resolver = $GLOBALS['erankly_ml_resolver'] ?? null;
+	if ( $resolver instanceof ERankly_ML_Resolver ) {
 		$alternates = $resolver->resolve_navigable( $alternates );
 	}
 
@@ -862,9 +862,9 @@ function easyrankly_get_navigable_hreflang_alternates(): array {
 	 *
 	 * @param array<string,string> $alternates Navigable alternates.
 	 */
-	$alternates = apply_filters( 'easyrankly_navigable_hreflang_alternates', $alternates );
+	$alternates = apply_filters( 'erankly_navigable_hreflang_alternates', $alternates );
 
-	return easyrankly_clean_hreflang_alternates( $alternates );
+	return erankly_clean_hreflang_alternates( $alternates );
 }
 
 /**
@@ -873,7 +873,7 @@ function easyrankly_get_navigable_hreflang_alternates(): array {
  * @param mixed $alternates Raw alternates (any filter output).
  * @return array<string,string>
  */
-function easyrankly_clean_hreflang_alternates( $alternates ): array {
+function erankly_clean_hreflang_alternates( $alternates ): array {
 	if ( ! is_array( $alternates ) ) {
 		return array();
 	}
@@ -884,7 +884,7 @@ function easyrankly_clean_hreflang_alternates( $alternates ): array {
 		$hreflang = sanitize_text_field( (string) $hreflang );
 		$url      = esc_url_raw( (string) $url );
 
-		if ( '' === $hreflang || ! easyrankly_is_absolute_http_url( $url ) ) {
+		if ( '' === $hreflang || ! erankly_is_absolute_http_url( $url ) ) {
 			continue;
 		}
 
@@ -899,17 +899,17 @@ function easyrankly_clean_hreflang_alternates( $alternates ): array {
  *
  * @return array<string,string>
  */
-function easyrankly_get_polylang_hreflang_alternates(): array {
+function erankly_get_polylang_hreflang_alternates(): array {
 	$alternates = array();
-	$locale_map = easyrankly_get_polylang_locale_map();
+	$locale_map = erankly_get_polylang_locale_map();
 
 	if ( is_singular() && function_exists( 'pll_get_post_translations' ) ) {
-		$alternates = easyrankly_get_polylang_post_alternates( get_queried_object_id(), $locale_map );
+		$alternates = erankly_get_polylang_post_alternates( get_queried_object_id(), $locale_map );
 	} elseif ( is_home() && ! is_front_page() && function_exists( 'pll_get_post_translations' ) ) {
 		$posts_page_id = absint( get_option( 'page_for_posts' ) );
 
 		if ( $posts_page_id > 0 ) {
-			$alternates = easyrankly_get_polylang_post_alternates( $posts_page_id, $locale_map );
+			$alternates = erankly_get_polylang_post_alternates( $posts_page_id, $locale_map );
 		}
 	} elseif ( ( is_category() || is_tag() || is_tax() ) && function_exists( 'pll_get_term_translations' ) ) {
 		$term = get_queried_object();
@@ -951,7 +951,7 @@ function easyrankly_get_polylang_hreflang_alternates(): array {
  * @param array<string,string> $locale_map Locale map keyed by language slug.
  * @return array<string,string>
  */
-function easyrankly_get_polylang_post_alternates( int $post_id, array $locale_map ): array {
+function erankly_get_polylang_post_alternates( int $post_id, array $locale_map ): array {
 	if ( $post_id <= 0 || ! function_exists( 'pll_get_post_translations' ) ) {
 		return array();
 	}
@@ -980,7 +980,7 @@ function easyrankly_get_polylang_post_alternates( int $post_id, array $locale_ma
  *
  * @return array<string,string>
  */
-function easyrankly_get_polylang_locale_map(): array {
+function erankly_get_polylang_locale_map(): array {
 	static $map = null;
 
 	if ( null !== $map ) {
@@ -1019,12 +1019,12 @@ function easyrankly_get_polylang_locale_map(): array {
  *
  * @return void
  */
-function easyrankly_redirect_attachment(): void {
+function erankly_redirect_attachment(): void {
 	if ( ! is_attachment() ) {
 		return;
 	}
 
-	$mode = (string) easyrankly_get_setting( 'attachment_redirect', 'none' );
+	$mode = (string) erankly_get_setting( 'attachment_redirect', 'none' );
 
 	if ( 'none' === $mode ) {
 		return;

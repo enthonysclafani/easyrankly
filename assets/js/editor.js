@@ -1,4 +1,4 @@
-/* global easyranklyEditor, wp */
+/* global eranklyEditor, wp */
 ( function () {
 	'use strict';
 
@@ -21,7 +21,7 @@
 	const { createElement: el, Fragment, useEffect, useState } = wp.element;
 	const { __, sprintf } = wp.i18n;
 	const { registerPlugin } = wp.plugins;
-	const config = easyranklyEditor;
+	const config = eranklyEditor;
 
 	function useEditorMeta() {
 		const meta = useSelect(
@@ -103,7 +103,7 @@
 
 		return el(
 			'div',
-			{ className: 'easyrankly-field' },
+			{ className: 'erankly-field' },
 			el( Control, {
 				help: lengthHelp,
 				label,
@@ -114,12 +114,12 @@
 			} ),
 			el(
 				'div',
-				{ className: 'easyrankly-field__actions' },
+				{ className: 'erankly-field__actions' },
 				el( VariableMenu, { onSelect: ( variable ) => onChange( value + variable ) } )
 			),
 			extraActions && el(
 				'div',
-				{ className: 'easyrankly-field__actions' },
+				{ className: 'erankly-field__actions' },
 				extraActions
 			)
 		);
@@ -208,43 +208,43 @@
 					|| '',
 			};
 		}, [] );
-		const title = serpResolveVariables( meta._easyrankly_title || '', postTitle )
+		const title = serpResolveVariables( meta._erankly_title || '', postTitle )
 			|| config.titlePlaceholder
 			|| postTitle
 			|| config.siteName;
-		const description = serpResolveVariables( meta._easyrankly_description || '', postTitle )
+		const description = serpResolveVariables( meta._erankly_description || '', postTitle )
 			|| config.descriptionPlaceholder
 			|| __( 'Add a meta description to control this text in search results.', 'easyrankly' );
 		const previewImageUrl = thumbnailUrl || contentImageUrl;
 
 		return el(
 			'div',
-			{ 'aria-hidden': 'true', className: 'easyrankly-serp-preview' },
+			{ 'aria-hidden': 'true', className: 'erankly-serp-preview' },
 			el(
 				'div',
-				{ className: 'easyrankly-serp-preview__source' },
+				{ className: 'erankly-serp-preview__source' },
 				config.siteIconUrl
-					? el( 'img', { alt: '', className: 'easyrankly-serp-preview__favicon', src: config.siteIconUrl } )
-					: el( 'span', { className: 'easyrankly-serp-preview__favicon' } ),
+					? el( 'img', { alt: '', className: 'erankly-serp-preview__favicon', src: config.siteIconUrl } )
+					: el( 'span', { className: 'erankly-serp-preview__favicon' } ),
 				el(
 					'div',
-					{ className: 'easyrankly-serp-preview__origin' },
-					el( 'div', { className: 'easyrankly-serp-preview__site' }, config.siteName ),
-					el( 'div', { className: 'easyrankly-serp-preview__breadcrumb' }, serpBreadcrumb( permalink ) )
+					{ className: 'erankly-serp-preview__origin' },
+					el( 'div', { className: 'erankly-serp-preview__site' }, config.siteName ),
+					el( 'div', { className: 'erankly-serp-preview__breadcrumb' }, serpBreadcrumb( permalink ) )
 				)
 			),
 			el(
 				'div',
-				{ className: 'easyrankly-serp-preview__body' },
+				{ className: 'erankly-serp-preview__body' },
 				el(
 					'div',
-					{ className: 'easyrankly-serp-preview__text' },
-					el( 'div', { className: 'easyrankly-serp-preview__title' }, title ),
-					el( 'div', { className: 'easyrankly-serp-preview__description' }, description )
+					{ className: 'erankly-serp-preview__text' },
+					el( 'div', { className: 'erankly-serp-preview__title' }, title ),
+					el( 'div', { className: 'erankly-serp-preview__description' }, description )
 				),
 				previewImageUrl && el( 'img', {
 					alt: '',
-					className: 'easyrankly-serp-preview__thumbnail',
+					className: 'erankly-serp-preview__thumbnail',
 					src: previewImageUrl,
 				} )
 			)
@@ -257,36 +257,36 @@
 		return el(
 			PluginDocumentSettingPanel,
 			{
-				className: 'easyrankly-panel',
-				name: 'easyrankly-general',
+				className: 'erankly-panel',
+				name: 'erankly-general',
 				title: __( 'Search appearance', 'easyrankly' ),
 			},
 			config.simplifiedMode && el( SerpPreview ),
 			el( VariableControl, {
 				label: __( 'Meta title', 'easyrankly' ),
 				limit: 65,
-				onChange: ( value ) => setMeta( '_easyrankly_title', value ),
+				onChange: ( value ) => setMeta( '_erankly_title', value ),
 				placeholder: config.titlePlaceholder,
-				value: meta._easyrankly_title || '',
+				value: meta._erankly_title || '',
 			} ),
 			el( VariableControl, {
 				label: __( 'Meta description', 'easyrankly' ),
 				limit: 160,
 				multiline: true,
-				onChange: ( value ) => setMeta( '_easyrankly_description', value ),
+				onChange: ( value ) => setMeta( '_erankly_description', value ),
 				placeholder: config.descriptionPlaceholder,
-				value: meta._easyrankly_description || '',
+				value: meta._erankly_description || '',
 			} ),
 			! config.simplifiedMode && el( VariableControl, {
 				label: __( 'Canonical URL', 'easyrankly' ),
-				onChange: ( value ) => setMeta( '_easyrankly_canonical', value ),
-				value: meta._easyrankly_canonical || '',
+				onChange: ( value ) => setMeta( '_erankly_canonical', value ),
+				value: meta._erankly_canonical || '',
 			} ),
 			config.breadcrumbsEnabled && ! config.simplifiedMode && el( TextControl, {
 				help: __( 'Optional short name used in visible breadcrumbs and BreadcrumbList schema.', 'easyrankly' ),
 				label: __( 'Breadcrumb name', 'easyrankly' ),
-				onChange: ( value ) => setMeta( '_easyrankly_breadcrumb_name', value ),
-				value: meta._easyrankly_breadcrumb_name || '',
+				onChange: ( value ) => setMeta( '_erankly_breadcrumb_name', value ),
+				value: meta._erankly_breadcrumb_name || '',
 			} )
 		);
 	}
@@ -326,66 +326,66 @@
 		return el(
 			PluginDocumentSettingPanel,
 			{
-				className: 'easyrankly-panel',
-				name: 'easyrankly-social',
+				className: 'erankly-panel',
+				name: 'erankly-social',
 				title: __( 'Social sharing', 'easyrankly' ),
 			},
 			el( VariableControl, {
 				label: __( 'Open Graph title', 'easyrankly' ),
 				limit: 60,
-				onChange: ( value ) => setMeta( '_easyrankly_og_title', value ),
+				onChange: ( value ) => setMeta( '_erankly_og_title', value ),
 				placeholder: config.ogTitlePlaceholder,
-				value: meta._easyrankly_og_title || '',
+				value: meta._erankly_og_title || '',
 			} ),
 			el( VariableControl, {
 				label: __( 'Open Graph description', 'easyrankly' ),
 				limit: 200,
 				multiline: true,
-				onChange: ( value ) => setMeta( '_easyrankly_og_description', value ),
+				onChange: ( value ) => setMeta( '_erankly_og_description', value ),
 				placeholder: config.ogDescriptionPlaceholder,
-				value: meta._easyrankly_og_description || '',
+				value: meta._erankly_og_description || '',
 			} ),
 			el( VariableControl, {
 				label: __( 'X (Twitter) title', 'easyrankly' ),
 				limit: 70,
-				onChange: ( value ) => setMeta( '_easyrankly_twitter_title', value ),
+				onChange: ( value ) => setMeta( '_erankly_twitter_title', value ),
 				placeholder: config.twitterTitlePlaceholder,
-				value: meta._easyrankly_twitter_title || '',
+				value: meta._erankly_twitter_title || '',
 			} ),
 			el( VariableControl, {
 				label: __( 'X (Twitter) description', 'easyrankly' ),
 				limit: 200,
 				multiline: true,
-				onChange: ( value ) => setMeta( '_easyrankly_twitter_description', value ),
+				onChange: ( value ) => setMeta( '_erankly_twitter_description', value ),
 				placeholder: config.twitterDescriptionPlaceholder,
-				value: meta._easyrankly_twitter_description || '',
+				value: meta._erankly_twitter_description || '',
 			} ),
 			el( SelectControl, {
 				label: __( 'X (Twitter) card type', 'easyrankly' ),
-				onChange: ( value ) => setMeta( '_easyrankly_twitter_card_type', value ),
+				onChange: ( value ) => setMeta( '_erankly_twitter_card_type', value ),
 				options: [
 					{ label: __( 'Default (summary_large_image)', 'easyrankly' ), value: '' },
 					{ label: 'summary', value: 'summary' },
 				],
-				value: meta._easyrankly_twitter_card_type || '',
+				value: meta._erankly_twitter_card_type || '',
 			} ),
 			el( SocialImageControl, {
-				onChange: ( value ) => setMeta( '_easyrankly_social_image_url', value ),
-				value: meta._easyrankly_social_image_url || '',
+				onChange: ( value ) => setMeta( '_erankly_social_image_url', value ),
+				value: meta._erankly_social_image_url || '',
 			} )
 		);
 	}
 
 	function VisibilityPanel() {
 		const [ meta, setMeta ] = useEditorMeta();
-		const hideFromSearch = Boolean( meta._easyrankly_noindex && meta._easyrankly_disable_sitemap );
+		const hideFromSearch = Boolean( meta._erankly_noindex && meta._erankly_disable_sitemap );
 		const toggleMeta = ( key ) => ( value ) => setMeta( key, value );
 
 		return el(
 			PluginDocumentSettingPanel,
 			{
-				className: 'easyrankly-panel',
-				name: 'easyrankly-visibility',
+				className: 'erankly-panel',
+				name: 'erankly-visibility',
 				title: __( 'Search visibility', 'easyrankly' ),
 			},
 			config.simplifiedMode
@@ -394,48 +394,48 @@
 					help: __( 'Sets noindex and removes this page from the sitemap.', 'easyrankly' ),
 					label: __( 'Hide from search results', 'easyrankly' ),
 					onChange: ( value ) => {
-						setMeta( '_easyrankly_noindex', value );
-						setMeta( '_easyrankly_disable_sitemap', value );
+						setMeta( '_erankly_noindex', value );
+						setMeta( '_erankly_disable_sitemap', value );
 					},
 				} )
 				: el(
 					Fragment,
 					null,
 					el( ToggleControl, {
-						checked: Boolean( meta._easyrankly_noindex ),
+						checked: Boolean( meta._erankly_noindex ),
 						label: __( 'Noindex', 'easyrankly' ),
-						onChange: toggleMeta( '_easyrankly_noindex' ),
+						onChange: toggleMeta( '_erankly_noindex' ),
 					} ),
 					el( ToggleControl, {
-						checked: Boolean( meta._easyrankly_nofollow ),
+						checked: Boolean( meta._erankly_nofollow ),
 						label: __( 'Nofollow', 'easyrankly' ),
-						onChange: toggleMeta( '_easyrankly_nofollow' ),
+						onChange: toggleMeta( '_erankly_nofollow' ),
 					} ),
 					el( ToggleControl, {
-						checked: Boolean( meta._easyrankly_noarchive ),
+						checked: Boolean( meta._erankly_noarchive ),
 						label: __( 'Noarchive', 'easyrankly' ),
-						onChange: toggleMeta( '_easyrankly_noarchive' ),
+						onChange: toggleMeta( '_erankly_noarchive' ),
 					} ),
 					el( ToggleControl, {
-						checked: Boolean( meta._easyrankly_disable_sitemap ),
+						checked: Boolean( meta._erankly_disable_sitemap ),
 						label: __( 'Disable sitemap', 'easyrankly' ),
-						onChange: toggleMeta( '_easyrankly_disable_sitemap' ),
+						onChange: toggleMeta( '_erankly_disable_sitemap' ),
 					} )
 				),
 			el( ToggleControl, {
-				checked: Boolean( meta._easyrankly_exclude_search ),
+				checked: Boolean( meta._erankly_exclude_search ),
 				label: __( 'Exclude from site search queries', 'easyrankly' ),
-				onChange: toggleMeta( '_easyrankly_exclude_search' ),
+				onChange: toggleMeta( '_erankly_exclude_search' ),
 			} ),
 			el( ToggleControl, {
-				checked: Boolean( meta._easyrankly_exclude_archive ),
+				checked: Boolean( meta._erankly_exclude_archive ),
 				label: __( 'Exclude from archive queries', 'easyrankly' ),
-				onChange: toggleMeta( '_easyrankly_exclude_archive' ),
+				onChange: toggleMeta( '_erankly_exclude_archive' ),
 			} ),
 			config.newsSitemapEnabled && el( ToggleControl, {
-				checked: Boolean( meta._easyrankly_exclude_from_news ),
+				checked: Boolean( meta._erankly_exclude_from_news ),
 				label: __( 'Exclude from Google News sitemap', 'easyrankly' ),
-				onChange: toggleMeta( '_easyrankly_exclude_from_news' ),
+				onChange: toggleMeta( '_erankly_exclude_from_news' ),
 			} )
 		);
 	}
@@ -484,7 +484,7 @@
 		if ( isLinked ) {
 			return el(
 				'div',
-				{ className: 'easyrankly-field' },
+				{ className: 'erankly-field' },
 				el( TextControl, {
 					disabled: true,
 					label: row.site_name + ' - ' + row.hreflang.toUpperCase(),
@@ -492,7 +492,7 @@
 				} ),
 				el(
 					'div',
-					{ className: 'easyrankly-field__actions' },
+					{ className: 'erankly-field__actions' },
 					el(
 						Button,
 						{
@@ -538,22 +538,22 @@
 		const rows = useSelect( ( select ) => {
 			const editor = select( 'core/editor' );
 
-			return editor.getEditedPostAttribute( 'easyrankly_ml_links' )
-				|| editor.getCurrentPostAttribute( 'easyrankly_ml_links' )
+			return editor.getEditedPostAttribute( 'erankly_ml_links' )
+				|| editor.getCurrentPostAttribute( 'erankly_ml_links' )
 				|| [];
 		}, [] );
 		const { editPost } = useDispatch( 'core/editor' );
 		const updateRow = ( index, row ) => {
 			const nextRows = rows.slice();
 			nextRows[ index ] = row;
-			editPost( { easyrankly_ml_links: nextRows } );
+			editPost( { erankly_ml_links: nextRows } );
 		};
 
 		return el(
 			PluginDocumentSettingPanel,
 			{
-				className: 'easyrankly-panel',
-				name: 'easyrankly-translations',
+				className: 'erankly-panel',
+				name: 'erankly-translations',
 				title: __( 'Translations', 'easyrankly' ),
 			},
 			rows.length
@@ -590,7 +590,7 @@
 		);
 	}
 
-	registerPlugin( 'easyrankly-document-settings', {
+	registerPlugin( 'erankly-document-settings', {
 		render: EasyRanklyDocumentSettings,
 	} );
 }() );

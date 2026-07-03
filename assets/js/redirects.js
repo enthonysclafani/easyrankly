@@ -3,13 +3,13 @@
 
 	// Delete confirmation.
 	document.addEventListener('click', function (event) {
-		var link = event.target.closest('.easyrankly-redirects-delete');
+		var link = event.target.closest('.erankly-redirects-delete');
 
 		if (!link) {
 			return;
 		}
 
-		var message = window.easyranklyRedirects && window.easyranklyRedirects.deleteConfirm ? window.easyranklyRedirects.deleteConfirm : 'Delete this redirect?';
+		var message = window.eranklyRedirects && window.eranklyRedirects.deleteConfirm ? window.eranklyRedirects.deleteConfirm : 'Delete this redirect?';
 
 		if (!window.confirm(message)) {
 			event.preventDefault();
@@ -18,8 +18,8 @@
 
 	// Show/hide the "Required role" field based on the "Apply to" select.
 	function syncRoleField() {
-		var visibilitySelect = document.getElementById('easyrankly-redirects-visibility');
-		var roleField = document.getElementById('easyrankly-redirects-role-field');
+		var visibilitySelect = document.getElementById('erankly-redirects-visibility');
+		var roleField = document.getElementById('erankly-redirects-role-field');
 
 		if (!visibilitySelect || !roleField) {
 			return;
@@ -30,7 +30,7 @@
 
 	syncRoleField();
 
-	var sel = document.getElementById('easyrankly-redirects-visibility');
+	var sel = document.getElementById('erankly-redirects-visibility');
 	if (sel) {
 		sel.addEventListener('change', syncRoleField);
 	}

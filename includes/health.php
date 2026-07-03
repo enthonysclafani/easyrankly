@@ -11,44 +11,44 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'EASYRANKLY_HEALTH_404_THRESHOLD', 10 );
-define( 'EASYRANKLY_HEALTH_404_WINDOW', DAY_IN_SECONDS );
-define( 'EASYRANKLY_HEALTH_404_MAX_CANDIDATES', 200 );
-define( 'EASYRANKLY_HEALTH_404_MAX_FREQUENT', 100 );
-define( 'EASYRANKLY_HEALTH_404_CANDIDATES_OPTION', 'easyrankly_health_404_candidates' );
-define( 'EASYRANKLY_HEALTH_404_FREQUENT_OPTION', 'easyrankly_health_404_frequent' );
+define( 'ERANKLY_HEALTH_404_THRESHOLD', 10 );
+define( 'ERANKLY_HEALTH_404_WINDOW', DAY_IN_SECONDS );
+define( 'ERANKLY_HEALTH_404_MAX_CANDIDATES', 200 );
+define( 'ERANKLY_HEALTH_404_MAX_FREQUENT', 100 );
+define( 'ERANKLY_HEALTH_404_CANDIDATES_OPTION', 'erankly_health_404_candidates' );
+define( 'ERANKLY_HEALTH_404_FREQUENT_OPTION', 'erankly_health_404_frequent' );
 
-define( 'EASYRANKLY_HEALTH_THIN_MIN_CHARS', 300 );
-define( 'EASYRANKLY_HEALTH_THIN_MAX_RESULTS', 100 );
-define( 'EASYRANKLY_HEALTH_THIN_OPTION', 'easyrankly_health_thin_content' );
+define( 'ERANKLY_HEALTH_THIN_MIN_CHARS', 300 );
+define( 'ERANKLY_HEALTH_THIN_MAX_RESULTS', 100 );
+define( 'ERANKLY_HEALTH_THIN_OPTION', 'erankly_health_thin_content' );
 /** Number of posts whose post_content is loaded per batch during the thin-content scan. */
-define( 'EASYRANKLY_HEALTH_THIN_SCAN_BATCH', 200 );
+define( 'ERANKLY_HEALTH_THIN_SCAN_BATCH', 200 );
 
 /** Number of days aggregate 404 data is kept before the retention cron removes it. */
-define( 'EASYRANKLY_HEALTH_404_RETENTION_DAYS', 30 );
+define( 'ERANKLY_HEALTH_404_RETENTION_DAYS', 30 );
 /** WP-Cron hook name for the daily 404 data retention sweep. */
-define( 'EASYRANKLY_HEALTH_404_PRUNE_HOOK', 'easyrankly_health_prune_404_cron' );
+define( 'ERANKLY_HEALTH_404_PRUNE_HOOK', 'erankly_health_prune_404_cron' );
 /** Hard cap on the length of a stored path after anonymization (characters). */
-define( 'EASYRANKLY_HEALTH_PATH_MAX_LENGTH', 255 );
+define( 'ERANKLY_HEALTH_PATH_MAX_LENGTH', 255 );
 
 /**
  * Registers Health hooks.
  *
  * @return void
  */
-function easyrankly_health_boot(): void {
-	add_action( 'template_redirect', 'easyrankly_health_maybe_record_404', 100 );
+function erankly_health_boot(): void {
+	add_action( 'template_redirect', 'erankly_health_maybe_record_404', 100 );
 
 	// Daily retention sweep for 404 aggregate data.
-	add_action( EASYRANKLY_HEALTH_404_PRUNE_HOOK, 'easyrankly_health_prune_stale_404_data' );
-	easyrankly_health_maybe_schedule_retention_cron();
+	add_action( ERANKLY_HEALTH_404_PRUNE_HOOK, 'erankly_health_prune_stale_404_data' );
+	erankly_health_maybe_schedule_retention_cron();
 
 	// WordPress privacy tools — 404 paths are anonymized and not user-linked, but
 	// site admins can initiate a full wipe from the Privacy → Erase Personal Data flow.
 
 	if ( is_admin() ) {
-		add_action( 'admin_post_easyrankly_health_clear_404s', 'easyrankly_health_handle_clear_404s' );
-		add_action( 'admin_post_easyrankly_health_scan_thin', 'easyrankly_health_handle_scan_thin' );
+		add_action( 'admin_post_erankly_health_clear_404s', 'erankly_health_handle_clear_404s' );
+		add_action( 'admin_post_erankly_health_scan_thin', 'erankly_health_handle_scan_thin' );
 	}
 }
 
@@ -57,18 +57,18 @@ function easyrankly_health_boot(): void {
  *
  * @return void
  */
-function easyrankly_health_maybe_record_404(): void {
+function erankly_health_maybe_record_404(): void {
 	if ( is_admin() || ! is_404() ) {
 		return;
 	}
 
-	$path = easyrankly_health_current_request_path();
+	$path = erankly_health_current_request_path();
 
 	if ( '' === $path ) {
 		return;
 	}
 
-	easyrankly_health_record_404_path( $path );
+	erankly_health_record_404_path( $path );
 }
 
 /**
@@ -79,7 +79,7 @@ function easyrankly_health_maybe_record_404(): void {
  *
  * @return string
  */
-function easyrankly_health_current_request_path(): string {
+function erankly_health_current_request_path(): string {
 	$request_uri = isset( $_SERVER['REQUEST_URI'] ) ? sanitize_text_field( wp_unslash( (string) $_SERVER['REQUEST_URI'] ) ) : '';
 
 	if ( '' === $request_uri ) {
@@ -111,8 +111,8 @@ function easyrankly_health_current_request_path(): string {
  * @param string $path Normalized request path.
  * @return void
  */
-function easyrankly_health_record_404_path( string $path ): void {
-	$path = easyrankly_health_sanitize_404_path( $path );
+function erankly_health_record_404_path( string $path ): void {
+	$path = erankly_health_sanitize_404_path( $path );
 
 	if ( '' === $path ) {
 		return;
@@ -128,7 +128,7 @@ function easyrankly_health_record_404_path( string $path ): void {
 	 * @param int    $sample_rate Sampling rate.
 	 * @param string $path        Normalized 404 path.
 	 */
-	$sample_rate = max( 1, (int) apply_filters( 'easyrankly_health_404_sample_rate', 5, $path ) );
+	$sample_rate = max( 1, (int) apply_filters( 'erankly_health_404_sample_rate', 5, $path ) );
 
 	if ( $sample_rate > 1 && 1 !== wp_rand( 1, $sample_rate ) ) {
 		return;
@@ -136,26 +136,26 @@ function easyrankly_health_record_404_path( string $path ): void {
 
 	$now      = time();
 	$hash     = md5( $path );
-	$frequent = easyrankly_health_get_404_entries( EASYRANKLY_HEALTH_404_FREQUENT_OPTION );
+	$frequent = erankly_health_get_404_entries( ERANKLY_HEALTH_404_FREQUENT_OPTION );
 
 	if ( isset( $frequent[ $hash ] ) ) {
 		$entry = $frequent[ $hash ];
 
-		if ( $now - (int) $entry['window_start'] < EASYRANKLY_HEALTH_404_WINDOW ) {
+		if ( $now - (int) $entry['window_start'] < ERANKLY_HEALTH_404_WINDOW ) {
 			$entry['path']      = $path;
 			$entry['count']     = absint( $entry['count'] ) + $sample_rate;
 			$entry['last_seen'] = $now;
 
 			$frequent[ $hash ] = $entry;
-			update_option( EASYRANKLY_HEALTH_404_FREQUENT_OPTION, easyrankly_health_prune_404_entries( $frequent, EASYRANKLY_HEALTH_404_MAX_FREQUENT ), false );
+			update_option( ERANKLY_HEALTH_404_FREQUENT_OPTION, erankly_health_prune_404_entries( $frequent, ERANKLY_HEALTH_404_MAX_FREQUENT ), false );
 			return;
 		}
 
 		unset( $frequent[ $hash ] );
-		update_option( EASYRANKLY_HEALTH_404_FREQUENT_OPTION, $frequent, false );
+		update_option( ERANKLY_HEALTH_404_FREQUENT_OPTION, $frequent, false );
 	}
 
-	$candidates = easyrankly_health_get_404_entries( EASYRANKLY_HEALTH_404_CANDIDATES_OPTION );
+	$candidates = erankly_health_get_404_entries( ERANKLY_HEALTH_404_CANDIDATES_OPTION );
 	$entry      = isset( $candidates[ $hash ] ) ? $candidates[ $hash ] : array(
 		'path'         => $path,
 		'count'        => 0,
@@ -164,7 +164,7 @@ function easyrankly_health_record_404_path( string $path ): void {
 		'last_seen'    => $now,
 	);
 
-	if ( $now - (int) $entry['window_start'] >= EASYRANKLY_HEALTH_404_WINDOW ) {
+	if ( $now - (int) $entry['window_start'] >= ERANKLY_HEALTH_404_WINDOW ) {
 		$entry = array(
 			'path'         => $path,
 			'count'        => 0,
@@ -178,17 +178,17 @@ function easyrankly_health_record_404_path( string $path ): void {
 	$entry['count']     = absint( $entry['count'] ) + $sample_rate;
 	$entry['last_seen'] = $now;
 
-	if ( absint( $entry['count'] ) >= EASYRANKLY_HEALTH_404_THRESHOLD ) {
+	if ( absint( $entry['count'] ) >= ERANKLY_HEALTH_404_THRESHOLD ) {
 		unset( $candidates[ $hash ] );
-		update_option( EASYRANKLY_HEALTH_404_CANDIDATES_OPTION, easyrankly_health_prune_404_entries( $candidates, EASYRANKLY_HEALTH_404_MAX_CANDIDATES ), false );
+		update_option( ERANKLY_HEALTH_404_CANDIDATES_OPTION, erankly_health_prune_404_entries( $candidates, ERANKLY_HEALTH_404_MAX_CANDIDATES ), false );
 
 		$frequent[ $hash ] = $entry;
-		update_option( EASYRANKLY_HEALTH_404_FREQUENT_OPTION, easyrankly_health_prune_404_entries( $frequent, EASYRANKLY_HEALTH_404_MAX_FREQUENT ), false );
+		update_option( ERANKLY_HEALTH_404_FREQUENT_OPTION, erankly_health_prune_404_entries( $frequent, ERANKLY_HEALTH_404_MAX_FREQUENT ), false );
 		return;
 	}
 
 	$candidates[ $hash ] = $entry;
-	update_option( EASYRANKLY_HEALTH_404_CANDIDATES_OPTION, easyrankly_health_prune_404_entries( $candidates, EASYRANKLY_HEALTH_404_MAX_CANDIDATES ), false );
+	update_option( ERANKLY_HEALTH_404_CANDIDATES_OPTION, erankly_health_prune_404_entries( $candidates, ERANKLY_HEALTH_404_MAX_CANDIDATES ), false );
 }
 
 /**
@@ -197,7 +197,7 @@ function easyrankly_health_record_404_path( string $path ): void {
  * @param string $option_name Option name.
  * @return array<string,array<string,int|string>>
  */
-function easyrankly_health_get_404_entries( string $option_name ): array {
+function erankly_health_get_404_entries( string $option_name ): array {
 	$entries = get_option( $option_name, array() );
 
 	if ( ! is_array( $entries ) ) {
@@ -211,7 +211,7 @@ function easyrankly_health_get_404_entries( string $option_name ): array {
 			continue;
 		}
 
-		$path = isset( $entry['path'] ) ? easyrankly_health_sanitize_404_path( (string) $entry['path'] ) : '';
+		$path = isset( $entry['path'] ) ? erankly_health_sanitize_404_path( (string) $entry['path'] ) : '';
 
 		if ( '' === $path ) {
 			continue;
@@ -239,7 +239,7 @@ function easyrankly_health_get_404_entries( string $option_name ): array {
  * @param string $path Request path.
  * @return string Anonymized, sanitized path.
  */
-function easyrankly_health_sanitize_404_path( string $path ): string {
+function erankly_health_sanitize_404_path( string $path ): string {
 	$path = sanitize_text_field( wp_unslash( $path ) );
 	$path = preg_replace( '#/+#', '/', $path );
 	$path = is_string( $path ) ? $path : '';
@@ -251,7 +251,7 @@ function easyrankly_health_sanitize_404_path( string $path ): string {
 	$path = '/' . ltrim( $path, '/' );
 	$path = '/' === $path ? $path : untrailingslashit( $path );
 
-	return easyrankly_health_anonymize_path_segments( $path );
+	return erankly_health_anonymize_path_segments( $path );
 }
 
 /**
@@ -267,9 +267,9 @@ function easyrankly_health_sanitize_404_path( string $path ): string {
  * the original URL or identify an individual.
  *
  * @param string $path Normalized path beginning with /.
- * @return string Anonymized path, capped at EASYRANKLY_HEALTH_PATH_MAX_LENGTH chars.
+ * @return string Anonymized path, capped at ERANKLY_HEALTH_PATH_MAX_LENGTH chars.
  */
-function easyrankly_health_anonymize_path_segments( string $path ): string {
+function erankly_health_anonymize_path_segments( string $path ): string {
 	$segments = explode( '/', $path );
 
 	foreach ( $segments as &$segment ) {
@@ -330,8 +330,8 @@ function easyrankly_health_anonymize_path_segments( string $path ): string {
 	$anonymized = implode( '/', $segments );
 
 	// Hard cap to prevent oversized option values.
-	if ( strlen( $anonymized ) > EASYRANKLY_HEALTH_PATH_MAX_LENGTH ) {
-		$anonymized = substr( $anonymized, 0, EASYRANKLY_HEALTH_PATH_MAX_LENGTH );
+	if ( strlen( $anonymized ) > ERANKLY_HEALTH_PATH_MAX_LENGTH ) {
+		$anonymized = substr( $anonymized, 0, ERANKLY_HEALTH_PATH_MAX_LENGTH );
 	}
 
 	return $anonymized;
@@ -344,7 +344,7 @@ function easyrankly_health_anonymize_path_segments( string $path ): string {
  * @param int                                    $max     Maximum entries.
  * @return array<string,array<string,int|string>>
  */
-function easyrankly_health_prune_404_entries( array $entries, int $max ): array {
+function erankly_health_prune_404_entries( array $entries, int $max ): array {
 	uasort(
 		$entries,
 		static function ( array $a, array $b ): int {
@@ -358,35 +358,35 @@ function easyrankly_health_prune_404_entries( array $entries, int $max ): array 
 /**
  * Schedules the daily 404 retention cron event if not already scheduled.
  *
- * Called from easyrankly_health_boot() on every request so the schedule is
+ * Called from erankly_health_boot() on every request so the schedule is
  * restored automatically after the site clears its cron table.
  *
  * @return void
  */
-function easyrankly_health_maybe_schedule_retention_cron(): void {
-	if ( ! wp_next_scheduled( EASYRANKLY_HEALTH_404_PRUNE_HOOK ) ) {
-		wp_schedule_event( time(), 'daily', EASYRANKLY_HEALTH_404_PRUNE_HOOK );
+function erankly_health_maybe_schedule_retention_cron(): void {
+	if ( ! wp_next_scheduled( ERANKLY_HEALTH_404_PRUNE_HOOK ) ) {
+		wp_schedule_event( time(), 'daily', ERANKLY_HEALTH_404_PRUNE_HOOK );
 	}
 }
 
 /**
  * Removes 404 aggregate entries that are older than the retention window.
  *
- * Fired daily by EASYRANKLY_HEALTH_404_PRUNE_HOOK. Removes any entry whose
+ * Fired daily by ERANKLY_HEALTH_404_PRUNE_HOOK. Removes any entry whose
  * last_seen timestamp is outside the retention period, keeping the option size
  * bounded independently of the max-entries cap.
  *
  * @return void
  */
-function easyrankly_health_prune_stale_404_data(): void {
-	$cutoff  = time() - ( EASYRANKLY_HEALTH_404_RETENTION_DAYS * DAY_IN_SECONDS );
+function erankly_health_prune_stale_404_data(): void {
+	$cutoff  = time() - ( ERANKLY_HEALTH_404_RETENTION_DAYS * DAY_IN_SECONDS );
 	$options = array(
-		EASYRANKLY_HEALTH_404_CANDIDATES_OPTION,
-		EASYRANKLY_HEALTH_404_FREQUENT_OPTION,
+		ERANKLY_HEALTH_404_CANDIDATES_OPTION,
+		ERANKLY_HEALTH_404_FREQUENT_OPTION,
 	);
 
 	foreach ( $options as $option ) {
-		$entries = easyrankly_health_get_404_entries( $option );
+		$entries = erankly_health_get_404_entries( $option );
 		$pruned  = array();
 
 		foreach ( $entries as $hash => $entry ) {
@@ -410,15 +410,15 @@ function easyrankly_health_prune_stale_404_data(): void {
  *
  * @return array<string,array<string,int|string>>
  */
-function easyrankly_health_get_frequent_404s(): array {
+function erankly_health_get_frequent_404s(): array {
 	$now      = time();
-	$entries  = easyrankly_health_get_404_entries( EASYRANKLY_HEALTH_404_FREQUENT_OPTION );
+	$entries  = erankly_health_get_404_entries( ERANKLY_HEALTH_404_FREQUENT_OPTION );
 	$frequent = array();
 
 	foreach ( $entries as $hash => $entry ) {
 		if (
-			absint( $entry['count'] ) >= EASYRANKLY_HEALTH_404_THRESHOLD
-			&& $now - absint( $entry['window_start'] ) < EASYRANKLY_HEALTH_404_WINDOW
+			absint( $entry['count'] ) >= ERANKLY_HEALTH_404_THRESHOLD
+			&& $now - absint( $entry['window_start'] ) < ERANKLY_HEALTH_404_WINDOW
 		) {
 			$frequent[ $hash ] = $entry;
 		}
@@ -445,9 +445,9 @@ function easyrankly_health_get_frequent_404s(): array {
  *
  * @return void
  */
-function easyrankly_health_clear_404s(): void {
-	delete_option( EASYRANKLY_HEALTH_404_CANDIDATES_OPTION );
-	delete_option( EASYRANKLY_HEALTH_404_FREQUENT_OPTION );
+function erankly_health_clear_404s(): void {
+	delete_option( ERANKLY_HEALTH_404_CANDIDATES_OPTION );
+	delete_option( ERANKLY_HEALTH_404_FREQUENT_OPTION );
 }
 
 /**
@@ -455,20 +455,20 @@ function easyrankly_health_clear_404s(): void {
  *
  * @return void
  */
-function easyrankly_health_handle_clear_404s(): void {
+function erankly_health_handle_clear_404s(): void {
 	if ( ! current_user_can( 'manage_options' ) ) {
 		wp_die( esc_html__( 'Sorry, you are not allowed to clear Health data.', 'easyrankly' ) );
 	}
 
-	check_admin_referer( 'easyrankly_health_clear_404s' );
-	easyrankly_health_clear_404s();
+	check_admin_referer( 'erankly_health_clear_404s' );
+	erankly_health_clear_404s();
 
 	wp_safe_redirect(
 		add_query_arg(
 			array(
-				'page'                    => 'easyrankly',
-				'easyrankly_tab'          => 'health',
-				'easyrankly_health_clear' => '1',
+				'page'                 => 'erankly',
+				'erankly_tab'          => 'health',
+				'erankly_health_clear' => '1',
 			),
 			admin_url( 'options-general.php' )
 		)
@@ -482,7 +482,7 @@ function easyrankly_health_handle_clear_404s(): void {
  * @param int $timestamp Unix timestamp.
  * @return string
  */
-function easyrankly_health_format_timestamp( int $timestamp ): string {
+function erankly_health_format_timestamp( int $timestamp ): string {
 	if ( $timestamp <= 0 ) {
 		return '';
 	}
@@ -496,7 +496,7 @@ function easyrankly_health_format_timestamp( int $timestamp ): string {
  * @param string $url URL or path to normalize.
  * @return string Normalized root-relative path, or empty string if not resolvable.
  */
-function easyrankly_health_normalize_link_path( string $url ): string {
+function erankly_health_normalize_link_path( string $url ): string {
 	$path = wp_parse_url( $url, PHP_URL_PATH );
 
 	if ( ! is_string( $path ) || '' === $path ) {
@@ -512,7 +512,7 @@ function easyrankly_health_normalize_link_path( string $url ): string {
  * Runs a full thin-content scan over all published pages and caches the results.
  *
  * A page is flagged as thin when it meets at least 2 of the following 3 conditions:
- * - Fewer than EASYRANKLY_HEALTH_THIN_MIN_CHARS characters of plain text.
+ * - Fewer than ERANKLY_HEALTH_THIN_MIN_CHARS characters of plain text.
  * - No internal inbound links (no other indexed page on this site links to it).
  * - No internal outbound links (it does not link to any other indexed page on this site).
  *
@@ -520,10 +520,10 @@ function easyrankly_health_normalize_link_path( string $url ): string {
  *
  * @return void
  */
-function easyrankly_health_run_thin_content_scan(): void {
+function erankly_health_run_thin_content_scan(): void {
 	global $wpdb;
 
-	$post_types   = array_keys( easyrankly_get_public_post_types() );
+	$post_types   = array_keys( erankly_get_public_post_types() );
 	$empty_result = array(
 		'scanned_at'    => time(),
 		'scanned_count' => 0,
@@ -531,7 +531,7 @@ function easyrankly_health_run_thin_content_scan(): void {
 	);
 
 	if ( empty( $post_types ) ) {
-		update_option( EASYRANKLY_HEALTH_THIN_OPTION, $empty_result, false );
+		update_option( ERANKLY_HEALTH_THIN_OPTION, $empty_result, false );
 		return;
 	}
 
@@ -549,7 +549,7 @@ function easyrankly_health_run_thin_content_scan(): void {
 				AND NOT EXISTS (
 					SELECT 1 FROM {$wpdb->postmeta} pm
 					WHERE pm.post_id = p.ID
-						AND pm.meta_key = '_easyrankly_noindex'
+						AND pm.meta_key = '_erankly_noindex'
 						AND pm.meta_value = '1'
 					)",
 			$post_types
@@ -560,7 +560,7 @@ function easyrankly_health_run_thin_content_scan(): void {
 	$post_ids = array_map( 'intval', (array) $post_ids );
 
 	if ( empty( $post_ids ) ) {
-		update_option( EASYRANKLY_HEALTH_THIN_OPTION, $empty_result, false );
+		update_option( ERANKLY_HEALTH_THIN_OPTION, $empty_result, false );
 		return;
 	}
 
@@ -577,7 +577,7 @@ function easyrankly_health_run_thin_content_scan(): void {
 			continue;
 		}
 
-		$path = easyrankly_health_normalize_link_path( $permalink );
+		$path = erankly_health_normalize_link_path( $permalink );
 
 		if ( '' !== $path ) {
 			$path_map[ $path ] = $post_id;
@@ -591,7 +591,7 @@ function easyrankly_health_run_thin_content_scan(): void {
 	$has_outbound   = array(); // post_id (int) => bool.
 	$char_counts    = array(); // post_id (int) => int (non-builder posts only).
 
-	foreach ( array_chunk( $post_ids, EASYRANKLY_HEALTH_THIN_SCAN_BATCH ) as $batch_ids ) {
+	foreach ( array_chunk( $post_ids, ERANKLY_HEALTH_THIN_SCAN_BATCH ) as $batch_ids ) {
 		// $id_placeholders is built from array_fill('%d'), so it contains only literal
 		// %d tokens; all values are bound through prepare() in every query below.
 		$id_placeholders = implode( ', ', array_fill( 0, count( $batch_ids ), '%d' ) );
@@ -669,7 +669,7 @@ function easyrankly_health_run_thin_content_scan(): void {
 					continue; // External link.
 				}
 
-				$href_path = easyrankly_health_normalize_link_path( $href );
+				$href_path = erankly_health_normalize_link_path( $href );
 
 				if ( '' === $href_path || ! isset( $path_map[ $href_path ] ) ) {
 					continue; // Does not resolve to a known indexed page.
@@ -715,7 +715,7 @@ function easyrankly_health_run_thin_content_scan(): void {
 	$thin_pages = array();
 
 	foreach ( $char_counts as $post_id => $char_count ) {
-		$is_thin_chars = $char_count < EASYRANKLY_HEALTH_THIN_MIN_CHARS;
+		$is_thin_chars = $char_count < ERANKLY_HEALTH_THIN_MIN_CHARS;
 		$page_has_in   = ! empty( $inbound_counts[ $post_id ] );
 		$page_has_out  = ! empty( $has_outbound[ $post_id ] );
 
@@ -748,12 +748,12 @@ function easyrankly_health_run_thin_content_scan(): void {
 		}
 	);
 
-	if ( count( $thin_pages ) > EASYRANKLY_HEALTH_THIN_MAX_RESULTS ) {
-		$thin_pages = array_slice( $thin_pages, 0, EASYRANKLY_HEALTH_THIN_MAX_RESULTS );
+	if ( count( $thin_pages ) > ERANKLY_HEALTH_THIN_MAX_RESULTS ) {
+		$thin_pages = array_slice( $thin_pages, 0, ERANKLY_HEALTH_THIN_MAX_RESULTS );
 	}
 
 	update_option(
-		EASYRANKLY_HEALTH_THIN_OPTION,
+		ERANKLY_HEALTH_THIN_OPTION,
 		array(
 			'scanned_at'    => time(),
 			'scanned_count' => count( $post_ids ),
@@ -768,8 +768,8 @@ function easyrankly_health_run_thin_content_scan(): void {
  *
  * @return array{scanned_at:int,scanned_count:int,pages:array<int,array<string,mixed>>}|null
  */
-function easyrankly_health_get_thin_content(): ?array {
-	$data = get_option( EASYRANKLY_HEALTH_THIN_OPTION, null );
+function erankly_health_get_thin_content(): ?array {
+	$data = get_option( ERANKLY_HEALTH_THIN_OPTION, null );
 
 	if ( ! is_array( $data ) ) {
 		return null;
@@ -787,20 +787,20 @@ function easyrankly_health_get_thin_content(): ?array {
  *
  * @return void
  */
-function easyrankly_health_handle_scan_thin(): void {
+function erankly_health_handle_scan_thin(): void {
 	if ( ! current_user_can( 'manage_options' ) ) {
 		wp_die( esc_html__( 'Sorry, you are not allowed to run Health scans.', 'easyrankly' ) );
 	}
 
-	check_admin_referer( 'easyrankly_health_scan_thin' );
-	easyrankly_health_run_thin_content_scan();
+	check_admin_referer( 'erankly_health_scan_thin' );
+	erankly_health_run_thin_content_scan();
 
 	wp_safe_redirect(
 		add_query_arg(
 			array(
-				'page'                      => 'easyrankly',
-				'easyrankly_tab'            => 'health',
-				'easyrankly_health_scanned' => '1',
+				'page'                   => 'erankly',
+				'erankly_tab'            => 'health',
+				'erankly_health_scanned' => '1',
 			),
 			admin_url( 'options-general.php' )
 		)
@@ -813,11 +813,11 @@ function easyrankly_health_handle_scan_thin(): void {
  *
  * @return void
  */
-function easyrankly_health_render_panel(): void {
-	$frequent_404s = easyrankly_health_get_frequent_404s();
-	$thin_content  = easyrankly_health_get_thin_content();
-	$was_cleared   = isset( $_GET['easyrankly_health_clear'] ) && '1' === sanitize_key( wp_unslash( $_GET['easyrankly_health_clear'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only success notice after a nonce-protected POST redirect.
-	$was_scanned   = isset( $_GET['easyrankly_health_scanned'] ) && '1' === sanitize_key( wp_unslash( $_GET['easyrankly_health_scanned'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only success notice after a nonce-protected POST redirect.
+function erankly_health_render_panel(): void {
+	$frequent_404s = erankly_health_get_frequent_404s();
+	$thin_content  = erankly_health_get_thin_content();
+	$was_cleared   = isset( $_GET['erankly_health_clear'] ) && '1' === sanitize_key( wp_unslash( $_GET['erankly_health_clear'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only success notice after a nonce-protected POST redirect.
+	$was_scanned   = isset( $_GET['erankly_health_scanned'] ) && '1' === sanitize_key( wp_unslash( $_GET['erankly_health_scanned'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only success notice after a nonce-protected POST redirect.
 	?>
 	<h2><?php esc_html_e( 'Health', 'easyrankly' ); ?></h2>
 	<?php if ( $was_cleared ) : ?>
@@ -830,16 +830,16 @@ function easyrankly_health_render_panel(): void {
 			<p><?php esc_html_e( 'Content insights scan completed.', 'easyrankly' ); ?></p>
 		</div>
 	<?php endif; ?>
-	<div class="easyrankly-settings-fields">
-		<fieldset class="easyrankly-field">
+	<div class="erankly-settings-fields">
+		<fieldset class="erankly-field">
 			<legend><strong><?php esc_html_e( 'Frequent 404 scanner', 'easyrankly' ); ?></strong></legend>
 			<p class="description">
 				<?php
 				printf(
 					/* translators: 1: 404 threshold. 2: Monitoring window in hours. */
 					esc_html__( 'The scanner lists only paths that reach at least %1$d estimated 404 hits within %2$d hours. Lower-volume 404s are sampled into short-lived aggregate counters and are not listed individually.', 'easyrankly' ),
-					absint( EASYRANKLY_HEALTH_404_THRESHOLD ),
-					absint( EASYRANKLY_HEALTH_404_WINDOW / HOUR_IN_SECONDS )
+					absint( ERANKLY_HEALTH_404_THRESHOLD ),
+					absint( ERANKLY_HEALTH_404_WINDOW / HOUR_IN_SECONDS )
 				);
 				?>
 			</p>
@@ -848,7 +848,7 @@ function easyrankly_health_render_panel(): void {
 				printf(
 					/* translators: %d: Retention period in days. */
 					esc_html__( 'Privacy: paths are anonymized before storage — emails, UUIDs, long numbers, and tokens are replaced with neutral placeholders. Data is automatically purged after %d days.', 'easyrankly' ),
-					absint( EASYRANKLY_HEALTH_404_RETENTION_DAYS )
+					absint( ERANKLY_HEALTH_404_RETENTION_DAYS )
 				);
 				?>
 			</p>
@@ -870,27 +870,27 @@ function easyrankly_health_render_panel(): void {
 							<tr>
 								<td><code><?php echo esc_html( (string) $entry['path'] ); ?></code></td>
 								<td><?php echo esc_html( number_format_i18n( absint( $entry['count'] ) ) ); ?></td>
-								<td><?php echo esc_html( easyrankly_health_format_timestamp( absint( $entry['first_seen'] ) ) ); ?></td>
-								<td><?php echo esc_html( easyrankly_health_format_timestamp( absint( $entry['last_seen'] ) ) ); ?></td>
+								<td><?php echo esc_html( erankly_health_format_timestamp( absint( $entry['first_seen'] ) ) ); ?></td>
+								<td><?php echo esc_html( erankly_health_format_timestamp( absint( $entry['last_seen'] ) ) ); ?></td>
 							</tr>
 						<?php endforeach; ?>
 					</tbody>
 				</table>
 			<?php endif; ?>
 			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
-				<input type="hidden" name="action" value="easyrankly_health_clear_404s">
-				<?php wp_nonce_field( 'easyrankly_health_clear_404s' ); ?>
+				<input type="hidden" name="action" value="erankly_health_clear_404s">
+				<?php wp_nonce_field( 'erankly_health_clear_404s' ); ?>
 				<?php submit_button( __( 'Clear 404 scanner data', 'easyrankly' ), 'secondary', 'submit', false ); ?>
 			</form>
 		</fieldset>
-		<fieldset class="easyrankly-field">
+		<fieldset class="erankly-field">
 			<legend><strong><?php esc_html_e( 'Content insights (heuristic)', 'easyrankly' ); ?></strong></legend>
 			<p class="description">
 				<?php
 				printf(
 					/* translators: 1: Minimum character threshold. */
 					esc_html__( 'This is a heuristic, not a definitive SEO diagnosis. Pages are flagged as potentially thin when they meet at least 2 of these 3 conditions: fewer than %1$d characters of visible text, no internal inbound links (no other page on this site links to it), no internal outbound links (it does not link to any other page on this site). Results are cached — run the scan again to refresh.', 'easyrankly' ),
-					absint( EASYRANKLY_HEALTH_THIN_MIN_CHARS )
+					absint( ERANKLY_HEALTH_THIN_MIN_CHARS )
 				);
 				?>
 			</p>
@@ -949,14 +949,14 @@ function easyrankly_health_render_panel(): void {
 						/* translators: 1: Number of pages analysed. 2: Formatted date/time of last scan. */
 						esc_html__( 'Last scan: %2$s — %1$d pages analysed.', 'easyrankly' ),
 						absint( $thin_content['scanned_count'] ),
-						esc_html( easyrankly_health_format_timestamp( absint( $thin_content['scanned_at'] ) ) )
+						esc_html( erankly_health_format_timestamp( absint( $thin_content['scanned_at'] ) ) )
 					);
 					?>
 				</p>
 			<?php endif; ?>
 			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
-				<input type="hidden" name="action" value="easyrankly_health_scan_thin">
-				<?php wp_nonce_field( 'easyrankly_health_scan_thin' ); ?>
+				<input type="hidden" name="action" value="erankly_health_scan_thin">
+				<?php wp_nonce_field( 'erankly_health_scan_thin' ); ?>
 				<?php submit_button( __( 'Run content insights scan', 'easyrankly' ), 'secondary', 'submit', false ); ?>
 			</form>
 		</fieldset>

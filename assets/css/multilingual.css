@@ -2,107 +2,107 @@
 
 /* Editor — Translations panel */
 
-.easyrankly-ml-translations {
+.erankly-ml-translations {
 	margin-top: 4px;
 }
 
-.easyrankly-ml-intro {
+.erankly-ml-intro {
 	margin: 0 0 12px;
 }
 
-.easyrankly-ml-field {
+.erankly-ml-field {
 	margin: 0 0 16px;
 }
 
-.easyrankly-ml-field:last-child {
+.erankly-ml-field:last-child {
 	margin-bottom: 0;
 }
 
-.easyrankly-ml-label {
+.erankly-ml-label {
 	display: block;
 	margin: 0 0 6px;
 }
 
 /* Network Admin — Site language map */
 
-.easyrankly-ml-network-intro {
+.erankly-ml-network-intro {
 	max-width: 720px;
 }
 
-.easyrankly-ml-sites-form {
+.erankly-ml-sites-form {
 	margin-top: 16px;
 	max-width: 760px;
 }
 
-.easyrankly-ml-sites-table {
+.erankly-ml-sites-table {
 	margin-top: 4px;
 }
 
-.easyrankly-ml-sites-table th,
-.easyrankly-ml-sites-table td {
+.erankly-ml-sites-table th,
+.erankly-ml-sites-table td {
 	vertical-align: middle;
 }
 
-.easyrankly-ml-col-toggle {
+.erankly-ml-col-toggle {
 	text-align: center;
 	width: 90px;
 }
 
-.easyrankly-ml-col-code {
+.erankly-ml-col-code {
 	width: 220px;
 }
 
-.easyrankly-ml-site-title {
+.erankly-ml-site-title {
 	display: block;
 	font-weight: 600;
 }
 
-.easyrankly-ml-site-host {
+.erankly-ml-site-host {
 	color: #646970;
 	display: block;
 	font-size: 12px;
 }
 
-.easyrankly-ml-code-input {
+.erankly-ml-code-input {
 	width: 90px;
 }
 
-.easyrankly-ml-derived {
+.erankly-ml-derived {
 	color: #646970;
 	display: inline-block;
 	font-size: 12px;
 	margin-left: 8px;
 }
 
-.easyrankly-ml-derived code {
+.erankly-ml-derived code {
 	font-size: 11px;
 	padding: 1px 5px;
 }
 
-.easyrankly-ml-toggle {
+.erankly-ml-toggle {
 	display: inline-flex;
 	margin: 0;
 }
 
-.easyrankly-ml-notice-texts {
+.erankly-ml-notice-texts {
 	margin-top: 32px;
 }
 
-.easyrankly-ml-notice-tabs {
+.erankly-ml-notice-tabs {
 	margin-top: 16px;
 }
 
-.easyrankly-ml-notice-tabs .easyrankly-tabs {
+.erankly-ml-notice-tabs .erankly-tabs {
 	overflow-x: auto;
 	overflow-y: hidden;
 	white-space: nowrap;
 }
 
-.easyrankly-ml-notice-site h4 {
+.erankly-ml-notice-site h4 {
 	font-size: 14px;
 	margin: 0 0 12px;
 }
 
-.easyrankly-ml-notice-site .easyrankly-field:last-child {
+.erankly-ml-notice-site .erankly-field:last-child {
 	margin-bottom: 0;
 }

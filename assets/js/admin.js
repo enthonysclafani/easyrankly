@@ -2,11 +2,11 @@
 	'use strict';
 
 	function bindMediaUrlField(field) {
-		var selectButton = field.querySelector('[data-easyrankly-select-media-url]');
-		var clearButton = field.querySelector('[data-easyrankly-clear-media-url]');
-		var input = field.querySelector('[data-easyrankly-media-url-input]');
-		var idInput = field.querySelector('[data-easyrankly-media-url-id]');
-		var preview = field.querySelector('[data-easyrankly-media-url-preview]');
+		var selectButton = field.querySelector('[data-erankly-select-media-url]');
+		var clearButton = field.querySelector('[data-erankly-clear-media-url]');
+		var input = field.querySelector('[data-erankly-media-url-input]');
+		var idInput = field.querySelector('[data-erankly-media-url-id]');
+		var preview = field.querySelector('[data-erankly-media-url-preview]');
 		var frame;
 		var isMediaSelection = false;
 
@@ -88,13 +88,13 @@
 	}
 
 	function bindTabs(container) {
-		var tabLists = Array.prototype.slice.call(container.querySelectorAll('.easyrankly-tabs'));
+		var tabLists = Array.prototype.slice.call(container.querySelectorAll('.erankly-tabs'));
 
 		tabLists.forEach(function (tabList) {
-			var tabContainer = tabList.closest('[data-easyrankly-tabs-root]') || tabList.parentElement;
-			var tabs = Array.prototype.slice.call(tabList.querySelectorAll('[data-easyrankly-tab]'));
+			var tabContainer = tabList.closest('[data-erankly-tabs-root]') || tabList.parentElement;
+			var tabs = Array.prototype.slice.call(tabList.querySelectorAll('[data-erankly-tab]'));
 			var panels = tabContainer ? Array.prototype.filter.call(tabContainer.children, function (child) {
-				return child.hasAttribute('data-easyrankly-panel');
+				return child.hasAttribute('data-erankly-panel');
 			}) : [];
 
 			// setFocus=true moves keyboard focus to the newly activated tab (used for
@@ -104,7 +104,7 @@
 					return;
 				}
 
-				var target = tab.getAttribute('data-easyrankly-tab');
+				var target = tab.getAttribute('data-erankly-tab');
 
 				tabs.forEach(function (item) {
 					var isActive = item === tab;
@@ -117,7 +117,7 @@
 				});
 
 				panels.forEach(function (panel) {
-					var isActive = panel.getAttribute('data-easyrankly-panel') === target;
+					var isActive = panel.getAttribute('data-erankly-panel') === target;
 
 					panel.classList.toggle('is-active', isActive);
 					panel.hidden = !isActive;
@@ -176,16 +176,16 @@
 	}
 
 	function bindSettingsTabs(root) {
-		var tablist = root.querySelector('[data-easyrankly-settings-tablist]');
+		var tablist = root.querySelector('[data-erankly-settings-tablist]');
 
 		if (!tablist) {
 			return;
 		}
 
-		var tabs = Array.prototype.slice.call(tablist.querySelectorAll('[data-easyrankly-tab]'));
-		var panels = Array.prototype.slice.call(root.querySelectorAll('[data-easyrankly-settings-panel]'));
+		var tabs = Array.prototype.slice.call(tablist.querySelectorAll('[data-erankly-tab]'));
+		var panels = Array.prototype.slice.call(root.querySelectorAll('[data-erankly-settings-panel]'));
 		var referer = root.querySelector('input[name="_wp_http_referer"]');
-		var settingsSubmit = root.querySelector('[data-easyrankly-settings-submit]');
+		var settingsSubmit = root.querySelector('[data-erankly-settings-submit]');
 
 		// Keep the Settings API redirect on the active tab after "Save Changes".
 		function syncReferer(target) {
@@ -195,11 +195,11 @@
 
 			var base = referer.value
 				.split('#')[0]
-				.replace(/([?&])easyrankly_tab=[^&]*&?/, '$1')
+				.replace(/([?&])erankly_tab=[^&]*&?/, '$1')
 				.replace(/[?&]$/, '');
 
 			if (target === 'settings-features' || target === 'settings-health' || target === 'settings-redirects' || target === 'settings-import-export') {
-				base += (base.indexOf('?') === -1 ? '?' : '&') + 'easyrankly_tab=' + target.replace('settings-', '');
+				base += (base.indexOf('?') === -1 ? '?' : '&') + 'erankly_tab=' + target.replace('settings-', '');
 			}
 
 			referer.value = base;
@@ -215,7 +215,7 @@
 			var shortName = target.replace('settings-', '');
 			var url = new URL(window.location.href);
 
-			url.searchParams.set('easyrankly_tab', shortName);
+			url.searchParams.set('erankly_tab', shortName);
 			url.hash = '';
 			history.replaceState(history.state, '', url.toString());
 		}
@@ -223,7 +223,7 @@
 		// setFocus=true moves keyboard focus to the tab button (for keyboard navigation).
 		function activate(target, setFocus) {
 			tabs.forEach(function (tab) {
-				var isActive = tab.getAttribute('data-easyrankly-tab') === target;
+				var isActive = tab.getAttribute('data-erankly-tab') === target;
 
 				tab.classList.toggle('is-active', isActive);
 				tab.classList.toggle('nav-tab-active', isActive);
@@ -233,7 +233,7 @@
 			});
 
 			panels.forEach(function (panel) {
-				var isActive = panel.getAttribute('data-easyrankly-settings-panel') === target;
+				var isActive = panel.getAttribute('data-erankly-settings-panel') === target;
 
 				panel.classList.toggle('is-active', isActive);
 				panel.hidden = !isActive;
@@ -243,9 +243,9 @@
 				// Panels that carry their own form (the core's external panels and any
 				// extension tab) opt out of the shared "Save Changes" button.
 				var activePanel = panels.filter(function (panel) {
-					return panel.getAttribute('data-easyrankly-settings-panel') === target;
+					return panel.getAttribute('data-erankly-settings-panel') === target;
 				})[0];
-				var standalone = activePanel ? activePanel.hasAttribute('data-easyrankly-standalone-panel') : false;
+				var standalone = activePanel ? activePanel.hasAttribute('data-erankly-standalone-panel') : false;
 
 				settingsSubmit.hidden = standalone || target === 'settings-health' || target === 'settings-import-export' || target === 'settings-redirects' || target === 'settings-multilingual';
 			}
@@ -253,7 +253,7 @@
 			syncReferer(target);
 
 			if (setFocus) {
-				var activeTab = tablist.querySelector('[data-easyrankly-tab="' + target + '"]');
+				var activeTab = tablist.querySelector('[data-erankly-tab="' + target + '"]');
 
 				if (activeTab) {
 					activeTab.focus();
@@ -268,7 +268,7 @@
 
 		tabs.forEach(function (tab) {
 			tab.addEventListener('click', function () {
-				var target = tab.getAttribute('data-easyrankly-tab');
+				var target = tab.getAttribute('data-erankly-tab');
 
 				activate(target, false);
 				syncUrl(target);
@@ -306,31 +306,39 @@
 			}
 
 			e.preventDefault();
-			var nextTarget = focusable[next].getAttribute('data-easyrankly-tab');
+			var nextTarget = focusable[next].getAttribute('data-erankly-tab');
 
 			activate(nextTarget, true);
 			syncUrl(nextTarget);
 		});
 
-		// Activate the server-requested panel on init. For panels that PHP already
-		// renders as active (general, features, health, redirects, import-export) this
-		// is a no-op in terms of visibility. For JS-only panels (social, schema,
-		// sitemap, settings, advanced, bloat) it removes the hardcoded `hidden`
-		// attribute so that a direct URL reload restores the correct tab.
-		var initialPanel = tablist.getAttribute('data-easyrankly-active-panel');
+		// Resolve deep links client-side. The requested panel is accepted only when
+		// a matching, capability-filtered tab was rendered on this screen.
+		var initialPanel = tablist.getAttribute('data-erankly-active-panel');
+		var requestedTab = new URL(window.location.href).searchParams.get('erankly_tab');
+		var requestedPanel = requestedTab ? 'settings-' + requestedTab : '';
+		var requestedPanelExists = tabs.some(function (tab) {
+			return tab.getAttribute('data-erankly-tab') === requestedPanel;
+		});
 
-		if (initialPanel) {
+		if (requestedPanelExists) {
+			initialPanel = requestedPanel;
+		}
+
+		if (initialPanel && tabs.some(function (tab) {
+			return tab.getAttribute('data-erankly-tab') === initialPanel;
+		})) {
 			activate(initialPanel, false);
 		}
 
-		root.easyranklyActivateSettingsTab = activate;
+		root.eranklyActivateSettingsTab = activate;
 	}
 
 	function bindSimplifiedMode(root) {
 		var simplifiedMode = root.querySelector('input[name$="[simplified_mode]"]');
-		var advancedTab = root.querySelector('[data-easyrankly-advanced-tab]');
-		var advancedPanel = root.querySelector('[data-easyrankly-advanced-panel]');
-		var customSchemaSection = root.querySelector('[data-easyrankly-custom-schema-section]');
+		var advancedTab = root.querySelector('[data-erankly-advanced-tab]');
+		var advancedPanel = root.querySelector('[data-erankly-advanced-panel]');
+		var customSchemaSection = root.querySelector('[data-erankly-custom-schema-section]');
 
 		if (!simplifiedMode || !advancedTab || !advancedPanel) {
 			return;
@@ -343,19 +351,19 @@
 				customSchemaSection.hidden = isSimplified;
 			}
 
-			if (isSimplified && advancedPanel.classList.contains('is-active') && typeof root.easyranklyActivateSettingsTab === 'function') {
-				root.easyranklyActivateSettingsTab('settings-settings');
+			if (isSimplified && advancedPanel.classList.contains('is-active') && typeof root.eranklyActivateSettingsTab === 'function') {
+				root.eranklyActivateSettingsTab('settings-settings');
 			}
 		}
 
 		syncAdvancedVisibility();
 	}
 
-	// Linked fields are matched by an explicit data-easyrankly-linked-field
+	// Linked fields are matched by an explicit data-erankly-linked-field
 	// attribute (flat setting names, e.g. social defaults) or by the [title] /
 	// [description] suffix of nested names (post type and taxonomy defaults).
 	function getLinkedFieldName(field) {
-		var explicit = field.getAttribute('data-easyrankly-linked-field');
+		var explicit = field.getAttribute('data-erankly-linked-field');
 
 		if (explicit) {
 			return explicit;
@@ -373,19 +381,19 @@
 	}
 
 	function getLinkedDefaultFields(container, fieldName) {
-		return Array.prototype.slice.call(container.querySelectorAll('.easyrankly-default-tab-panel input, .easyrankly-default-tab-panel textarea')).filter(function (field) {
+		return Array.prototype.slice.call(container.querySelectorAll('.erankly-default-tab-panel input, .erankly-default-tab-panel textarea')).filter(function (field) {
 			return getLinkedFieldName(field) === fieldName;
 		});
 	}
 
 	function getLinkedDefaultSource(container) {
-		var activePanel = container.querySelector('.easyrankly-default-tab-panel.is-active');
+		var activePanel = container.querySelector('.erankly-default-tab-panel.is-active');
 
 		if (activePanel) {
 			return activePanel;
 		}
 
-		return container.querySelector('.easyrankly-default-tab-panel');
+		return container.querySelector('.erankly-default-tab-panel');
 	}
 
 	function syncLinkedDefaultFields(container, sourceField) {
@@ -405,26 +413,26 @@
 	}
 
 	function setLinkedDefaultsState(container, isLinked, shouldSync) {
-		var input = container.querySelector('[data-easyrankly-linked-input]');
-		var toggle = container.querySelector('[data-easyrankly-linked-toggle]');
-		var status = container.querySelector('[data-easyrankly-linked-status]');
-		var action = container.querySelector('[data-easyrankly-linked-action]');
-		var tabs = Array.prototype.slice.call(container.querySelectorAll('.easyrankly-tabs [data-easyrankly-tab]'));
-		var panels = Array.prototype.slice.call(container.querySelectorAll('.easyrankly-default-tab-panel'));
+		var input = container.querySelector('[data-erankly-linked-input]');
+		var toggle = container.querySelector('[data-erankly-linked-toggle]');
+		var status = container.querySelector('[data-erankly-linked-status]');
+		var action = container.querySelector('[data-erankly-linked-action]');
+		var tabs = Array.prototype.slice.call(container.querySelectorAll('.erankly-tabs [data-erankly-tab]'));
+		var panels = Array.prototype.slice.call(container.querySelectorAll('.erankly-default-tab-panel'));
 		var source = getLinkedDefaultSource(container);
-		var title = source ? source.querySelector('[data-easyrankly-linked-field="title"], [name*="[title]"]') : null;
-		var description = source ? source.querySelector('[data-easyrankly-linked-field="description"], [name*="[description]"]') : null;
-		var target = source ? source.getAttribute('data-easyrankly-panel') : '';
+		var title = source ? source.querySelector('[data-erankly-linked-field="title"], [name*="[title]"]') : null;
+		var description = source ? source.querySelector('[data-erankly-linked-field="description"], [name*="[description]"]') : null;
+		var target = source ? source.getAttribute('data-erankly-panel') : '';
 		var actionLabel = '';
 
 		if (!target && panels.length > 0) {
-			target = panels[0].getAttribute('data-easyrankly-panel');
+			target = panels[0].getAttribute('data-erankly-panel');
 		}
 
 		container.classList.toggle('is-linked', isLinked);
 
 		tabs.forEach(function (tab) {
-			var isActive = !isLinked && tab.getAttribute('data-easyrankly-tab') === target;
+			var isActive = !isLinked && tab.getAttribute('data-erankly-tab') === target;
 
 			tab.disabled = isLinked;
 			tab.setAttribute('aria-disabled', isLinked ? 'true' : 'false');
@@ -444,7 +452,7 @@
 		}
 
 		if (toggle) {
-			actionLabel = toggle.getAttribute(isLinked ? 'data-easyrankly-linked-action-on-label' : 'data-easyrankly-linked-action-off-label') || '';
+			actionLabel = toggle.getAttribute(isLinked ? 'data-erankly-linked-action-on-label' : 'data-erankly-linked-action-off-label') || '';
 			toggle.setAttribute('aria-label', actionLabel);
 			toggle.setAttribute('title', actionLabel);
 		}
@@ -454,7 +462,7 @@
 		}
 
 		if (status && toggle) {
-			status.textContent = isLinked ? toggle.getAttribute('data-easyrankly-linked-on-label') : toggle.getAttribute('data-easyrankly-linked-off-label');
+			status.textContent = isLinked ? toggle.getAttribute('data-erankly-linked-on-label') : toggle.getAttribute('data-erankly-linked-off-label');
 		}
 
 		if (isLinked && shouldSync) {
@@ -469,8 +477,8 @@
 	}
 
 	function bindLinkedDefaults(container) {
-		var toggle = container.querySelector('[data-easyrankly-linked-toggle]');
-		var input = container.querySelector('[data-easyrankly-linked-input]');
+		var toggle = container.querySelector('[data-erankly-linked-toggle]');
+		var input = container.querySelector('[data-erankly-linked-input]');
 
 		if (!toggle || !input) {
 			return;
@@ -480,7 +488,7 @@
 			setLinkedDefaultsState(container, !container.classList.contains('is-linked'), true);
 		});
 
-		container.querySelectorAll('.easyrankly-default-tab-panel input, .easyrankly-default-tab-panel textarea').forEach(function (field) {
+		container.querySelectorAll('.erankly-default-tab-panel input, .erankly-default-tab-panel textarea').forEach(function (field) {
 			if (!getLinkedFieldName(field)) {
 				return;
 			}
@@ -496,9 +504,9 @@
 	}
 
 	function bindCharacterCounter(field) {
-		var limit = parseInt(field.getAttribute('data-easyrankly-limit'), 10);
-		var counterId = field.getAttribute('data-easyrankly-counter');
-		var warning = field.getAttribute('data-easyrankly-warning') || 'too long';
+		var limit = parseInt(field.getAttribute('data-erankly-limit'), 10);
+		var counterId = field.getAttribute('data-erankly-counter');
+		var warning = field.getAttribute('data-erankly-warning') || 'too long';
 		var counter = counterId ? document.getElementById(counterId) : null;
 
 		if (!counter || !limit) {
@@ -518,8 +526,8 @@
 	}
 
 	function closeVariablePicker(field) {
-		var trigger = field.querySelector('[data-easyrankly-variable-trigger]');
-		var menu = field.querySelector('[data-easyrankly-variable-menu]');
+		var trigger = field.querySelector('[data-erankly-variable-trigger]');
+		var menu = field.querySelector('[data-erankly-variable-menu]');
 
 		if (!trigger || !menu) {
 			return;
@@ -530,14 +538,14 @@
 	}
 
 	function filterVariablePicker(field) {
-		var search = field.querySelector('[data-easyrankly-variable-search]');
+		var search = field.querySelector('[data-erankly-variable-search]');
 		var query = search ? search.value.trim().toLowerCase() : '';
 
-		field.querySelectorAll('[data-easyrankly-variable-group]').forEach(function (group) {
+		field.querySelectorAll('[data-erankly-variable-group]').forEach(function (group) {
 			var hasVisibleOption = false;
 
-			group.querySelectorAll('[data-easyrankly-variable]').forEach(function (option) {
-				var haystack = option.getAttribute('data-easyrankly-variable-search-text') || '';
+			group.querySelectorAll('[data-erankly-variable]').forEach(function (option) {
+				var haystack = option.getAttribute('data-erankly-variable-search-text') || '';
 				var isVisible = !query || haystack.indexOf(query) !== -1;
 
 				option.hidden = !isVisible;
@@ -565,22 +573,22 @@
 
 	function bindVariablePicker(field) {
 		var control = field.querySelector('input:not([type="search"]), textarea');
-		var trigger = field.querySelector('[data-easyrankly-variable-trigger]');
-		var menu = field.querySelector('[data-easyrankly-variable-menu]');
-		var search = field.querySelector('[data-easyrankly-variable-search]');
+		var trigger = field.querySelector('[data-erankly-variable-trigger]');
+		var menu = field.querySelector('[data-erankly-variable-menu]');
+		var search = field.querySelector('[data-erankly-variable-search]');
 
-		if (!control || !trigger || !menu || field.getAttribute('data-easyrankly-variable-bound') === 'true') {
+		if (!control || !trigger || !menu || field.getAttribute('data-erankly-variable-bound') === 'true') {
 			return;
 		}
 
-		field.setAttribute('data-easyrankly-variable-bound', 'true');
+		field.setAttribute('data-erankly-variable-bound', 'true');
 
 		trigger.addEventListener('click', function (event) {
 			var shouldOpen = menu.hidden;
 
 			event.preventDefault();
 			event.stopPropagation();
-			document.querySelectorAll('[data-easyrankly-variable-field]').forEach(function (otherField) {
+			document.querySelectorAll('[data-erankly-variable-field]').forEach(function (otherField) {
 				if (otherField !== field) {
 					closeVariablePicker(otherField);
 				}
@@ -597,7 +605,7 @@
 		});
 
 		menu.addEventListener('click', function (event) {
-			var option = event.target ? event.target.closest('[data-easyrankly-variable]') : null;
+			var option = event.target ? event.target.closest('[data-erankly-variable]') : null;
 
 			event.stopPropagation();
 
@@ -605,7 +613,7 @@
 				return;
 			}
 
-			insertVariable(control, option.getAttribute('data-easyrankly-variable') || '');
+			insertVariable(control, option.getAttribute('data-erankly-variable') || '');
 			closeVariablePicker(field);
 		});
 
@@ -627,7 +635,7 @@
 					return;
 				}
 
-				Array.prototype.some.call(field.querySelectorAll('[data-easyrankly-variable]'), function (option) {
+				Array.prototype.some.call(field.querySelectorAll('[data-erankly-variable]'), function (option) {
 					if (option.hidden) {
 						return false;
 					}
@@ -638,7 +646,7 @@
 
 				if (firstVisibleOption) {
 					event.preventDefault();
-					insertVariable(control, firstVisibleOption.getAttribute('data-easyrankly-variable') || '');
+					insertVariable(control, firstVisibleOption.getAttribute('data-erankly-variable') || '');
 					closeVariablePicker(field);
 				}
 			});
@@ -646,7 +654,7 @@
 	}
 
 	function bindVariablePickers(container) {
-		container.querySelectorAll('[data-easyrankly-variable-field]').forEach(bindVariablePicker);
+		container.querySelectorAll('[data-erankly-variable-field]').forEach(bindVariablePicker);
 	}
 
 
@@ -655,8 +663,8 @@
 	}
 
 	function updateSchemaBuilderState(builder) {
-		var list = builder ? builder.querySelector('[data-easyrankly-schema-blocks]') : null;
-		var hasBlocks = list && list.querySelector('[data-easyrankly-schema-block]');
+		var list = builder ? builder.querySelector('[data-erankly-schema-blocks]') : null;
+		var hasBlocks = list && list.querySelector('[data-erankly-schema-block]');
 
 		if (list) {
 			list.classList.toggle('is-empty', !hasBlocks);
@@ -664,14 +672,14 @@
 	}
 
 	function bindSchemaBlock(block) {
-		var removeButton = block.querySelector('[data-easyrankly-remove-schema]');
+		var removeButton = block.querySelector('[data-erankly-remove-schema]');
 
 		bindVariablePickers(block);
 
 		if (removeButton) {
 			removeButton.addEventListener('click', function (event) {
 				event.stopPropagation();
-				var builder = block.closest('[data-easyrankly-schema-builder]');
+				var builder = block.closest('[data-erankly-schema-builder]');
 
 				block.remove();
 				updateSchemaBuilderState(builder);
@@ -680,11 +688,11 @@
 	}
 
 	function bindSchemaBuilder(builder) {
-		var list = builder.querySelector('[data-easyrankly-schema-blocks]');
-		var template = builder.querySelector('[data-easyrankly-schema-template]');
-		var addButton = builder.querySelector('[data-easyrankly-add-schema]');
+		var list = builder.querySelector('[data-erankly-schema-blocks]');
+		var template = builder.querySelector('[data-erankly-schema-template]');
+		var addButton = builder.querySelector('[data-erankly-add-schema]');
 
-		builder.querySelectorAll('[data-easyrankly-schema-block]').forEach(bindSchemaBlock);
+		builder.querySelectorAll('[data-erankly-schema-block]').forEach(bindSchemaBlock);
 		updateSchemaBuilderState(builder);
 
 		if (!list || !template || !addButton) {
@@ -692,11 +700,11 @@
 		}
 
 		addButton.addEventListener('click', function () {
-			var nextIndex = parseInt(builder.getAttribute('data-easyrankly-next-index'), 10) || 0;
+			var nextIndex = parseInt(builder.getAttribute('data-erankly-next-index'), 10) || 0;
 			var html = template.innerHTML.replace(/__INDEX__/g, String(nextIndex));
 
 			list.insertAdjacentHTML('beforeend', html);
-			builder.setAttribute('data-easyrankly-next-index', String(nextIndex + 1));
+			builder.setAttribute('data-erankly-next-index', String(nextIndex + 1));
 			bindSchemaBlock(list.lastElementChild);
 			setSchemaBlockExpanded(list.lastElementChild, true);
 			updateSchemaBuilderState(builder);
@@ -704,10 +712,10 @@
 	}
 
 	function bindSchemaIdentityField(field) {
-		var container = field.closest('.easyrankly-settings');
-		var personField = container ? container.querySelector('[data-easyrankly-person-reference-field]') : null;
-		var personDescription = container ? container.querySelector('[data-easyrankly-person-reference-description]') : null;
-		var identityFields = container ? container.querySelector('[data-easyrankly-schema-identity-fields]') : null;
+		var container = field.closest('.erankly-settings');
+		var personField = container ? container.querySelector('[data-erankly-person-reference-field]') : null;
+		var personDescription = container ? container.querySelector('[data-erankly-person-reference-description]') : null;
+		var identityFields = container ? container.querySelector('[data-erankly-schema-identity-fields]') : null;
 
 		if (!personField) {
 			return;
@@ -734,33 +742,33 @@
 	}
 
 	function syncOrganizationFieldsVisibility(container) {
-		var identity = container ? container.querySelector('[data-easyrankly-schema-identity]') : null;
-		var localBusiness = container ? container.querySelector('[data-easyrankly-local-business-toggle]') : null;
+		var identity = container ? container.querySelector('[data-erankly-schema-identity]') : null;
+		var localBusiness = container ? container.querySelector('[data-erankly-local-business-toggle]') : null;
 		var showOrganizationFields = identity && identity.value !== 'person';
 
 		if (!identity) {
 			return;
 		}
 
-		container.querySelectorAll('[data-easyrankly-organization-only]').forEach(function (fields) {
+		container.querySelectorAll('[data-erankly-organization-only]').forEach(function (fields) {
 			fields.hidden = !showOrganizationFields;
 		});
 	}
 
 	function bindUserSearch(wrap) {
-		var config = window.easyranklyUserSearch;
+		var config = window.eranklyUserSearch;
 
 		if (!config || !config.restUrl || !config.nonce) {
 			return;
 		}
 
-		var idInput    = wrap.querySelector('[data-easyrankly-user-id]');
-		var selected   = wrap.querySelector('[data-easyrankly-user-selected]');
-		var selectedName = wrap.querySelector('[data-easyrankly-user-selected-name]');
-		var removeBtn  = wrap.querySelector('[data-easyrankly-user-remove]');
-		var inputWrap  = wrap.querySelector('[data-easyrankly-user-search-input-wrap]');
-		var searchInput = wrap.querySelector('[data-easyrankly-user-search-input]');
-		var resultsList = wrap.querySelector('[data-easyrankly-user-results]');
+		var idInput    = wrap.querySelector('[data-erankly-user-id]');
+		var selected   = wrap.querySelector('[data-erankly-user-selected]');
+		var selectedName = wrap.querySelector('[data-erankly-user-selected-name]');
+		var removeBtn  = wrap.querySelector('[data-erankly-user-remove]');
+		var inputWrap  = wrap.querySelector('[data-erankly-user-search-input-wrap]');
+		var searchInput = wrap.querySelector('[data-erankly-user-search-input]');
+		var resultsList = wrap.querySelector('[data-erankly-user-results]');
 
 		if (!idInput || !selected || !removeBtn || !inputWrap || !searchInput || !resultsList) {
 			return;
@@ -803,7 +811,7 @@
 			var url = config.restUrl + '?q=' + encodeURIComponent(query);
 
 			resultsList.hidden = false;
-			resultsList.innerHTML = '<li class="easyrankly-autocomplete-status easyrankly-user-result-status">' + (i18n.searching || 'Searching…') + '</li>';
+			resultsList.innerHTML = '<li class="erankly-autocomplete-status erankly-user-result-status">' + (i18n.searching || 'Searching…') + '</li>';
 
 			fetch(url, {
 				headers: { 'X-WP-Nonce': config.nonce },
@@ -814,14 +822,14 @@
 					resultsList.innerHTML = '';
 
 					if (!items || items.length === 0) {
-						resultsList.innerHTML = '<li class="easyrankly-autocomplete-status easyrankly-user-result-status">' + (i18n.noResults || 'No matches found.') + '</li>';
+						resultsList.innerHTML = '<li class="erankly-autocomplete-status erankly-user-result-status">' + (i18n.noResults || 'No matches found.') + '</li>';
 						return;
 					}
 
 					items.forEach(function (item) {
 						var li = document.createElement('li');
 
-						li.className = 'easyrankly-autocomplete-item easyrankly-user-result-item';
+						li.className = 'erankly-autocomplete-item erankly-user-result-item';
 						li.setAttribute('role', 'option');
 						li.setAttribute('tabindex', '-1');
 						li.textContent = item.text;
@@ -908,8 +916,8 @@
 	}
 
 	function bindBloatToggle(panel) {
-		var advancedView = panel.querySelector('[data-easyrankly-bloat-view="advanced"]');
-		var master = panel.querySelector('[data-easyrankly-bloat-master]');
+		var advancedView = panel.querySelector('[data-erankly-bloat-view="advanced"]');
+		var master = panel.querySelector('[data-erankly-bloat-master]');
 
 		if (!advancedView || !master) {
 			return;
@@ -918,7 +926,7 @@
 		// The master toggle only drives the cleanups marked as safe; the riskier
 		// ones keep their saved state and stay advanced-mode only.
 		function getSafeItems() {
-			return Array.prototype.slice.call(advancedView.querySelectorAll('[data-easyrankly-bloat-safe]'));
+			return Array.prototype.slice.call(advancedView.querySelectorAll('[data-erankly-bloat-safe]'));
 		}
 
 		function syncMasterFromItems() {
@@ -940,10 +948,10 @@
 	}
 
 	function bindLocalBusiness(container) {
-		var toggle = container.querySelector('[data-easyrankly-local-business-toggle]');
-		var fields = container.querySelector('[data-easyrankly-local-business-fields]');
-		var type = container.querySelector('[data-easyrankly-local-business-type]');
-		var foodFields = container.querySelector('[data-easyrankly-food-business-fields]');
+		var toggle = container.querySelector('[data-erankly-local-business-toggle]');
+		var fields = container.querySelector('[data-erankly-local-business-fields]');
+		var type = container.querySelector('[data-erankly-local-business-type]');
+		var foodFields = container.querySelector('[data-erankly-food-business-fields]');
 		var foodTypes = ['Restaurant', 'CafeOrCoffeeShop', 'BarOrPub', 'Bakery', 'FoodEstablishment'];
 
 		if (!toggle || !fields) {
@@ -952,7 +960,7 @@
 
 		function syncVisibility() {
 			fields.hidden = !toggle.checked;
-			syncOrganizationFieldsVisibility(container.closest('.easyrankly-settings'));
+			syncOrganizationFieldsVisibility(container.closest('.erankly-settings'));
 
 			if (type && foodFields) {
 				foodFields.hidden = foodTypes.indexOf(type.value) === -1;
@@ -965,9 +973,9 @@
 			type.addEventListener('change', syncVisibility);
 		}
 
-		container.querySelectorAll('[data-easyrankly-opening-day]').forEach(function (day) {
-			var closed = day.querySelector('[data-easyrankly-day-closed]');
-			var intervals = day.querySelector('[data-easyrankly-opening-intervals]');
+		container.querySelectorAll('[data-erankly-opening-day]').forEach(function (day) {
+			var closed = day.querySelector('[data-erankly-day-closed]');
+			var intervals = day.querySelector('[data-erankly-opening-intervals]');
 
 			if (!closed || !intervals) {
 				return;
@@ -985,30 +993,30 @@
 	}
 
 	document.addEventListener('DOMContentLoaded', function () {
-		document.querySelectorAll('.easyrankly-meta-box').forEach(bindTabs);
-		document.querySelectorAll('.easyrankly-settings').forEach(bindTabs);
-		document.querySelectorAll('.easyrankly-settings').forEach(bindSettingsTabs);
-		document.querySelectorAll('.easyrankly-settings').forEach(bindSimplifiedMode);
-		document.querySelectorAll('[data-easyrankly-media-url-field]').forEach(bindMediaUrlField);
-		document.querySelectorAll('.easyrankly-counted-field').forEach(bindCharacterCounter);
+		document.querySelectorAll('.erankly-meta-box').forEach(bindTabs);
+		document.querySelectorAll('.erankly-settings').forEach(bindTabs);
+		document.querySelectorAll('.erankly-settings').forEach(bindSettingsTabs);
+		document.querySelectorAll('.erankly-settings').forEach(bindSimplifiedMode);
+		document.querySelectorAll('[data-erankly-media-url-field]').forEach(bindMediaUrlField);
+		document.querySelectorAll('.erankly-counted-field').forEach(bindCharacterCounter);
 		bindVariablePickers(document);
-		document.querySelectorAll('[data-easyrankly-linked-defaults]').forEach(bindLinkedDefaults);
-		document.querySelectorAll('[data-easyrankly-schema-builder]').forEach(bindSchemaBuilder);
-		document.querySelectorAll('[data-easyrankly-schema-identity]').forEach(bindSchemaIdentityField);
-		document.querySelectorAll('[data-easyrankly-user-search-wrap]').forEach(bindUserSearch);
-		document.querySelectorAll('[data-easyrankly-local-business]').forEach(bindLocalBusiness);
-		var bloatPanel = document.getElementById('easyrankly-settings-panel-bloat');
+		document.querySelectorAll('[data-erankly-linked-defaults]').forEach(bindLinkedDefaults);
+		document.querySelectorAll('[data-erankly-schema-builder]').forEach(bindSchemaBuilder);
+		document.querySelectorAll('[data-erankly-schema-identity]').forEach(bindSchemaIdentityField);
+		document.querySelectorAll('[data-erankly-user-search-wrap]').forEach(bindUserSearch);
+		document.querySelectorAll('[data-erankly-local-business]').forEach(bindLocalBusiness);
+		var bloatPanel = document.getElementById('erankly-settings-panel-bloat');
 		if (bloatPanel) {
 			bindBloatToggle(bloatPanel);
 		}
 
 		document.addEventListener('click', function () {
-			document.querySelectorAll('[data-easyrankly-variable-field]').forEach(closeVariablePicker);
+			document.querySelectorAll('[data-erankly-variable-field]').forEach(closeVariablePicker);
 		});
 
 		document.addEventListener('keydown', function (event) {
 			if (event.key === 'Escape') {
-				document.querySelectorAll('[data-easyrankly-variable-field]').forEach(closeVariablePicker);
+				document.querySelectorAll('[data-erankly-variable-field]').forEach(closeVariablePicker);
 			}
 		});
 	});

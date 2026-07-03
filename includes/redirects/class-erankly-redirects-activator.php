@@ -12,7 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Creates the custom redirects table.
  */
-final class EasyRankly_Redirects_Activator {
+final class ERankly_Redirects_Activator {
 	/**
 	 * Activation callback.
 	 */
@@ -21,7 +21,7 @@ final class EasyRankly_Redirects_Activator {
 
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 
-		$table_name      = EasyRankly_Redirects_Repository::get_table_name();
+		$table_name      = ERankly_Redirects_Repository::get_table_name();
 		$charset_collate = $wpdb->get_charset_collate();
 
 		$sql = "CREATE TABLE {$table_name} (
