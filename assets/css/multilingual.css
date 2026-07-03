@@ -1,0 +1,108 @@
+/* EasyRankly — Multilingual / hreflang admin styles */
+
+/* Editor — Translations panel */
+
+.easyrankly-ml-translations {
+	margin-top: 4px;
+}
+
+.easyrankly-ml-intro {
+	margin: 0 0 12px;
+}
+
+.easyrankly-ml-field {
+	margin: 0 0 16px;
+}
+
+.easyrankly-ml-field:last-child {
+	margin-bottom: 0;
+}
+
+.easyrankly-ml-label {
+	display: block;
+	margin: 0 0 6px;
+}
+
+/* Network Admin — Site language map */
+
+.easyrankly-ml-network-intro {
+	max-width: 720px;
+}
+
+.easyrankly-ml-sites-form {
+	margin-top: 16px;
+	max-width: 760px;
+}
+
+.easyrankly-ml-sites-table {
+	margin-top: 4px;
+}
+
+.easyrankly-ml-sites-table th,
+.easyrankly-ml-sites-table td {
+	vertical-align: middle;
+}
+
+.easyrankly-ml-col-toggle {
+	text-align: center;
+	width: 90px;
+}
+
+.easyrankly-ml-col-code {
+	width: 220px;
+}
+
+.easyrankly-ml-site-title {
+	display: block;
+	font-weight: 600;
+}
+
+.easyrankly-ml-site-host {
+	color: #646970;
+	display: block;
+	font-size: 12px;
+}
+
+.easyrankly-ml-code-input {
+	width: 90px;
+}
+
+.easyrankly-ml-derived {
+	color: #646970;
+	display: inline-block;
+	font-size: 12px;
+	margin-left: 8px;
+}
+
+.easyrankly-ml-derived code {
+	font-size: 11px;
+	padding: 1px 5px;
+}
+
+.easyrankly-ml-toggle {
+	display: inline-flex;
+	margin: 0;
+}
+
+.easyrankly-ml-notice-texts {
+	margin-top: 32px;
+}
+
+.easyrankly-ml-notice-tabs {
+	margin-top: 16px;
+}
+
+.easyrankly-ml-notice-tabs .easyrankly-tabs {
+	overflow-x: auto;
+	overflow-y: hidden;
+	white-space: nowrap;
+}
+
+.easyrankly-ml-notice-site h4 {
+	font-size: 14px;
+	margin: 0 0 12px;
+}
+
+.easyrankly-ml-notice-site .easyrankly-field:last-child {
+	margin-bottom: 0;
+}
