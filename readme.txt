@@ -4,7 +4,7 @@ Tags: seo, schema, sitemap, redirects, breadcrumbs
 Requires at least: 6.5
 Tested up to: 7.0
 Requires PHP: 8.0
-Stable tag: 0.2.0
+Stable tag: 1.0.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -57,7 +57,7 @@ Yes. There is full Multisite support with network-level global settings, plus an
 
 = Does EasyRankly collect any personal data or phone home? =
 
-No. There is no analytics, tracking, telemetry, or external service call. The optional Health 404 monitor stores only anonymized request paths in your own database; no user data is recorded.
+No. EasyRankly makes no outbound requests from your server: there is no analytics, tracking, or telemetry, and no data is sent anywhere. The optional Health 404 monitor stores only anonymized request paths in your own database; no user data is recorded. The only third-party reference is the public YouTube thumbnail URL added to the optional XML video sitemap for YouTube videos you have embedded yourself — see the External services section below.
 
 = How do I display breadcrumbs? =
 
@@ -140,14 +140,22 @@ Use `erankly_breadcrumbs()` to render breadcrumbs.
 
 When the Multisite multilingual module is enabled, the `[erankly_language_switcher]` and `[erankly_translation_notice]` shortcodes are available.
 
+== External services ==
+
+EasyRankly does not call any external service from your server. It performs no analytics, tracking, or telemetry, and sends no data to any remote endpoint.
+
+The only third-party reference appears in the optional XML video sitemap. When the video sitemap is enabled and a post embeds a YouTube video, EasyRankly adds that video's public thumbnail URL (https://img.youtube.com/vi/&lt;video-id&gt;/0.jpg) to the sitemap so search engines can show a preview. The video ID is taken from the YouTube video you embedded yourself; EasyRankly does not contact YouTube — the URL is only written into your sitemap and is fetched by search-engine crawlers, not by your site. No personal data is involved.
+
+This thumbnail service is provided by YouTube (Google LLC). Terms of Service: https://www.youtube.com/t/terms — Privacy Policy: https://policies.google.com/privacy
+
 == Changelog ==
 
-= 0.2.0 =
+= 1.0.0 =
 Release date: June 14, 2026
 
 * First public release.
 
 == Upgrade Notice ==
 
-= 0.2.0 =
+= 1.0.0 =
 First public release of EasyRankly.

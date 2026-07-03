@@ -1516,12 +1516,9 @@ function erankly_get_sitemap_video_thumbnail_url( int $post_id, string $video_ur
 		return 'https://img.youtube.com/vi/' . $m[1] . '/0.jpg';
 	}
 
-	// Vimeo redirect-based public thumbnail.
-	if ( preg_match( '#vimeo\.com/(\d+)#', $video_url, $m ) ) {
-		return 'https://vumbnail.com/' . $m[1] . '.jpg';
-	}
-
-	// Self-hosted HTML5 videos won't have a thumbnail unless featured_id is set.
+	// Vimeo and self-hosted HTML5 videos have no thumbnail unless a featured image
+	// is set: EasyRankly does not use any third-party Vimeo thumbnail service, so such
+	// entries are skipped by the sitemap when no featured image exists.
 	return '';
 }
 }

@@ -55,7 +55,7 @@ function erankly_setup_wizard_settings_url(): string {
 function erankly_setup_wizard_register_page(): void {
 	$parent_slug = is_network_admin() ? 'settings.php' : 'options-general.php';
 
-	add_submenu_page(
+	$hook = add_submenu_page(
 		$parent_slug,
 		__( 'EasyRankly setup', 'easyrankly' ),
 		__( 'EasyRankly setup', 'easyrankly' ),
@@ -65,6 +65,19 @@ function erankly_setup_wizard_register_page(): void {
 	);
 
 	remove_submenu_page( $parent_slug, 'erankly-setup' );
+
+	// The page is removed from the submenu to keep it hidden, which leaves the
+	// global $title unset when WordPress builds wp-admin/admin-header.php. Set it
+	// on the page load hook (before the header is rendered) to avoid a
+	// strip_tags( null ) deprecation notice on PHP 8.1+.
+	if ( $hook ) {
+		add_action(
+			"load-{$hook}",
+			static function (): void {
+				$GLOBALS['title'] = __( 'EasyRankly setup', 'easyrankly' );
+			}
+		);
+	}
 }
 
 /**

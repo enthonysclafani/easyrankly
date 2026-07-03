@@ -808,7 +808,8 @@
 		}
 
 		function fetchResults(query) {
-			var url = config.restUrl + '?q=' + encodeURIComponent(query);
+			var url = new URL(config.restUrl, window.location.origin);
+			url.searchParams.set('q', query);
 
 			resultsList.hidden = false;
 			resultsList.innerHTML = '<li class="erankly-autocomplete-status erankly-user-result-status">' + (i18n.searching || 'Searching…') + '</li>';
