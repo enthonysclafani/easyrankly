@@ -1,0 +1,25 @@
+.erankly-tabs > .components-tab-panel__tabs {
+	position: absolute !important;
+	top: 88px;
+	inset-inline-start: 16px;
+	width: 160px;
+}
+
+.erankly-tabs > .components-tab-panel__tab-content {
+	margin-inline-start: 160px;
+	padding-inline-start: 24px;
+}
+
+@media (max-width: 781px) {
+	.erankly-tabs > .components-tab-panel__tabs {
+		position: static !important;
+		flex-direction: row;
+		width: auto;
+		overflow-x: auto;
+	}
+
+	.erankly-tabs > .components-tab-panel__tab-content {
+		padding: 24px;
+		margin: 0;
+	}
+}
