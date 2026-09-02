@@ -15,56 +15,120 @@ if ( ! class_exists( 'ERankly_Plugin' ) ) {
 	throw new RuntimeException( 'EasyRankly must be active before running this test.' );
 }
 
-$assert = static function ( $condition, $message ) {
-	if ( ! $condition ) {
-		throw new RuntimeException( $message );
-	}
-};
+require __DIR__ . '/bootstrap.php';
 
 $assert( '' === ERankly_Plugin::sanitize_social_url( '/relative-image.jpg' ), 'Relative social image URLs must be rejected.' );
 $assert( '' === ERankly_Plugin::sanitize_social_url( 'ftp://example.com/image.jpg' ), 'Non-HTTP(S) social image URLs must be rejected.' );
 $assert( '' === ERankly_Plugin::sanitize_social_url( 'mailto:test@example.com' ), 'Non-web social image URLs must be rejected.' );
 $assert( 'https://example.com/image.jpg' === ERankly_Plugin::sanitize_social_url( 'https://example.com/image.jpg' ), 'Absolute HTTPS social image URLs must be retained.' );
 $assert( '<meta name="description" content="body">' === ERankly_Plugin::sanitize_raw_code( " \0<meta name=\"description\" content=\"body\"> " ), 'Body code must preserve intentional trusted markup while removing NUL bytes.' );
-$assert( '' === ERankly_Plugin::sanitize_head_code( '<meta name="description" content="managed">' ), 'Head code must still defer description metadata to the managed field.' );
+$assert( '<meta name="description" content="managed">' === ERankly_Plugin::sanitize_raw_code( '<meta name="description" content="managed">' ), 'Trusted Head code must remain a true override.' );
 $assert( 0 === has_action( 'wp_body_open', array( 'ERankly_Plugin', 'print_body_start_code' ) ), 'Body start code must use wp_body_open at the earliest standard priority.' );
 $assert( 100 === has_action( 'wp_footer', array( 'ERankly_Plugin', 'print_body_end_code' ) ), 'Body end code must run after WordPress footer scripts.' );
 
-$published_posts = get_posts(
+$fixture_post_ids = array();
+$fixture_term_ids = array();
+
+$cleanup_fixtures = static function () use ( &$fixture_post_ids, &$fixture_term_ids ) {
+	foreach ( array_reverse( $fixture_post_ids ) as $fixture_post_id ) {
+		wp_delete_post( $fixture_post_id, true );
+	}
+
+	foreach ( $fixture_term_ids as $fixture_term_id ) {
+		wp_delete_term( $fixture_term_id, 'category' );
+	}
+
+	$fixture_post_ids = array();
+	$fixture_term_ids = array();
+};
+
+register_shutdown_function( $cleanup_fixtures );
+
+$post_id = wp_insert_post(
 	array(
-		'fields'           => 'ids',
-		'numberposts'      => 1,
-		'order'            => 'ASC',
-		'orderby'          => 'ID',
-		'post_status'      => 'publish',
-		'post_type'        => 'post',
-		'suppress_filters' => false,
-	)
+		'post_category' => array( absint( get_option( 'default_category' ) ) ),
+		'post_excerpt'  => 'EasyRankly social fixture excerpt.',
+		'post_status'   => 'publish',
+		'post_title'    => 'EasyRankly social fixture post',
+		'post_type'     => 'post',
+	),
+	true
 );
 
-if ( empty( $published_posts ) ) {
-	throw new RuntimeException( 'A published post is required for the social preview smoke test.' );
+if ( is_wp_error( $post_id ) ) {
+	throw new RuntimeException( $post_id->get_error_message() );
 }
 
-$image_attachments = get_posts(
+$fixture_post_ids[] = $post_id;
+$page_id            = wp_insert_post(
 	array(
-		'fields'         => 'ids',
-		'numberposts'    => 1,
-		'order'          => 'ASC',
-		'orderby'        => 'ID',
-		'post_mime_type' => 'image',
+		'post_status' => 'publish',
+		'post_title'  => 'EasyRankly social fixture page',
+		'post_type'   => 'page',
+	),
+	true
+);
+
+if ( is_wp_error( $page_id ) ) {
+	throw new RuntimeException( $page_id->get_error_message() );
+}
+
+$fixture_post_ids[] = $page_id;
+$draft_id           = wp_insert_post(
+	array(
+		'post_status' => 'draft',
+		'post_title'  => 'EasyRankly social fixture draft',
+		'post_type'   => 'post',
+	),
+	true
+);
+
+if ( is_wp_error( $draft_id ) ) {
+	throw new RuntimeException( $draft_id->get_error_message() );
+}
+
+$fixture_post_ids[] = $draft_id;
+$uploads            = wp_get_upload_dir();
+$image_file         = 'easyrankly-tests/' . wp_generate_uuid4() . '.jpg';
+$image_path         = trailingslashit( $uploads['basedir'] ) . $image_file;
+$default_image_id   = wp_insert_attachment(
+	array(
+		'guid'           => trailingslashit( $uploads['baseurl'] ) . $image_file,
+		'post_mime_type' => 'image/jpeg',
 		'post_status'    => 'inherit',
-		'post_type'      => 'attachment',
+		'post_title'     => 'EasyRankly social fixture image',
+	),
+	$image_path,
+	0,
+	true
+);
+
+if ( is_wp_error( $default_image_id ) ) {
+	throw new RuntimeException( $default_image_id->get_error_message() );
+}
+
+$fixture_post_ids[] = $default_image_id;
+update_post_meta( $default_image_id, '_wp_attached_file', $image_file );
+wp_update_attachment_metadata(
+	$default_image_id,
+	array(
+		'file'   => $image_file,
+		'height' => 630,
+		'sizes'  => array(),
+		'width'  => 1200,
 	)
 );
 
-if ( empty( $image_attachments ) ) {
-	throw new RuntimeException( 'A Media Library image is required for the social preview smoke test.' );
+$section_name = 'EasyRankly section ' . wp_generate_uuid4();
+$section_term = wp_insert_term( $section_name, 'category' );
+
+if ( is_wp_error( $section_term ) ) {
+	throw new RuntimeException( $section_term->get_error_message() );
 }
 
-$post_id           = (int) $published_posts[0];
+$section_id        = (int) $section_term['term_id'];
+$fixture_term_ids[] = $section_id;
 $active_post_id    = $post_id;
-$default_image_id  = (int) $image_attachments[0];
 $default_image_url = wp_get_attachment_image_url( $default_image_id, 'full' );
 $default_image_alt = 'Default image alt';
 
@@ -89,7 +153,10 @@ $base_meta = array(
 	'_thumbnail_id'                     => 0,
 );
 $meta_overrides         = $base_meta;
-$social_settings        = array( 'default_image_id' => 0 );
+$social_settings        = array(
+	'default_image_id' => 0,
+	'profiles'         => array(),
+);
 $global_head_code       = '';
 $global_body_end_code   = '';
 $global_body_start_code = '';
@@ -109,7 +176,7 @@ $metadata_filter = static function ( $value, $object_id, $meta_key, $single ) us
 $original_post     = isset( $GLOBALS['post'] ) ? $GLOBALS['post'] : null;
 $original_wp_query = isset( $GLOBALS['wp_query'] ) ? $GLOBALS['wp_query'] : null;
 
-$prepare_singular = static function ( $id, $status, $page = 1 ) {
+$prepare_singular = static function ( $id, $status, $page = 1 ) use ( $reset_request_caches ) {
 	$post = get_post( $id );
 
 	if ( ! $post ) {
@@ -137,18 +204,44 @@ $prepare_singular = static function ( $id, $status, $page = 1 ) {
 	$GLOBALS['wp_query'] = $query;
 	$GLOBALS['post']     = $post;
 	setup_postdata( $post );
+	$reset_request_caches();
 };
 
-$render_social = static function () {
+$prepare_home = static function () use ( $reset_request_caches ) {
+	$query              = new WP_Query();
+	$query->is_404      = false;
+	$query->is_home     = true;
+	$query->is_page     = false;
+	$query->is_singular = false;
+	$query->set( 'page', 0 );
+	$query->set( 'paged', 0 );
+
+	$GLOBALS['wp_query'] = $query;
+	$GLOBALS['post']     = null;
+	$reset_request_caches();
+};
+
+$render_social = static function () use ( $reset_request_caches ) {
+	$reset_request_caches();
 	ob_start();
 	ERankly_Plugin::print_social_preview();
 
 	return ob_get_clean();
 };
 
-$render_social_and_head = static function () {
+$render_social_and_head = static function () use ( $reset_request_caches ) {
+	$reset_request_caches();
 	ob_start();
 	ERankly_Plugin::print_social_preview();
+	ERankly_Plugin::print_head_code();
+
+	return ob_get_clean();
+};
+
+$render_description_and_head = static function () use ( $reset_request_caches ) {
+	$reset_request_caches();
+	ob_start();
+	ERankly_Plugin::print_meta_description();
 	ERankly_Plugin::print_head_code();
 
 	return ob_get_clean();
@@ -185,6 +278,30 @@ $global_body_end_filter = static function () use ( &$global_body_end_code ) {
 	return $global_body_end_code;
 };
 
+$show_on_front  = get_option( 'show_on_front' );
+$page_on_front  = get_option( 'page_on_front' );
+$page_for_posts = get_option( 'page_for_posts' );
+
+$show_on_front_filter = static function () use ( &$show_on_front ) {
+	return $show_on_front;
+};
+
+$page_on_front_filter = static function () use ( &$page_on_front ) {
+	return $page_on_front;
+};
+
+$page_for_posts_filter = static function () use ( &$page_for_posts ) {
+	return $page_for_posts;
+};
+
+$search_title_translation = static function ( $translation, $text, $domain ) {
+	if ( 'easyrankly' === $domain && 'Search results for %s' === $text ) {
+		return '  <b>Results</b>   for %s  ';
+	}
+
+	return $translation;
+};
+
 add_filter( 'get_post_metadata', $metadata_filter, 10, 4 );
 add_filter( 'pre_option_erankly_global_code', $global_head_filter );
 add_filter( 'pre_option_erankly_global_body_start_code', $global_body_start_filter );
@@ -205,12 +322,30 @@ try {
 	$assert( $expected_title === $get_meta_content( $preview, 'name', 'twitter:title' ), 'X title must use the WordPress content title.' );
 	$assert( 'Automatic WordPress description' === $get_meta_content( $preview, 'property', 'og:description' ), 'Open Graph description must use the WordPress description field.' );
 	$assert( 'Automatic WordPress description' === $get_meta_content( $preview, 'name', 'twitter:description' ), 'X description must use the WordPress description field.' );
+	$assert( get_post_time( DATE_W3C, false, $post_id ) === $get_meta_content( $preview, 'property', 'article:published_time' ), 'Open Graph publication time must use the WordPress site timezone.' );
+	$assert( get_post_modified_time( DATE_W3C, false, $post_id ) === $get_meta_content( $preview, 'property', 'article:modified_time' ), 'Open Graph modification time must use the WordPress site timezone.' );
 	$assert( null === $get_meta_content( $preview, 'property', 'og:image' ), 'Legacy social image meta must no longer override WordPress data.' );
 	$assert( null === $get_meta_content( $preview, 'name', 'twitter:image' ), 'Legacy X image meta must no longer override WordPress data.' );
 	$assert( 'summary' === $get_meta_content( $preview, 'name', 'twitter:card' ), 'X must use Summary when no image exists.' );
 	$assert( false === strpos( $preview, 'Ignored legacy' ), 'Legacy social text meta must be ignored.' );
 	$assert( null === $get_meta_content( $preview, 'property', 'fb:app_id' ), 'A Facebook app ID must not be emitted.' );
 	$assert( null === $get_meta_content( $preview, 'name', 'twitter:site' ), 'A site-wide X account must not be emitted.' );
+	$assert( null === $get_meta_content( $preview, 'property', 'article:section' ), 'The WordPress default category must not become an article section.' );
+
+	wp_set_post_categories(
+		$post_id,
+		array(
+			absint( get_option( 'default_category' ) ),
+			$section_id,
+		)
+	);
+	$preview = $render_social();
+	$assert( $section_name === $get_meta_content( $preview, 'property', 'article:section' ), 'A real editorial category must become the article section.' );
+
+	$social_settings['profiles'] = array( 'https://x.com/EasyRankly' );
+	$preview                     = $render_social();
+	$assert( '@EasyRankly' === $get_meta_content( $preview, 'name', 'twitter:site' ), 'The site X profile must emit twitter:site.' );
+	$social_settings['profiles'] = array();
 
 	$registered_meta = get_registered_meta_keys( 'post', get_post_type( $post_id ) );
 	$legacy_keys     = array(
@@ -223,6 +358,7 @@ try {
 		'erankly_twitter_image',
 		'erankly_twitter_image_alt',
 		'erankly_twitter_card',
+		'erankly_meta_title',
 	);
 
 	foreach ( $legacy_keys as $legacy_key ) {
@@ -231,18 +367,28 @@ try {
 
 	$assert( isset( $registered_meta['erankly_body_start_code'] ), 'Body start code must be registered as post meta.' );
 	$assert( isset( $registered_meta['erankly_body_end_code'] ), 'Body end code must be registered as post meta.' );
+	$assert( ! isset( $registered_meta['erankly_meta_title'] ), 'The retired search result title must not be registered as post meta.' );
 
 	$assert(
-		array( 'default_image_id' => $default_image_id ) === ERankly_Plugin::sanitize_social_settings( array( 'default_image_id' => (string) $default_image_id ) ),
+		array( 'default_image_id' => $default_image_id, 'profiles' => array() ) === ERankly_Plugin::sanitize_social_settings( array( 'default_image_id' => (string) $default_image_id ) ),
 		'The default image setting must retain a valid image attachment ID.'
 	);
 	$assert(
-		array( 'default_image_id' => 0 ) === ERankly_Plugin::sanitize_social_settings( array( 'default_image_id' => $post_id ) ),
+		array( 'default_image_id' => 0, 'profiles' => array() ) === ERankly_Plugin::sanitize_social_settings( array( 'default_image_id' => $post_id ) ),
 		'The default image setting must reject a non-image post ID.'
 	);
 	$assert(
-		array( 'default_image_id' => $default_image_id ) === ERankly_Plugin::sanitize_social_settings( array( 'default_image_url' => $default_image_url ) ),
+		array( 'default_image_id' => $default_image_id, 'profiles' => array() ) === ERankly_Plugin::sanitize_social_settings( array( 'default_image_url' => $default_image_url ) ),
 		'A legacy local image URL must migrate to its attachment ID.'
+	);
+	$assert(
+		array(
+			'default_image_id' => 0,
+			'profiles'         => array( 'https://x.com/EasyRankly' ),
+		) === ERankly_Plugin::sanitize_social_settings(
+			array( 'profiles' => "https://x.com/EasyRankly\nftp://example.com/nope\nhttps://x.com/EasyRankly" )
+		),
+		'Site profile URLs must be sanitized and deduplicated.'
 	);
 
 	$social_settings = array( 'default_image_id' => $default_image_id );
@@ -260,6 +406,64 @@ try {
 	$assert( 'Updated Media Library alt' === $get_meta_content( $preview, 'property', 'og:image:alt' ), 'Open Graph alt text must follow Media Library changes.' );
 	$assert( 'Updated Media Library alt' === $get_meta_content( $preview, 'name', 'twitter:image:alt' ), 'X alt text must follow Media Library changes.' );
 
+	add_filter( 'pre_option_show_on_front', $show_on_front_filter );
+	add_filter( 'pre_option_page_on_front', $page_on_front_filter );
+	add_filter( 'pre_option_page_for_posts', $page_for_posts_filter );
+
+	$active_post_id = $page_id;
+	$meta_overrides = array_merge(
+		$base_meta,
+		array(
+			'erankly_meta_description' => 'Retained page description',
+			'_thumbnail_id'             => $default_image_id,
+		)
+	);
+	$social_settings = array( 'default_image_id' => 0, 'profiles' => array() );
+	$show_on_front   = 'posts';
+	$page_on_front   = $page_id;
+	$page_for_posts  = $page_id;
+	$prepare_home();
+
+	$preview          = $render_social();
+	$site_title       = trim( preg_replace( '/\s+/u', ' ', wp_strip_all_tags( get_bloginfo( 'name' ), true ) ) );
+	$site_description = trim( preg_replace( '/\s+/u', ' ', wp_strip_all_tags( get_bloginfo( 'description' ), true ) ) );
+	$head             = $render_description_and_head();
+
+	$assert( $site_title === $get_meta_content( $preview, 'property', 'og:title' ), 'The latest-posts home must use the site title when static page IDs are retained.' );
+	$assert( $site_title === $get_meta_content( $preview, 'name', 'twitter:title' ), 'The latest-posts home must use the site title for X when static page IDs are retained.' );
+	$assert( ( '' !== $site_description ? $site_description : null ) === $get_meta_content( $preview, 'property', 'og:description' ), 'The latest-posts home must use the site description.' );
+	$assert( home_url( '/' ) === $get_meta_content( $preview, 'property', 'og:url' ), 'The latest-posts home must use the home URL.' );
+	$assert( null === $get_meta_content( $preview, 'property', 'og:image' ), 'The latest-posts home must ignore a retained front-page featured image.' );
+	$assert( ( '' !== $site_description ? $site_description : null ) === $get_meta_content( $head, 'name', 'description' ), 'The latest-posts home meta description must ignore a retained posts page.' );
+
+	$show_on_front = 'page';
+	$prepare_home();
+	$preview    = $render_social();
+	$head       = $render_description_and_head();
+	$page_title = trim( preg_replace( '/\s+/u', ' ', wp_strip_all_tags( get_the_title( $page_id ), true ) ) );
+	$page_url   = get_permalink( $page_id );
+
+	$assert( $page_title === $get_meta_content( $preview, 'property', 'og:title' ), 'A configured posts page must own the social title.' );
+	$assert( 'Retained page description' === $get_meta_content( $preview, 'property', 'og:description' ), 'A configured posts page must own the social description.' );
+	$assert( $default_image_url === $get_meta_content( $preview, 'property', 'og:image' ), 'A configured posts page must own the social image.' );
+	$assert( $page_url === $get_meta_content( $preview, 'property', 'og:url' ), 'A configured posts page must own the social URL.' );
+	$assert( 'Retained page description' === $get_meta_content( $head, 'name', 'description' ), 'A configured posts page must own the meta description.' );
+
+	$prepare_singular( $page_id, 'publish' );
+	$preview   = $render_social();
+	$canonical = wp_get_canonical_url( $page_id );
+
+	$assert( $page_title === $get_meta_content( $preview, 'property', 'og:title' ), 'A static front page must retain its social title.' );
+	$assert( 'Retained page description' === $get_meta_content( $preview, 'property', 'og:description' ), 'A static front page must retain its social description.' );
+	$assert( $default_image_url === $get_meta_content( $preview, 'property', 'og:image' ), 'A static front page must retain its social image.' );
+	$assert( $canonical === $get_meta_content( $preview, 'property', 'og:url' ), 'A static front page must retain its canonical social URL.' );
+
+	remove_filter( 'pre_option_show_on_front', $show_on_front_filter );
+	remove_filter( 'pre_option_page_on_front', $page_on_front_filter );
+	remove_filter( 'pre_option_page_for_posts', $page_for_posts_filter );
+
+	$active_post_id = $post_id;
+	$social_settings = array( 'default_image_id' => $default_image_id, 'profiles' => array() );
 	$meta_overrides = array_merge(
 		$base_meta,
 		array(
@@ -273,6 +477,79 @@ try {
 	$assert( 'Manual Open Graph title' === $get_meta_content( $preview, 'property', 'og:title' ), 'The EasyRankly Custom code Open Graph title must win.' );
 	$assert( 1 === preg_match_all( '/<meta name="twitter:card" content=/', $preview, $matches ), 'A manual X card must replace the automatic one exactly once.' );
 	$assert( 'summary' === $get_meta_content( $preview, 'name', 'twitter:card' ), 'The EasyRankly Custom code X card must win.' );
+
+	$meta_overrides['erankly_code']       = "<meta name=\"description\" content=\"Manual description\">\n<link rel=\"canonical alternate\" href=\"https://example.com/manual-canonical/\">\n<meta name=\"robots\" content=\"index,follow\">";
+	$meta_overrides['erankly_visibility'] = 'noindex';
+	$head                                 = $render_description_and_head();
+	$assert( 1 === preg_match_all( '/<meta name="description" content=/', $head, $matches ), 'A manual description must replace the automatic one exactly once.' );
+	$assert( 'Manual description' === $get_meta_content( $head, 'name', 'description' ), 'The manual description must win.' );
+	$assert( 'https://example.com/manual-canonical/' === wp_get_canonical_url( $post_id ), 'The manual canonical must own WordPress canonical resolution.' );
+	$assert( array( 'max-image-preview:large' => true ) === ERankly_Plugin::filter_robots( array( 'max-image-preview:large' => true ) ), 'Manual robots metadata must suppress automatic robots directives.' );
+	$assert( array() === ERankly_Plugin::filter_robots_headers( array() ), 'Manual robots metadata must suppress the automatic HTTP header.' );
+	$meta_overrides['erankly_visibility'] = 'index';
+
+	$title_priority = has_action( 'wp_head', '_wp_render_title_tag' );
+
+	if ( false === $title_priority ) {
+		$title_priority = 1;
+		add_action( 'wp_head', '_wp_render_title_tag', $title_priority );
+	}
+
+	$meta_overrides['erankly_code'] = '<title>&nbsp;</title>';
+	$reset_request_caches();
+	ERankly_Plugin::prepare_request_ownership();
+	$assert( false !== has_action( 'wp_head', '_wp_render_title_tag' ), 'A whitespace-only manual title must not suppress the WordPress core title tag.' );
+
+	$meta_overrides['erankly_code'] = '<title>Manual Custom code title</title>';
+	$reset_request_caches();
+	ERankly_Plugin::prepare_request_ownership();
+	$assert( false === has_action( 'wp_head', '_wp_render_title_tag' ), 'A valid manual title must suppress the WordPress core title tag.' );
+	ob_start();
+	ERankly_Plugin::print_head_code();
+	$manual_title = ob_get_clean();
+	$assert( 1 === preg_match_all( '/<title>Manual Custom code title<\/title>/', $manual_title ), 'The manual title must print exactly once.' );
+	add_action( 'wp_head', '_wp_render_title_tag', $title_priority );
+
+	$search_query              = new WP_Query();
+	$search_query->is_404      = false;
+	$search_query->is_search   = true;
+	$search_query->is_singular = false;
+	$search_query->set( 's', " Easy\t Rankly " );
+	$GLOBALS['wp_query'] = $search_query;
+	$GLOBALS['post']     = null;
+	$global_head_code    = '';
+	$meta_overrides      = $base_meta;
+	add_filter( 'gettext', $search_title_translation, 10, 3 );
+	$preview = $render_social();
+	remove_filter( 'gettext', $search_title_translation, 10 );
+	$assert( 'Results for Easy Rankly' === $get_meta_content( $preview, 'property', 'og:title' ), 'Composed search titles must be normalized exactly once.' );
+
+	$global_head_code = '<meta property="og:title" content="{{title}}">';
+	$meta_overrides   = $base_meta;
+	$prepare_singular( $post_id, 'publish' );
+	$preview = $render_social_and_head();
+
+	$assert( 1 === preg_match_all( '/<meta property="og:title" content=/', $preview, $matches ), 'A templated Open Graph title must replace the automatic one exactly once.' );
+	$assert( $expected_title === $get_meta_content( $preview, 'property', 'og:title' ), 'A templated Open Graph title must resolve to the content title.' );
+
+	$image_settings   = $social_settings;
+	$social_settings  = array( 'default_image_id' => $default_image_id, 'profiles' => array() );
+	$global_head_code = '<meta property="og:image" content="{{image}}">';
+	$prepare_singular( $post_id, 'publish' );
+	$preview = $render_social_and_head();
+
+	$assert( false === strpos( $preview, '{{' ), 'A resolved template must leave no token in the social preview head.' );
+	$assert( 1 === preg_match_all( '/<meta property="og:image" content=/', $preview, $matches ), 'A templated Open Graph image must replace the automatic one exactly once.' );
+	$assert( $default_image_url === $get_meta_content( $preview, 'property', 'og:image' ), 'A templated Open Graph image must resolve to the default sharing image.' );
+
+	$social_settings = array( 'default_image_id' => 0, 'profiles' => array() );
+	$prepare_singular( $post_id, 'publish' );
+	$preview = $render_social_and_head();
+
+	$assert( null === $get_meta_content( $preview, 'property', 'og:image' ), 'A template with no image must not print an empty Open Graph image.' );
+	$assert( 'summary' === $get_meta_content( $preview, 'name', 'twitter:card' ), 'An emptied image template must not claim ownership of the automatic image.' );
+
+	$social_settings = $image_settings;
 
 	$global_head_code = '<meta property="og:title" content="Global Open Graph title">';
 	$meta_overrides   = $base_meta;
@@ -325,6 +602,7 @@ try {
 	$query->is_home                       = true;
 	$query->is_singular                   = false;
 	$GLOBALS['wp_query']                  = $query;
+	$reset_request_caches();
 
 	ob_start();
 	ERankly_Plugin::print_head_code();
@@ -344,34 +622,28 @@ try {
 
 	$global_head_code = '';
 
-	$draft_posts = get_posts(
-		array(
-			'fields'           => 'ids',
-			'numberposts'      => 1,
-			'post_status'      => 'draft',
-			'post_type'        => 'any',
-			'suppress_filters' => false,
-		)
-	);
-
-	if ( ! empty( $draft_posts ) ) {
-		$active_post_id = (int) $draft_posts[0];
-		$meta_overrides = $base_meta;
-		$prepare_singular( $active_post_id, 'draft' );
-		$assert( '' === $render_social(), 'Draft content must not emit social metadata.' );
-	}
+	$active_post_id = $draft_id;
+	$meta_overrides = $base_meta;
+	$prepare_singular( $active_post_id, 'draft' );
+	$assert( '' === $render_social(), 'Draft content must not emit social metadata.' );
 } finally {
 	remove_filter( 'get_post_metadata', $metadata_filter, 10 );
 	remove_filter( 'pre_option_erankly_global_code', $global_head_filter );
 	remove_filter( 'pre_option_erankly_global_body_start_code', $global_body_start_filter );
 	remove_filter( 'pre_option_erankly_global_body_end_code', $global_body_end_filter );
 	remove_filter( 'pre_option_erankly_social_settings', $social_settings_filter );
+	remove_filter( 'pre_option_show_on_front', $show_on_front_filter );
+	remove_filter( 'pre_option_page_on_front', $page_on_front_filter );
+	remove_filter( 'pre_option_page_for_posts', $page_for_posts_filter );
+	remove_filter( 'gettext', $search_title_translation, 10 );
 	$GLOBALS['wp_query'] = $original_wp_query;
 	$GLOBALS['post']     = $original_post;
 
 	if ( $original_wp_query instanceof WP_Query ) {
 		$original_wp_query->reset_postdata();
 	}
+
+	$cleanup_fixtures();
 }
 
 echo "EasyRankly social smoke test passed.\n";

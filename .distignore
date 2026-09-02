@@ -1,0 +1,5 @@
+.commandcode/
+.distignore
+report*.md
+rules.md
+tests/

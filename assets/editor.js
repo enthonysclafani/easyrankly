@@ -4,23 +4,19 @@
 	const {
 		Button,
 		Dropdown,
-		Fill,
+		Flex,
 		Modal,
 		RadioControl,
 		TabPanel,
 		TextareaControl,
-		__experimentalHStack: HStack,
-		__experimentalVStack: VStack,
 	} = wp.components;
-	const {
-		__experimentalInspectorPopoverHeader: InspectorPopoverHeader,
-	} = wp.blockEditor;
 	const apiFetch = wp.apiFetch;
 	const { useEntityProp } = wp.coreData;
 	const { useDispatch, useSelect } = wp.data;
 	const {
 		PluginDocumentSettingPanel,
 		PluginMoreMenuItem,
+		PluginPostStatusInfo,
 	} = wp.editor;
 	const { createElement: el, Fragment, useMemo, useState } = wp.element;
 	const { __, sprintf } = wp.i18n;
@@ -55,6 +51,7 @@
 		bodyEnd: settings.bodyEndMetaKey,
 	};
 	const visibilityMetaKey = settings.visibilityMetaKey;
+	const variables = Array.isArray( settings.variables ) ? settings.variables : [];
 	const codeLocations = [
 		{
 			key: 'head',
@@ -71,10 +68,7 @@
 	];
 	const visibilityChoices = [
 		{
-			description: __(
-				'Leave the final decision to WordPress and installed SEO plugins.',
-				'easyrankly'
-			),
+			description: __( 'Allow search engines to index this content.', 'easyrankly' ),
 			label: __( 'Index', 'easyrankly' ),
 			value: 'index',
 		},
@@ -89,39 +83,118 @@
 	];
 
 	/**
-	 * Groups modal controls like a section in WordPress Preferences.
+	 * Renders the indexing popover header with public components.
 	 *
-	 * @param {Object}  props             Component properties.
-	 * @param {Element} props.children    Section controls.
-	 * @param {string}  props.description Section description.
-	 * @param {string}  props.title       Section heading.
-	 * @return {Element} Preferences-style section.
+	 * @param {Object}   props         Component properties.
+	 * @param {Function} props.onClose Closes the popover.
+	 * @param {string}   props.title   Popover title.
+	 * @return {Element} Popover header.
 	 */
-	function ModalSection( { children, description, title } ) {
+	function IndexingPopoverHeader( { onClose, title } ) {
 		return el(
-			'fieldset',
-			{ className: 'preferences-modal__section' },
-			( title || description ) &&
-				el(
-					'legend',
-					{ className: 'preferences-modal__section-legend' },
-					title &&
-						el(
-							'h2',
-							{ className: 'preferences-modal__section-title' },
-							title
-						),
-					description &&
-						el(
-							'p',
-							{ className: 'preferences-modal__section-description' },
-							description
-						)
-				),
+			Flex,
+			{
+				justify: 'space-between',
+			},
+			el( 'strong', null, title ),
 			el(
-				'div',
-				{ className: 'preferences-modal__section-content' },
-				children
+				Button,
+				{
+					onClick: onClose,
+					size: 'compact',
+					variant: 'tertiary',
+				},
+				__( 'Close', 'easyrankly' )
+			)
+		);
+	}
+
+	/**
+	 * Renders one code location field per tab of the Custom code modal.
+	 *
+	 * @param {Object}   props          Component properties.
+	 * @param {Object}   props.code     Code by location.
+	 * @param {boolean}  props.isGlobal Whether the fields target the global option.
+	 * @param {Function} props.onChange Updates code for a location.
+	 * @return {Element} Code location fields.
+	 */
+	function CodeFields( { code, isGlobal = false, onChange } ) {
+		return el(
+			Fragment,
+			null,
+			codeLocations.map( ( location ) =>
+				el( TextareaControl, {
+					key: location.key,
+					label: location.title,
+					name: `erankly-${
+						isGlobal ? 'global-' : ''
+					}${ location.key }`,
+					onChange: ( value ) => onChange( location.key, value ),
+					rows: 8,
+					spellCheck: false,
+					value: code[ location.key ],
+				} )
+			)
+		);
+	}
+
+	/**
+	 * Renders the reference for the variables Custom code can use.
+	 *
+	 * @return {Element} Variables reference.
+	 */
+	function VariablesReference() {
+		return el(
+			Fragment,
+			null,
+			el(
+				'p',
+				null,
+				__(
+					'Write a variable as {{name}} in any Custom code field. Global code resolves it on every page, so one template covers the whole site.',
+					'easyrankly'
+				)
+			),
+			el(
+				'p',
+				null,
+				__(
+					'A variable can list fallbacks: {{excerpt|siteDescription|"Fixed text"}} uses the first value that is not empty. When the whole chain stays empty, a tag written on a line of its own is dropped and the automatic EasyRankly metadata takes over.',
+					'easyrankly'
+				)
+			),
+			el(
+				'table',
+				{ className: 'erankly-variables' },
+				el(
+					'thead',
+					null,
+					el(
+						'tr',
+						null,
+						el( 'th', null, __( 'Variable', 'easyrankly' ) ),
+						el( 'th', null, __( 'Source', 'easyrankly' ) ),
+						el( 'th', null, __( 'Current value', 'easyrankly' ) )
+					)
+				),
+				el(
+					'tbody',
+					null,
+					variables.map( ( variable ) =>
+						el(
+							'tr',
+							{ key: variable.token },
+							el( 'td', null, el( 'code', null, variable.token ) ),
+							el( 'td', null, variable.label ),
+							el(
+								'td',
+								null,
+								variable.value ||
+									el( 'em', null, __( 'Empty', 'easyrankly' ) )
+							)
+						)
+					)
+				)
 			)
 		);
 	}
@@ -150,84 +223,77 @@
 		onClose,
 		onSaveGlobal,
 	} ) {
-		const tabs = [];
-
-		tabs.push( {
-			name: 'current-post',
-			title: __( 'Current post', 'easyrankly' ),
-		} );
+		const sections = [
+			{
+				name: 'current-post',
+				tabLabel: __( 'Current post', 'easyrankly' ),
+				content: el( CodeFields, {
+					code: currentCode,
+					onChange: onChangeCurrentCode,
+				} ),
+			},
+		];
 
 		if ( canEditGlobalCode ) {
-			tabs.push( {
+			sections.push( {
 				name: 'global',
-				title: __( 'Global', 'easyrankly' ),
+				tabLabel: __( 'Global', 'easyrankly' ),
+				content: el(
+					Fragment,
+					null,
+					el( CodeFields, {
+						code: globalCode,
+						isGlobal: true,
+						onChange: onChangeGlobalCode,
+					} ),
+					el(
+						Flex,
+						{ justify: 'flex-end' },
+						el(
+							Button,
+							{
+								accessibleWhenDisabled: true,
+								disabled: isSavingGlobal || ! isGlobalDirty,
+								isBusy: isSavingGlobal,
+								onClick: onSaveGlobal,
+								variant: 'primary',
+							},
+							__( 'Save', 'easyrankly' )
+						)
+					)
+				),
+			} );
+		}
+
+		if ( variables.length ) {
+			sections.push( {
+				name: 'variables',
+				tabLabel: __( 'Variables', 'easyrankly' ),
+				content: el( VariablesReference ),
 			} );
 		}
 
 		return el(
 			Modal,
 			{
-				className: 'preferences-modal',
 				closeButtonLabel: __( 'Close Custom code', 'easyrankly' ),
 				onRequestClose: onClose,
+				size: 'large',
 				title: __( 'Custom code', 'easyrankly' ),
 			},
 			el(
 				TabPanel,
 				{
-					className: 'erankly-tabs',
 					initialTabName: 'current-post',
-					orientation: 'vertical',
-					tabs,
+					tabs: sections.map( ( { name, tabLabel } ) => ( {
+						name,
+						title: tabLabel,
+					} ) ),
 				},
-				( tab ) => {
-					const isGlobal = 'global' === tab.name;
-					const code = isGlobal ? globalCode : currentCode;
-					const onChange = isGlobal
-						? onChangeGlobalCode
-						: onChangeCurrentCode;
-
-					return el(
-						Fragment,
-						null,
-						codeLocations.map( ( location ) =>
-							el(
-								ModalSection,
-								{
-									key: location.key,
-								},
-								el( TextareaControl, {
-									label: location.title,
-									name: `erankly-${
-										isGlobal ? 'global-' : ''
-									}${ location.key }`,
-										onChange: ( value ) =>
-											onChange( location.key, value ),
-										rows: 8,
-									spellCheck: false,
-									value: code[ location.key ],
-								} )
-							)
-						),
-						isGlobal &&
-							el(
-								HStack,
-								{ justify: 'flex-end' },
-								el(
-									Button,
-									{
-										accessibleWhenDisabled: true,
-										disabled:
-											isSavingGlobal || ! isGlobalDirty,
-										isBusy: isSavingGlobal,
-										onClick: onSaveGlobal,
-										variant: 'primary',
-									},
-									__( 'Save', 'easyrankly' )
-								)
-							)
-					);
-				}
+				( tab ) =>
+					sections.find(
+						( section ) => section.name === tab.name
+					)?.content
 			)
 		);
 	}
@@ -241,40 +307,39 @@
 	 * @return {Element} Indexing summary control.
 	 */
 	function IndexingControl( { onChange, value } ) {
-		const [ popoverAnchor, setPopoverAnchor ] = useState( null );
+		const [ popoverControl, setPopoverControl ] = useState( null );
+		// PluginPostStatusInfo does not forward refs; the control's parent is the
+		// complete row used by WordPress for native status popover anchoring.
 		const popoverProps = useMemo(
 			() => ( {
-				anchor: popoverAnchor,
+				anchor: popoverControl ? popoverControl.parentElement : null,
 				'aria-label': __( 'Indexing', 'easyrankly' ),
 				headerTitle: __( 'Indexing', 'easyrankly' ),
 				offset: 36,
 				placement: 'left-start',
 				shift: true,
 			} ),
-			[ popoverAnchor ]
+			[ popoverControl ]
 		);
 		const currentChoice =
 			visibilityChoices.find( ( choice ) => choice.value === value ) ||
 			visibilityChoices[ 0 ];
 
 		return el(
-			Fill,
-			{ name: 'PluginPostStatusInfo' },
+			PluginPostStatusInfo,
+			{ className: 'editor-post-panel__row erankly-indexing-row' },
 			el(
-				HStack,
+				'div',
+				{ className: 'editor-post-panel__row-label' },
+				__( 'Indexing', 'easyrankly' )
+			),
+			el(
+				'div',
 				{
-					className: 'editor-post-panel__row',
-					ref: setPopoverAnchor,
+					className: 'editor-post-panel__row-control',
+					ref: setPopoverControl,
 				},
-				el(
-					'div',
-					{ className: 'editor-post-panel__row-label' },
-					__( 'Indexing', 'easyrankly' )
-				),
-				el(
-					'div',
-					{ className: 'editor-post-panel__row-control' },
-					el( Dropdown, {
+				el( Dropdown, {
 						className: 'editor-post-status',
 						contentClassName: 'editor-change-status__content',
 						focusOnMount: true,
@@ -300,7 +365,7 @@
 							el(
 								Fragment,
 								null,
-								el( InspectorPopoverHeader, {
+								el( IndexingPopoverHeader, {
 									onClose,
 									title: __( 'Indexing', 'easyrankly' ),
 								} ),
@@ -312,22 +377,17 @@
 											onClose();
 										},
 									},
-									el(
-										VStack,
-										{ spacing: 4 },
-										el( RadioControl, {
-											className: 'editor-change-status__options',
-											hideLabelFromVision: true,
-											label: __( 'Indexing', 'easyrankly' ),
-											onChange,
-											options: visibilityChoices,
-											selected: value,
-										} )
-									)
+									el( RadioControl, {
+										className: 'editor-change-status__options',
+										hideLabelFromVision: true,
+										label: __( 'Indexing', 'easyrankly' ),
+										onChange,
+										options: visibilityChoices,
+										selected: value,
+									} )
 								)
 							),
-					} )
-				)
+				} )
 			)
 		);
 	}
@@ -503,6 +563,8 @@
 		if (
 			! postId ||
 			! postType ||
+			! descriptionMetaKey ||
+			! visibilityMetaKey ||
 			Object.values( metaKeys ).some( ( key ) => ! key )
 		) {
 			return null;

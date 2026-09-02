@@ -1,25 +1,25 @@
-.erankly-tabs > .components-tab-panel__tabs {
-	position: absolute !important;
-	top: 88px;
-	inset-inline-start: 16px;
-	width: 160px;
+.erankly-indexing-row.components-panel__row {
+	margin-top: 0;
+	gap: 8px;
 }
 
-.erankly-tabs > .components-tab-panel__tab-content {
-	margin-inline-start: 160px;
-	padding-inline-start: 24px;
+.erankly-variables {
+	border-collapse: collapse;
+	width: 100%;
 }
 
-@media (max-width: 781px) {
-	.erankly-tabs > .components-tab-panel__tabs {
-		position: static !important;
-		flex-direction: row;
-		width: auto;
-		overflow-x: auto;
-	}
+.erankly-variables th,
+.erankly-variables td {
+	border-bottom: 1px solid #ddd;
+	padding: 8px 12px 8px 0;
+	text-align: left;
+	vertical-align: top;
+}
 
-	.erankly-tabs > .components-tab-panel__tab-content {
-		padding: 24px;
-		margin: 0;
-	}
+.erankly-variables th {
+	white-space: nowrap;
+}
+
+.erankly-variables td:last-child {
+	overflow-wrap: anywhere;
 }

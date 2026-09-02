@@ -24,8 +24,14 @@
 					attributes = attachment.toJSON(),
 					preview = attributes.sizes && attributes.sizes.medium ? attributes.sizes.medium : attributes;
 
+				if ( ! $preview.length ) {
+					$preview = $( '<img>', {
+						id: 'erankly-social-image-preview',
+					} ).appendTo( $previewWrap );
+				}
+
 				$input[ 0 ].value = attachment.get( 'id' );
-				$preview.attr( {
+				$preview.removeAttr( 'srcset sizes width height' ).attr( {
 					src: preview.url,
 					alt: attributes.alt || '',
 				} ).removeClass( 'hidden' );
@@ -40,7 +46,8 @@
 
 	$remove.on( 'click', function () {
 		$input[ 0 ].value = 0;
-		$preview.attr( { src: '', alt: '' } ).addClass( 'hidden' );
+		$preview.remove();
+		$preview = $();
 		$previewWrap.addClass( 'hidden' );
 		$remove.addClass( 'hidden' );
 		$choose.text( $choose.data( 'choose' ) ).trigger( 'focus' );

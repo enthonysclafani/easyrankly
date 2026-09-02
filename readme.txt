@@ -4,7 +4,7 @@ Tags: block editor, head, body, custom code
 Requires at least: 7.1
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.14.0
+Stable tag: 2.1.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -19,10 +19,14 @@ revision-enabled post meta and printed on that content's singular front-end view
 Global code uses the WordPress Options and REST Settings APIs and is printed on
 every front-end page before per-content code.
 
-A Search engines panel in the post settings sidebar provides a simple meta description
-textarea. Its revision-enabled value is used first for the page description. When
-it is empty, EasyRankly uses the manually entered WordPress excerpt instead;
-it never generates a description from the content body.
+A Search engines panel in the post settings sidebar provides a revision-enabled
+meta description. It falls back to the manually entered WordPress excerpt and is
+never generated from the content body. Document titles remain entirely native to
+WordPress. Trusted users can supply a complete `<title>` in Custom code when they
+need an explicit override.
+On non-singular views, descriptions come from WordPress-owned data: the posts-page
+description or excerpt, the site tagline, or the term, author, or post-type archive
+description. Date archives, search results, generic archives, and 404s stay empty.
 
 EasyRankly produces baseline Open Graph and X (Twitter) preview metadata for
 singular content, the front page, the posts page, taxonomies, author archives,
@@ -42,13 +46,17 @@ X automatically uses `summary_large_image` whenever the resolved image exists an
 `summary` otherwise. Advanced overrides belong in Custom code: a matching social
 `meta` tag suppresses only the corresponding automatic tag.
 
-An author's X handle can be set in their WordPress Contact Info and is emitted as
-`twitter:creator` on posts.
+Settings > Social contains the site's public profile URLs and default sharing image.
+The profile URLs become `sameAs` identity values; a recognized X profile is also
+emitted as `twitter:site`. An author's X username remains in their WordPress Contact
+Info and is emitted separately as `twitter:creator` on posts.
 
 In addition to the baseline tags, EasyRankly emits `og:locale`, image width,
 height, and MIME type where the image comes from the Media Library. Posts also
 receive available `article:published_time`, `article:modified_time`,
 `article:author`, `article:section`, and `article:tag` metadata.
+The default WordPress category is never used as `article:section`; when present,
+the first non-default editorial category is used instead.
 
 Trusted users can enter a social `meta` tag in either Custom code field.
 Current post code applies to that singular view; Global code applies in every
@@ -57,19 +65,38 @@ cleanly overrides it rather than creating a duplicate. A manual `og:image`,
 `og:image:url`, or `twitter:image` also owns its structured image properties; a
 manual structured image property replaces only that property.
 
-Published posts automatically receive `BlogPosting` JSON-LD in the document head.
-It includes the canonical URL, headline, author, featured image when available,
-`datePublished`, and `dateModified` after a real update. Dates use complete ISO 8601
-timestamps in the WordPress site timezone. The same timestamps are printed in
-visible `time` elements immediately before the post content, while their labels use
-the site's normal date format.
+Settings > General contains a Site identity section. A site can represent an
+Organization, using the native Site Title and Site Logo or Site Icon, or a Person,
+using a selected WordPress user's public name and avatar. The complete identity is
+printed with a stable `#identity` ID when another automatic node references it.
+The front page also receives a minimal `WebSite` node containing only its stable ID,
+URL, name, and publisher reference. EasyRankly does not invent a `SearchAction`.
 
-Valid manual JSON-LD containing `Article`, `BlogPosting`, or `NewsArticle` takes
-ownership of the Article schema and suppresses the automatic copy. Current post
-code applies to one post; Global code applies to every post.
-A theme or custom integration can disable the automatic schema with the
-`erankly_article_schema_enabled` filter or extend its data with the
-`erankly_article_schema` filter.
+Settings > Local business contains one canonical profile for a physical business
+location. When enabled and complete, it replaces the generic Organization identity
+with `LocalBusiness` or a selected subtype while retaining the stable `#identity`
+ID. The node includes the business name, PostalAddress, telephone, optional opening
+hours, optional GeoCoordinates, location URL, logo, public profiles, and an optional
+Google Business Profile or Maps URL in `sameAs`.
+
+The same canonical data powers the server-rendered EasyRankly Business Profile
+block and `[easyrankly_business_profile]` shortcode. This prevents a footer or
+contact page from needing a second copy of the name, address, telephone, and hours.
+EasyRankly links to Google Business Profile but does not create or edit the remote
+profile. Coordinates are entered and confirmed manually; no third-party API runs
+during a public request.
+
+Published posts automatically receive `BlogPosting` JSON-LD in the document head.
+It includes the canonical URL, headline, author, publisher, featured image when available,
+`datePublished`, and `dateModified` after a real update. Dates use complete ISO 8601
+timestamps in the WordPress site timezone. Visible dates remain entirely owned by
+the theme and WordPress blocks.
+
+Automatic nodes are emitted in one `@graph`. Valid manual JSON-LD containing
+`WebSite`, `Organization`, `Person`, `LocalBusiness` or a supported subtype,
+`Article`, `BlogPosting`, `NewsArticle`, or `BreadcrumbList` takes ownership of the matching automatic node. A manual identity
+with an `@id` is referenced by the remaining automatic nodes. Current post code
+applies to one singular item; Global code applies everywhere.
 
 For public, indexable singular content, EasyRankly also automatically prints
 one `BreadcrumbList` JSON-LD trail. Its path follows the default resolver used by
@@ -78,14 +105,14 @@ post type archive, the applicable hierarchy or taxonomy term (including term
 ancestors), and the current content title. There is no editor toggle or Breadcrumb
 Name field.
 
+Hierarchical content follows post ancestors by default, matching the Breadcrumbs
+block's default. Flat content uses its primary available public taxonomy path.
+
 To take ownership of one content item's breadcrumb name or path, paste a complete,
 valid JSON-LD `BreadcrumbList` into that item's Custom code. A Global
-`BreadcrumbList` takes ownership for every eligible item. When effective code
-contains `BreadcrumbList` (including `schema:BreadcrumbList`), EasyRankly leaves
-breadcrumb schema to it and does not print its automatic trail. The plugin does not
-parse or validate manual JSON-LD, so the manually entered schema must be complete
-and valid. A standalone `name` property cannot alter the automatically generated
-JSON-LD; it must be part of the complete manual `BreadcrumbList`.
+`BreadcrumbList` takes ownership for every eligible item. EasyRankly parses valid
+JSON-LD semantically; invalid JSON-LD and plain text mentions do not suppress the
+automatic trail. A standalone `name` property cannot alter it.
 
 For example, a manual two-level trail can be added as:
 
@@ -109,50 +136,146 @@ For example, a manual two-level trail can be added as:
     }
     </script>
 
+Custom code accepts variables written as `{{name}}`. They turn Global code into a
+template every content item inherits, so one pattern covers the whole site:
+
+    <title>{{title}} - {{siteName}}</title>
+    <meta name="description" content="{{description}}">
+
+The Custom code modal has a Variables tab listing every available name, the source
+it reads, and the value it currently resolves to for the content being edited.
+Available names are `title`, `description`, `excerpt`, `siteName`,
+`siteDescription`, `url`, `siteUrl`, `image`, `author`, `published`, `modified`,
+`postType`, `category`, `tags`, `locale`, `searchQuery` and `page`. Every one of
+them reads the data EasyRankly already uses for its automatic metadata, so a
+template prints what the plugin would print on its own.
+
+A variable can list fallbacks separated by `|`, ending with a quoted literal:
+`{{excerpt|siteDescription|'Fixed text'}}` uses the first value that is not empty.
+When the whole chain stays empty, a tag written on a line of its own is dropped
+from the output and the automatic EasyRankly metadata takes over; write one tag
+per line to get that behavior. A name that does not exist is left untouched, so a
+typo stays visible in the page source instead of silently printing nothing.
+
+Values are escaped for the context each variable sits in: attribute values, text
+and `<title>`, or a string inside a `<script type="application/ld+json">` block,
+where the variable must be written inside the quotes
+(`{"headline":"{{title}}"}`). This matters because content titles and excerpts are
+written by users who do not have the unfiltered HTML capability. Variables resolve
+in Global and Current post code alike, in the head and at both body positions.
+Code without a variable is printed exactly as entered.
+
 If there is no featured image or configured default image, EasyRankly omits
-image metadata. The Settings screen highlights an empty default image;
-configure one whenever content can lack a featured image. If an image has no
-meaningful alt text, it omits only the corresponding alt metadata.
+image metadata. Configure a default image whenever content can lack a featured
+image. If an image has no meaningful alt text, it omits only the corresponding
+alt metadata.
 
 The document summary also includes an Indexing control. Index leaves the final
-robots policy to WordPress and installed SEO plugins; Noindex adds the directive
+robots policy to WordPress; Noindex adds the directive
 to WordPress' canonical robots meta tag and `X-Robots-Tag` HTTP response header
 for that content, and excludes published content marked Noindex from WordPress'
 native XML sitemap. EasyRankly does not create or render a separate sitemap.
 The HTTP header applies to pages rendered by WordPress; control static files such
 as PDFs and images at the server or CDN layer. The Noindex setting also applies to
-the page configured as the posts page.
+the page configured as the posts page. A manual `robots` meta tag takes ownership
+of both automatic robots outputs. A valid manual canonical tag becomes the URL used
+by WordPress canonical resolution, social metadata, and automatic schema.
 
 Editors can update the SEO controls for content they can edit. Raw Head and Body code
 also requires permission to use unfiltered HTML; Global code additionally requires the
 administrator capability to manage site options.
 
-A theme or custom integration that provides its own breadcrumb schema can disable
-the automatic output with the `erankly_breadcrumb_schema_enabled` filter.
-
 Slack's normal link preview uses the emitted Open Graph metadata. Interactive
 Slack unfurls, and audio or video social metadata, require a separate integration.
 
-To prevent duplicate or conflicting metadata, EasyRankly remains completely
-inactive when it detects another head owner. Supported owners include Yoast SEO,
-Rank Math, All in One SEO, SEOPress, The SEO Framework, Slim SEO, SmartCrawl,
-Squirrly SEO, SureRank, WP Meta SEO, SEO Ultimate, and Platinum SEO Pack. Site and
-network-active plugins are both detected. Custom integrations can extend the
-known plugin list with `erankly_owner_plugins`, or the final detection
-result with `erankly_has_active_head_owner`. Themes can use the latter
-filter because ownership is checked after the active theme loads.
+EasyRankly is the site's exclusive SEO owner. Running another SEO plugin at the
+same time is unsupported because both products may print conflicting metadata.
 
-When a known SEO head owner makes EasyRankly inactive, administrators see a
-notice identifying the detected plugin where WordPress can provide its name.
+Deactivation preserves settings. WordPress uninstall removes EasyRankly options,
+post metadata, retired EasyRankly Zero social fields, and author X metadata,
+including multisite data.
 
-== Testing ==
+== Upgrade Notice ==
 
-From the site root, run:
+= 2.1.0 =
+Custom code now supports {{variables}}, so Global code can act as a title and
+description template that every content item inherits.
 
-    studio wp eval-file wp-content/plugins/easyrankly/tests/social-preview-smoke.php
-    studio wp eval-file wp-content/plugins/easyrankly/tests/article-schema-smoke.php
+= 2.0.1 =
+Hardening release: restores compatibility shims, warns about conflicting SEO
+plugins, and fixes schema ownership, breadcrumb parity, and multisite caches.
+
+= 2.0.0 =
+Breaking change: EasyRankly is now the exclusive SEO owner. Its former public
+filters and compatibility mode for other SEO plugins have been removed.
 
 == Changelog ==
+
+= 2.1.0 =
+* Added `{{variables}}` to Custom code, so Global code works as a site-wide metadata template.
+* Added fallback chains and automatic removal of a template tag whose value resolves empty.
+* Added a Variables tab to the Custom code modal listing every name, its source, and its current value.
+* Escaped resolved values per context for attributes, text, titles, and JSON-LD blocks.
+* Fixed a manual or templated title not replacing the document title on block themes.
+
+= 2.0.1 =
+* Fixed nested JSON-LD objects being mistaken for top-level schema ownership.
+* Restored core breadcrumb customization parity and guarded core breadcrumb helpers.
+* Isolated runtime caches by site and locale and consolidated test cache resets.
+* Restored deprecated compatibility entry points removed in 2.0.0.
+* Added an administrator warning for known overlapping SEO plugins without changing output behavior.
+* Removed redundant schema and social defenses, unused timestamp payloads, and an experimental editor API.
+* Aligned trait responsibilities, translation loading, and release metadata.
+
+= 2.0.0 =
+* Made EasyRankly the exclusive SEO owner and removed competitor detection.
+* Removed the public filter surface and legacy schema printers.
+* Split the 4,323-line bootstrap into focused internal modules.
+* Removed redundant private docblocks and cached repeated request normalization.
+* Fixed late custom-post-type meta registration and modernized the Business Profile block.
+* Added validation feedback for invalid opening hours and prevented dangling schema references.
+* Made smoke tests self-contained and aligned release metadata and exclusions.
+* Omitted the default WordPress category from article sections and removed dead internal surfaces.
+
+= 1.18.0 =
+* Added a canonical single-location business profile with NAP, opening hours, coordinates, and Google Business Profile URL.
+* Added LocalBusiness and specific subtype output on the existing stable identity node.
+* Added a dynamic Business Profile block, shortcode, and public PHP helper backed by the same data.
+* Extended manual schema ownership to Organization, Person, LocalBusiness, and supported LocalBusiness subtypes.
+* Kept visible business data available when another SEO plugin owns automatic head output.
+
+= 1.17.0 =
+* Replaced private Preferences APIs with public modal components and accessible Custom code labels.
+* Migrated legacy social images once, removed empty image placeholders, and added distribution exclusions.
+* Added regression coverage for breadcrumb paths, revision sanitization, and revision metadata permissions.
+* Added an explicit taxonomy preference filter so structured breadcrumbs can match the visible WordPress block.
+* Replaced experimental stack components and added a public fallback for the indexing popover header.
+* Restored native block-editor spacing and popover anchoring for the Indexing row.
+* Kept late developer filters for Custom Head code and request context effective through final output.
+* Corrected front-page resolution, social image preview cleanup, and Site identity field registration.
+* Deprecated the three legacy standalone schema printers in favor of the consolidated schema graph.
+* Removed the unused data-version marker and automatic database check.
+* Let Settings > General render Site identity fields in their native registered position without DOM reordering.
+
+= 1.16.1 =
+* Removed the Search result title field and title-format setting.
+* Returned automatic document titles to WordPress and made a valid Custom code `<title>` the explicit override.
+
+= 1.16.0 =
+* Kept Custom code active beside other SEO plugins while pausing automatic SEO output.
+* Made manual description, canonical, robots, social, and valid JSON-LD true overrides.
+* Added WordPress-owned descriptions for the posts page and descriptive archives.
+* Added a minimal WebSite node and consolidated automatic schema into one filterable graph.
+* Returned visible dates to themes and core blocks.
+* Added developer filters, data-versioned upgrades, multisite-safe uninstall, and anti-duplication tests.
+
+= 1.15.0 =
+* Renamed the existing Settings submenu and screen to Social.
+* Added site profile URLs, site-level `twitter:site`, and structured `sameAs` values.
+* Added a native Site identity section under Settings > General.
+* Added Organization or Person identity schema and reused it as Article publisher.
+* Enriched Article author identity with stable IDs and available public profile URLs.
+* Added a revision-enabled search result title and title format under Settings > Reading.
 
 = 1.14.0 =
 * Added global and per-content code at the start and end of the document body.

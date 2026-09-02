@@ -1,6 +1,6 @@
 <?php
 /**
- * Article dates and JSON-LD regression smoke test.
+ * Article JSON-LD ownership and duplication regression smoke test.
  *
  * Run with: studio wp eval-file wp-content/plugins/easyrankly/tests/article-schema-smoke.php
  *
@@ -15,29 +15,34 @@ if ( ! class_exists( 'ERankly_Plugin' ) ) {
 	throw new RuntimeException( 'EasyRankly must be active before running this test.' );
 }
 
-$assert = static function ( $condition, $message ) {
-	if ( ! $condition ) {
-		throw new RuntimeException( $message );
+require __DIR__ . '/bootstrap.php';
+
+$fixture_post_ids = array();
+
+$cleanup_fixtures = static function () use ( &$fixture_post_ids ) {
+	foreach ( array_reverse( $fixture_post_ids ) as $fixture_post_id ) {
+		wp_delete_post( $fixture_post_id, true );
 	}
+
+	$fixture_post_ids = array();
 };
 
-$published_posts = get_posts(
+register_shutdown_function( $cleanup_fixtures );
+
+$post_id = wp_insert_post(
 	array(
-		'fields'           => 'ids',
-		'numberposts'      => 1,
-		'order'            => 'ASC',
-		'orderby'          => 'ID',
-		'post_status'      => 'publish',
-		'post_type'        => 'post',
-		'suppress_filters' => false,
-	)
+		'post_status' => 'publish',
+		'post_title'  => 'EasyRankly article schema fixture',
+		'post_type'   => 'post',
+	),
+	true
 );
 
-if ( empty( $published_posts ) ) {
-	throw new RuntimeException( 'A published post is required for the Article schema smoke test.' );
+if ( is_wp_error( $post_id ) ) {
+	throw new RuntimeException( $post_id->get_error_message() );
 }
 
-$post_id        = (int) $published_posts[0];
+$fixture_post_ids[] = $post_id;
 $meta_overrides = array(
 	'erankly_code'       => '',
 	'erankly_visibility' => 'index',
@@ -77,27 +82,35 @@ $prepare_singular = static function ( $id ) {
 	setup_postdata( $post );
 };
 
-$render_schema = static function () {
+$render_schema = static function () use ( $reset_request_caches ) {
+	$reset_request_caches();
 	ob_start();
-	ERankly_Plugin::print_article_schema();
+	ERankly_Plugin::print_schema_graph();
 
 	return ob_get_clean();
 };
 
-$decode_schema = static function ( $markup ) {
-	$matches = array();
-
-	if ( 1 !== preg_match( '~<script[^>]*type="application/ld\+json"[^>]*>(.*?)</script>~is', $markup, $matches ) ) {
-		return null;
-	}
-
-	$data = json_decode( trim( $matches[1] ), true );
-
-	return is_array( $data ) ? $data : null;
-};
-
 add_filter( 'get_post_metadata', $metadata_filter, 10, 4 );
 add_filter( 'pre_option_erankly_global_code', '__return_empty_string' );
+add_filter( 'pre_option_erankly_business_settings', '__return_empty_array' );
+add_filter(
+	'pre_option_erankly_site_identity',
+	static function () {
+		return array(
+			'person_user_id' => 0,
+			'type'           => 'organization',
+		);
+	}
+);
+add_filter(
+	'pre_option_erankly_social_settings',
+	static function () {
+		return array(
+			'default_image_id' => 0,
+			'profiles'         => array( 'https://x.com/EasyRankly' ),
+		);
+	}
+);
 
 try {
 	$prepare_singular( $post_id );
@@ -108,72 +121,82 @@ try {
 	$modified            = $modified_datetime->getTimestamp() > $published_datetime->getTimestamp()
 		? $modified_datetime->format( DATE_W3C )
 		: '';
+	$modified_timestamp  = $modified_datetime->getTimestamp() > $published_datetime->getTimestamp()
+		? $modified_datetime->getTimestamp()
+		: 0;
 	$markup              = $render_schema();
-	$schema              = $decode_schema( $markup );
+	$graph               = $decode_graph( $markup );
+	$schema              = $find_node( $graph, 'BlogPosting' );
+	$identity            = $find_node( $graph, 'Organization' );
 
 	$assert( is_array( $schema ), 'Automatic Article JSON-LD is missing or invalid.' );
 	$assert( 'BlogPosting' === $schema['@type'], 'Posts must use the BlogPosting type.' );
+	$assert( array( '@id' => home_url( '/#identity' ) ) === $schema['publisher'], 'Article publisher must reference the stable site identity node.' );
+	$assert( is_array( $identity ), 'The graph must contain the referenced site Organization.' );
+	$assert( get_bloginfo( 'name' ) === $identity['name'], 'The publisher name must reuse the WordPress Site Title.' );
+	$assert( array( 'https://x.com/EasyRankly' ) === $identity['sameAs'], 'The publisher must reuse site profile URLs.' );
 	$assert( $published === $schema['datePublished'], 'datePublished must use the WordPress publication timestamp.' );
 	$assert( (bool) preg_match( '/[+-][0-9]{2}:[0-9]{2}$/', $schema['datePublished'] ), 'datePublished must include a timezone offset.' );
-
 	if ( '' !== $modified ) {
 		$assert( isset( $schema['dateModified'] ) && $modified === $schema['dateModified'], 'dateModified must use the WordPress modification timestamp.' );
 	} else {
 		$assert( ! isset( $schema['dateModified'] ), 'dateModified must be omitted until a post is updated.' );
 	}
 
-	$parsed_block = array(
-		'attrs'        => array(),
-		'blockName'    => 'core/post-content',
-		'innerBlocks'  => array(),
-		'innerContent' => array(),
-		'innerHTML'    => '',
-	);
-	$block = new WP_Block(
-		$parsed_block,
-		array(
-			'postId'   => $post_id,
-			'postType' => 'post',
-		)
-	);
-	$body = ERankly_Plugin::prepend_article_dates( '<div>Article body</div>', $parsed_block, $block );
+	$assert( ! method_exists( ERankly_Plugin::class, 'prepend_article_dates' ), 'Themes and core blocks must own visible dates.' );
 
-	$assert( false !== strpos( $body, 'datetime="' . esc_attr( $published ) . '"' ), 'The visible publication date must share the JSON-LD ISO value.' );
-
-	if ( '' !== $modified ) {
-		$assert( false !== strpos( $body, 'datetime="' . esc_attr( $modified ) . '"' ), 'The visible update date must share the JSON-LD ISO value.' );
-	}
+	add_filter( 'pre_option_blogname', '__return_empty_string' );
+	$nameless_graph   = $decode_graph( $render_schema() );
+	$nameless_article = $find_node( $nameless_graph, 'BlogPosting' );
+	remove_filter( 'pre_option_blogname', '__return_empty_string' );
+	$assert( is_array( $nameless_article ) && ! isset( $nameless_article['publisher'] ), 'Schema must not reference an identity node that was not emitted.' );
+	$assert( null === $find_node( $nameless_graph, 'Organization' ), 'An empty site identity must not emit an Organization node.' );
 
 	$meta_overrides['erankly_code'] = '<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"https://schema.org/BlogPosting"}]}</script>';
-	$assert( '' === $render_schema(), 'Valid manual Article JSON-LD must suppress the automatic schema.' );
+	$manual_graph = $decode_graph( $render_schema() );
+	$assert( null === $find_node( $manual_graph, 'BlogPosting' ), 'Valid manual Article JSON-LD must suppress the automatic Article node.' );
 
 	$meta_overrides['erankly_code'] = '<script type="application/ld+json">{"@type":"BlogPosting"</script>';
-	$assert( '' !== $render_schema(), 'Invalid manual JSON-LD must not suppress the automatic schema.' );
+	$invalid_graph = $decode_graph( $render_schema() );
+	$assert( null !== $find_node( $invalid_graph, 'BlogPosting' ), 'Invalid manual JSON-LD must not suppress the automatic Article node.' );
 
 	$meta_overrides['erankly_code']       = '';
 	$meta_overrides['erankly_visibility'] = 'noindex';
 	$assert( '' === $render_schema(), 'Noindex posts must not emit automatic Article schema.' );
+	$robots = ERankly_Plugin::filter_robots( array( 'follow' => true, 'index' => true ) );
+	$assert( ! isset( $robots['index'] ) && ! empty( $robots['noindex'] ) && ! empty( $robots['follow'] ), 'Noindex posts must replace index while preserving other robots directives.' );
 	$headers = ERankly_Plugin::filter_robots_headers( array( 'Content-Type' => 'text/html; charset=UTF-8' ) );
 	$assert( 'noindex' === $headers['X-Robots-Tag'], 'Noindex posts must emit an X-Robots-Tag HTTP header.' );
 	$headers = ERankly_Plugin::filter_robots_headers( array( 'x-robots-tag' => 'noarchive' ) );
 	$assert( 'noarchive, noindex' === $headers['X-Robots-Tag'], 'The X-Robots-Tag header must retain existing directives.' );
+	$headers = ERankly_Plugin::filter_robots_headers(
+		array(
+			'x-robots-tag' => 'noarchive',
+			'X-ROBOTS-TAG' => 'nofollow',
+		)
+	);
+	$assert( array( 'X-Robots-Tag' => 'noarchive, nofollow, noindex' ) === $headers, 'X-Robots-Tag variants must merge into one canonical header.' );
+	$headers = ERankly_Plugin::filter_robots_headers( array( 'x-robots-tag' => 'NoIndex, noarchive' ) );
+	$assert( 'NoIndex, noarchive' === $headers['X-Robots-Tag'], 'An existing noindex directive must not be duplicated.' );
 
 	$meta_overrides['erankly_visibility'] = 'index';
-	$headers                                    = ERankly_Plugin::filter_robots_headers( array( 'Content-Type' => 'text/html; charset=UTF-8' ) );
+	$robots = array( 'follow' => true, 'index' => true );
+	$assert( $robots === ERankly_Plugin::filter_robots( $robots ), 'Index posts must leave existing robots directives unchanged.' );
+	$headers = ERankly_Plugin::filter_robots_headers( array( 'Content-Type' => 'text/html; charset=UTF-8' ) );
 	$assert( ! isset( $headers['X-Robots-Tag'] ), 'Index posts must not add an X-Robots-Tag HTTP header.' );
-	add_filter( 'erankly_article_schema_enabled', '__return_false' );
-	$assert( '' === $render_schema(), 'The Article schema ownership filter must disable automatic output.' );
-	remove_filter( 'erankly_article_schema_enabled', '__return_false' );
 } finally {
 	remove_filter( 'get_post_metadata', $metadata_filter, 10 );
-	remove_filter( 'erankly_article_schema_enabled', '__return_false' );
 	remove_filter( 'pre_option_erankly_global_code', '__return_empty_string' );
+	remove_filter( 'pre_option_erankly_business_settings', '__return_empty_array' );
+	remove_filter( 'pre_option_blogname', '__return_empty_string' );
 	$GLOBALS['wp_query'] = $original_wp_query;
 	$GLOBALS['post']     = $original_post;
 
 	if ( $original_wp_query instanceof WP_Query ) {
 		$original_wp_query->reset_postdata();
 	}
+
+	$cleanup_fixtures();
 }
 
 echo "EasyRankly Article schema smoke test passed.\n";

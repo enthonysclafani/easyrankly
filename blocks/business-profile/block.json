@@ -1,0 +1,38 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "easyrankly/business-profile",
+	"version": "2.1.0",
+	"title": "EasyRankly Business Profile",
+	"category": "widgets",
+	"icon": "location-alt",
+	"description": "Displays the canonical local-business name, address, telephone, hours, and Google profile link.",
+	"textdomain": "easyrankly",
+	"editorScript": "erankly-business-profile-editor",
+	"attributes": {
+		"showName": {
+			"type": "boolean",
+			"default": true
+		},
+		"showAddress": {
+			"type": "boolean",
+			"default": true
+		},
+		"showPhone": {
+			"type": "boolean",
+			"default": true
+		},
+		"showHours": {
+			"type": "boolean",
+			"default": true
+		},
+		"showGbp": {
+			"type": "boolean",
+			"default": true
+		}
+	},
+	"supports": {
+		"customClassName": false,
+		"html": false
+	}
+}
