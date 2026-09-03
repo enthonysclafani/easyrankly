@@ -51,6 +51,11 @@
 		bodyEnd: settings.bodyEndMetaKey,
 	};
 	const visibilityMetaKey = settings.visibilityMetaKey;
+	const registeredPostTypes = Array.isArray( settings.registeredPostTypes )
+		? settings.registeredPostTypes
+		: [];
+	const templateDescriptionField = settings.templateDescriptionField;
+	const templatePostType = settings.templatePostType;
 	const variables = Array.isArray( settings.variables ) ? settings.variables : [];
 	const codeLocations = [
 		{
@@ -393,6 +398,32 @@
 	}
 
 	/**
+	 * Renders the Search engines description panel.
+	 *
+	 * @param {Object}   props          Component properties.
+	 * @param {Function} props.onChange Updates the description.
+	 * @param {string}   props.value    Current description.
+	 * @return {Element} Search engines panel.
+	 */
+	function SearchEnginesPanel( { onChange, value } ) {
+		return el(
+			PluginDocumentSettingPanel,
+			{
+				name: 'search-engines',
+				title: __( 'Search engines', 'easyrankly' ),
+			},
+			el( TextareaControl, {
+				help: __( 'Shown in search results and social shares.', 'easyrankly' ),
+				label: __( 'Description', 'easyrankly' ),
+				name: 'erankly-meta-description',
+				onChange,
+				rows: 5,
+				value,
+			} )
+		);
+	}
+
+	/**
 	 * Renders the editor controls for a resolved entity.
 	 *
 	 * @param {Object} props          Component properties.
@@ -492,24 +523,10 @@
 		return el(
 			Fragment,
 			null,
-			el(
-				PluginDocumentSettingPanel,
-				{
-					name: 'search-engines',
-					title: __( 'Search engines', 'easyrankly' ),
-				},
-				el( TextareaControl, {
-					help: __(
-						'Shown in search results and social shares.',
-						'easyrankly'
-					),
-					label: __( 'Description', 'easyrankly' ),
-					name: 'erankly-meta-description',
-					onChange: ( value ) => updateMeta( descriptionMetaKey, value ),
-					rows: 5,
-					value: metaDescription,
-				} )
-			),
+			el( SearchEnginesPanel, {
+				onChange: ( value ) => updateMeta( descriptionMetaKey, value ),
+				value: metaDescription,
+			} ),
 			el( IndexingControl, {
 				onChange: ( value ) =>
 					updateMeta( visibilityMetaKey, value ),
@@ -546,6 +563,27 @@
 	}
 
 	/**
+	 * Renders the Search engines description for a block template.
+	 *
+	 * @param {Object} props            Component properties.
+	 * @param {string} props.templateId Current template entity id.
+	 * @return {Element} Template editor controls.
+	 */
+	function ERanklyTemplateEditor( { templateId } ) {
+		const [ description, setDescription ] = useEntityProp(
+			'postType',
+			templatePostType,
+			templateDescriptionField,
+			templateId
+		);
+
+		return el( SearchEnginesPanel, {
+			onChange: ( value ) => setDescription( value ),
+			value: typeof description === 'string' ? description : '',
+		} );
+	}
+
+	/**
 	 * Resolves the entity currently edited by the post editor.
 	 *
 	 * @return {Element|null} Plugin UI once the entity is available.
@@ -560,12 +598,19 @@
 			};
 		}, [] );
 
+		if ( ! postId || ! postType ) {
+			return null;
+		}
+
+		if ( templatePostType && templateDescriptionField && postType === templatePostType ) {
+			return el( ERanklyTemplateEditor, { templateId: postId } );
+		}
+
 		if (
-			! postId ||
-			! postType ||
 			! descriptionMetaKey ||
 			! visibilityMetaKey ||
-			Object.values( metaKeys ).some( ( key ) => ! key )
+			Object.values( metaKeys ).some( ( key ) => ! key ) ||
+			! registeredPostTypes.includes( postType )
 		) {
 			return null;
 		}

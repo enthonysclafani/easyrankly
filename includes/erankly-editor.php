@@ -16,6 +16,73 @@ trait ERankly_Editor {
 	}
 
 	/**
+	 * Registers the Search engines description on block templates.
+	 *
+	 * @return void
+	 */
+	public static function register_template_description_field(): void {
+		register_rest_field(
+			'wp_template',
+			self::DESCRIPTION_META_KEY,
+			array(
+				'get_callback'    => array( self::class, 'get_template_description_field' ),
+				'update_callback' => array( self::class, 'update_template_description_field' ),
+				'schema'          => array(
+					'arg_options' => array(
+						'sanitize_callback' => 'sanitize_textarea_field',
+					),
+					'context'     => array( 'edit', 'view' ),
+					'description' => __( 'Description shown in search results and social shares for pages rendered by this template.', 'easyrankly' ),
+					'type'        => 'string',
+				),
+			)
+		);
+	}
+
+	/**
+	 * Returns the stored description for a block template REST response.
+	 *
+	 * @param array $template Prepared template data.
+	 * @return string
+	 */
+	public static function get_template_description_field( $template ): string {
+		$post_id = is_array( $template ) && isset( $template['wp_id'] ) ? absint( $template['wp_id'] ) : 0;
+
+		if ( ! $post_id ) {
+			return '';
+		}
+
+		$description = get_post_meta( $post_id, self::DESCRIPTION_META_KEY, true );
+
+		return is_string( $description ) ? $description : '';
+	}
+
+	/**
+	 * Stores the Search engines description for a block template.
+	 *
+	 * @param mixed             $value    Submitted description.
+	 * @param WP_Block_Template $template Template being updated.
+	 * @return void
+	 */
+	public static function update_template_description_field( $value, $template ): void {
+		$post_id = $template instanceof WP_Block_Template ? absint( $template->wp_id ) : 0;
+
+		if ( ! $post_id || ! current_user_can( 'edit_post', $post_id ) ) {
+			return;
+		}
+
+		$description = sanitize_textarea_field( is_string( $value ) ? $value : '' );
+
+		if ( '' === $description ) {
+			delete_post_meta( $post_id, self::DESCRIPTION_META_KEY );
+
+			return;
+		}
+
+		update_post_meta( $post_id, self::DESCRIPTION_META_KEY, $description );
+	}
+
+	/**
 	 * Registers metadata when a supported post type becomes available.
 	 *
 	 * @param string       $post_type        Post type name.
@@ -216,12 +283,13 @@ trait ERankly_Editor {
 	public static function enqueue_editor_assets(): void {
 		$screen = get_current_screen();
 
-		if (
-			! $screen
-			|| ! $screen->is_block_editor()
-			|| ! $screen->post_type
-			|| ! in_array( $screen->post_type, self::$registered_post_types, true )
-		) {
+		if ( ! $screen || ! $screen->is_block_editor() ) {
+			return;
+		}
+
+		$is_site_editor = 'site-editor' === $screen->id;
+
+		if ( ! $is_site_editor && ( ! $screen->post_type || ! in_array( $screen->post_type, self::$registered_post_types, true ) ) ) {
 			return;
 		}
 
@@ -231,7 +299,7 @@ trait ERankly_Editor {
 		wp_enqueue_style(
 			'erankly-editor-style',
 			plugins_url( 'assets/editor.css', self::FILE ),
-			array( 'wp-edit-post' ),
+			array( $is_site_editor ? 'wp-edit-site' : 'wp-edit-post' ),
 			self::asset_version( $style_path )
 		);
 
@@ -267,6 +335,9 @@ trait ERankly_Editor {
 			'globalHeadCode'              => $can_edit_global_code ? self::get_global_head_code() : '',
 			'globalHeadOptionKey'         => self::GLOBAL_HEAD_OPTION,
 			'headMetaKey'                 => self::HEAD_META_KEY,
+			'registeredPostTypes'         => array_values( self::$registered_post_types ),
+			'templateDescriptionField'    => self::DESCRIPTION_META_KEY,
+			'templatePostType'            => 'wp_template',
 			'variables'                   => self::get_code_variable_examples( self::get_edited_post_id() ),
 			'visibilityMetaKey'           => self::VISIBILITY_META_KEY,
 		);

@@ -26,7 +26,13 @@ WordPress. Trusted users can supply a complete `<title>` in Custom code when the
 need an explicit override.
 On non-singular views, descriptions come from WordPress-owned data: the posts-page
 description or excerpt, the site tagline, or the term, author, or post-type archive
-description. Date archives, search results, generic archives, and 404s stay empty.
+description. When those sources are empty, a description saved on the current block
+template is used instead.
+
+In the Site Editor, open a template and its Settings sidebar to find the Search
+engines panel and its Description field. That value is the last fallback after the
+content, term, author, post-type-archive, and tagline sources. It also feeds the
+social description. Saving it customizes the template.
 
 EasyRankly produces baseline Open Graph and X (Twitter) preview metadata for
 singular content, the front page, the posts page, taxonomies, author archives,
@@ -174,7 +180,10 @@ The document summary also includes an Indexing control. Index leaves the final
 robots policy to WordPress; Noindex adds the directive
 to WordPress' canonical robots meta tag and `X-Robots-Tag` HTTP response header
 for that content, and excludes published content marked Noindex from WordPress'
-native XML sitemap. EasyRankly does not create or render a separate sitemap.
+native XML sitemap. Public taxonomy term screens have the same Indexing control.
+Noindex there adds the robots directive and `X-Robots-Tag` header to that term
+archive and removes the term from WordPress' native taxonomy sitemap.
+EasyRankly does not create or render a separate sitemap.
 The HTTP header applies to pages rendered by WordPress; control static files such
 as PDFs and images at the server or CDN layer. The Noindex setting also applies to
 the page configured as the posts page. A manual `robots` meta tag takes ownership
@@ -192,14 +201,14 @@ EasyRankly is the site's exclusive SEO owner. Running another SEO plugin at the
 same time is unsupported because both products may print conflicting metadata.
 
 Deactivation preserves settings. WordPress uninstall removes EasyRankly options,
-post metadata, retired EasyRankly Zero social fields, and author X metadata,
-including multisite data.
+post metadata, term metadata, retired EasyRankly Zero social fields, and author X
+metadata, including multisite data.
 
 == Upgrade Notice ==
 
 = 2.1.0 =
-Custom code now supports {{variables}}, so Global code can act as a title and
-description template that every content item inherits.
+Adds per-term Indexing and a Search engines description for block templates.
+Custom code {{variables}} let Global code act as a site-wide metadata template.
 
 = 2.0.1 =
 Hardening release: restores compatibility shims, warns about conflicting SEO
@@ -212,6 +221,8 @@ filters and compatibility mode for other SEO plugins have been removed.
 == Changelog ==
 
 = 2.1.0 =
+* Added Index/Noindex for public taxonomy terms, including the robots header and native taxonomy sitemap exclusion.
+* Added a Search engines description on block templates as the last fallback for search and social metadata.
 * Added `{{variables}}` to Custom code, so Global code works as a site-wide metadata template.
 * Added fallback chains and automatic removal of a template tag whose value resolves empty.
 * Added a Variables tab to the Custom code modal listing every name, its source, and its current value.

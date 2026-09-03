@@ -22,6 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 require_once __DIR__ . '/includes/erankly-ownership.php';
 require_once __DIR__ . '/includes/erankly-variables.php';
 require_once __DIR__ . '/includes/erankly-editor.php';
+require_once __DIR__ . '/includes/erankly-terms.php';
 require_once __DIR__ . '/includes/erankly-business.php';
 require_once __DIR__ . '/includes/erankly-social.php';
 require_once __DIR__ . '/includes/erankly-schema.php';
@@ -78,6 +79,7 @@ final class ERankly_Plugin {
 	private const TWITTER_USER_META_KEY = 'erankly_twitter_handle';
 
 	private static $registered_post_types = array();
+	private static $registered_taxonomies = array();
 
 	private static $head_analysis_cache = array();
 	private static $effective_head_code_cache = array();
@@ -88,10 +90,12 @@ final class ERankly_Plugin {
 	private static $business_profile_cache = array();
 	private static $social_settings_cache = array();
 	private static $site_identity_schema_cache = array();
+	private static $template_description_cache = array();
 
 	use ERankly_Ownership;
 	use ERankly_Variables;
 	use ERankly_Editor;
+	use ERankly_Terms;
 	use ERankly_Business;
 	use ERankly_Social;
 	use ERankly_Schema;
@@ -118,6 +122,10 @@ final class ERankly_Plugin {
 		add_action( 'init', array( self::class, 'register_global_code_settings' ), 20 );
 		add_action( 'init', array( self::class, 'register_meta' ), 20 );
 		add_action( 'registered_post_type', array( self::class, 'register_post_type_meta' ), 20, 2 );
+		add_action( 'init', array( self::class, 'register_term_visibility' ), 20 );
+		add_action( 'registered_taxonomy', array( self::class, 'register_taxonomy_term_visibility' ), 20 );
+		add_action( 'created_term', array( self::class, 'save_term_visibility' ), 10, 3 );
+		add_action( 'edited_term', array( self::class, 'save_term_visibility' ), 10, 3 );
 		add_action( 'init', array( self::class, 'register_business_profile_block' ), 20 );
 		add_action( 'admin_init', array( self::class, 'migrate_legacy_social_settings' ), 5 );
 		add_action( 'admin_init', array( self::class, 'register_business_settings' ) );
@@ -125,6 +133,7 @@ final class ERankly_Plugin {
 		add_action( 'admin_notices', array( self::class, 'render_head_owner_notice' ) );
 		add_action( 'network_admin_notices', array( self::class, 'render_head_owner_notice' ) );
 		add_action( 'enqueue_block_editor_assets', array( self::class, 'enqueue_editor_assets' ) );
+		add_action( 'rest_api_init', array( self::class, 'register_template_description_field' ) );
 		add_action( 'wp_head', array( self::class, 'claim_title_ownership' ), 0 );
 		add_action( 'wp_head', array( self::class, 'print_head_code' ), 100 );
 		add_action( 'wp_body_open', array( self::class, 'print_body_start_code' ), 0 );
@@ -143,6 +152,8 @@ final class ERankly_Plugin {
 		add_filter( 'wp_headers', array( self::class, 'filter_robots_headers' ), 20 );
 		add_filter( 'wp_sitemaps_posts_query_args', array( self::class, 'filter_sitemap_post_query_args' ), 20, 2 );
 		add_filter( 'posts_where', array( self::class, 'filter_sitemap_posts_where' ), 20, 2 );
+		add_filter( 'wp_sitemaps_taxonomies_query_args', array( self::class, 'filter_sitemap_taxonomy_query_args' ), 20, 2 );
+		add_filter( 'terms_clauses', array( self::class, 'filter_sitemap_terms_clauses' ), 20, 3 );
 		add_filter( 'user_contactmethods', array( self::class, 'add_twitter_contact_method' ) );
 	}
 
@@ -178,6 +189,7 @@ final class ERankly_Plugin {
 		self::$head_analysis_cache        = array();
 		self::$site_identity_schema_cache = array();
 		self::$social_settings_cache      = array();
+		self::$template_description_cache = array();
 	}
 
 	private static function asset_version( $path ): string {

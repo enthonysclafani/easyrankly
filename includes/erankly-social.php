@@ -663,6 +663,10 @@ trait ERankly_Social {
 			$context['description'] = self::get_content_description( $context['post_id'] );
 		}
 
+		if ( empty( $context['description'] ) ) {
+			$context['description'] = self::get_template_description();
+		}
+
 		if ( ! is_singular() && ! empty( $context['url'] ) ) {
 			$context['url'] = self::resolve_non_singular_url( $context['url'] );
 		}
@@ -780,35 +784,66 @@ trait ERankly_Social {
 		return ! empty( $image['url'] ) ? 'summary_large_image' : 'summary';
 	}
 
+	private static function get_template_description(): string {
+		$template_id = isset( $GLOBALS['_wp_current_template_id'] ) && is_string( $GLOBALS['_wp_current_template_id'] )
+			? $GLOBALS['_wp_current_template_id']
+			: '';
+
+		if ( '' === $template_id ) {
+			return '';
+		}
+
+		$key = self::get_cache_context_key() . '|' . $template_id;
+
+		if ( array_key_exists( $key, self::$template_description_cache ) ) {
+			return self::$template_description_cache[ $key ];
+		}
+
+		$template = get_block_template( $template_id, 'wp_template' );
+		$post_id  = $template instanceof WP_Block_Template ? absint( $template->wp_id ) : 0;
+
+		self::$template_description_cache[ $key ] = $post_id
+			? self::normalize_social_text( get_post_meta( $post_id, self::DESCRIPTION_META_KEY, true ) )
+			: '';
+
+		return self::$template_description_cache[ $key ];
+	}
+
 	private static function get_request_description(): string {
 		if ( is_singular() ) {
 			$description = self::get_content_description( self::get_singular_post_id() );
 
-			if ( '' !== $description || ! is_front_page() ) {
-				return $description;
+			if ( '' === $description && is_front_page() ) {
+				$description = self::normalize_social_text( get_bloginfo( 'description' ) );
 			}
 
-			return self::normalize_social_text( get_bloginfo( 'description' ) );
+			return '' !== $description ? $description : self::get_template_description();
 		}
 
 		if ( is_home() ) {
 			$posts_page_id = self::get_posts_page_id();
 			$description   = $posts_page_id ? self::get_content_description( $posts_page_id ) : '';
 
-			return '' !== $description
-				? $description
-				: self::normalize_social_text( get_bloginfo( 'description' ) );
+			if ( '' === $description ) {
+				$description = self::normalize_social_text( get_bloginfo( 'description' ) );
+			}
+
+			return '' !== $description ? $description : self::get_template_description();
 		}
 
 		if ( is_front_page() ) {
-			return self::normalize_social_text( get_bloginfo( 'description' ) );
+			$description = self::normalize_social_text( get_bloginfo( 'description' ) );
+
+			return '' !== $description ? $description : self::get_template_description();
 		}
 
 		if ( is_category() || is_tag() || is_tax() || is_author() || is_post_type_archive() ) {
-			return self::normalize_social_text( get_the_archive_description() );
+			$description = self::normalize_social_text( get_the_archive_description() );
+
+			return '' !== $description ? $description : self::get_template_description();
 		}
 
-		return '';
+		return self::get_template_description();
 	}
 
 	private static function get_content_description( $post_id ): string {

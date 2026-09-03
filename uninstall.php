@@ -16,14 +16,14 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
  */
 function erankly_uninstall_current_site() {
 	$options = array(
-		'erankly_data_version',
+		'erankly_data_version', // Retired in 1.17.0.
 		'erankly_global_code',
 		'erankly_global_body_start_code',
 		'erankly_global_body_end_code',
 		'erankly_social_settings',
 		'erankly_site_identity',
 		'erankly_business_settings',
-		'erankly_title_format',
+		'erankly_title_format', // Retired in 1.16.1.
 	);
 
 	foreach ( $options as $option ) {
@@ -36,8 +36,8 @@ function erankly_uninstall_current_site() {
 		'erankly_body_end_code',
 		'erankly_visibility',
 		'erankly_meta_description',
-		'erankly_meta_title',
-		// Retired EasyRankly Zero fields.
+		'erankly_meta_title', // Retired in 1.16.1.
+		// Retired in 1.9.0. EasyRankly Zero social fields.
 		'erankly_social_title',
 		'erankly_social_description',
 		'erankly_social_image',
@@ -52,6 +52,8 @@ function erankly_uninstall_current_site() {
 	foreach ( $post_meta as $meta_key ) {
 		delete_metadata( 'post', 0, $meta_key, '', true );
 	}
+
+	delete_metadata( 'term', 0, 'erankly_visibility', '', true );
 }
 
 if ( is_multisite() ) {

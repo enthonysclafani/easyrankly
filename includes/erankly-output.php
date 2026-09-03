@@ -236,15 +236,21 @@ trait ERankly_Output {
 	}
 
 	private static function should_force_noindex(): bool {
-		$post_id = self::get_visibility_post_id();
+		$analysis = self::get_head_analysis( self::get_singular_post_id() );
 
-		if ( ! $post_id ) {
+		if ( array_key_exists( 'robots', $analysis['meta'] ) ) {
 			return false;
 		}
 
-		$analysis = self::get_head_analysis( self::get_singular_post_id() );
+		$post_id = self::get_visibility_post_id();
 
-		return ! array_key_exists( 'robots', $analysis['meta'] ) && self::is_noindex( $post_id );
+		if ( $post_id ) {
+			return self::is_noindex( $post_id );
+		}
+
+		$term_id = self::get_visibility_term_id();
+
+		return $term_id > 0 && self::is_term_noindex( $term_id );
 	}
 
 	/**
