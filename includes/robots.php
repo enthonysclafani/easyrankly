@@ -611,7 +611,19 @@ function erankly_force_robots_txt_request( WP $wp ): void {
 		return;
 	}
 
-	if ( 'robots.txt' !== trim( (string) ( $wp->request ?? '' ), '/' ) ) {
+	$request = isset( $wp->request ) ? trim( (string) $wp->request, '/' ) : '';
+	if ( '' === $request ) {
+		// With "Plain" permalinks (or an empty rewrite-rule set) core skips rewrite
+		// matching entirely and never populates ->request, so derive the request
+		// path from the raw URI, relative to the home URL path.
+		$request = trim( (string) wp_parse_url( wp_unslash( (string) ( $_SERVER['REQUEST_URI'] ?? '' ) ), PHP_URL_PATH ), '/' );
+		$home    = trim( (string) wp_parse_url( home_url(), PHP_URL_PATH ), '/' );
+		if ( '' !== $home && 0 === strpos( $request . '/', $home . '/' ) ) {
+			$request = trim( substr( $request, strlen( $home ) ), '/' );
+		}
+	}
+
+	if ( 'robots.txt' !== $request ) {
 		return;
 	}
 

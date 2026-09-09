@@ -261,7 +261,10 @@ final class ERankly_Robots_And_Custom_Code_Test extends WP_UnitTestCase {
 	public function test_user_without_unfiltered_html_cannot_replace_or_disable_stored_custom_code(): void {
 		$privileged_id = self::factory()->user->create( array( 'role' => 'administrator' ) );
 		wp_set_current_user( $privileged_id );
-		$this->assertTrue( current_user_can( 'unfiltered_html' ) );
+		if ( ! is_multisite() ) {
+			// On Multisite plain admins never have unfiltered_html in the first place.
+			$this->assertTrue( current_user_can( 'unfiltered_html' ) );
+		}
 
 		$stored_block = array(
 			'enabled'         => 1,
@@ -321,45 +324,77 @@ final class ERankly_Robots_And_Custom_Code_Test extends WP_UnitTestCase {
 		require_once ERANKLY_PATH . 'includes/custom-code.php';
 		$this->store_custom_code_output_probes();
 
-		$this->go_to( home_url( '/' ) );
-		add_filter( 'wp_doing_ajax', '__return_true' );
-		$this->assertFalse( erankly_custom_code_should_output() );
-		$this->assert_custom_code_probe_not_printed();
-		remove_filter( 'wp_doing_ajax', '__return_true' );
+		$structure = (string) get_option( 'permalink_structure' );
+		try {
+			// Mirror production pretty permalinks so robots/embed/trackback go through core rewrites.
+			$this->set_permalink_structure( '/%postname%/' );
 
-		add_filter( 'wp_doing_cron', '__return_true' );
-		$this->assertFalse( erankly_custom_code_should_output() );
-		$this->assert_custom_code_probe_not_printed();
-		remove_filter( 'wp_doing_cron', '__return_true' );
+			$this->go_to( home_url( '/' ) );
+			add_filter( 'wp_doing_ajax', '__return_true' );
+			$this->assertFalse( erankly_custom_code_should_output() );
+			$this->assert_custom_code_probe_not_printed();
+			remove_filter( 'wp_doing_ajax', '__return_true' );
 
-		$this->go_to( home_url( '/robots.txt' ) );
-		$this->assertTrue( is_robots() );
-		$this->assertFalse( erankly_custom_code_should_output() );
-		$this->assert_custom_code_probe_not_printed();
+			add_filter( 'wp_doing_cron', '__return_true' );
+			$this->assertFalse( erankly_custom_code_should_output() );
+			$this->assert_custom_code_probe_not_printed();
+			remove_filter( 'wp_doing_cron', '__return_true' );
 
-		$author_id = self::factory()->user->create( array( 'role' => 'administrator' ) );
-		wp_set_current_user( $author_id );
-		$post_id   = self::factory()->post->create(
-			array(
-				'post_status' => 'publish',
-				'post_author' => $author_id,
-			)
-		);
+			$this->go_to( home_url( '/robots.txt' ) );
+			$this->assertTrue( is_robots() );
+			$this->assertFalse( erankly_custom_code_should_output() );
+			$this->assert_custom_code_probe_not_printed();
 
-		$this->go_to( get_preview_post_link( $post_id ) );
-		$this->assertTrue( is_preview() );
-		$this->assertFalse( erankly_custom_code_should_output() );
-		$this->assert_custom_code_probe_not_printed();
+			$author_id = self::factory()->user->create( array( 'role' => 'administrator' ) );
+			wp_set_current_user( $author_id );
+			$post_id   = self::factory()->post->create(
+				array(
+					'post_status' => 'publish',
+					'post_author' => $author_id,
+				)
+			);
 
-		$this->go_to( get_post_embed_url( $post_id ) );
-		$this->assertTrue( is_embed() );
-		$this->assertFalse( erankly_custom_code_should_output() );
-		$this->assert_custom_code_probe_not_printed();
+			$this->go_to( get_preview_post_link( $post_id ) );
+			$this->assertTrue( is_preview() );
+			$this->assertFalse( erankly_custom_code_should_output() );
+			$this->assert_custom_code_probe_not_printed();
 
-		$this->go_to( get_trackback_url( $post_id ) );
-		$this->assertTrue( is_trackback() );
-		$this->assertFalse( erankly_custom_code_should_output() );
-		$this->assert_custom_code_probe_not_printed();
+			$this->go_to( get_post_embed_url( $post_id ) );
+			$this->assertTrue( is_embed() );
+			$this->assertFalse( erankly_custom_code_should_output() );
+			$this->assert_custom_code_probe_not_printed();
+
+			$this->go_to( get_trackback_url( $post_id ) );
+			$this->assertTrue( is_trackback() );
+			$this->assertFalse( erankly_custom_code_should_output() );
+			$this->assert_custom_code_probe_not_printed();
+		} finally {
+			$this->set_permalink_structure( $structure );
+		}
+	}
+
+	/**
+	 * @covers erankly_force_robots_txt_request
+	 */
+	public function test_robots_txt_forced_without_rewrite_rules(): void {
+		require_once ERANKLY_PATH . 'includes/custom-code.php';
+		$this->store_custom_code_output_probes();
+
+		$structure = (string) get_option( 'permalink_structure' );
+		try {
+			// With "Plain" permalinks core generates no rewrite rules, so the core
+			// `robots\.txt$` rule cannot match and the plugin fallback must kick in.
+			$this->set_permalink_structure( '' );
+
+			$this->assertArrayNotHasKey( 'robots\.txt$', (array) $GLOBALS['wp_rewrite']->wp_rewrite_rules() );
+
+			$this->go_to( home_url( '/robots.txt' ) );
+			$this->assertTrue( is_robots() );
+			$this->assertFalse( erankly_custom_code_should_output() );
+			$this->assert_custom_code_probe_not_printed();
+		} finally {
+			$this->set_permalink_structure( $structure );
+		}
 	}
 
 	/**

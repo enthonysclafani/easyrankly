@@ -31,8 +31,7 @@ final class ERankly_Custom_Code_Boundaries_Test extends WP_UnitTestCase {
 	}
 
 	public function test_rest_autosave_authorized_user_persists_innocent_panel_field(): void {
-		$admin_id = self::factory()->user->create( array( 'role' => 'administrator' ) );
-		wp_set_current_user( $admin_id );
+		$this->create_privileged_admin();
 
 		$marker = 'erankly-rest-' . wp_generate_uuid4();
 		$request = new WP_REST_Request( 'POST', '/erankly/v1/settings/general' );
@@ -74,7 +73,10 @@ final class ERankly_Custom_Code_Boundaries_Test extends WP_UnitTestCase {
 	public function test_rest_autosave_without_unfiltered_html_cannot_enable_or_replace_custom_code(): void {
 		$admin_id = self::factory()->user->create( array( 'role' => 'administrator' ) );
 		wp_set_current_user( $admin_id );
-		$this->assertTrue( current_user_can( 'unfiltered_html' ) );
+		if ( ! is_multisite() ) {
+			// On Multisite plain admins never have unfiltered_html in the first place.
+			$this->assertTrue( current_user_can( 'unfiltered_html' ) );
+		}
 
 		$kept = '<meta name="erankly-kept-rest" content="1">';
 		$stored                           = erankly_get_settings();
@@ -102,7 +104,18 @@ final class ERankly_Custom_Code_Boundaries_Test extends WP_UnitTestCase {
 			)
 		);
 		$features_response = rest_get_server()->dispatch( $features );
-		$this->assertSame( 200, $features_response->get_status() );
+		// Single site: the request is accepted and the sanitizer drops the custom-code
+		// change. Multisite: the autosave route itself is forbidden to subsite admins.
+		$this->assertSame( is_multisite() ? 403 : 200, $features_response->get_status() );
+
+		if ( is_multisite() ) {
+			erankly_clear_settings_cache();
+			$after = erankly_get_settings();
+			$this->assertSame( 1, (int) $after['enable_custom_code'] );
+			$this->assertSame( $kept, $after['head_code_blocks'][0]['code'] );
+
+			return;
+		}
 
 		$panel = new WP_REST_Request( 'POST', '/erankly/v1/settings/custom-code' );
 		$panel->set_param(
@@ -129,9 +142,7 @@ final class ERankly_Custom_Code_Boundaries_Test extends WP_UnitTestCase {
 	}
 
 	public function test_form_persist_helper_merges_panel_and_stores_custom_code_for_privileged_user(): void {
-		$admin_id = self::factory()->user->create( array( 'role' => 'administrator' ) );
-		wp_set_current_user( $admin_id );
-		$this->assertTrue( current_user_can( 'unfiltered_html' ) );
+		$this->create_privileged_admin();
 
 		$probe = '<meta name="erankly-form-persist" content="1">';
 		$persisted = erankly_persist_settings_submission(
@@ -231,9 +242,7 @@ final class ERankly_Custom_Code_Boundaries_Test extends WP_UnitTestCase {
 	}
 
 	public function test_privileged_import_worker_sanitizes_budgets_and_keeps_trusted_legacy(): void {
-		$admin_id = self::factory()->user->create( array( 'role' => 'administrator' ) );
-		wp_set_current_user( $admin_id );
-		$this->assertTrue( current_user_can( 'unfiltered_html' ) );
+		$this->create_privileged_admin();
 
 		$limit  = erankly_custom_code_max_bytes();
 		$legacy = erankly_custom_code_migrated_block( '<meta name="erankly-import-legacy" content="1">' );
@@ -278,8 +287,7 @@ final class ERankly_Custom_Code_Boundaries_Test extends WP_UnitTestCase {
 	}
 
 	public function test_client_rest_payload_cannot_forge_legacy_migrated_marker(): void {
-		$admin_id = self::factory()->user->create( array( 'role' => 'administrator' ) );
-		wp_set_current_user( $admin_id );
+		$this->create_privileged_admin();
 
 		$regular = array(
 			'enabled'         => 1,
@@ -384,6 +392,22 @@ final class ERankly_Custom_Code_Boundaries_Test extends WP_UnitTestCase {
 		$after = erankly_get_settings();
 		$this->assertSame( 1, (int) $after['enable_custom_code'] );
 		$this->assertSame( $probe, $after['head_code_blocks'][0]['code'] );
+	}
+
+	/**
+	 * Creates an administrator trusted with custom code on both single site and Multisite,
+	 * where only super admins hold the unfiltered_html capability.
+	 */
+	private function create_privileged_admin(): int {
+		$admin_id = self::factory()->user->create( array( 'role' => 'administrator' ) );
+		if ( is_multisite() ) {
+			grant_super_admin( $admin_id );
+			$this->granted_super_admin_ids[] = $admin_id;
+		}
+		wp_set_current_user( $admin_id );
+		$this->assertTrue( current_user_can( 'unfiltered_html' ) );
+
+		return $admin_id;
 	}
 
 	/**
