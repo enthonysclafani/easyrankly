@@ -12,7 +12,18 @@ permissions:
 
 jobs:
   phpunit:
+    name: PHPUnit (PHP ${{ matrix.php }}${{ matrix.multisite && ', Multisite' || '' }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - php: '8.0'
+            multisite: false
+          - php: '8.3'
+            multisite: false
+          - php: '8.3'
+            multisite: true
     services:
       mysql:
         image: mysql:8.0
@@ -34,16 +45,18 @@ jobs:
       - name: Set up PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.3'
+          php-version: ${{ matrix.php }}
           extensions: dom, intl, mbstring, mysqli, xml
           coverage: none
 
       - name: Install development dependencies
         uses: ramsey/composer-install@v3
 
-      - name: Install WordPress test suite
+      - name: Install WordPress 7.1 test suite
+        env:
+          WP_DEVELOP_REF: '7.1.0'
         run: |
-          git clone --depth=1 https://github.com/WordPress/wordpress-develop.git /tmp/wordpress-develop
+          git clone --depth=1 --branch "$WP_DEVELOP_REF" https://github.com/WordPress/wordpress-develop.git /tmp/wordpress-develop
           cp /tmp/wordpress-develop/wp-tests-config-sample.php /tmp/wordpress-develop/wp-tests-config.php
           sed -i "s/youremptytestdbnamehere/wordpress_test/; s/yourusernamehere/root/; s/yourpasswordhere//; s|localhost|127.0.0.1|" /tmp/wordpress-develop/wp-tests-config.php
 
@@ -51,4 +64,76 @@ jobs:
         env:
           WP_TESTS_DIR: /tmp/wordpress-develop/tests/phpunit
           WP_TESTS_PHPUNIT_POLYFILLS_PATH: ${{ github.workspace }}/vendor/yoast/phpunit-polyfills
-        run: composer test
+          WP_MULTISITE: ${{ matrix.multisite && '1' || '' }}
+        run: composer test -- --testdox --log-junit phpunit-junit.xml
+
+      - name: Fail if Multisite-required tests were skipped or missing
+        if: matrix.multisite
+        env:
+          WP_TESTS_DIR: /tmp/wordpress-develop/tests/phpunit
+          WP_TESTS_PHPUNIT_POLYFILLS_PATH: ${{ github.workspace }}/vendor/yoast/phpunit-polyfills
+          WP_MULTISITE: '1'
+        run: |
+          php -r '
+          $xml = simplexml_load_file("phpunit-junit.xml");
+          if ( false === $xml ) {
+            fwrite( STDERR, "JUnit log missing after the Multisite PHPUnit run.\n" );
+            exit( 1 );
+          }
+          $required = array(
+            "test_multisite_site_admin_user_search_stays_on_current_site",
+            "test_multisite_site_admin_without_unfiltered_html_cannot_save_custom_code",
+            "test_multisite_super_admin_can_save_custom_code",
+            "test_multisite_site_admin_rest_settings_route_is_forbidden",
+            "test_multisite_super_admin_rest_can_save_custom_code",
+          );
+          $found = array();
+          $skipped = array();
+          foreach ( $xml->xpath("//testcase") as $case ) {
+            $name = (string) $case["name"];
+            if ( ! in_array( $name, $required, true ) ) {
+              continue;
+            }
+            $found[] = $name;
+            if ( isset( $case->skipped ) ) {
+              $skipped[] = $name;
+            }
+          }
+          $missing = array_diff( $required, $found );
+          if ( array() !== $missing || array() !== $skipped ) {
+            fwrite( STDERR, "Multisite-required tests missing or skipped: " . implode( ", ", array_merge( $missing, $skipped ) ) . "\n" );
+            exit( 1 );
+          }
+          echo "Multisite-required tests executed: " . implode( ", ", $found ) . PHP_EOL;
+          '
+
+  plugin-check:
+    name: Plugin Check (distributable)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out plugin
+        uses: actions/checkout@v4
+
+      - name: Build distributable zip
+        run: bash tools/build-dist.sh
+
+      - name: Extract distributable
+        run: |
+          mkdir -p dist-extracted
+          unzip -q .dist/easyrankly.zip -d dist-extracted
+          test -f dist-extracted/easyrankly/easyrankly.php
+          test -f dist-extracted/easyrankly/license.txt
+          test ! -e dist-extracted/easyrankly/tests
+          test ! -e dist-extracted/easyrankly/.github
+
+      - name: Run Plugin Check on the artifact
+        uses: wordpress/plugin-check-action@v1
+        with:
+          build-dir: ./dist-extracted/easyrankly
+          slug: easyrankly
+          wp-version: latest
+          include-experimental: false
+          ignore-warnings: true
+          ignore-errors: false
+          categories: |
+            plugin_repo

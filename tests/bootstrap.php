@@ -30,3 +30,22 @@ tests_add_filter(
 );
 
 require $tests_dir . '/includes/bootstrap.php';
+
+/**
+ * Loads the admin settings sanitizer for tests that call erankly_sanitize_settings().
+ *
+ * Production loads admin/settings-page.php only in admin or on-demand REST/CLI
+ * paths. PHPUnit boots the plugin as a non-admin request, so those tests must
+ * require the file explicitly instead of changing the runtime load order.
+ */
+function erankly_tests_load_settings_sanitizer(): void {
+	static $erankly_tests_settings_sanitizer_loaded = false; // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Function-static flag in a dev-only bootstrap.
+
+	if ( $erankly_tests_settings_sanitizer_loaded ) {
+		return;
+	}
+
+	require_once ABSPATH . 'wp-admin/includes/template.php';
+	require_once dirname( __DIR__ ) . '/admin/settings-page.php';
+	$erankly_tests_settings_sanitizer_loaded = true;
+}

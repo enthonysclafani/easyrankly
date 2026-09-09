@@ -429,7 +429,7 @@ function erankly_migration_render_active_job( array $job ): void {
 			<h2 class="erankly-section-title"><?php esc_html_e( 'Migration assistant', 'easyrankly' ); ?></h2>
 			<?php erankly_render_section_doc_link( 'migration-assistant' ); ?>
 		</div>
-		<section class="erankly-card erankly-migration-card <?php echo 'paused' === $status ? 'erankly-migration-card--warning' : ''; ?>" aria-busy="<?php echo 'paused' === $status || $cancelling ? 'false' : 'true'; ?>">
+		<section class="erankly-card erankly-migration-card <?php echo 'paused' === $status ? 'erankly-migration-card--warning' : ''; ?>" aria-busy="<?php echo 'paused' === $status || $cancelling ? 'false' : 'true'; ?>"<?php echo 'paused' !== $status ? ' data-erankly-migration-autoreload="15000"' : ''; ?>>
 			<p class="erankly-migration-context">
 				<strong><?php echo esc_html( $source ? $source->label() : (string) ( $job['source'] ?? '' ) ); ?></strong>
 				<span aria-hidden="true">&middot;</span>
@@ -496,9 +496,6 @@ function erankly_migration_render_active_job( array $job ): void {
 			<?php endif; ?>
 		</section>
 	</div>
-	<?php if ( 'paused' !== $status ) : ?>
-		<script>window.setTimeout(function(){ window.location.reload(); }, 15000);</script>
-	<?php endif; ?>
 	<?php
 }
 

@@ -47,6 +47,13 @@ function erankly_admin_enqueue_assets( string $hook_suffix ): void {
 	if ( $is_settings ) {
 		if ( 'import-export' === $settings_tab ) {
 			wp_enqueue_style( 'erankly-migration', ERANKLY_URL . 'assets/css/migration.css', array( 'erankly-admin-settings' ), ERANKLY_VERSION );
+			wp_enqueue_script(
+				'erankly-admin-import-export',
+				ERANKLY_URL . 'assets/js/admin-import-export.js',
+				array(),
+				ERANKLY_VERSION,
+				true
+			);
 		}
 		if ( 'settings' === $settings_tab ) {
 			wp_enqueue_style( 'erankly-reset', ERANKLY_URL . 'assets/css/reset.css', array( 'erankly-admin-settings' ), ERANKLY_VERSION );
@@ -105,6 +112,7 @@ function erankly_admin_enqueue_assets( string $hook_suffix ): void {
 				'i18n' => array(
 					// Removing the last block now really clears the stored list, so the click is destructive.
 					'confirmRemove' => __( 'Delete this block? It is removed from the site as soon as the panel saves.', 'easyrankly' ),
+					'codeSnippet'   => __( 'Code snippet', 'easyrankly' ),
 				),
 			)
 		);
@@ -176,14 +184,15 @@ function erankly_admin_enqueue_assets( string $hook_suffix ): void {
 				'restUrlDelete' => esc_url_raw( rest_url( 'erankly/v1/redirects/delete' ) ),
 				'restUrlTest'   => esc_url_raw( rest_url( 'erankly/v1/redirects/test' ) ),
 				'nonce'         => wp_create_nonce( 'wp_rest' ),
+				'requestFailed' => __( 'Request failed', 'easyrankly' ),
 				'statusOnlyCodes' => array_map( 'strval', ERankly_Redirects_Normalizer::STATUS_ONLY_CODES ),
 				/* translators: %s: Redirect source path. */
 				'deleteConfirm' => __( 'The redirect from %s will be permanently deleted.', 'easyrankly' ),
 				'enableLabel'   => __( 'Enable', 'easyrankly' ),
 				'disableLabel'  => __( 'Disable', 'easyrankly' ),
-				/* translators: %s: Redirect source path. */
+				/* translators: %s: Source path of the redirect to enable. */
 				'enableAria'    => __( 'Enable redirect from %s', 'easyrankly' ),
-				/* translators: %s: Redirect source path. */
+				/* translators: %s: Source path of the redirect to disable. */
 				'disableAria'   => __( 'Disable redirect from %s', 'easyrankly' ),
 				'activeYes'     => __( 'Yes', 'easyrankly' ),
 				'activeNo'      => __( 'No', 'easyrankly' ),

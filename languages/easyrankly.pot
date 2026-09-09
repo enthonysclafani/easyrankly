@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-09-07T17:07:37+00:00\n"
+"POT-Creation-Date: 2026-09-09T17:45:30+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: easyrankly\n"
@@ -44,151 +44,167 @@ msgstr ""
 msgid "https://easyrankly.com/"
 msgstr ""
 
-#: admin/assets/settings.php:66
+#: admin/assets/settings.php:73
 msgid "Searching…"
 msgstr ""
 
-#: admin/assets/settings.php:67
+#: admin/assets/settings.php:74
 msgid "No matches found."
 msgstr ""
 
-#: admin/assets/settings.php:68
+#: admin/assets/settings.php:75
 #: admin/field-renderers.php:268
-#: admin/settings/panels.php:185
-#: assets/js/editor-shared.js:522
+#: admin/settings/panels.php:189
+#: assets/js/editor-shared.js:525
 msgid "Remove"
 msgstr ""
 
-#: admin/assets/settings.php:69
+#: admin/assets/settings.php:76
 msgid "No user selected"
 msgstr ""
 
-#: admin/assets/settings.php:94
+#: admin/assets/settings.php:93
+#: assets/js/editor-shared.js:185
+msgid "Preview not available"
+msgstr ""
+
+#: admin/assets/settings.php:102
 #: includes/admin.php:359
 #: includes/admin.php:372
 msgid "Expand table"
 msgstr ""
 
-#: admin/assets/settings.php:95
+#: admin/assets/settings.php:103
 msgid "Collapse table"
 msgstr ""
 
-#: admin/assets/settings.php:106
+#: admin/assets/settings.php:114
 msgid "Delete this block? It is removed from the site as soon as the panel saves."
 msgstr ""
 
-#: admin/assets/settings.php:118
+#: admin/assets/settings.php:115
+#: admin/field-renderers.php:221
+#: admin/field-renderers.php:229
+#: assets/js/admin-schema.js:150
+msgid "Code snippet"
+msgstr ""
+
+#: admin/assets/settings.php:127
 msgid "Saving…"
 msgstr ""
 
-#: admin/assets/settings.php:119
+#: admin/assets/settings.php:128
 msgid "Saved"
 msgstr ""
 
-#: admin/assets/settings.php:120
+#: admin/assets/settings.php:129
 msgid "Saved with warnings"
 msgstr ""
 
-#: admin/assets/settings.php:121
+#: admin/assets/settings.php:130
 msgid "Saving failed. Retrying…"
 msgstr ""
 
-#: admin/assets/settings.php:122
+#: admin/assets/settings.php:131
 msgid "Could not save. Reload the page."
 msgstr ""
 
-#: admin/assets/settings.php:123
+#: admin/assets/settings.php:132
 msgid "Saved, but the configuration is incomplete."
 msgstr ""
 
+#: admin/assets/settings.php:187
+msgid "Request failed"
+msgstr ""
+
 #. translators: %s: Redirect source path.
-#: admin/assets/settings.php:181
+#: admin/assets/settings.php:190
 #, php-format
 msgid "The redirect from %s will be permanently deleted."
 msgstr ""
 
-#: admin/assets/settings.php:182
-#: includes/redirects/class-erankly-redirects-admin.php:583
+#: admin/assets/settings.php:191
+#: includes/redirects/class-erankly-redirects-admin.php:596
 msgid "Enable"
 msgstr ""
 
-#: admin/assets/settings.php:183
-#: includes/redirects/class-erankly-redirects-admin.php:583
+#: admin/assets/settings.php:192
+#: includes/redirects/class-erankly-redirects-admin.php:596
 msgid "Disable"
 msgstr ""
 
-#. translators: %s: Redirect source path.
-#: admin/assets/settings.php:185
-#: includes/redirects/class-erankly-redirects-admin.php:583
+#. translators: %s: Source path of the redirect to enable.
+#: admin/assets/settings.php:194
+#: includes/redirects/class-erankly-redirects-admin.php:590
 #, php-format
 msgid "Enable redirect from %s"
 msgstr ""
 
-#. translators: %s: Redirect source path.
-#: admin/assets/settings.php:187
-#: includes/redirects/class-erankly-redirects-admin.php:583
+#. translators: %s: Source path of the redirect to disable.
+#: admin/assets/settings.php:196
+#: includes/redirects/class-erankly-redirects-admin.php:587
 #, php-format
 msgid "Disable redirect from %s"
 msgstr ""
 
-#: admin/assets/settings.php:188
+#: admin/assets/settings.php:197
 #: admin/settings/renderers.php:266
 #: admin/settings/renderers.php:438
 #: includes/redirects/class-erankly-redirects-admin.php:578
 msgid "Yes"
 msgstr ""
 
-#: admin/assets/settings.php:189
+#: admin/assets/settings.php:198
 #: admin/settings/renderers.php:265
 #: admin/settings/renderers.php:437
 #: includes/redirects/class-erankly-redirects-admin.php:578
 msgid "No"
 msgstr ""
 
-#: admin/assets/settings.php:190
+#: admin/assets/settings.php:199
 #: includes/redirects/class-erankly-redirects-admin.php:324
 #: includes/redirects/class-erankly-redirects-rest.php:78
 msgid "The redirect status could not be changed."
 msgstr ""
 
-#: admin/assets/settings.php:191
+#: admin/assets/settings.php:200
 #: includes/redirects/class-erankly-redirects-admin.php:323
 #: includes/redirects/class-erankly-redirects-rest.php:101
 msgid "The redirect could not be deleted."
 msgstr ""
 
-#: admin/assets/settings.php:192
+#: admin/assets/settings.php:201
 #: includes/redirects/class-erankly-redirects-admin.php:527
 msgid "No redirects found."
 msgstr ""
 
 #. translators: %s: Redirect destination URL.
-#: admin/assets/settings.php:194
+#: admin/assets/settings.php:203
 #, php-format
 msgid "Matches. Destination: %s"
 msgstr ""
 
-#: admin/assets/settings.php:195
+#: admin/assets/settings.php:204
 msgid "Matches. This response has no destination."
 msgstr ""
 
-#: admin/assets/settings.php:196
+#: admin/assets/settings.php:205
 msgid "This URL does not match the rule."
 msgstr ""
 
-#: admin/assets/settings.php:197
+#: admin/assets/settings.php:206
 msgid "The rule could not be tested."
 msgstr ""
 
-#: admin/assets/settings.php:198
+#: admin/assets/settings.php:207
 msgid "Matches one path. By default, letter case and a final slash are ignored."
 msgstr ""
 
-#: admin/assets/settings.php:199
+#: admin/assets/settings.php:208
 msgid "Use * to capture variable path segments. Use * in the target to insert each captured value."
 msgstr ""
 
-#: admin/assets/settings.php:200
+#: admin/assets/settings.php:209
 msgid "Use a PCRE path expression and $1, $2… in the target for captured values."
 msgstr ""
 
@@ -289,14 +305,14 @@ msgstr ""
 #: admin/meta-box.php:532
 #: admin/settings/renderers.php:299
 #: admin/settings/renderers.php:531
-#: assets/js/editor-shared.js:584
+#: assets/js/editor-shared.js:587
 msgid "Meta description"
 msgstr ""
 
 #: admin/field-renderers.php:44
 #: admin/meta-box.php:97
 #: admin/meta-box.php:541
-#: assets/js/editor-shared.js:598
+#: assets/js/editor-shared.js:601
 msgid "Canonical URL"
 msgstr ""
 
@@ -337,7 +353,7 @@ msgid "Search query"
 msgstr ""
 
 #: admin/field-renderers.php:57
-#: admin/settings/panels.php:581
+#: admin/settings/panels.php:585
 msgid "Pagination"
 msgstr ""
 
@@ -399,12 +415,12 @@ msgid "Organization name"
 msgstr ""
 
 #: admin/field-renderers.php:77
-#: admin/settings/panels.php:132
+#: admin/settings/panels.php:136
 msgid "Website name"
 msgstr ""
 
 #: admin/field-renderers.php:78
-#: admin/settings/panels.php:140
+#: admin/settings/panels.php:144
 msgid "Website description"
 msgstr ""
 
@@ -438,7 +454,7 @@ msgstr ""
 
 #: admin/field-renderers.php:149
 #: admin/field-renderers.php:236
-#: includes/redirects/class-erankly-redirects-admin.php:584
+#: includes/redirects/class-erankly-redirects-admin.php:597
 msgid "Delete"
 msgstr ""
 
@@ -524,11 +540,6 @@ msgstr ""
 msgid "Optional. Skips matching singular posts, terms, or authors."
 msgstr ""
 
-#: admin/field-renderers.php:221
-#: admin/field-renderers.php:229
-msgid "Code snippet"
-msgstr ""
-
 #: admin/field-renderers.php:228
 msgid "Snippet name"
 msgstr ""
@@ -543,7 +554,7 @@ msgid "Code"
 msgstr ""
 
 #: admin/field-renderers.php:267
-#: assets/js/editor-shared.js:515
+#: assets/js/editor-shared.js:518
 msgid "Select image"
 msgstr ""
 
@@ -551,7 +562,7 @@ msgstr ""
 #: admin/meta-box.php:524
 #: admin/settings/renderers.php:292
 #: admin/settings/renderers.php:524
-#: assets/js/editor-shared.js:574
+#: assets/js/editor-shared.js:577
 msgid "Meta title"
 msgstr ""
 
@@ -571,7 +582,7 @@ msgid "recommended max"
 msgstr ""
 
 #: admin/meta-box.php:106
-#: assets/js/editor-shared.js:610
+#: assets/js/editor-shared.js:613
 msgid "Breadcrumb name"
 msgstr ""
 
@@ -587,95 +598,95 @@ msgstr ""
 
 #: admin/meta-box.php:161
 #: admin/meta-box.php:552
-#: assets/js/editor-shared.js:628
+#: assets/js/editor-shared.js:631
 msgid "Open Graph title"
 msgstr ""
 
 #: admin/meta-box.php:169
 #: admin/meta-box.php:560
-#: assets/js/editor-shared.js:638
+#: assets/js/editor-shared.js:641
 msgid "Open Graph description"
 msgstr ""
 
 #: admin/meta-box.php:177
 #: admin/meta-box.php:568
 #: admin/settings/renderers.php:588
-#: assets/js/editor-shared.js:649
+#: assets/js/editor-shared.js:652
 msgid "X (Twitter) title"
 msgstr ""
 
 #: admin/meta-box.php:185
 #: admin/meta-box.php:576
 #: admin/settings/renderers.php:595
-#: assets/js/editor-shared.js:659
+#: assets/js/editor-shared.js:662
 msgid "X (Twitter) description"
 msgstr ""
 
 #: admin/meta-box.php:193
 #: admin/meta-box.php:584
-#: assets/js/editor-shared.js:674
+#: assets/js/editor-shared.js:677
 msgid "X (Twitter) card type"
 msgstr ""
 
 #: admin/meta-box.php:195
 #: admin/meta-box.php:586
-#: assets/js/editor-shared.js:677
+#: assets/js/editor-shared.js:680
 msgid "Automatic (large image when available)"
 msgstr ""
 
 #: admin/meta-box.php:196
 #: admin/meta-box.php:587
-#: assets/js/editor-shared.js:678
+#: assets/js/editor-shared.js:681
 msgid "Summary"
 msgstr ""
 
 #: admin/meta-box.php:197
 #: admin/meta-box.php:588
-#: assets/js/editor-shared.js:679
+#: assets/js/editor-shared.js:682
 msgid "Summary with large image"
 msgstr ""
 
 #: admin/meta-box.php:201
 #: admin/meta-box.php:592
-#: assets/js/editor-shared.js:688
+#: assets/js/editor-shared.js:691
 msgid "Open Graph image URL"
 msgstr ""
 
 #: admin/meta-box.php:210
 #: admin/meta-box.php:601
-#: assets/js/editor-shared.js:700
+#: assets/js/editor-shared.js:703
 msgid "Social image alt text"
 msgstr ""
 
 #: admin/meta-box.php:212
 #: admin/meta-box.php:603
-#: assets/js/editor-shared.js:699
+#: assets/js/editor-shared.js:702
 msgid "Shared by Open Graph and X. If blank, uses the Media Library alt text."
 msgstr ""
 
 #: admin/meta-box.php:215
 #: admin/meta-box.php:606
-#: assets/js/editor-shared.js:707
+#: assets/js/editor-shared.js:710
 msgid "X (Twitter) image URL"
 msgstr ""
 
 #: admin/meta-box.php:224
 #: admin/meta-box.php:615
-#: assets/js/editor-shared.js:554
-#: assets/js/editor-shared.js:558
+#: assets/js/editor-shared.js:557
+#: assets/js/editor-shared.js:561
 msgid "X image alt text override"
 msgstr ""
 
 #: admin/meta-box.php:226
 #: admin/meta-box.php:617
-#: assets/js/editor-shared.js:557
+#: assets/js/editor-shared.js:560
 msgid "For a different X image only. If blank, uses that image’s Media Library alt text."
 msgstr ""
 
 #: admin/meta-box.php:251
 #: admin/meta-box.php:625
 #: admin/settings/renderers.php:627
-#: assets/js/editor-shared.js:941
+#: assets/js/editor-shared.js:944
 msgid "Hide from search results"
 msgstr ""
 
@@ -701,7 +712,7 @@ msgstr ""
 
 #: admin/meta-box.php:305
 #: admin/meta-box.php:336
-#: assets/js/editor-shared.js:989
+#: assets/js/editor-shared.js:992
 msgid "Inherit"
 msgstr ""
 
@@ -715,7 +726,7 @@ msgstr ""
 
 #: admin/meta-box.php:319
 #: admin/settings/renderers.php:631
-#: assets/js/editor-shared.js:1032
+#: assets/js/editor-shared.js:1035
 msgid "Noindex"
 msgstr ""
 
@@ -729,7 +740,7 @@ msgstr ""
 
 #: admin/meta-box.php:320
 #: admin/settings/renderers.php:632
-#: assets/js/editor-shared.js:1038
+#: assets/js/editor-shared.js:1041
 msgid "Nofollow"
 msgstr ""
 
@@ -743,7 +754,7 @@ msgstr ""
 
 #: admin/meta-box.php:321
 #: admin/settings/renderers.php:633
-#: assets/js/editor-shared.js:1044
+#: assets/js/editor-shared.js:1047
 msgid "Noarchive"
 msgstr ""
 
@@ -772,28 +783,28 @@ msgid "Noimageindex"
 msgstr ""
 
 #: admin/meta-box.php:326
-#: assets/js/editor-shared.js:969
+#: assets/js/editor-shared.js:972
 msgid "Max snippet"
 msgstr ""
 
 #: admin/meta-box.php:330
-#: assets/js/editor-shared.js:977
+#: assets/js/editor-shared.js:980
 msgid "Max video preview"
 msgstr ""
 
 #: admin/meta-box.php:334
-#: assets/js/editor-shared.js:986
+#: assets/js/editor-shared.js:989
 msgid "Max image preview"
 msgstr ""
 
 #: admin/meta-box.php:344
-#: assets/js/editor-shared.js:1000
+#: assets/js/editor-shared.js:1003
 msgid "Index if embedded when noindex applies"
 msgstr ""
 
 #: admin/meta-box.php:345
 #: admin/settings/renderers.php:635
-#: assets/js/editor-shared.js:1055
+#: assets/js/editor-shared.js:1058
 msgid "Disable sitemap"
 msgstr ""
 
@@ -899,17 +910,17 @@ msgid "Search visibility"
 msgstr ""
 
 #. translators: %s: comma-separated missing field names.
-#: admin/settings-page.php:186
+#: admin/settings-page.php:217
 #, php-format
 msgid "Local business schema is incomplete and will not be emitted until these fields are set: %s."
 msgstr ""
 
-#: admin/settings-page.php:205
+#: admin/settings-page.php:236
 msgid "Identity is set to Person but no user is selected, so the organization is described instead. Pick a user to publish a Person."
 msgstr ""
 
-#: admin/settings-page.php:337
-#: admin/settings-page.php:374
+#: admin/settings-page.php:386
+#: admin/settings-page.php:422
 msgid "Permission denied."
 msgstr ""
 
@@ -977,7 +988,7 @@ msgid "Sitemap"
 msgstr ""
 
 #: admin/settings/page-renderer.php:262
-#: admin/settings/panels.php:48
+#: admin/settings/panels.php:50
 msgid "Custom code"
 msgstr ""
 
@@ -998,8 +1009,8 @@ msgid "Need help?"
 msgstr ""
 
 #: admin/settings/page-renderer.php:335
-#: admin/settings/panels.php:230
-#: admin/settings/panels.php:242
+#: admin/settings/panels.php:234
+#: admin/settings/panels.php:246
 #: includes/special-meta.php:32
 msgid "Special pages and archives"
 msgstr ""
@@ -1025,444 +1036,455 @@ msgid "Enable custom code"
 msgstr ""
 
 #: admin/settings/panels.php:23
+#: admin/settings/panels.php:65
+msgid "This module is off by default. Use it for site-owner verification meta tags or for markup and scripts you choose. Saving requires the unfiltered_html capability; on Multisite that means a Super Admin. EasyRankly does not execute PHP."
+msgstr ""
+
+#: admin/settings/panels.php:24
+#: admin/settings/panels.php:66
+msgid "Snippets are printed as saved, without escaping, so authorized code is preserved. EasyRankly itself does not add analytics or tracking, but any snippet you add may contact third-party services and remains your responsibility."
+msgstr ""
+
+#: admin/settings/panels.php:25
 msgid "Switching this off stops the snippets from being printed; it does not delete them. Turning it back on restores exactly what was saved."
 msgstr ""
 
-#: admin/settings/panels.php:53
+#: admin/settings/panels.php:55
 msgid "Your user role cannot save custom code (unfiltered HTML is required). The fields below are read-only."
 msgstr ""
 
-#: admin/settings/panels.php:58
+#: admin/settings/panels.php:60
 msgid "A legacy snippet could not be persisted as a block. It still runs as a fail-safe for this request; reload this panel and check the database if the warning remains."
 msgstr ""
 
-#: admin/settings/panels.php:61
+#: admin/settings/panels.php:63
 msgid "Snippets are shared network-wide. Include and exclude IDs or slugs are resolved separately on each site, so the same number or slug can refer to different content."
 msgstr ""
 
-#: admin/settings/panels.php:63
+#: admin/settings/panels.php:67
 msgid "Snippets also run for logged-in visitors, including administrators. WordPress previews and the Customizer are excluded."
 msgstr ""
 
-#: admin/settings/panels.php:64
+#: admin/settings/panels.php:68
 msgid "Empty snippets are not saved and disappear after reload."
 msgstr ""
 
-#: admin/settings/panels.php:69
+#: admin/settings/panels.php:73
 msgid "HEAD code"
 msgstr ""
 
-#: admin/settings/panels.php:70
+#: admin/settings/panels.php:74
 msgid "Printed inside <head>, after SEO tags. Ideal for verification meta tags, fonts, analytics and tracking scripts."
 msgstr ""
 
-#: admin/settings/panels.php:76
+#: admin/settings/panels.php:80
 msgid "Start of BODY code"
 msgstr ""
 
-#: admin/settings/panels.php:77
+#: admin/settings/panels.php:81
 msgid "Printed right after <body> opens only when the active theme calls wp_body_open(). Ideal for Tag Manager noscript fallbacks and pixels."
 msgstr ""
 
-#: admin/settings/panels.php:83
+#: admin/settings/panels.php:87
 msgid "End of BODY code"
 msgstr ""
 
-#: admin/settings/panels.php:84
+#: admin/settings/panels.php:88
 msgid "Printed before </body> (wp_footer). Ideal for chat widgets, deferred scripts and footer pixels."
 msgstr ""
 
-#: admin/settings/panels.php:109
+#: admin/settings/panels.php:113
 msgid "Add code"
 msgstr ""
 
-#: admin/settings/panels.php:110
+#. translators: %d: Maximum number of snippets allowed in one output location (head, start of body, or footer).
+#: admin/settings/panels.php:114
 #, php-format
 msgid "Maximum reached: %d snippets per location."
 msgstr ""
 
-#: admin/settings/panels.php:120
+#: admin/settings/panels.php:124
 msgid "Site identity"
 msgstr ""
 
-#: admin/settings/panels.php:125
+#: admin/settings/panels.php:129
 msgid "Organization or person name"
 msgstr ""
 
-#: admin/settings/panels.php:137
+#: admin/settings/panels.php:141
 msgid "Leave blank to fall back to the WordPress site title."
 msgstr ""
 
-#: admin/settings/panels.php:145
+#: admin/settings/panels.php:149
 msgid "Empty taglines are omitted from schema output."
 msgstr ""
 
-#: admin/settings/panels.php:149
+#: admin/settings/panels.php:153
 msgid "Identity type"
 msgstr ""
 
-#: admin/settings/panels.php:151
+#: admin/settings/panels.php:155
 msgid "Organization"
 msgstr ""
 
-#: admin/settings/panels.php:152
+#: admin/settings/panels.php:156
 msgid "Person"
 msgstr ""
 
-#: admin/settings/panels.php:156
+#: admin/settings/panels.php:160
 msgid "Person reference user"
 msgstr ""
 
 #. translators: 1: User display name, 2: User ID.
-#: admin/settings/panels.php:168
-#: easyrankly.php:838
+#: admin/settings/panels.php:172
+#: easyrankly.php:822
 #, php-format
 msgid "%1$s (ID: %2$d)"
 msgstr ""
 
-#: admin/settings/panels.php:175
+#: admin/settings/panels.php:179
 msgid "Search users…"
 msgstr ""
 
-#: admin/settings/panels.php:192
+#: admin/settings/panels.php:196
 msgid "Organization description"
 msgstr ""
 
-#: admin/settings/panels.php:197
+#: admin/settings/panels.php:201
 msgid "Business email"
 msgstr ""
 
-#: admin/settings/panels.php:201
+#: admin/settings/panels.php:205
 msgid "Business telephone"
 msgstr ""
 
-#: admin/settings/panels.php:211
+#: admin/settings/panels.php:215
 msgid "Post type defaults"
 msgstr ""
 
-#: admin/settings/panels.php:220
+#: admin/settings/panels.php:224
 msgid "Taxonomy defaults"
 msgstr ""
 
-#: admin/settings/panels.php:234
+#: admin/settings/panels.php:238
 msgid "Special pages and archives are configured individually on each site: use the Site Editor with block themes on WordPress 6.6 or later, or Settings → EasyRankly otherwise."
 msgstr ""
 
-#: admin/settings/panels.php:258
+#: admin/settings/panels.php:262
 msgid "Default images"
 msgstr ""
 
-#: admin/settings/panels.php:263
+#: admin/settings/panels.php:267
 msgid "Organization logo"
 msgstr ""
 
-#: admin/settings/panels.php:283
-#: admin/settings/panels.php:298
+#: admin/settings/panels.php:287
+#: admin/settings/panels.php:302
 msgid "A set URL takes precedence over the selected media image. The example URL is only a placeholder and is never saved automatically."
 msgstr ""
 
-#: admin/settings/panels.php:286
+#: admin/settings/panels.php:290
 msgid "Default social image URL"
 msgstr ""
 
-#: admin/settings/panels.php:304
+#: admin/settings/panels.php:308
 msgid "Social defaults"
 msgstr ""
 
-#: admin/settings/panels.php:308
+#: admin/settings/panels.php:312
 msgid "These templates are the default for singular content such as posts and pages. Taxonomy terms use their own title and description fallbacks."
 msgstr ""
 
-#: admin/settings/panels.php:314
-#: admin/settings/panels.php:323
+#: admin/settings/panels.php:318
+#: admin/settings/panels.php:327
 msgid "Social profiles"
 msgstr ""
 
-#: admin/settings/panels.php:319
+#: admin/settings/panels.php:323
 msgid "X (Twitter) site"
 msgstr ""
 
-#: admin/settings/panels.php:325
+#: admin/settings/panels.php:329
 msgid "One absolute URL per line. This list applies to the site identity. Author-specific social metadata can currently be supplied only by an importer or through the WordPress metadata API; EasyRankly does not add profile fields for it."
 msgstr ""
 
-#: admin/settings/panels.php:337
+#: admin/settings/panels.php:341
 msgid "Information for Google and other search engines"
 msgstr ""
 
-#: admin/settings/panels.php:342
+#: admin/settings/panels.php:346
 msgid "Enable breadcrumbs"
 msgstr ""
 
-#: admin/settings/panels.php:343
+#: admin/settings/panels.php:347
 msgid "Turns on the visible trail (block, shortcode, or erankly_breadcrumbs() in the theme) and the Breadcrumb name field in the editor. JSON-LD is controlled separately below so markup is not emitted without a matching visible trail."
 msgstr ""
 
-#: admin/settings/panels.php:346
+#: admin/settings/panels.php:350
 msgid "Breadcrumb JSON-LD"
 msgstr ""
 
-#: admin/settings/panels.php:348
+#: admin/settings/panels.php:352
 msgid "Only when a visible trail is present (recommended)"
 msgstr ""
 
-#: admin/settings/panels.php:349
+#: admin/settings/panels.php:353
 msgid "Always emit BreadcrumbList JSON-LD"
 msgstr ""
 
-#: admin/settings/panels.php:350
+#: admin/settings/panels.php:354
 msgid "Do not emit breadcrumb JSON-LD"
 msgstr ""
 
-#: admin/settings/panels.php:353
+#: admin/settings/panels.php:357
 msgid "A visible trail can be added with the EasyRankly Breadcrumbs block, the [erankly_breadcrumbs] shortcode, or by calling erankly_breadcrumbs() in the theme (or add_theme_support( 'erankly-breadcrumbs' )). Google expects structured data to match what people see."
 msgstr ""
 
-#: admin/settings/panels.php:357
+#: admin/settings/panels.php:361
 msgid "Add WebSite SearchAction"
 msgstr ""
 
-#: admin/settings/panels.php:358
+#: admin/settings/panels.php:362
 msgid "Optional. Google retired the sitelinks search box in 2024, so this is off by default. Existing sites that already stored the action can turn it back on here."
 msgstr ""
 
-#: admin/settings/panels.php:360
+#: admin/settings/panels.php:364
 msgid "FAQPage markup may still be emitted from FAQ blocks or accordions. Google no longer shows FAQ rich results for most sites as of 2026."
 msgstr ""
 
-#: admin/settings/panels.php:366
+#: admin/settings/panels.php:370
 msgid "Schema types by content type"
 msgstr ""
 
-#: admin/settings/panels.php:375
+#: admin/settings/panels.php:379
 msgid "Custom JSON-LD Schema"
 msgstr ""
 
-#: admin/settings/panels.php:387
+#: admin/settings/panels.php:391
 msgid "Add Schema"
 msgstr ""
 
-#: admin/settings/panels.php:398
+#: admin/settings/panels.php:402
 msgid "XML sitemap"
 msgstr ""
 
-#: admin/settings/panels.php:403
+#: admin/settings/panels.php:407
 msgid "Open wp-sitemap.xml"
 msgstr ""
 
-#: admin/settings/panels.php:405
+#: admin/settings/panels.php:409
 msgid "Author sitemap: included only when at least two authors have sitemap-eligible published content. On single-author sites it is disabled to avoid duplicate archive URLs for SEO."
 msgstr ""
 
-#: admin/settings/panels.php:406
+#: admin/settings/panels.php:410
 msgid "Image, Video and News sitemaps are integrated directly into the core wp-sitemap.xml index when enabled."
 msgstr ""
 
-#: admin/settings/panels.php:411
+#: admin/settings/panels.php:415
 msgid "Google News sitemap"
 msgstr ""
 
-#: admin/settings/panels.php:416
+#: admin/settings/panels.php:420
 msgid "Generate Google News sitemap"
 msgstr ""
 
-#: admin/settings/panels.php:418
+#: admin/settings/panels.php:422
 msgid "Open sitemap-news-1.xml"
 msgstr ""
 
-#: admin/settings/panels.php:420
+#: admin/settings/panels.php:424
 msgid "Includes only posts published in the last 48 hours. Submitting a News sitemap does not guarantee inclusion in Google News. Editorial review by Google is still required."
 msgstr ""
 
-#: admin/settings/panels.php:423
+#: admin/settings/panels.php:427
 msgid "Included post types"
 msgstr ""
 
-#: admin/settings/panels.php:437
+#: admin/settings/panels.php:441
 msgid "News publication name"
 msgstr ""
 
-#: admin/settings/panels.php:447
+#: admin/settings/panels.php:451
 msgid "Publication name for the Google News sitemap. Leave blank to use the organization name or site title; without a name the sitemap is not generated."
 msgstr ""
 
-#: admin/settings/panels.php:454
+#: admin/settings/panels.php:458
 msgid "Image sitemap"
 msgstr ""
 
-#: admin/settings/panels.php:459
+#: admin/settings/panels.php:463
 msgid "Generate image sitemap"
 msgstr ""
 
-#: admin/settings/panels.php:461
+#: admin/settings/panels.php:465
 msgid "Open sitemap-image-1.xml"
 msgstr ""
 
-#: admin/settings/panels.php:463
+#: admin/settings/panels.php:467
 msgid "Links images to the pages that contain them, extracted from post content (featured, embedded, and Gutenberg image/gallery blocks). Attachment pages are not used as URLs."
 msgstr ""
 
-#: admin/settings/panels.php:469
+#: admin/settings/panels.php:473
 msgid "Video sitemap"
 msgstr ""
 
-#: admin/settings/panels.php:474
+#: admin/settings/panels.php:478
 msgid "Generate video sitemap"
 msgstr ""
 
-#: admin/settings/panels.php:476
+#: admin/settings/panels.php:480
 msgid "Open sitemap-video-1.xml"
 msgstr ""
 
-#: admin/settings/panels.php:478
+#: admin/settings/panels.php:482
 msgid "Includes published posts with YouTube, Vimeo or self-hosted HTML5 videos; each video on a page counts. Vimeo entries require a featured image. A Video sitemap does not guarantee indexing. The player must also be crawlable."
 msgstr ""
 
-#: admin/settings/panels.php:493
+#: admin/settings/panels.php:497
 msgid "Preferences"
 msgstr ""
 
-#: admin/settings/panels.php:498
+#: admin/settings/panels.php:502
 msgid "Simplified mode"
 msgstr ""
 
-#: admin/settings/panels.php:499
+#: admin/settings/panels.php:503
 msgid "Hides the Advanced tab, the advanced Schema sections and the Social and Schema panels in the editor, and reduces the robots directives to a single switch. Advanced values you already saved stay active — they are hidden, not cleared."
 msgstr ""
 
-#: admin/settings/panels.php:502
+#: admin/settings/panels.php:506
 msgid "Show resolved values for variables"
 msgstr ""
 
-#: admin/settings/panels.php:503
+#: admin/settings/panels.php:507
 msgid "Preview only: resolves {{variables}} to their current values inside the admin. It changes nothing about what visitors and crawlers receive."
 msgstr ""
 
-#: admin/settings/panels.php:519
+#: admin/settings/panels.php:523
 msgid "Indexing & robots directives"
 msgstr ""
 
-#: admin/settings/panels.php:524
+#: admin/settings/panels.php:528
 msgid "Noindex for search results, the 404 page and author/date archives is set per site: in the Site Editor for block themes on WordPress 6.6+, or under Settings → EasyRankly otherwise."
 msgstr ""
 
-#: admin/settings/panels.php:526
+#: admin/settings/panels.php:530
 msgid "Noindex for search results, the 404 page, and WordPress author/date archive contexts is configured in the corresponding Site Editor template."
 msgstr ""
 
-#: admin/settings/panels.php:528
+#: admin/settings/panels.php:532
 msgid "Noindex for search results, the 404 page, and WordPress author/date archive contexts is now configured per page under General → Special pages and archives."
 msgstr ""
 
-#: admin/settings/panels.php:531
+#: admin/settings/panels.php:535
 msgid "max-image-preview"
 msgstr ""
 
-#: admin/settings/panels.php:533
+#: admin/settings/panels.php:537
 msgid "No explicit directive"
 msgstr ""
 
-#: admin/settings/panels.php:538
+#: admin/settings/panels.php:542
 msgid "With no explicit directive, WordPress applies its own default (large on public sites)."
 msgstr ""
 
-#: admin/settings/panels.php:542
+#: admin/settings/panels.php:546
 msgid "max-snippet"
 msgstr ""
 
-#: admin/settings/panels.php:546
+#: admin/settings/panels.php:550
 msgid "max-video-preview"
 msgstr ""
 
-#: admin/settings/panels.php:551
+#: admin/settings/panels.php:555
 msgid "Add nosnippet"
 msgstr ""
 
-#: admin/settings/panels.php:552
+#: admin/settings/panels.php:556
 msgid "Add noimageindex"
 msgstr ""
 
-#: admin/settings/panels.php:553
+#: admin/settings/panels.php:557
 msgid "Add notranslate"
 msgstr ""
 
-#: admin/settings/panels.php:554
+#: admin/settings/panels.php:558
 msgid "Allow indexing of embedded content when noindex is active"
 msgstr ""
 
-#: admin/settings/panels.php:560
+#: admin/settings/panels.php:564
 msgid "robots.txt"
 msgstr ""
 
-#: admin/settings/panels.php:565
+#: admin/settings/panels.php:569
 msgid "robots.txt: custom rules"
 msgstr ""
 
-#: admin/settings/panels.php:567
+#: admin/settings/panels.php:571
 msgid "One robots.txt directive per line, for example Disallow: /private/. Appended to the generated file."
 msgstr ""
 
-#: admin/settings/panels.php:570
+#: admin/settings/panels.php:574
 msgid "robots.txt preview"
 msgstr ""
 
-#: admin/settings/panels.php:573
+#: admin/settings/panels.php:577
 msgid "Open robots.txt"
 msgstr ""
 
-#: admin/settings/panels.php:575
+#: admin/settings/panels.php:579
 msgid "The preview includes all registered robots_txt filters. Plugins that print content directly from the do_robotstxt action can still add request-only output; use the link above for the final response."
 msgstr ""
 
-#: admin/settings/panels.php:586
+#: admin/settings/panels.php:590
 msgid "Noindex page 2, 3, … of archives"
 msgstr ""
 
-#: admin/settings/panels.php:587
+#: admin/settings/panels.php:591
 msgid "Noindex paginated posts, pages, and comments"
 msgstr ""
 
-#: admin/settings/panels.php:588
+#: admin/settings/panels.php:592
 msgid "Nofollow all paginated content"
 msgstr ""
 
-#: admin/settings/panels.php:589
+#: admin/settings/panels.php:593
 msgid "Send noindex for RSS feeds"
 msgstr ""
 
-#: admin/settings/panels.php:590
+#: admin/settings/panels.php:594
 msgid "Despite sitting here, this is not about pagination: it sends an X-Robots-Tag header on RSS feeds and is independent of paginated archives."
 msgstr ""
 
-#: admin/settings/panels.php:593
+#: admin/settings/panels.php:597
 msgid "Paginated title suffix"
 msgstr ""
 
-#: admin/settings/panels.php:595
+#: admin/settings/panels.php:599
 msgid "Page {{page_number}} of {{max_pages}}"
 msgstr ""
 
-#: admin/settings/panels.php:603
+#: admin/settings/panels.php:607
 msgid "Attachment pages"
 msgstr ""
 
-#: admin/settings/panels.php:608
+#: admin/settings/panels.php:612
 msgid "Redirect attachment pages"
 msgstr ""
 
-#: admin/settings/panels.php:610
+#: admin/settings/panels.php:614
 msgid "Redirect to parent post (fallback: media file)"
 msgstr ""
 
-#: admin/settings/panels.php:611
+#: admin/settings/panels.php:615
 msgid "Redirect to media file"
 msgstr ""
 
-#: admin/settings/panels.php:612
+#: admin/settings/panels.php:616
 msgid "Leave attachment pages unchanged"
 msgstr ""
 
-#: admin/settings/panels.php:614
+#: admin/settings/panels.php:618
 msgid "Redirecting attachment pages is recommended for SEO."
 msgstr ""
 
@@ -1734,71 +1756,71 @@ msgstr ""
 msgid "EasyRankly could not update its settings atomically."
 msgstr ""
 
-#: easyrankly.php:422
+#: easyrankly.php:412
 msgid "EasyRankly could not initialize its rewrite generation."
 msgstr ""
 
-#: easyrankly.php:435
+#: easyrankly.php:425
 msgid "EasyRankly could not initialize its settings."
 msgstr ""
 
-#: easyrankly.php:478
+#: easyrankly.php:468
 msgid "EasyRankly could not retrieve the next network site batch."
 msgstr ""
 
-#: easyrankly.php:501
+#: easyrankly.php:491
 msgid "EasyRankly could not count the current network sites."
 msgstr ""
 
-#: easyrankly.php:680
+#: easyrankly.php:670
 msgid "EasyRankly could not remove its scheduled tasks during deactivation."
 msgstr ""
 
-#: easyrankly.php:705
+#: easyrankly.php:695
 msgid "EasyRankly could not cancel the active network reset during deactivation."
 msgstr ""
 
-#: easyrankly.php:718
+#: easyrankly.php:708
 msgid "This network is too large to deactivate EasyRankly safely in one web request."
 msgstr ""
 
-#: easyrankly.php:719
+#: easyrankly.php:709
 msgid "Run the following WP-CLI command so every site can remove its scheduled tasks and rewrite rules:"
 msgstr ""
 
-#: easyrankly.php:724
+#: easyrankly.php:714
 #: uninstall.php:154
 msgid "EasyRankly network cleanup required"
 msgstr ""
 
-#. translators: %d: User ID.
-#: easyrankly.php:832
+#. translators: %d: User ID shown instead of an email address.
+#: easyrankly.php:825
 #, php-format
 msgid "ID %d"
 msgstr ""
 
-#: easyrankly.php:900
+#: easyrankly.php:885
 msgid "Unknown settings panel."
 msgstr ""
 
-#: includes/breadcrumbs.php:27
+#: includes/breadcrumbs.php:26
 msgid "Breadcrumbs"
 msgstr ""
 
-#: includes/breadcrumbs.php:115
+#: includes/breadcrumbs.php:114
 msgid "Home"
 msgstr ""
 
-#: includes/breadcrumbs.php:229
-#: includes/title-description.php:129
+#: includes/breadcrumbs.php:228
+#: includes/title-description.php:137
 msgid "Page not found"
 msgstr ""
 
-#: includes/breadcrumbs.php:381
+#: includes/breadcrumbs.php:380
 msgid "EasyRankly Breadcrumbs"
 msgstr ""
 
-#: includes/breadcrumbs.php:382
+#: includes/breadcrumbs.php:381
 msgid "Visible breadcrumb trail that matches EasyRankly structured data when JSON-LD is set to emit with a visible trail."
 msgstr ""
 
@@ -2010,46 +2032,46 @@ msgstr ""
 msgid "Lodging business"
 msgstr ""
 
-#: includes/helpers/sanitization.php:170
+#: includes/helpers/sanitization.php:186
 msgid "Custom code exceeds 100 KB and was truncated."
 msgstr ""
 
-#: includes/helpers/sanitization.php:186
-#: includes/helpers/sanitization.php:236
-#: includes/helpers/sanitization.php:275
-#: includes/helpers/sanitization.php:759
+#: includes/helpers/sanitization.php:202
+#: includes/helpers/sanitization.php:252
+#: includes/helpers/sanitization.php:291
+#: includes/helpers/sanitization.php:814
 msgid "Custom code was not saved because your user role cannot post unfiltered HTML."
 msgstr ""
 
-#: includes/helpers/sanitization.php:568
+#: includes/helpers/sanitization.php:557
 msgid "A code snippet that targets only post type archives was saved as disabled because no post types were selected."
 msgstr ""
 
-#: includes/helpers/sanitization.php:569
+#: includes/helpers/sanitization.php:558
 msgid "A code snippet without a context was saved as disabled. Choose at least one place where it should run."
 msgstr ""
 
-#: includes/helpers/sanitization.php:586
+#: includes/helpers/sanitization.php:575
 msgid "An empty code snippet was not saved. Add code before leaving the panel."
 msgstr ""
 
-#: includes/helpers/sanitization.php:611
+#: includes/helpers/sanitization.php:650
 msgid "Only the first 10 code snippets per location were kept."
 msgstr ""
 
-#: includes/helpers/sanitization.php:696
+#: includes/helpers/sanitization.php:743
 msgid "Custom code for this location exceeds 100 KB; additional snippets were not saved."
 msgstr ""
 
-#: includes/helpers/sanitization.php:712
+#: includes/helpers/sanitization.php:760
 msgid "Custom code for this location exceeds 100 KB and was truncated."
 msgstr ""
 
-#: includes/helpers/sanitization.php:713
+#: includes/helpers/sanitization.php:761
 msgid "A code snippet exceeds 100 KB and was truncated."
 msgstr ""
 
-#: includes/helpers/sanitization.php:774
+#: includes/helpers/sanitization.php:831
 msgid "Migrated code snippet"
 msgstr ""
 
@@ -3133,25 +3155,27 @@ msgstr ""
 msgid "Never"
 msgstr ""
 
-#: includes/redirects/class-erankly-redirects-admin.php:582
+#. translators: %s: Source path of the redirect to edit.
+#: includes/redirects/class-erankly-redirects-admin.php:584
 #, php-format
 msgid "Edit redirect from %s"
 msgstr ""
 
-#: includes/redirects/class-erankly-redirects-admin.php:582
-msgid "Edit"
-msgstr ""
-
-#: includes/redirects/class-erankly-redirects-admin.php:584
+#. translators: %s: Source path of the redirect to delete.
+#: includes/redirects/class-erankly-redirects-admin.php:593
 #, php-format
 msgid "Delete redirect from %s"
 msgstr ""
 
-#: includes/redirects/class-erankly-redirects-admin.php:669
+#: includes/redirects/class-erankly-redirects-admin.php:595
+msgid "Edit"
+msgstr ""
+
+#: includes/redirects/class-erankly-redirects-admin.php:682
 msgid "&laquo;"
 msgstr ""
 
-#: includes/redirects/class-erankly-redirects-admin.php:670
+#: includes/redirects/class-erankly-redirects-admin.php:683
 msgid "&raquo;"
 msgstr ""
 
@@ -3408,7 +3432,7 @@ msgid "The shared settings lease expired."
 msgstr ""
 
 #. translators: %s: Search query.
-#: includes/title-description.php:119
+#: includes/title-description.php:128
 #, php-format
 msgid "Search results for %s"
 msgstr ""
@@ -3486,92 +3510,92 @@ msgid "Output FAQPage JSON-LD from accordion titles and panel content. This is S
 msgstr ""
 
 #. translators: 1: current character count, 2: maximum character count.
-#: assets/js/editor-shared.js:244
+#: assets/js/editor-shared.js:247
 #, js-format
 msgid "%1$d of %2$d characters."
 msgstr ""
 
-#: assets/js/editor-shared.js:525
+#: assets/js/editor-shared.js:528
 msgid "Social image URL"
 msgstr ""
 
-#: assets/js/editor-shared.js:877
+#: assets/js/editor-shared.js:880
 msgid "Use one of the suggested robots rules."
 msgstr ""
 
-#: assets/js/editor-shared.js:904
+#: assets/js/editor-shared.js:907
 msgid "Robots directives"
 msgstr ""
 
-#: assets/js/editor-shared.js:906
+#: assets/js/editor-shared.js:909
 msgid "Unknown robots rule."
 msgstr ""
 
-#: assets/js/editor-shared.js:907
+#: assets/js/editor-shared.js:910
 msgid "Robots rule applied."
 msgstr ""
 
-#: assets/js/editor-shared.js:908
+#: assets/js/editor-shared.js:911
 msgid "Remove robots rule"
 msgstr ""
 
-#: assets/js/editor-shared.js:909
+#: assets/js/editor-shared.js:912
 msgid "Robots rule removed. The global setting is inherited."
 msgstr ""
 
-#: assets/js/editor-shared.js:919
+#: assets/js/editor-shared.js:922
 msgid "Add robots rule"
 msgstr ""
 
-#: assets/js/editor-shared.js:939
+#: assets/js/editor-shared.js:942
 msgid "Adds noindex and removes this page from the XML sitemap."
 msgstr ""
 
-#: assets/js/editor-shared.js:998
+#: assets/js/editor-shared.js:1001
 msgid "Indexes embedded content despite noindex."
 msgstr ""
 
-#: assets/js/editor-shared.js:1006
+#: assets/js/editor-shared.js:1009
 msgid "indexifembedded requires noindex; ignored while index is selected."
 msgstr ""
 
-#: assets/js/editor-shared.js:1007
+#: assets/js/editor-shared.js:1010
 msgid "noimageindex disables image previews."
 msgstr ""
 
-#: assets/js/editor-shared.js:1008
+#: assets/js/editor-shared.js:1011
 msgid "nosnippet disables text snippets, so Max snippet has no effect."
 msgstr ""
 
-#: assets/js/editor-shared.js:1009
+#: assets/js/editor-shared.js:1012
 msgid "Max snippet 0 disables text snippets."
 msgstr ""
 
-#: assets/js/editor-shared.js:1053
+#: assets/js/editor-shared.js:1056
 msgid "Removes content from the XML sitemap; robots unchanged."
 msgstr ""
 
-#: assets/js/editor-shared.js:1065
+#: assets/js/editor-shared.js:1068
 msgid "Internal site search only."
 msgstr ""
 
-#: assets/js/editor-shared.js:1067
+#: assets/js/editor-shared.js:1070
 msgid "Exclude from site search queries"
 msgstr ""
 
-#: assets/js/editor-shared.js:1072
+#: assets/js/editor-shared.js:1075
 msgid "Category, date and other archive listings."
 msgstr ""
 
-#: assets/js/editor-shared.js:1074
+#: assets/js/editor-shared.js:1077
 msgid "Exclude from archive queries"
 msgstr ""
 
-#: assets/js/editor-shared.js:1083
+#: assets/js/editor-shared.js:1086
 msgid "Google News sitemap only."
 msgstr ""
 
-#: assets/js/editor-shared.js:1085
+#: assets/js/editor-shared.js:1088
 msgid "Exclude from Google News sitemap"
 msgstr ""
 

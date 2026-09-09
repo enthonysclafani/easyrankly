@@ -8,7 +8,8 @@
     "yoast/phpunit-polyfills": "^1.1"
   },
   "scripts": {
-    "test": "phpunit -c phpunit.xml.dist"
+    "test": "phpunit -c phpunit.xml.dist",
+    "build": "bash tools/build-dist.sh"
   },
   "config": {
     "allow-plugins": false,

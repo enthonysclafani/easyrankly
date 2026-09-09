@@ -22,6 +22,7 @@ Here's what it does:
 * **Sitemaps, when you want them.** WordPress's native XML sitemap stays aligned with EasyRankly visibility rules; the optional module adds public custom-post-type archives plus News, Image, and Video sitemaps.
 * **Control over what gets indexed.** Simple noindex, nofollow, noarchive, and sitemap-exclusion controls, per page or across your site.
 * **Smart redirects built in.** An optional redirect manager with a streamlined editor for exact, wildcard, and regular-expression rules, essential query-string controls, permanent and temporary redirects, and gone (410) responses.
+* **Optional custom code.** Off by default. A privileged administrator can add verification meta tags or other markup and scripts in the document head or body. EasyRankly does not execute PHP. Saving requires the `unfiltered_html` capability (a Super Admin on Multisite). Snippets are printed as saved so authorized code is preserved; you remain responsible for any third-party requests those snippets make.
 * **Breadcrumbs and robots.txt.** A breadcrumb function for your theme (with optional shorter names per page) and an editable virtual robots.txt.
 
 All of it lives in a redesigned, responsive admin interface with consistent form patterns, accessible label and control relationships, and keyboard-friendly tabs and dialogs.
@@ -50,7 +51,15 @@ Each site refreshes its own rewrite rules when needed, and network resets run in
 
 = Does EasyRankly collect any personal data or phone home? =
 
-EasyRankly does not send site or visitor data to EasyRankly and adds no external analytics or telemetry. Configuration data, including any optional business contact details you enter, and temporary migration files remain on your WordPress installation. When redirects are enabled, EasyRankly stores sampled aggregate hit counts and the last sampled hit time, but it does not store visitor IP addresses, referrers, user agents, languages, or cookie values.
+EasyRankly does not send site or visitor data to EasyRankly and adds no external analytics or telemetry of its own. Configuration data, including any optional business contact details you enter, and temporary migration files remain on your WordPress installation. When redirects are enabled, EasyRankly stores sampled aggregate hit counts and the last sampled hit time, but it does not store visitor IP addresses, referrers, user agents, languages, or cookie values.
+
+This describes EasyRankly's own code. If you enable the optional Custom Code module and add snippets that call third-party services, those requests are made by the code you saved and remain your responsibility.
+
+= What does the Custom Code module do? =
+
+It is off by default. When enabled, a user with the `unfiltered_html` capability (a Super Admin on WordPress Multisite) can save HTML, CSS, or JavaScript snippets for the document head, the start of the body, or the footer. Typical uses are site-owner verification meta tags and markup or scripts the site owner chooses.
+
+EasyRankly does not execute PHP. Snippets are printed as saved, without escaping, so authorized code is preserved. EasyRankly itself does not add analytics, tracking, or phone-home calls, but any snippet you add may contact third-party services. You remain responsible for that code.
 
 = How do I display breadcrumbs? =
 
@@ -80,9 +89,9 @@ Preview does not modify destination SEO metadata or redirects; it records only a
 
 == External Services ==
 
-EasyRankly does not send server-side requests to third-party services and does not add analytics, tracking, telemetry, or phone-home calls.
+EasyRankly does not send server-side requests to third-party services and does not add analytics, tracking, telemetry, or phone-home calls of its own. Optional Custom Code snippets that you save may contact other services; those requests are not made by EasyRankly and remain the site administrator's responsibility.
 
-For posts containing YouTube or Vimeo URLs or embeds, EasyRankly may include provider player URLs in VideoObject structured data and video sitemaps. For YouTube videos without a featured image, it may also include a thumbnail URL derived from the public video ID. EasyRankly does not fetch video metadata or thumbnails server-side and does not use vumbnail.com. A browser or search engine that loads these provider URLs sends its normal request data to the provider. See YouTube terms (https://www.youtube.com/static?template=terms) and privacy policy (https://policies.google.com/privacy), and Vimeo terms (https://vimeo.com/legal) and privacy policy (https://vimeo.com/legal/privacy).
+For posts containing YouTube or Vimeo URLs or embeds, EasyRankly may include provider player URLs in VideoObject structured data and video sitemaps. For YouTube videos without a featured image, it may also include a thumbnail URL derived from the public video ID. EasyRankly does not fetch video metadata or thumbnails server-side and does not use vumbnail.com. A browser or search engine that loads these provider URLs sends its normal request data to the provider. See YouTube terms (https://www.youtube.com/t/terms) and privacy policy (https://policies.google.com/privacy), and Vimeo terms (https://vimeo.com/legal) and privacy policy (https://vimeo.com/legal/privacy).
 
 EasyRankly uses WordPress's avatar API when searching for a user in its administration screens and when a WordPress user is selected for Person schema. Depending on the site's avatar configuration and installed filters, this may return a Gravatar URL containing a hash derived from the user's email address. Loading that image sends the usual request data to Gravatar. See Gravatar (https://gravatar.com/), terms (https://wordpress.com/tos/) and privacy policy (https://automattic.com/privacy/).
 
@@ -97,7 +106,7 @@ Metadata and structured data now offer substantially greater control. Primary ta
 
 Redirect management and migration tools have evolved with the same attention to reliability. Redirects now focus on exact, wildcard, and regular-expression matching, essential query-string behavior, automatic rule precedence, response codes, and per-pattern safety limits. Audience targeting, request conditions, scheduling, and manual priority were removed from the public model; incompatible imported rules are skipped or disabled for review instead of being broadened silently. Imports from Yoast SEO, Rank Math, AIOSEO, and SEOPress now include non-writing previews, resumable background processing, and a complete pre-import backup retained for seven days.
 
-Behind the scenes, contextual module loading keeps inactive features from adding unnecessary overhead, while bounded background processing, stronger Multisite support, and dedicated WP-CLI workflows provide a more dependable foundation for sites of every size. EasyRankly 2.0.0 supports WordPress 6.2 and later with PHP 8.0 or newer.
+Behind the scenes, contextual module loading keeps inactive features from adding unnecessary overhead, while bounded background processing, stronger Multisite support, and dedicated WP-CLI workflows provide a more dependable foundation for sites of every size. EasyRankly 2.0.0 supports WordPress 6.5 and later with PHP 8.0 or newer.
 
 As part of this clearer modular direction, AI generation, content analysis, internal linking, and Health monitoring are now provided through a separate add-on, allowing the core to remain focused, efficient, and easier to extend.
 

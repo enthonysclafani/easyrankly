@@ -579,9 +579,22 @@ final class ERankly_Redirects_Admin {
 							<td class="erankly-redirects-col-optional"><?php echo esc_html( number_format_i18n( (int) $redirect['hit_count'] ) ); ?></td>
 						<td class="erankly-redirects-col-optional"><?php echo empty( $redirect['last_hit_at'] ) ? esc_html__( 'Never', 'easyrankly' ) : esc_html( self::format_last_hit( (string) $redirect['last_hit_at'] ) ); ?></td>
 						<td class="erankly-redirects-actions">
-							<a href="<?php echo esc_url( $edit_url ); ?>" aria-label="<?php echo esc_attr( sprintf( __( 'Edit redirect from %s', 'easyrankly' ), $source_label ) ); ?>"><?php esc_html_e( 'Edit', 'easyrankly' ); ?></a>
-							<a class="erankly-redirects-toggle" data-id="<?php echo esc_attr( (string) $id ); ?>" data-active="<?php echo $is_active ? '1' : '0'; ?>" data-source="<?php echo esc_attr( $source_label ); ?>" aria-label="<?php echo esc_attr( sprintf( $is_active ? __( 'Disable redirect from %s', 'easyrankly' ) : __( 'Enable redirect from %s', 'easyrankly' ), $source_label ) ); ?>" href="<?php echo esc_url( $toggle_url ); ?>"><?php echo $is_active ? esc_html__( 'Disable', 'easyrankly' ) : esc_html__( 'Enable', 'easyrankly' ); ?></a>
-							<a class="button-link-delete erankly-redirects-delete" data-id="<?php echo esc_attr( (string) $id ); ?>" data-source="<?php echo esc_attr( $source_label ); ?>" aria-label="<?php echo esc_attr( sprintf( __( 'Delete redirect from %s', 'easyrankly' ), $source_label ) ); ?>" href="<?php echo esc_url( $delete_url ); ?>"><?php esc_html_e( 'Delete', 'easyrankly' ); ?></a>
+							<?php
+							/* translators: %s: Source path of the redirect to edit. */
+							$edit_aria = sprintf( __( 'Edit redirect from %s', 'easyrankly' ), $source_label );
+							if ( $is_active ) {
+								/* translators: %s: Source path of the redirect to disable. */
+								$toggle_aria = sprintf( __( 'Disable redirect from %s', 'easyrankly' ), $source_label );
+							} else {
+								/* translators: %s: Source path of the redirect to enable. */
+								$toggle_aria = sprintf( __( 'Enable redirect from %s', 'easyrankly' ), $source_label );
+							}
+							/* translators: %s: Source path of the redirect to delete. */
+							$delete_aria = sprintf( __( 'Delete redirect from %s', 'easyrankly' ), $source_label );
+							?>
+							<a href="<?php echo esc_url( $edit_url ); ?>" aria-label="<?php echo esc_attr( $edit_aria ); ?>"><?php esc_html_e( 'Edit', 'easyrankly' ); ?></a>
+							<a class="erankly-redirects-toggle" data-id="<?php echo esc_attr( (string) $id ); ?>" data-active="<?php echo $is_active ? '1' : '0'; ?>" data-source="<?php echo esc_attr( $source_label ); ?>" aria-label="<?php echo esc_attr( $toggle_aria ); ?>" href="<?php echo esc_url( $toggle_url ); ?>"><?php echo $is_active ? esc_html__( 'Disable', 'easyrankly' ) : esc_html__( 'Enable', 'easyrankly' ); ?></a>
+							<a class="button-link-delete erankly-redirects-delete" data-id="<?php echo esc_attr( (string) $id ); ?>" data-source="<?php echo esc_attr( $source_label ); ?>" aria-label="<?php echo esc_attr( $delete_aria ); ?>" href="<?php echo esc_url( $delete_url ); ?>"><?php esc_html_e( 'Delete', 'easyrankly' ); ?></a>
 							</td>
 						</tr>
 					<?php endforeach; ?>

@@ -1,11 +1,15 @@
 # EasyRankly release excludes (dev-only files, never shipped in the distributable zip).
-# Used by `wp dist-archive` and as reference for wordpress.org SVN deployments.
+# Used by tools/build-dist.sh (and wp dist-archive if installed) and as reference for wordpress.org SVN deployments.
 /.git
 /.gitignore
 /.github
 /.delta
 /.distignore
 /.DS_Store
+/.dist
 /phpunit.xml.dist
 /tests
 /.playwright-cli
+/tools
+/vendor
+/WORDPRESS-ORG-READINESS.md

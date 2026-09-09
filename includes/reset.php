@@ -402,8 +402,4 @@ function erankly_reset_render_notice(): void {
 	if ( 'global_failed' === $notice ) {
 		echo '<div class="notice notice-error"><p>' . esc_html__( 'EasyRankly could not start the network reset, so no plugin data was changed. Resolve the database or Cron scheduling issue, then run the reset again.', 'easyrankly' ) . '</p></div>';
 	}
-
-	if ( '' !== $notice ) {
-		echo '<script>if(window.history&&window.history.replaceState){var u=new URL(window.location.href);u.searchParams.delete("erankly_reset_notice");window.history.replaceState({},document.title,u.pathname+u.search+u.hash);}</script>';
-	}
 }

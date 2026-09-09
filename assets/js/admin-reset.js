@@ -102,7 +102,30 @@
     postForm.submit();
   }
 
+  function removeResetNoticeQuery() {
+    if (!window.history || typeof window.history.replaceState !== "function") {
+      return;
+    }
+
+    try {
+      var url = new URL(window.location.href);
+      if (!url.searchParams.has("erankly_reset_notice")) {
+        return;
+      }
+      url.searchParams.delete("erankly_reset_notice");
+      window.history.replaceState(
+        {},
+        document.title,
+        url.pathname + url.search + url.hash,
+      );
+    } catch (e) {
+      // Leave the query string in place if the URL API is unavailable.
+    }
+  }
+
   function bindResetConfirmModal() {
+    removeResetNoticeQuery();
+
     var modal = getModal();
 
     if (!modal) {

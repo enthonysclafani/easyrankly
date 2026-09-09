@@ -20,7 +20,7 @@
 			.then(function (response) {
 				return response.json().then(function (data) {
 					if (!response.ok) {
-						throw new Error((data && data.message) || 'Request failed');
+						throw new Error((data && data.message) || config.requestFailed || 'Request failed');
 					}
 
 					return data;

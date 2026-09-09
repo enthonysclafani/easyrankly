@@ -362,14 +362,31 @@ function erankly_settings_autosave_panels(): array {
 	$panels = apply_filters( 'erankly_settings_autosave_panels', $panels );
 	return is_array( $panels ) ? $panels : array();
 }
+
+/**
+ * Sanitizes a settings submission and writes it to the plugin option.
+ *
+ * Shared by the network Settings API handler so tests can cover merge,
+ * sanitization and persistence without nonce checks or process-ending
+ * redirects. Runtime behaviour of the handler is unchanged.
+ *
+ * @param array<string,mixed> $raw Unslashed submitted settings map.
+ * @return array<string,mixed>
+ */
+function erankly_persist_settings_submission( array $raw ): array {
+	$sanitized = erankly_sanitize_settings( $raw );
+	erankly_update_plugin_option( ERANKLY_OPTION, $sanitized );
+
+	return $sanitized;
+}
+
 function erankly_save_network_settings(): void {
 	check_admin_referer( 'erankly_network_settings' );
 	if ( ! current_user_can( 'manage_network_options' ) ) {
 		wp_die( esc_html__( 'Permission denied.', 'easyrankly' ) );
 	}
-	$raw       = isset( $_POST[ ERANKLY_OPTION ] ) ? wp_unslash( (array) $_POST[ ERANKLY_OPTION ] ) : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Nonce verified above; sanitized field-by-field in erankly_sanitize_settings().
-	$sanitized = erankly_sanitize_settings( $raw );
-	erankly_update_plugin_option( ERANKLY_OPTION, $sanitized );
+	$raw = isset( $_POST[ ERANKLY_OPTION ] ) ? wp_unslash( (array) $_POST[ ERANKLY_OPTION ] ) : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Nonce verified above; sanitized field-by-field in erankly_sanitize_settings().
+	erankly_persist_settings_submission( $raw );
 	$errors = function_exists( 'get_settings_errors' ) ? get_settings_errors( ERANKLY_OPTION ) : array();
 	$user_id = get_current_user_id();
 	if ( $user_id > 0 && ! empty( $errors ) ) {

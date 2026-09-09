@@ -799,11 +799,12 @@ function erankly_rest_user_search( WP_REST_Request $request ): WP_REST_Response 
 		'number'  => 20,
 		'orderby' => 'display_name',
 		'order'   => 'ASC',
-		'fields'  => array( 'ID', 'display_name', 'user_email' ),
+		'fields'  => array( 'ID', 'display_name' ),
 	);
 
 	if ( '' !== $query ) {
 		$args['search']         = '*' . $query . '*';
+		// Email remains a search column for administrators; it is not returned in the JSON.
 		$args['search_columns'] = array( 'user_login', 'user_nicename', 'display_name', 'user_email' );
 	}
 
@@ -815,19 +816,13 @@ function erankly_rest_user_search( WP_REST_Request $request ): WP_REST_Response 
 			continue;
 		}
 
-		if ( isset( $user->user_email ) && '' !== $user->user_email ) {
-			$meta = (string) $user->user_email;
-		} else {
-			/* translators: %d: User ID. */
-			$meta = sprintf( __( 'ID %d', 'easyrankly' ), (int) $user->ID );
-		}
-
 		$results[] = array(
 			'id'     => (int) $user->ID,
 			/* translators: 1: User display name, 2: User ID. */
 			'text'   => sprintf( __( '%1$s (ID: %2$d)', 'easyrankly' ), $user->display_name, $user->ID ),
 			'name'   => (string) $user->display_name,
-			'meta'   => $meta,
+			/* translators: %d: User ID shown instead of an email address. */
+			'meta'   => sprintf( __( 'ID %d', 'easyrankly' ), (int) $user->ID ),
 			'avatar' => (string) get_avatar_url( (int) $user->ID, array( 'size' => 48 ) ),
 		);
 	}

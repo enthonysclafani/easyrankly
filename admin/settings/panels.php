@@ -20,6 +20,8 @@ function erankly_render_settings_panel_features( array $settings, bool $redirect
 						</div>
 						<div class="erankly-field erankly-checkboxes">
 							<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[enable_custom_code]" value="1" <?php checked( $custom_code_enabled ); ?>> <?php esc_html_e( 'Enable custom code', 'easyrankly' ); ?></label>
+							<p class="description"><?php esc_html_e( 'This module is off by default. Use it for site-owner verification meta tags or for markup and scripts you choose. Saving requires the unfiltered_html capability; on Multisite that means a Super Admin. EasyRankly does not execute PHP.', 'easyrankly' ); ?></p>
+							<p class="description"><?php esc_html_e( 'Snippets are printed as saved, without escaping, so authorized code is preserved. EasyRankly itself does not add analytics or tracking, but any snippet you add may contact third-party services and remains your responsibility.', 'easyrankly' ); ?></p>
 							<p class="description"><?php esc_html_e( 'Switching this off stops the snippets from being printed; it does not delete them. Turning it back on restores exactly what was saved.', 'easyrankly' ); ?></p>
 						</div>
 						<?php
@@ -60,6 +62,8 @@ function erankly_render_settings_panel_custom_code( array $head_blocks, string $
 							<?php if ( is_multisite() ) : ?>
 								<p class="description"><?php esc_html_e( 'Snippets are shared network-wide. Include and exclude IDs or slugs are resolved separately on each site, so the same number or slug can refer to different content.', 'easyrankly' ); ?></p>
 							<?php endif; ?>
+							<p class="description"><?php esc_html_e( 'This module is off by default. Use it for site-owner verification meta tags or for markup and scripts you choose. Saving requires the unfiltered_html capability; on Multisite that means a Super Admin. EasyRankly does not execute PHP.', 'easyrankly' ); ?></p>
+							<p class="description"><?php esc_html_e( 'Snippets are printed as saved, without escaping, so authorized code is preserved. EasyRankly itself does not add analytics or tracking, but any snippet you add may contact third-party services and remains your responsibility.', 'easyrankly' ); ?></p>
 							<p class="description"><?php esc_html_e( 'Snippets also run for logged-in visitors, including administrators. WordPress previews and the Customizer are excluded.', 'easyrankly' ); ?></p>
 							<p class="description"><?php esc_html_e( 'Empty snippets are not saved and disappear after reload.', 'easyrankly' ); ?></p>
 						</div>
@@ -107,7 +111,7 @@ function erankly_render_custom_code_builder( string $title, string $description,
 									<?php erankly_render_custom_code_block( array(), '__INDEX__', $name, $can_unfiltered ); ?>
 								</template>
 								<p class="erankly-code-actions"><button type="button" class="button button-secondary" data-erankly-add-code><?php esc_html_e( 'Add code', 'easyrankly' ); ?></button></p>
-								<p class="description" data-erankly-block-limit-notice role="status" hidden><?php echo esc_html( sprintf( __( 'Maximum reached: %d snippets per location.', 'easyrankly' ), erankly_custom_code_max_blocks() ) ); ?></p>
+								<p class="description" data-erankly-block-limit-notice role="status" hidden><?php echo esc_html( sprintf( /* translators: %d: Maximum number of snippets allowed in one output location (head, start of body, or footer). */ __( 'Maximum reached: %d snippets per location.', 'easyrankly' ), erankly_custom_code_max_blocks() ) ); ?></p>
 							</div>
 						</div>
 	<?php

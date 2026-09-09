@@ -13,8 +13,7 @@ final class ERankly_Settings_And_Robots_Regressions_Test extends WP_UnitTestCase
 	public function set_up(): void {
 		parent::set_up();
 
-		require_once ABSPATH . 'wp-admin/includes/template.php';
-		require_once ERANKLY_PATH . 'admin/settings-page.php';
+		erankly_tests_load_settings_sanitizer();
 		require_once ERANKLY_PATH . 'admin/field-renderers.php';
 		require_once ERANKLY_PATH . 'admin/settings/section-links.php';
 		require_once ERANKLY_PATH . 'admin/settings/renderers.php';

@@ -421,6 +421,7 @@ function erankly_admin_enqueue_scripts( array $requested_modules ): string {
 				true
 			);
 			wp_set_script_translations( 'erankly-schema-jsonld', 'easyrankly', ERANKLY_PATH . 'languages' );
+			$module_deps[] = 'wp-i18n';
 			$module_deps[] = 'erankly-schema-jsonld';
 		}
 
@@ -431,6 +432,9 @@ function erankly_admin_enqueue_scripts( array $requested_modules ): string {
 			ERANKLY_VERSION,
 			true
 		);
+		if ( 'erankly-admin-schema' === $handle ) {
+			wp_set_script_translations( 'erankly-admin-schema', 'easyrankly', ERANKLY_PATH . 'languages' );
+		}
 		$deps[] = $handle;
 	}
 

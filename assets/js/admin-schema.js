@@ -143,9 +143,16 @@
 
     if (nameInput && title) {
       var updateTitle = function () {
-        title.textContent = String(nameInput.value || "").trim() ||
+        var builderStrings = (window.eranklySchemaBuilder || {}).i18n || {};
+        var fallbackTitle =
+          builderStrings.codeSnippet ||
+          (window.wp && window.wp.i18n && typeof window.wp.i18n.__ === "function"
+            ? window.wp.i18n.__("Code snippet", "easyrankly")
+            : "Code snippet");
+        title.textContent =
+          String(nameInput.value || "").trim() ||
           nameInput.getAttribute("placeholder") ||
-          "Code snippet";
+          fallbackTitle;
       };
       nameInput.addEventListener("input", updateTitle);
       updateTitle();

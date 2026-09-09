@@ -250,7 +250,13 @@ final class ERankly_Import_Job_Runner {
 		return is_array( $job ) && ! empty( $job['id'] ) ? $job : null;
 	}
 
-	/** Whether the caller can cause raw custom code to be restored. */
+	/**
+	 * Whether the caller can cause raw custom code to be restored.
+	 *
+	 * The worker later runs without an interactive user (WP-Cron, user 0) and
+	 * therefore treats the staged payload as trusted. The capability check
+	 * here, before a job or spool file exists, is the security boundary.
+	 */
 	private static function current_user_may_import_custom_code(): bool {
 		$user_id = function_exists( 'get_current_user_id' ) ? (int) get_current_user_id() : 0;
 
