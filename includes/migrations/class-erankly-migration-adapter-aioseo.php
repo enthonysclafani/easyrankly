@@ -745,28 +745,6 @@ final class ERankly_Migration_Adapter_AIOSEO extends ERankly_Migration_Adapter {
 		return null !== $wpdb->get_var( $wpdb->prepare( 'SELECT id FROM %i LIMIT 1', $table ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Presence check against a whitelisted prefixed table.
 	}
 
-	private function table_column_has_values( string $suffix, string $column ): bool {
-		global $wpdb;
-
-		$allowed = array(
-			'aioseo_posts' => array( 'local_seo', 'videos' ),
-		);
-		if ( ! isset( $allowed[ $suffix ] ) || ! in_array( $column, $allowed[ $suffix ], true ) ) {
-			return false;
-		}
-
-		$table = $wpdb->prefix . $suffix;
-		if ( ! erankly_table_exists( $table ) ) {
-			return false;
-		}
-		$exists = $wpdb->get_var( $wpdb->prepare( 'SHOW COLUMNS FROM %i LIKE %s', $table, $column ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Storage signature inspection.
-		if ( null === $exists ) {
-			return false;
-		}
-
-		return null !== $wpdb->get_var( $wpdb->prepare( 'SELECT id FROM %i WHERE %i IS NOT NULL AND %i <> %s LIMIT 1', $table, $column, $column, '' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Table and column are selected from the internal whitelist above and escaped as identifiers.
-	}
-
 	/**
  * Resolves an AIOSEO entity's inherited robots policy.
  *

@@ -994,7 +994,6 @@ abstract class ERankly_Migration_Adapter {
 		return is_array( $columns ) ? array_values( array_filter( array_map( 'sanitize_key', $columns ) ) ) : array();
 	}
 
-	/** Returns known/unversioned/unsupported for the detected source version. */
 	/**
  * Reports whether the detected source version falls inside the certified range.
  *

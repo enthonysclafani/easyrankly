@@ -60,6 +60,12 @@ function erankly_object_seo_state_is_noindex( string $kind, int $object_id, stri
 			return true;
 		}
 
+		// Keep the page-level tri-state override, then inherit the blog policy
+		// instead of the page post-type policy.
+		if ( 'posts_page' === $kind ) {
+			return erankly_get_global_entity_directive( 'global_special_meta', 'blog', 'noindex' );
+		}
+
 		return erankly_get_global_post_type_directive( $post->post_type, 'noindex' );
 	}
 
@@ -86,7 +92,7 @@ function erankly_object_seo_state_is_noindex( string $kind, int $object_id, stri
 		return '' !== $subtype && erankly_get_global_entity_directive( 'global_special_meta', $subtype, 'noindex' );
 	}
 
-	$special_key = 'home' === $kind ? 'homepage' : ( 'posts_page' === $kind ? 'blog' : $subtype );
+	$special_key = 'home' === $kind ? 'homepage' : $subtype;
 
 	return '' !== $special_key && erankly_get_global_entity_directive( 'global_special_meta', $special_key, 'noindex' );
 }

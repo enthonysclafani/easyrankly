@@ -13,8 +13,7 @@ function erankly_breadcrumbs( array $args = array() ): string {
 	$args = wp_parse_args(
 		$args,
 		array(
-			'echo'      => true,
-			'separator' => '/',
+			'echo' => true,
 		)
 	);
 

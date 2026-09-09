@@ -18,7 +18,6 @@
 	--erankly-space-4: 16px;
 	--erankly-space-5: 24px;
 	--erankly-space-6: 32px;
-	--erankly-space-7: 48px;
 	--erankly-space-label: var(--erankly-space-2);
 	--erankly-space-help: var(--erankly-space-1);
 	--erankly-space-field: var(--erankly-space-4);
@@ -67,16 +66,6 @@
 
 .erankly-section-doc-link:hover {
 	text-decoration: underline;
-}
-
-/* Documentation link rendered as the last "field" of editor panels. */
-.erankly-panel-doc-link {
-	font-size: 12px;
-	margin: var(--erankly-space-field) 0 0;
-}
-
-.erankly-panel-doc-link:last-child {
-	margin-bottom: 0;
 }
 
 /*

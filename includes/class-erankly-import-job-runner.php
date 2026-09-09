@@ -570,7 +570,10 @@ final class ERankly_Import_Job_Runner {
 				require_once ERANKLY_PATH . 'includes/admin.php';
 				erankly_admin_load_settings_modules();
 			}
-			$clean = erankly_sanitize_settings( $data['settings'] );
+			// A capability-gated native import is an explicit legacy source. Normal
+			// HTTP settings saves omit this argument and can migrate only values that
+			// were already persisted before the request.
+			$clean = erankly_sanitize_settings( $data['settings'], $data['settings'] );
 			erankly_update_plugin_option( ERANKLY_OPTION, $clean );
 			$counts['settings'] = 1;
 		}

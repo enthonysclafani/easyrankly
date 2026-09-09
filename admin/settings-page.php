@@ -20,7 +20,14 @@ function erankly_register_settings(): void {
 		)
 	);
 }
-function erankly_sanitize_settings( mixed $input ): array {
+/**
+ * Sanitizes the plugin settings map.
+ *
+ * @param mixed                    $input                   Submitted settings.
+ * @param array<string,mixed>|null $trusted_legacy_settings Explicitly trusted legacy source for internal imports.
+ * @return array<string,mixed>
+ */
+function erankly_sanitize_settings( mixed $input, ?array $trusted_legacy_settings = null ): array {
 	$input = is_array( $input ) ? $input : array();
 	$panel = isset( $input['erankly_settings_panel'] ) ? sanitize_key( (string) $input['erankly_settings_panel'] ) : '';
 	unset( $input['erankly_settings_panel'] );
@@ -59,7 +66,16 @@ function erankly_sanitize_settings( mixed $input ): array {
 	$default_og_image         = isset( $input['default_og_image'] ) ? absint( $input['default_og_image'] ) : 0;
 	$organization_logo = erankly_drop_stale_media_id( $organization_logo, $organization_logo_url );
 	$default_og_image  = erankly_drop_stale_media_id( $default_og_image, $default_social_image_url );
-	$stored_for_schema = erankly_get_stored_settings();
+	$stored_for_schema         = erankly_get_stored_settings();
+	$legacy_source             = null === $trusted_legacy_settings ? $stored_for_schema : $trusted_legacy_settings;
+	$trusted_head_blocks       = null;
+	$trusted_body_open_blocks  = null;
+	$trusted_body_close_blocks = null;
+	if ( null !== $trusted_legacy_settings ) {
+		$trusted_head_blocks       = is_array( $trusted_legacy_settings['head_code_blocks'] ?? null ) ? $trusted_legacy_settings['head_code_blocks'] : array();
+		$trusted_body_open_blocks  = is_array( $trusted_legacy_settings['body_open_code_blocks'] ?? null ) ? $trusted_legacy_settings['body_open_code_blocks'] : array();
+		$trusted_body_close_blocks = is_array( $trusted_legacy_settings['body_close_code_blocks'] ?? null ) ? $trusted_legacy_settings['body_close_code_blocks'] : array();
+	}
 	$settings = array(
 		'organization_name'              => isset( $input['organization_name'] ) ? erankly_sanitize_text( $input['organization_name'] ) : $defaults['organization_name'],
 		'website_name'                   => isset( $input['website_name'] ) ? erankly_sanitize_text( $input['website_name'] ) : $defaults['website_name'],
@@ -144,9 +160,21 @@ function erankly_sanitize_settings( mixed $input ): array {
 		'robots_indexifembedded'         => ! empty( $input['robots_indexifembedded'] ) ? 1 : 0,
 		'enable_redirects'               => ! empty( $input['enable_redirects'] ) ? 1 : 0,
 		'enable_custom_code'             => erankly_sanitize_custom_code_toggle( $input['enable_custom_code'] ?? 0 ),
-		'head_code_blocks'               => erankly_sanitize_custom_code_blocks_field( $input['head_code_blocks'] ?? null, 'head_code_blocks' ),
-		'body_open_code_blocks'          => erankly_sanitize_custom_code_blocks_field( $input['body_open_code_blocks'] ?? null, 'body_open_code_blocks' ),
-		'body_close_code_blocks'         => erankly_sanitize_custom_code_blocks_field( $input['body_close_code_blocks'] ?? null, 'body_close_code_blocks' ),
+		'head_code_blocks'               => erankly_sanitize_custom_code_blocks_field(
+			$input['head_code_blocks'] ?? null,
+			'head_code_blocks',
+			$trusted_head_blocks
+		),
+		'body_open_code_blocks'          => erankly_sanitize_custom_code_blocks_field(
+			$input['body_open_code_blocks'] ?? null,
+			'body_open_code_blocks',
+			$trusted_body_open_blocks
+		),
+		'body_close_code_blocks'         => erankly_sanitize_custom_code_blocks_field(
+			$input['body_close_code_blocks'] ?? null,
+			'body_close_code_blocks',
+			$trusted_body_close_blocks
+		),
 		'head_code'                      => erankly_sanitize_custom_code_field( $input['head_code'] ?? null, 'head_code' ),
 		'body_open_code'                 => erankly_sanitize_custom_code_field( $input['body_open_code'] ?? null, 'body_open_code' ),
 		'body_close_code'                => erankly_sanitize_custom_code_field( $input['body_close_code'] ?? null, 'body_close_code' ),
@@ -154,14 +182,17 @@ function erankly_sanitize_settings( mixed $input ): array {
 	$can_migrate_code = ! function_exists( 'get_current_user_id' ) || 0 === (int) get_current_user_id() || current_user_can( 'unfiltered_html' );
 	if ( $can_migrate_code ) {
 		foreach ( array( 'head_code' => 'head_code_blocks', 'body_open_code' => 'body_open_code_blocks', 'body_close_code' => 'body_close_code_blocks' ) as $legacy_key => $blocks_key ) {
-			$legacy_code = trim( (string) $settings[ $legacy_key ] );
+			// Legacy scalars submitted by the current request are untrusted. Only a
+			// value already persisted before this save (or supplied by the internal
+			// import runner) may create a migration overflow block.
+			$legacy_code            = erankly_sanitize_custom_code( $legacy_source[ $legacy_key ] ?? '' );
+			$settings[ $legacy_key ] = '';
 			if ( '' === $legacy_code ) {
 				continue;
 			}
 			$existing = is_array( $settings[ $blocks_key ] ) ? array_values( $settings[ $blocks_key ] ) : array();
 			$existing[]             = erankly_custom_code_migrated_block( $legacy_code );
 			$settings[ $blocks_key ] = $existing;
-			$settings[ $legacy_key ] = '';
 		}
 	}
 	$stored = erankly_get_plugin_option( ERANKLY_OPTION, array() );

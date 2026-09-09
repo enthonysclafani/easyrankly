@@ -376,16 +376,6 @@ function erankly_bootstrap_frontend_modules(): void {
 
 	require_once ERANKLY_PATH . 'includes/breadcrumbs.php';
 
-	if ( ! function_exists( 'easyrankly_breadcrumbs' ) && function_exists( 'erankly_breadcrumbs' ) ) {
-		// Legacy public function kept for backward compatibility.
-		// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
-		/** Legacy alias for the public breadcrumbs template function. */
-		function easyrankly_breadcrumbs( array $args = array() ): string {
-			return erankly_breadcrumbs( $args );
-		}
-		// phpcs:enable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
-	}
-
 	// template_redirect runs after this wp:1 action, so the callback is defined in time.
 	if ( 'none' !== (string) erankly_get_setting( 'attachment_redirect', 'none' ) ) {
 		add_action( 'template_redirect', 'erankly_redirect_attachment' );

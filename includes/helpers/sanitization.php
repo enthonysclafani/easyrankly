@@ -328,24 +328,6 @@ function erankly_custom_code_context_allowlist(): array {
 }
 
 /**
- * Contexts whose include/exclude ID-or-slug lists apply.
- *
- * @return array<int,string>
- */
-function erankly_target_contexts_using_include_exclude(): array {
-	return array( 'singular', 'taxonomy', 'author' );
-}
-
-/**
- * Contexts that require a post type selection to have an effect.
- *
- * @return array<int,string>
- */
-function erankly_target_contexts_using_post_types(): array {
-	return array( 'singular', 'post_type_archive' );
-}
-
-/**
  * Whether a targeted block (global schema or custom code) matches the current request.
  *
  * Empty context lists never match. Include/exclude lists apply only to singular, taxonomy, and author
@@ -553,15 +535,6 @@ function erankly_target_list_contains_item( string $value, string $kind, int $ob
 }
 
 /**
- * Sanitizes one location's repeatable code blocks. Shape mirrors global
- * schema blocks (enabled + target_contexts + target_post_types +
- * include/exclude items) so the admin targeting UI and the frontend
- * matcher share semantics; only the payload differs (raw `code` instead
- * of JSON-LD `fields`). Empty-code blocks are dropped.
- *
- * @return array<int,array<string,mixed>>
- */
-/**
  * Reports a code snippet stored disabled because its targeting can never match a request.
  *
  * Reported once per reason per save, mirroring the schema builder: a panel with ten snippets should not stack
@@ -604,33 +577,90 @@ function erankly_add_empty_custom_code_settings_error(): void {
 	);
 }
 
-function erankly_sanitize_custom_code_blocks( mixed $value ): array {
+/**
+ * Sanitizes one location's repeatable code blocks. Shape mirrors global
+ * schema blocks (enabled + target_contexts + target_post_types +
+ * include/exclude items) so the admin targeting UI and the frontend
+ * matcher share semantics; only the payload differs (raw `code` instead
+ * of JSON-LD `fields`). Empty-code blocks are dropped.
+ *
+ * @param mixed                 $value         Raw submitted blocks.
+ * @param array<int,mixed>      $stored_blocks Persisted blocks used to verify legacy markers.
+ * @return array<int,array<string,mixed>>
+ */
+function erankly_sanitize_custom_code_blocks( mixed $value, array $stored_blocks = array() ): array {
 	$value      = is_array( $value ) ? array_values( $value ) : array();
 	$contexts   = erankly_custom_code_context_allowlist();
 	$post_types = array_fill_keys( array_keys( erankly_get_public_post_types() ), true );
-	$legacy_overflow = array_filter(
-		$value,
-		static fn( mixed $block ): bool => is_array( $block ) && ! empty( $block['legacy_migrated'] )
-	);
-	$max_blocks      = erankly_custom_code_max_blocks() + ( $legacy_overflow ? 1 : 0 );
-	$max_bytes       = erankly_custom_code_max_bytes();
-	$remaining_bytes = erankly_custom_code_max_total_bytes() + ( $legacy_overflow ? $max_bytes : 0 );
-	$blocks          = array();
+	$trusted_legacy_codes = array();
 
-	if ( count( $value ) > $max_blocks ) {
-		$value = array_slice( $value, 0, $max_blocks );
+	// The legacy marker is a server-side capability for preserving a lossless
+	// migration overflow block, not a client-controlled extension of the limit.
+	// Match persisted legacy code one-for-one so a submitted duplicate cannot
+	// reuse the same trusted marker more than once.
+	foreach ( $stored_blocks as $stored_block ) {
+		if ( ! is_array( $stored_block ) || empty( $stored_block['legacy_migrated'] ) ) {
+			continue;
+		}
 
-		if ( function_exists( 'add_settings_error' ) ) {
-			add_settings_error(
-				ERANKLY_OPTION,
-				'erankly_custom_code_too_many',
-				__( 'Only the first 10 code snippets per location were kept.', 'easyrankly' ),
-				'warning'
-			);
+		$stored_code = isset( $stored_block['code'] ) ? trim( (string) $stored_block['code'] ) : '';
+		if ( '' !== $stored_code ) {
+			$trusted_legacy_codes[ $stored_code ] = ( $trusted_legacy_codes[ $stored_code ] ?? 0 ) + 1;
 		}
 	}
 
-	foreach ( $value as $block ) {
+	$trusted_legacy_index = null;
+	foreach ( $value as $index => $block ) {
+		if ( null === $trusted_legacy_index && is_array( $block ) && ! empty( $block['legacy_migrated'] ) ) {
+			$submitted_code = isset( $block['code'] ) ? trim( (string) $block['code'] ) : '';
+			if ( '' !== $submitted_code && isset( $trusted_legacy_codes[ $submitted_code ] ) && $trusted_legacy_codes[ $submitted_code ] > 0 ) {
+				$trusted_legacy_index = $index;
+				--$trusted_legacy_codes[ $submitted_code ];
+			}
+		}
+	}
+
+	// Select at most ten regular entries, while retaining one verified legacy
+	// entry wherever it appears. The exceptional slot can therefore never be
+	// consumed by an unrelated block placed before the migrated one.
+	$selected_blocks = array();
+	$regular_count   = 0;
+	$too_many        = false;
+	foreach ( $value as $index => $block ) {
+		$is_trusted_legacy = null !== $trusted_legacy_index && $index === $trusted_legacy_index;
+		if ( ! $is_trusted_legacy && $regular_count >= erankly_custom_code_max_blocks() ) {
+			$too_many = true;
+			continue;
+		}
+
+		$selected_blocks[] = array(
+			'block'           => $block,
+			'legacy_migrated' => $is_trusted_legacy,
+		);
+
+		if ( ! $is_trusted_legacy ) {
+			++$regular_count;
+		}
+	}
+
+	if ( $too_many && function_exists( 'add_settings_error' ) ) {
+		add_settings_error(
+			ERANKLY_OPTION,
+			'erankly_custom_code_too_many',
+			__( 'Only the first 10 code snippets per location were kept.', 'easyrankly' ),
+			'warning'
+		);
+	}
+
+	$max_bytes               = erankly_custom_code_max_bytes();
+	$remaining_regular_bytes = erankly_custom_code_max_total_bytes();
+	$remaining_legacy_bytes  = $max_bytes;
+	$total_limit_reported    = false;
+	$blocks                  = array();
+
+	foreach ( $selected_blocks as $selected ) {
+		$block             = $selected['block'];
+		$is_trusted_legacy = ! empty( $selected['legacy_migrated'] );
 		if ( ! is_array( $block ) ) {
 			continue;
 		}
@@ -640,7 +670,7 @@ function erankly_sanitize_custom_code_blocks( mixed $value ): array {
 		$clean = array(
 			'enabled'           => ! empty( $block['enabled'] ) ? 1 : 0,
 			'name'              => $name,
-			'legacy_migrated'   => ! empty( $block['legacy_migrated'] ) ? 1 : 0,
+			'legacy_migrated'   => $is_trusted_legacy ? 1 : 0,
 			'code'              => '',
 			'target_contexts'   => array(),
 			'target_post_types' => array(),
@@ -704,8 +734,9 @@ function erankly_sanitize_custom_code_blocks( mixed $value ): array {
 			continue;
 		}
 
+		$remaining_bytes = $is_trusted_legacy ? $remaining_legacy_bytes : $remaining_regular_bytes;
 		if ( $remaining_bytes < 1 ) {
-			if ( function_exists( 'add_settings_error' ) ) {
+			if ( ! $total_limit_reported && function_exists( 'add_settings_error' ) ) {
 				add_settings_error(
 					ERANKLY_OPTION,
 					'erankly_custom_code_total_too_long',
@@ -713,7 +744,8 @@ function erankly_sanitize_custom_code_blocks( mixed $value ): array {
 					'warning'
 				);
 			}
-			break;
+			$total_limit_reported = true;
+			continue;
 		}
 
 		$allowed_bytes = min( $max_bytes, $remaining_bytes );
@@ -743,7 +775,11 @@ function erankly_sanitize_custom_code_blocks( mixed $value ): array {
 
 		$clean['code'] = $raw;
 		$blocks[]      = $clean;
-		$remaining_bytes -= strlen( $raw );
+		if ( $is_trusted_legacy ) {
+			$remaining_legacy_bytes -= strlen( $raw );
+		} else {
+			$remaining_regular_bytes -= strlen( $raw );
+		}
 	}
 
 	return array_values( $blocks );
@@ -754,9 +790,12 @@ function erankly_sanitize_custom_code_blocks( mixed $value ): array {
  * erankly_sanitize_custom_code_field()). Low-privilege users keep stored
  * blocks; only an actual change attempt raises the capability error.
  *
+ * @param mixed                 $raw_input             Raw submitted blocks.
+ * @param string                $key                   Settings key for the location.
+ * @param array<int,mixed>|null $trusted_legacy_blocks Explicitly trusted blocks for an internal import.
  * @return array<int,array<string,mixed>>
  */
-function erankly_sanitize_custom_code_blocks_field( mixed $raw_input, string $key ): array {
+function erankly_sanitize_custom_code_blocks_field( mixed $raw_input, string $key, ?array $trusted_legacy_blocks = null ): array {
 	$stored_all    = function_exists( 'erankly_get_stored_settings' ) ? erankly_get_stored_settings() : array();
 	$stored_blocks = isset( $stored_all[ $key ] ) && is_array( $stored_all[ $key ] ) ? array_values( $stored_all[ $key ] ) : array();
 	$user_id       = function_exists( 'get_current_user_id' ) ? (int) get_current_user_id() : 0;
@@ -780,7 +819,9 @@ function erankly_sanitize_custom_code_blocks_field( mixed $raw_input, string $ke
 		return $stored_blocks;
 	}
 
-	return erankly_sanitize_custom_code_blocks( $raw_input );
+	$legacy_source = null === $trusted_legacy_blocks ? $stored_blocks : $trusted_legacy_blocks;
+
+	return erankly_sanitize_custom_code_blocks( $raw_input, $legacy_source );
 }
 
 /** Builds a full-visibility block for legacy single-snippet migration. */

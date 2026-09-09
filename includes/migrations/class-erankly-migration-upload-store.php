@@ -23,17 +23,13 @@ final class ERankly_Migration_Upload_Store {
 	}
 
 	/**
- * @param bool $create Whether to create the directory.
- * @return string Empty when no non-public writable directory is available.
- */
-	/**
- * Reserves a private path for one pre-import backup.
- *
- * Backups live beside the staged uploads but are a different file class: they are the only way to undo an
+	 * Reserves a private path for one pre-import backup.
+	 *
+	 * Backups live beside the staged uploads but are a different file class: they are the only way to undo an
 	 * import, so `prune_stale()` keeps them for their own longer window.
- *
- * @return string Absolute path, or an empty string when private storage is unavailable.
- */
+	 *
+	 * @return string Absolute path, or an empty string when private storage is unavailable.
+	 */
 	public static function reserve_backup_path(): string {
 		$directory = self::directory();
 		if ( '' === $directory ) {
@@ -74,6 +70,12 @@ final class ERankly_Migration_Upload_Store {
 		return max( 300, (int) apply_filters( 'erankly_migration_backup_ttl', $default ) );
 	}
 
+	/**
+	 * Returns the private migration directory.
+	 *
+	 * @param bool $create Whether to create the directory.
+	 * @return string Empty when no non-public writable directory is available.
+	 */
 	public static function directory( bool $create = true ): string {
 		$site_id = function_exists( 'get_current_blog_id' ) ? get_current_blog_id() : 0;
 		$token   = substr( hash( 'sha256', wp_normalize_path( ABSPATH ) . '|' . (string) $site_id ), 0, 20 );

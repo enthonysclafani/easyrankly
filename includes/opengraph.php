@@ -418,26 +418,45 @@ function erankly_get_social_image_attachment_id( string $image ): int {
 	$base_path  = rtrim( (string) wp_parse_url( $base_url, PHP_URL_PATH ), '/' ) . '/';
 	$image_path = rawurldecode( (string) wp_parse_url( $image, PHP_URL_PATH ) );
 	$candidates = array();
+	$relative_directory = '';
 
 	// The URL path remains stable for the common CDN case where only the host is rewritten.
 	if ( '/' !== $base_path && str_starts_with( $image_path, $base_path ) ) {
-		$candidates[] = ltrim( substr( $image_path, strlen( $base_path ) ), '/' );
+		$relative_path = ltrim( substr( $image_path, strlen( $base_path ) ), '/' );
+		if ( '' !== $relative_path ) {
+			$candidates[]       = $relative_path;
+			$relative_directory = dirname( $relative_path );
+		}
 	}
 
 	// A year/month + filename candidate disambiguates same-named uploads across
 	// different monthly folders, which a bare basename LIKE match cannot.
 	if ( preg_match( '#(\d{4}/\d{2}/[^/]+)$#', $image_path, $date_match ) ) {
-		$candidates[] = $date_match[1];
+		$dated_path = ltrim( $date_match[1], '/' );
+		$candidates[] = $dated_path;
+		if ( '' === $relative_directory ) {
+			$relative_directory = dirname( $dated_path );
+		}
 	}
 
 	$basename      = wp_basename( $image_path );
-	$candidates[]  = $basename;
 	$stem          = pathinfo( $basename, PATHINFO_FILENAME );
 	$extension     = pathinfo( $basename, PATHINFO_EXTENSION );
 	$original_stem = preg_replace( '/(?:-scaled|-\d+x\d+)$/', '', $stem );
 	if ( is_string( $original_stem ) && $original_stem !== $stem ) {
-		$candidates[] = $original_stem . ( '' !== $extension ? '.' . $extension : '' );
+		$original_basename = $original_stem . ( '' !== $extension ? '.' . $extension : '' );
+		$original_path     = '.' !== $relative_directory && '' !== $relative_directory
+			? trim( $relative_directory, '/' ) . '/' . $original_basename
+			: $original_basename;
+
+		// Try the reconstructed original in its upload directory before the
+		// basename fallback, which is ambiguous when uploads share a filename.
+		$candidates[] = $original_path;
+		if ( $original_path !== $original_basename ) {
+			$candidates[] = $original_basename;
+		}
 	}
+	$candidates[] = $basename;
 
 	global $wpdb;
 	foreach ( array_values( array_unique( array_filter( $candidates ) ) ) as $candidate ) {

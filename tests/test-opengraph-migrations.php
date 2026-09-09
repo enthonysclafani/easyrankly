@@ -79,4 +79,65 @@ final class ERankly_Opengraph_Migrations_Test extends WP_UnitTestCase {
 		$this->assertSame( 200, $data['height'] );
 		$this->assertSame( 'Probe alternative text', erankly_get_social_image_attachment_alt( $image ) );
 	}
+
+	public function test_cdn_intermediate_prefers_original_upload_path_when_names_collide(): void {
+		$basename        = 'erankly-social-collision-' . wp_generate_password( 8, false ) . '.jpg';
+		$original_file   = '2026/01/' . $basename;
+		$newer_file      = '2026/02/' . $basename;
+		$original_id     = wp_insert_attachment(
+			array(
+				'post_title'     => 'January social image',
+				'post_status'    => 'inherit',
+				'post_mime_type' => 'image/jpeg',
+			),
+			$original_file
+		);
+		$newer_id        = wp_insert_attachment(
+			array(
+				'post_title'     => 'February social image',
+				'post_status'    => 'inherit',
+				'post_mime_type' => 'image/jpeg',
+			),
+			$newer_file
+		);
+		$this->assertIsInt( $original_id );
+		$this->assertIsInt( $newer_id );
+		$this->assertGreaterThan( $original_id, $newer_id );
+
+		update_attached_file( $original_id, $original_file );
+		update_attached_file( $newer_id, $newer_file );
+		wp_update_attachment_metadata(
+			$original_id,
+			array(
+				'file'   => $original_file,
+				'width'  => 1200,
+				'height' => 630,
+				'sizes'  => array(
+					'medium' => array(
+						'file'   => wp_basename( $basename, '.jpg' ) . '-300x200.jpg',
+						'width'  => 300,
+						'height' => 200,
+					),
+				),
+			)
+		);
+		wp_update_attachment_metadata(
+			$newer_id,
+			array(
+				'file'   => $newer_file,
+				'width'  => 900,
+				'height' => 500,
+			)
+		);
+		update_post_meta( $original_id, '_wp_attachment_image_alt', 'January alternative text' );
+		update_post_meta( $newer_id, '_wp_attachment_image_alt', 'February alternative text' );
+
+		$image = 'https://cdn.example.test/wp-content/uploads/2026/01/' . wp_basename( $basename, '.jpg' ) . '-300x200.jpg';
+		$data  = erankly_get_social_image_attachment_data( $image );
+
+		$this->assertSame( $original_id, $data['id'] );
+		$this->assertSame( 300, $data['width'] );
+		$this->assertSame( 200, $data['height'] );
+		$this->assertSame( 'January alternative text', erankly_get_social_image_attachment_alt( $image ) );
+	}
 }

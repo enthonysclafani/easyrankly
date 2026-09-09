@@ -176,7 +176,6 @@ function erankly_admin_enqueue_assets( string $hook_suffix ): void {
 				'restUrlDelete' => esc_url_raw( rest_url( 'erankly/v1/redirects/delete' ) ),
 				'restUrlTest'   => esc_url_raw( rest_url( 'erankly/v1/redirects/test' ) ),
 				'nonce'         => wp_create_nonce( 'wp_rest' ),
-				'statusCodes'   => ERankly_Redirects_Admin::status_code_labels(),
 				'statusOnlyCodes' => array_map( 'strval', ERankly_Redirects_Normalizer::STATUS_ONLY_CODES ),
 				/* translators: %s: Redirect source path. */
 				'deleteConfirm' => __( 'The redirect from %s will be permanently deleted.', 'easyrankly' ),
