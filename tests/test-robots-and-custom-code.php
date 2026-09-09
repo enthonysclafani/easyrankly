@@ -397,6 +397,35 @@ final class ERankly_Robots_And_Custom_Code_Test extends WP_UnitTestCase {
 		}
 	}
 
+	public function test_robots_txt_fallback_handles_subdirectory_and_rejects_similar_paths(): void {
+		$original_request_uri = $_SERVER['REQUEST_URI'] ?? null;
+		$filter = static fn(): string => 'http://example.org/wordpress';
+		add_filter( 'home_url', $filter );
+
+		try {
+			$wp = new WP();
+			$wp->request = '';
+			$wp->query_vars = array();
+			$_SERVER['REQUEST_URI'] = '/wordpress/robots.txt?source=test';
+			erankly_force_robots_txt_request( $wp );
+			$this->assertSame( array( 'robots' => '1' ), $wp->query_vars );
+
+			foreach ( array( '/robots.txt', '/wordpress/robots.txt/extra', '/not-wordpress/robots.txt', '/wordpress/not-robots.txt' ) as $request_uri ) {
+				$wp->query_vars = array();
+				$_SERVER['REQUEST_URI'] = $request_uri;
+				erankly_force_robots_txt_request( $wp );
+				$this->assertSame( array(), $wp->query_vars );
+			}
+		} finally {
+			remove_filter( 'home_url', $filter );
+			if ( null === $original_request_uri ) {
+				unset( $_SERVER['REQUEST_URI'] );
+			} else {
+				$_SERVER['REQUEST_URI'] = $original_request_uri;
+			}
+		}
+	}
+
 	/**
 	 * @runInSeparateProcess
 	 * @preserveGlobalState disabled

@@ -109,6 +109,21 @@ final class ERankly_Custom_Code_Boundaries_Test extends WP_UnitTestCase {
 		$this->assertSame( is_multisite() ? 403 : 200, $features_response->get_status() );
 
 		if ( is_multisite() ) {
+			$panel = new WP_REST_Request( 'POST', '/erankly/v1/settings/custom-code' );
+			$panel->set_param(
+				'settings',
+				array(
+					'head_code_blocks' => array(
+						array(
+							'enabled'         => 1,
+							'code'            => '<script>alert(1)</script>',
+							'target_contexts' => array( 'front_page' ),
+						),
+					),
+				)
+			);
+			$this->assertSame( 403, rest_get_server()->dispatch( $panel )->get_status() );
+
 			erankly_clear_settings_cache();
 			$after = erankly_get_settings();
 			$this->assertSame( 1, (int) $after['enable_custom_code'] );

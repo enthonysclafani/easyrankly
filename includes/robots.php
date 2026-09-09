@@ -618,7 +618,10 @@ function erankly_force_robots_txt_request( WP $wp ): void {
 		// path from the raw URI, relative to the home URL path.
 		$request = trim( (string) wp_parse_url( wp_unslash( (string) ( $_SERVER['REQUEST_URI'] ?? '' ) ), PHP_URL_PATH ), '/' );
 		$home    = trim( (string) wp_parse_url( home_url(), PHP_URL_PATH ), '/' );
-		if ( '' !== $home && 0 === strpos( $request . '/', $home . '/' ) ) {
+		if ( '' !== $home ) {
+			if ( 0 !== strpos( $request . '/', $home . '/' ) ) {
+				return;
+			}
 			$request = trim( substr( $request, strlen( $home ) ), '/' );
 		}
 	}
