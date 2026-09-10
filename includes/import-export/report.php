@@ -229,11 +229,7 @@ function erankly_migration_render_report(): void {
 	$check_totals = is_array( $ui['check_totals'] ?? null ) ? $ui['check_totals'] : array();
 	$completed_at = erankly_migration_format_datetime( (string) ( $report['completed_at'] ?? '' ) );
 	?>
-	<div class="erankly-settings-section erankly-migration-report">
-		<div class="erankly-section-title-row">
-			<h2 class="erankly-section-title"><?php esc_html_e( 'Migration assistant', 'easyrankly' ); ?></h2>
-			<?php erankly_render_section_doc_link( 'migration-assistant' ); ?>
-		</div>
+	<?php erankly_section_open( __( 'Migration assistant', 'easyrankly' ), array( 'doc' => 'migration-assistant', 'class' => 'erankly-migration-report', 'card' => false ) ); ?>
 		<section class="erankly-card erankly-migration-card erankly-migration-card--<?php echo esc_attr( sanitize_key( (string) ( $ui['tone'] ?? 'info' ) ) ); ?>">
 			<p class="erankly-migration-context">
 				<strong><?php echo esc_html( (string) ( $report['source_label'] ?? $report['source'] ) . $source_version ); ?></strong>
@@ -399,7 +395,7 @@ function erankly_migration_render_report(): void {
 				</details>
 			<?php endif; ?>
 		</section>
-	</div>
+	<?php erankly_section_close(); ?>
 	<?php
 }
 
@@ -424,11 +420,7 @@ function erankly_migration_render_active_job( array $job ): void {
 	}
 	$title = $cancelling ? __( 'Cancellation requested', 'easyrankly' ) : ( 'paused' === $status ? __( 'Migration paused safely', 'easyrankly' ) : ( $dry_run ? __( 'Preview in progress', 'easyrankly' ) : __( 'Import in progress', 'easyrankly' ) ) );
 	?>
-	<div class="erankly-settings-section erankly-migration-progress">
-		<div class="erankly-section-title-row">
-			<h2 class="erankly-section-title"><?php esc_html_e( 'Migration assistant', 'easyrankly' ); ?></h2>
-			<?php erankly_render_section_doc_link( 'migration-assistant' ); ?>
-		</div>
+	<?php erankly_section_open( __( 'Migration assistant', 'easyrankly' ), array( 'doc' => 'migration-assistant', 'class' => 'erankly-migration-progress', 'card' => false ) ); ?>
 		<section class="erankly-card erankly-migration-card <?php echo 'paused' === $status ? 'erankly-migration-card--warning' : ''; ?>" aria-busy="<?php echo 'paused' === $status || $cancelling ? 'false' : 'true'; ?>"<?php echo 'paused' !== $status ? ' data-erankly-migration-autoreload="15000"' : ''; ?>>
 			<p class="erankly-migration-context">
 				<strong><?php echo esc_html( $source ? $source->label() : (string) ( $job['source'] ?? '' ) ); ?></strong>
@@ -495,7 +487,7 @@ function erankly_migration_render_active_job( array $job ): void {
 				</details>
 			<?php endif; ?>
 		</section>
-	</div>
+	<?php erankly_section_close(); ?>
 	<?php
 }
 

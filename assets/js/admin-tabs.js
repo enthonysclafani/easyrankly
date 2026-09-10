@@ -112,7 +112,6 @@
           var isActive = item === tab;
 
           item.classList.toggle("is-active", isActive);
-          item.classList.toggle("nav-tab-active", isActive);
           item.setAttribute("aria-selected", isActive ? "true" : "false");
           // Roving tabindex: only the active tab participates in the Tab-key sequence.
           item.setAttribute("tabindex", isActive ? "0" : "-1");
@@ -349,7 +348,7 @@
     return Array.prototype.slice
       .call(
         container.querySelectorAll(
-          ".erankly-default-tab-panel input, .erankly-default-tab-panel textarea",
+          ".erankly-tabs-panel input, .erankly-tabs-panel textarea",
         ),
       )
       .filter(function (field) {
@@ -359,14 +358,14 @@
 
   function getLinkedDefaultSource(container) {
     var activePanel = container.querySelector(
-      ".erankly-default-tab-panel.is-active",
+      ".erankly-tabs-panel.is-active",
     );
 
     if (activePanel) {
       return activePanel;
     }
 
-    return container.querySelector(".erankly-default-tab-panel");
+    return container.querySelector(".erankly-tabs-panel");
   }
 
   function syncLinkedDefaultFields(container, sourceField) {
@@ -407,13 +406,13 @@
     var toggle = container.querySelector("[data-erankly-linked-toggle]");
     var status = container.querySelector("[data-erankly-linked-status]");
     var action = container.querySelector("[data-erankly-linked-action]");
-    var summary = container.querySelector(".erankly-linked-tabs-summary");
+    var summary = container.querySelector(".erankly-tabs-summary");
     var tabList = container.querySelector("[data-erankly-sliding-tabs]");
     var tabs = Array.prototype.slice.call(
       container.querySelectorAll(".erankly-tabs [data-erankly-tab]"),
     );
     var panels = Array.prototype.slice.call(
-      container.querySelectorAll(".erankly-default-tab-panel"),
+      container.querySelectorAll(".erankly-tabs-panel"),
     );
     var source = getLinkedDefaultSource(container);
     var target = source ? source.getAttribute("data-erankly-panel") : "";
@@ -456,7 +455,6 @@
       tab.disabled = isLinked;
       tab.setAttribute("aria-disabled", isLinked ? "true" : "false");
       tab.classList.toggle("is-active", isActive);
-      tab.classList.toggle("nav-tab-active", isActive);
       tab.setAttribute("aria-selected", isActive ? "true" : "false");
 
       if (isLinked) {
@@ -573,7 +571,7 @@
 
     container
       .querySelectorAll(
-        ".erankly-default-tab-panel input, .erankly-default-tab-panel textarea",
+        ".erankly-tabs-panel input, .erankly-tabs-panel textarea",
       )
       .forEach(function (field) {
         if (!getLinkedFieldName(field)) {

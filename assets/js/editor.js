@@ -375,7 +375,6 @@
 		const fields = [
 			el( SelectControl, {
 				__next40pxDefaultSize: true,
-				help: __( 'Automatic schema is the generated graph plus site-wide blocks. Custom schema only uses the JSON-LD on this content. Disable schema turns all EasyRankly JSON-LD off.', 'easyrankly' ),
 				key: 'schema-mode',
 				label: __( 'Schema mode', 'easyrankly' ),
 				onChange: setMode,
@@ -417,7 +416,6 @@
 					__next40pxDefaultSize: true,
 					autoCapitalize: 'none',
 					autoComplete: 'off',
-					help: __( 'Hides matching nodes from the automatic graph and from site-wide schema blocks. Custom JSON-LD on this content is never suppressed.', 'easyrankly' ),
 					key: 'disabled-types',
 					label: __( 'Suppress generated schema types', 'easyrankly' ),
 					onChange: ( values ) => data.set( 'schema_disabled_types', uniqueSchemaTypes( values ) ),
@@ -439,9 +437,7 @@
 						{ key: 'schema-block-' + index },
 						el( TextareaControl, {
 							className: result.valid ? undefined : 'erankly-is-invalid',
-							help: result.valid
-								? __( 'One JSON-LD object, an array of objects, or an object with @graph. Every node needs a valid @type or @id.', 'easyrankly' )
-								: result.message,
+							help: result.valid ? undefined : result.message,
 							label: `${ __( 'Custom JSON-LD', 'easyrankly' ) } ${ index + 1 }`,
 							onChange: ( value ) => {
 								const nextBlocks = [ ...blocks ];

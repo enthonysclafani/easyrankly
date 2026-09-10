@@ -1,12 +1,5 @@
 /** EasyRankly destructive reset controls. */
 
-/* Reset */
-.erankly-reset-actions {
-	display: flex;
-	flex-wrap: wrap;
-	gap: var(--erankly-space-2);
-}
-
 /* display: flex below beats the UA stylesheet's [hidden] { display: none },
    so the closed state needs its own explicit rule. */
 .erankly-modal-overlay[hidden] {

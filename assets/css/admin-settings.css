@@ -105,7 +105,6 @@
 	transform: translateY(-50%);
 }
 
-.erankly-schema-identity-fields,
 .erankly-inline-fields {
 	column-gap: var(--erankly-space-4);
 	display: grid;
@@ -114,7 +113,11 @@
 	row-gap: var(--erankly-space-4);
 }
 
-.erankly-schema-identity-fields .erankly-field select.widefat,
+/* The grid display above beats the UA [hidden] { display: none }. */
+.erankly-inline-fields[hidden] {
+	display: none;
+}
+
 .erankly-inline-fields .erankly-field input.widefat,
 .erankly-inline-fields .erankly-field select.widefat {
 	max-width: none;
@@ -156,7 +159,7 @@
 	border-radius: var(--erankly-radius-control);
 }
 
-.erankly-schema-identity-fields .erankly-field,
+/* The grid's row-gap separates the fields, so their own field margin would double. */
 .erankly-inline-fields .erankly-field {
 	margin-bottom: 0;
 }
@@ -165,34 +168,10 @@
 	grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-/*
- * Post-type schema groups ("Schema types by content type" card): one
- * labelled group per post type. Zero the h4 margins (wp-admin gives h4
- * 1.33em vertical margins that collapse through the unstyled wrappers and
- * add phantom space to the card top) so the group behaves like any other
- * .erankly-field and the card's first-child spacing matches every card.
- */
-.erankly-post-type-schema {
-	display: grid;
-	margin: 0 0 var(--erankly-space-field);
-	row-gap: var(--erankly-space-field);
-}
-
-.erankly-post-type-schema .erankly-inline-fields {
-	margin-bottom: 0;
-}
-
+/* Group label of a post type row: the shared .erankly-field-label supplies the
+ * rest, so only its size differs. */
 .erankly-post-type-schema-label {
 	font-size: 13px;
-	font-weight: 600;
-	margin: 0 0 var(--erankly-space-label);
-}
-
-/* wp-clearfix ::after becomes a flex item and picks up gap after the last tab. */
-.nav-tab-wrapper.erankly-tabs::after,
-button.erankly-linked-defaults-toggle.erankly-tabs::after {
-	content: none;
-	display: none;
 }
 
 .erankly-field select.widefat {
@@ -344,11 +323,11 @@ button.erankly-linked-defaults-toggle.erankly-tabs::after {
 
 /*
  * Nested subsection inside a card (e.g. the per-context "Social sharing"
- * block of the special page defaults): a divider, not a separate card.
+ * block of the special page defaults): a divider, not a separate card. The
+ * container's gap spaces it, so only its own padding stays here.
  */
 .erankly-defaults-section {
 	border-top: 1px solid var(--erankly-color-border);
-	margin-top: var(--erankly-space-section);
 	padding-top: var(--erankly-space-section);
 }
 
@@ -370,8 +349,7 @@ button.erankly-linked-defaults-toggle.erankly-tabs::after {
 	padding: var(--erankly-tabs-padding);
 }
 
-.erankly-tabs .erankly-tab,
-.erankly-tabs .erankly-tab.nav-tab {
+.erankly-tabs .erankly-tab {
 	align-items: center;
 	background: transparent;
 	border: 0;
@@ -401,17 +379,14 @@ button.erankly-linked-defaults-toggle.erankly-tabs::after {
 	color: var(--erankly-tab-color);
 }
 
-.erankly-tabs .erankly-tab.is-active,
-.erankly-tabs .erankly-tab.nav-tab-active {
+.erankly-tabs .erankly-tab.is-active {
 	background: var(--erankly-tab-color);
 	box-shadow: none;
 	color: var(--erankly-color-surface);
 }
 
 .erankly-tabs .erankly-tab.is-active:hover,
-.erankly-tabs .erankly-tab.nav-tab-active:hover,
-.erankly-tabs .erankly-tab.is-active:focus,
-.erankly-tabs .erankly-tab.nav-tab-active:focus {
+.erankly-tabs .erankly-tab.is-active:focus {
 	background: var(--erankly-tab-color);
 	color: var(--erankly-color-surface);
 }
@@ -421,26 +396,35 @@ button.erankly-linked-defaults-toggle.erankly-tabs::after {
 	outline: 2px solid transparent;
 }
 
-.erankly-default-tabs {
-	margin: 0 0 var(--erankly-space-section);
-}
-
-.erankly-default-tabs-bar {
-	align-items: flex-end;
+/* Two groups share one row: the tab strip and the "Same for all" switch. The
+ * bar distributes the free space between them, so the switch keeps to the right
+ * edge without a margin holding it there. */
+.erankly-tabs-bar {
+	align-items: center;
 	display: flex;
 	flex-wrap: wrap;
 	gap: var(--erankly-space-2);
+	justify-content: space-between;
 }
 
-.erankly-default-tabs-bar > .nav-tab-wrapper.erankly-tabs {
+/* Label and switch travel as one unit, so they wrap together instead of
+ * drifting apart. */
+.erankly-switch {
+	align-items: center;
+	display: flex;
+	flex: 0 0 auto;
+	gap: var(--erankly-space-2);
+}
+
+.erankly-tabs-bar > .erankly-tabs {
 	flex: 0 1 auto;
 }
 
-.erankly-default-tabs-bar > .nav-tab-wrapper.erankly-tabs .erankly-tab {
+.erankly-tabs-bar > .erankly-tabs .erankly-tab {
 	flex: 0 0 auto;
 }
 
-.erankly-entity-default-tabs > .erankly-default-tabs-bar > .nav-tab-wrapper.erankly-tabs {
+.erankly-tabs-group-entity > .erankly-tabs-bar > .erankly-tabs {
 	-webkit-overflow-scrolling: touch;
 	flex-wrap: nowrap;
 	max-width: 100%;
@@ -450,55 +434,55 @@ button.erankly-linked-defaults-toggle.erankly-tabs::after {
 	scrollbar-width: none;
 }
 
-.erankly-entity-default-tabs > .erankly-default-tabs-bar > .nav-tab-wrapper.erankly-tabs .erankly-tab {
+.erankly-tabs-group-entity > .erankly-tabs-bar > .erankly-tabs .erankly-tab {
 	flex: 0 0 auto;
 	white-space: nowrap;
 }
 
-.erankly-entity-default-tabs > .erankly-default-tabs-bar > .nav-tab-wrapper.erankly-tabs::-webkit-scrollbar {
+.erankly-tabs-group-entity > .erankly-tabs-bar > .erankly-tabs::-webkit-scrollbar {
 	display: none;
 }
 
-.erankly-special-page-default-tabs > .erankly-default-tabs-bar {
+.erankly-tabs-group-pages > .erankly-tabs-bar {
 	width: 100%;
 }
 
-.erankly-special-page-default-tabs > .erankly-default-tabs-bar > .nav-tab-wrapper.erankly-tabs {
+.erankly-tabs-group-pages > .erankly-tabs-bar > .erankly-tabs {
 	flex: 0 1 auto;
 	max-width: 100%;
 }
 
-.erankly-special-page-default-tabs > .erankly-default-tabs-bar > .nav-tab-wrapper.erankly-tabs .erankly-tab {
+.erankly-tabs-group-pages > .erankly-tabs-bar > .erankly-tabs .erankly-tab {
 	flex: 0 0 auto;
 }
 
-.erankly-default-tabs .erankly-linked-tabs-summary {
+.erankly-tabs-group .erankly-tabs-summary {
 	display: none;
 }
 
-.erankly-linked-defaults-label {
-	align-self: center;
+.erankly-switch-label {
 	flex: 0 0 auto;
 	font-weight: 500;
-	margin: 0 0 var(--erankly-space-1) auto;
+	margin: 0;
 	overflow-wrap: anywhere;
 	text-align: left;
 }
 
-button.erankly-linked-defaults-toggle.erankly-tabs {
+/* Centered by the group it shares with the label, not by a margin of its own. */
+button.erankly-switch-toggle.erankly-tabs {
 	appearance: none;
 	cursor: pointer;
 	flex: 0 0 auto;
 	font: inherit;
-	margin: 0 0 var(--erankly-space-1);
+	margin: 0;
 }
 
-button.erankly-linked-defaults-toggle.erankly-tabs:focus-visible {
+button.erankly-switch-toggle.erankly-tabs:focus-visible {
 	box-shadow: 0 0 0 2px var(--erankly-color-surface), 0 0 0 4px var(--wp-admin-theme-color, #3858e9);
 	outline: 2px solid transparent;
 }
 
-button.erankly-linked-defaults-toggle.erankly-tabs .erankly-linked-defaults-option {
+button.erankly-switch-toggle.erankly-tabs .erankly-switch-option {
 	flex: 0 0 auto;
 	font-weight: 600;
 	min-width: 42px;
@@ -506,8 +490,8 @@ button.erankly-linked-defaults-toggle.erankly-tabs .erankly-linked-defaults-opti
 	padding-right: var(--erankly-space-3);
 }
 
-.erankly-default-tabs.is-linked button.erankly-linked-defaults-toggle .erankly-linked-defaults-option.is-yes,
-.erankly-default-tabs:not(.is-linked) button.erankly-linked-defaults-toggle .erankly-linked-defaults-option.is-no {
+.erankly-tabs-group.is-linked button.erankly-switch-toggle .erankly-switch-option.is-yes,
+.erankly-tabs-group:not(.is-linked) button.erankly-switch-toggle .erankly-switch-option.is-no {
 	background: var(--wp-admin-theme-color, #3858e9);
 	box-shadow: none;
 	color: var(--erankly-color-surface);
@@ -540,13 +524,10 @@ button.erankly-linked-defaults-toggle.erankly-tabs .erankly-linked-defaults-opti
 }
 
 .erankly-tabs.has-sliding-indicator .erankly-tab.is-active,
-.erankly-tabs.has-sliding-indicator .erankly-tab.nav-tab-active,
 .erankly-tabs.has-sliding-indicator .erankly-tab.is-active:hover,
-.erankly-tabs.has-sliding-indicator .erankly-tab.nav-tab-active:hover,
 .erankly-tabs.has-sliding-indicator .erankly-tab.is-active:focus,
-.erankly-tabs.has-sliding-indicator .erankly-tab.nav-tab-active:focus,
-.erankly-default-tabs.is-linked button.erankly-linked-defaults-toggle.has-sliding-indicator .erankly-linked-defaults-option.is-yes,
-.erankly-default-tabs:not(.is-linked) button.erankly-linked-defaults-toggle.has-sliding-indicator .erankly-linked-defaults-option.is-no {
+.erankly-tabs-group.is-linked button.erankly-switch-toggle.has-sliding-indicator .erankly-switch-option.is-yes,
+.erankly-tabs-group:not(.is-linked) button.erankly-switch-toggle.has-sliding-indicator .erankly-switch-option.is-no {
 	background: transparent;
 }
 
@@ -556,7 +537,7 @@ button.erankly-linked-defaults-toggle.erankly-tabs .erankly-linked-defaults-opti
 	}
 }
 
-.erankly-default-tabs.is-linked > .erankly-default-tabs-bar > .nav-tab-wrapper.erankly-tabs {
+.erankly-tabs-group.is-linked > .erankly-tabs-bar > .erankly-tabs {
 	border-color: var(--erankly-color-border-strong);
 	overflow: hidden;
 }
@@ -567,7 +548,7 @@ button.erankly-linked-defaults-toggle.erankly-tabs .erankly-linked-defaults-opti
 }
 
 /* stylelint-disable declaration-no-important -- Overrides WordPress hidden and linked-tab utility states. */
-.erankly-default-tabs.is-linked > .erankly-default-tabs-bar > .nav-tab-wrapper.erankly-tabs .erankly-tab,
+.erankly-tabs-group.is-linked > .erankly-tabs-bar > .erankly-tabs .erankly-tab,
 .erankly-tabs .erankly-tab:disabled {
 	background: transparent;
 	box-shadow: none;
@@ -577,29 +558,28 @@ button.erankly-linked-defaults-toggle.erankly-tabs .erankly-linked-defaults-opti
 	pointer-events: none;
 }
 
-.erankly-default-tabs.is-linked > .erankly-default-tabs-bar > .nav-tab-wrapper.erankly-tabs .erankly-tab {
+.erankly-tabs-group.is-linked > .erankly-tabs-bar > .erankly-tabs .erankly-tab {
 	color: var(--erankly-color-border-strong);
 	opacity: 1;
 }
 
-.erankly-default-tabs.is-linked > .erankly-default-tabs-bar > .nav-tab-wrapper.erankly-tabs [data-erankly-tab] {
+.erankly-tabs-group.is-linked > .erankly-tabs-bar > .erankly-tabs [data-erankly-tab] {
 	display: none !important;
 }
 
-.erankly-default-tabs.is-linked .erankly-linked-tabs-summary {
+.erankly-tabs-group.is-linked .erankly-tabs-summary {
 	display: inline-flex !important;
 }
 
-/* Without JavaScript, expose inner tab panels; top-level navigation is links. */
-.no-js .erankly-settings .erankly-tab-panel[hidden] {
-	display: block !important;
+/* Without JavaScript, expose both panel levels: the top-level navigation is
+ * links, and the grouped tab panels have no working tabs to switch them. Both
+ * panels are flex columns, so they are re-exposed as flex: their children keep
+ * no margins of their own and would otherwise collapse onto each other. */
+.no-js .erankly-settings .erankly-settings-panel[hidden],
+.no-js .erankly-settings .erankly-tabs-panel[hidden] {
+	display: flex !important;
 }
 /* stylelint-enable declaration-no-important */
-
-.erankly-default-tab-panel {
-	margin-top: 0;
-	padding-top: var(--erankly-space-4);
-}
 
 .erankly-character-counter {
 	color: var(--erankly-color-muted);
@@ -610,7 +590,6 @@ button.erankly-linked-defaults-toggle.erankly-tabs .erankly-linked-defaults-opti
 }
 
 .erankly-media-preview {
-	margin: 0 0 var(--erankly-space-2);
 	min-height: 0;
 }
 
@@ -619,10 +598,6 @@ button.erankly-linked-defaults-toggle.erankly-tabs .erankly-linked-defaults-opti
 	height: auto;
 	max-height: 120px;
 	max-width: 220px;
-}
-
-.erankly-media-url-field {
-	margin: var(--erankly-space-2) 0 0;
 }
 
 /* Flex-wrap keeps the buttons usable in narrow containers such as the
@@ -637,23 +612,6 @@ button.erankly-linked-defaults-toggle.erankly-tabs .erankly-linked-defaults-opti
 .erankly-media-url-control .erankly-variable-field {
 	flex: 1 1 220px;
 	min-width: 0;
-}
-
-.erankly-media-url-preview {
-	margin-top: var(--erankly-space-2);
-}
-
-.erankly-checkboxes {
-	border: 0;
-	padding: 0;
-}
-
-/* Control-wrapping labels zero their own bottom margin in the shared field
-   anatomy (admin-core.css), so toggle labels stacked inside one checkbox
-   group would touch. Restore one consistent gap between consecutive labels;
-   the group's own field margin still separates it from the next field. */
-.erankly-checkboxes > label + label {
-	margin-top: var(--erankly-space-2);
 }
 
 /* Single-class on/off toggle: overlays any input[type="checkbox"], no
@@ -890,33 +848,11 @@ input[type="checkbox"].erankly-toggle:focus-visible {
 	border-bottom: 1px solid var(--erankly-color-border-strong);
 }
 
+/* The targeting group keeps the field anatomy (admin-core.css); only its
+ * external rhythm inside the panel is its own. */
 .erankly-schema-targeting,
 .erankly-code-targeting {
 	margin: 0 0 var(--erankly-space-field);
-	padding: 0;
-}
-
-.erankly-schema-targeting legend,
-.erankly-code-targeting legend {
-	font-weight: 600;
-	padding: 0 var(--erankly-space-1);
-}
-
-/* Only toggle/checkbox rows use the tight 4px rhythm; field labels keep
- * the standard label anatomy (8px to the control). */
-.erankly-schema-targeting > label,
-.erankly-schema-targeting-group label,
-.erankly-code-targeting > label,
-.erankly-code-targeting-group label {
-	display: block;
-	margin: var(--erankly-space-1) 0;
-}
-
-.erankly-schema-targeting-group,
-.erankly-code-targeting-group {
-	border: 0;
-	margin: 0;
-	padding: 0;
 }
 
 .erankly-schema-targeting-grid,
@@ -924,7 +860,6 @@ input[type="checkbox"].erankly-toggle:focus-visible {
 	display: grid;
 	gap: var(--erankly-space-4);
 	grid-template-columns: repeat(2, minmax(0, 1fr));
-	margin-top: var(--erankly-space-4);
 }
 
 /* display: grid qui batte lo stylesheet user agent [hidden] { display: none }: serve una regola esplicita per lo stato hidden impostato dal JS. */
@@ -933,19 +868,15 @@ input[type="checkbox"].erankly-toggle:focus-visible {
 	display: none;
 }
 
-/* The fieldset's own bottom margin separates it from the next section;
+/* The targeting group's own bottom margin separates it from the next section;
  * field margins inside the grid would double that gap. */
 .erankly-schema-targeting-grid .erankly-field,
 .erankly-code-targeting-grid .erankly-field {
 	margin-bottom: 0;
 }
 
-/* widefat textareas are inline-block: WP's line-box descender adds a stray
- * 4px under each one. Block display keeps the panel's vertical rhythm exact. */
-.erankly-schema-panel textarea.widefat,
-.erankly-code-panel textarea.widefat {
-	display: block;
-}
+/* Block display for widefat textareas lives in the shared field anatomy
+ * (admin-core.css), which covers the schema and code panels too. */
 
 .erankly-schema-title,
 .erankly-code-title {
@@ -954,8 +885,9 @@ input[type="checkbox"].erankly-toggle:focus-visible {
 	padding: var(--erankly-space-3) 0;
 }
 
-/* Bare panel help text follows the .erankly-field > .description anatomy:
- * 4px after the control, no bottom margin (the Delete row owns the 16px). */
+/* Bare help text of a panel: a tight 4px after the control, no bottom margin
+ * (the panel's Delete row owns the 16px). The panel is not a field, so this
+ * spacing is its own and does not come from the field anatomy. */
 .erankly-schema-panel > p.description,
 .erankly-code-panel > p.description {
 	margin: var(--erankly-space-help) 0 0;
@@ -967,11 +899,11 @@ input[type="checkbox"].erankly-toggle:focus-visible {
 	margin: var(--erankly-space-4) 0 0;
 }
 
+/* Layout comes from the field anatomy (admin-core.css); only the internal
+ * rhythm of a schema/code panel differs, so these keep no external margin. */
 .erankly-schema-field,
 .erankly-code-field {
-	display: block;
 	margin: 0;
-	min-width: 0;
 }
 
 .erankly-schema-field > label,
@@ -1000,25 +932,43 @@ input[type="checkbox"].erankly-toggle:focus-visible {
 	min-height: 190px;
 }
 
-.erankly-schema-actions,
-.erankly-code-actions {
+/* The meta box's own Add button row: inside a card the card's gap owns the
+ * spacing, so these margins only apply on the editor surface. */
+.erankly-meta-box .erankly-schema-actions {
 	margin: var(--erankly-space-4) 0;
 }
 
-.erankly-schema-blocks.is-empty ~ .erankly-schema-actions,
-.erankly-code-blocks.is-empty ~ .erankly-code-actions {
+.erankly-meta-box .erankly-schema-blocks.is-empty ~ .erankly-schema-actions {
 	margin-top: 0;
 }
 
-.erankly-global-meta-default {
+/*
+ * Stacked tab panel of a tab group: one 16px gap between its fields, exactly
+ * like the card's own rhythm. The fields keep no margins of their own (hidden
+ * social inputs are appended after the last one, so there is nothing to
+ * "trail" that a :last-child rule could target).
+ *
+ * The panel is a direct child of the card that carries .erankly-tabs-group, so
+ * the card's own gap already separates it from the tabs bar. Do not give this
+ * panel a padding-top: it would add to that gap and double the spacing.
+ */
+.erankly-tabs-panel {
+	display: flex;
+	flex-direction: column;
+	gap: var(--erankly-space-field);
 	margin: 0;
 	max-width: none;
 }
 
-/* Prefer :has() over :last-child: simplified special-page panels append
- * hidden social inputs after the visibility fieldset, which would leave a
- * trailing 16px field margin inside the card. */
-.erankly-global-meta-default .erankly-field:not(:has(~ .erankly-field)) {
+/* display: flex beats the UA stylesheet's [hidden] { display: none }, and the
+ * inactive panels of a tab group are hidden with that attribute. Without this
+ * rule every panel of the group paints at once. The no-js rule further down
+ * re-exposes them with !important, so it still wins here. */
+.erankly-tabs-panel[hidden] {
+	display: none;
+}
+
+.erankly-tabs-panel > .erankly-field {
 	margin-bottom: 0;
 }
 

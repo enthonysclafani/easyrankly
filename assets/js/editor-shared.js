@@ -188,7 +188,6 @@
 
 	function VariableControl( {
 		extraActions = null,
-		help,
 		label,
 		limit,
 		multiline = false,
@@ -248,7 +247,7 @@
 				value.length,
 				limit
 			)
-			: help;
+			: null;
 		const helpId = lengthHelp ? controlIdRef.current + '-help' : undefined;
 
 		// Flatten the grouped variables into a single suggestion list. Rather than
@@ -557,7 +556,6 @@
 				__( 'X image alt text override', 'easyrankly' )
 			),
 			isOpen && el( TextControl, {
-				help: __( 'For a different X image only. If blank, uses that image’s Media Library alt text.', 'easyrankly' ),
 				label: __( 'X image alt text override', 'easyrankly' ),
 				onChange: ( value ) => data.set( 'twitter_image_alt', value ),
 				value: data.get( 'twitter_image_alt' ),
@@ -699,7 +697,6 @@
 			} ) );
 			fields.push( el( TextControl, {
 				key: 'og_image_alt',
-				help: __( 'Shared by Open Graph and X. If blank, uses the Media Library alt text.', 'easyrankly' ),
 				label: __( 'Social image alt text', 'easyrankly' ),
 				onChange: ( value ) => data.set( 'og_image_alt', value ),
 				value: data.get( 'og_image_alt' ),
@@ -903,7 +900,6 @@
 				__next40pxDefaultSize: true,
 				autoCapitalize: 'none',
 				autoComplete: 'off',
-				help: '',
 				label: __( 'Robots directives', 'easyrankly' ),
 				messages: {
 					__experimentalInvalid: __( 'Unknown robots rule.', 'easyrankly' ),
@@ -939,7 +935,6 @@
 		if ( config.simplifiedMode ) {
 			fields.push( el( ToggleControl, {
 				checked: Boolean( ( features.triStateRobots ? 'noindex' === ( data.get( 'index_directive' ) || ( data.get( 'noindex' ) ? 'noindex' : 'inherit' ) ) : data.get( 'noindex' ) ) && data.get( 'disable_sitemap' ) ),
-				help: __( 'Adds noindex and removes this page from the XML sitemap.', 'easyrankly' ),
 				key: 'hide',
 				label: __( 'Hide from search results', 'easyrankly' ),
 				onChange: ( value ) => {
@@ -998,7 +993,6 @@
 					} ),
 					el( ToggleControl, {
 						checked: Boolean( data.get( 'indexifembedded' ) ),
-						help: __( 'Indexes embedded content despite noindex.', 'easyrankly' ),
 						key: 'indexifembedded',
 						label: __( 'Index if embedded when noindex applies', 'easyrankly' ),
 						onChange: toggle( 'indexifembedded' ),
@@ -1053,7 +1047,6 @@
 			if ( false !== features.disableSitemap ) {
 				fields.push( el( ToggleControl, {
 					checked: Boolean( data.get( 'disable_sitemap' ) ),
-					help: __( 'Removes content from the XML sitemap; robots unchanged.', 'easyrankly' ),
 					key: 'disable_sitemap',
 					label: __( 'Disable sitemap', 'easyrankly' ),
 					onChange: toggle( 'disable_sitemap' ),
@@ -1065,14 +1058,12 @@
 			fields.push(
 				el( ToggleControl, {
 					checked: Boolean( data.get( 'exclude_search' ) ),
-					help: __( 'Internal site search only.', 'easyrankly' ),
 					key: 'exclude_search',
 					label: __( 'Exclude from site search queries', 'easyrankly' ),
 					onChange: toggle( 'exclude_search' ),
 				} ),
 				el( ToggleControl, {
 					checked: Boolean( data.get( 'exclude_archive' ) ),
-					help: __( 'Category, date and other archive listings.', 'easyrankly' ),
 					key: 'exclude_archive',
 					label: __( 'Exclude from archive queries', 'easyrankly' ),
 					onChange: toggle( 'exclude_archive' ),
@@ -1083,7 +1074,6 @@
 		if ( features.newsSitemap ) {
 			fields.push( el( ToggleControl, {
 				checked: Boolean( data.get( 'exclude_from_news' ) ),
-				help: __( 'Google News sitemap only.', 'easyrankly' ),
 				key: 'exclude_from_news',
 				label: __( 'Exclude from Google News sitemap', 'easyrankly' ),
 				onChange: toggle( 'exclude_from_news' ),

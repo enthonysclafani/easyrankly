@@ -307,67 +307,49 @@ function erankly_reset_render_panel(): void {
 	?>
 	<?php do_action( 'erankly_reset_panel' ); ?>
 
-	<div class="erankly-settings-section">
-		<div class="erankly-section-title-row">
-			<h2 class="erankly-section-title"><?php esc_html_e( 'Reset', 'easyrankly' ); ?></h2>
-			<?php erankly_render_section_doc_link( 'reset' ); ?>
-		</div>
-		<section class="erankly-card">
-			<p class="description">
-				<?php
-				if ( $is_network ) {
-					esc_html_e( 'Choose whether to delete this site’s redirects and SEO metadata only, or reset EasyRankly across the entire network. Back up first.', 'easyrankly' );
-				} else {
-					esc_html_e( 'This permanently deletes all EasyRankly settings, redirects, and SEO metadata on this site. Back up first.', 'easyrankly' );
-				}
-				?>
-			</p>
+	<?php erankly_section_open( __( 'Reset', 'easyrankly' ), array( 'doc' => 'reset' ) ); ?>
+		<?php
+		/*
+		 * This panel is rendered inside the main settings <form> (options.php or
+		 * the Network Admin save form), so these actions cannot be their own
+		 * nested <form>. Browsers do not support nested forms and a button
+		 * inside one would end up submitting the outer settings form instead.
+		 * A confirmation modal opens first (see [data-erankly-reset-modal] in
+		 * admin-reset.js); its own Delete button then assembles and submits a
+		 * standalone form appended to <body>.
+		 */
+		?>
+		<div class="erankly-card-actions">
+			<button
+				type="button"
+				class="button erankly-btn-danger erankly-reset-trigger"
+				data-erankly-reset-url="<?php echo esc_url( $action_url ); ?>"
+				data-erankly-reset-action="reset_local"
+				data-erankly-reset-nonce="<?php echo esc_attr( wp_create_nonce( 'erankly_reset_local' ) ); ?>"
+				data-erankly-reset-title="<?php echo esc_attr( $title_local ); ?>"
+				data-erankly-reset-confirm="<?php echo esc_attr( $confirm_local ); ?>"
+				data-erankly-reset-button="<?php echo esc_attr( $local_label ); ?>"
+			><?php echo esc_html( $local_label ); ?></button>
 			<?php if ( $is_network ) : ?>
-				<p class="description"><?php esc_html_e( 'Local reset cleans up only this Network Admin\'s primary site; network reset wipes the network-wide settings and every site.', 'easyrankly' ); ?></p>
-			<?php endif; ?>
-			<?php
-			/*
-			 * This panel is rendered inside the main settings <form> (options.php or
-			 * the Network Admin save form), so these actions cannot be their own
-			 * nested <form>. Browsers do not support nested forms and a button
-			 * inside one would end up submitting the outer settings form instead.
-				 * A confirmation modal opens first (see [data-erankly-reset-modal] in
-				 * admin-reset.js); its own Delete button then assembles and submits a
-			 * standalone form appended to <body>.
-			 */
-			?>
-			<p class="erankly-reset-actions">
+				<?php
+				$global_label   = __( 'Reset entire network', 'easyrankly' );
+				$title_global   = __( 'Reset the entire network?', 'easyrankly' );
+				$confirm_global = __( 'This will permanently delete the network-wide EasyRankly settings and every site\'s redirects, SEO metadata and special page defaults across the whole network. This action cannot be undone.', 'easyrankly' );
+				?>
 				<button
 					type="button"
 					class="button erankly-btn-danger erankly-reset-trigger"
 					data-erankly-reset-url="<?php echo esc_url( $action_url ); ?>"
-					data-erankly-reset-action="reset_local"
-					data-erankly-reset-nonce="<?php echo esc_attr( wp_create_nonce( 'erankly_reset_local' ) ); ?>"
-					data-erankly-reset-title="<?php echo esc_attr( $title_local ); ?>"
-					data-erankly-reset-confirm="<?php echo esc_attr( $confirm_local ); ?>"
-					data-erankly-reset-button="<?php echo esc_attr( $local_label ); ?>"
-				><?php echo esc_html( $local_label ); ?></button>
-				<?php if ( $is_network ) : ?>
-					<?php
-					$global_label   = __( 'Reset entire network', 'easyrankly' );
-					$title_global   = __( 'Reset the entire network?', 'easyrankly' );
-					$confirm_global = __( 'This will permanently delete the network-wide EasyRankly settings and every site\'s redirects, SEO metadata and special page defaults across the whole network. This action cannot be undone.', 'easyrankly' );
-					?>
-					<button
-						type="button"
-						class="button erankly-btn-danger erankly-reset-trigger"
-						data-erankly-reset-url="<?php echo esc_url( $action_url ); ?>"
-						data-erankly-reset-action="reset_global"
-						data-erankly-reset-nonce="<?php echo esc_attr( wp_create_nonce( 'erankly_reset_global' ) ); ?>"
-						data-erankly-reset-title="<?php echo esc_attr( $title_global ); ?>"
-						data-erankly-reset-confirm="<?php echo esc_attr( $confirm_global ); ?>"
-						data-erankly-reset-button="<?php echo esc_attr( $global_label ); ?>"
-					><?php echo esc_html( $global_label ); ?></button>
-				<?php endif; ?>
-			</p>
-			<noscript><p class="notice notice-warning inline"><?php esc_html_e( 'JavaScript is required to open the reset confirmation dialog. Enable JavaScript before using these destructive actions.', 'easyrankly' ); ?></p></noscript>
-		</section>
-	</div>
+					data-erankly-reset-action="reset_global"
+					data-erankly-reset-nonce="<?php echo esc_attr( wp_create_nonce( 'erankly_reset_global' ) ); ?>"
+					data-erankly-reset-title="<?php echo esc_attr( $title_global ); ?>"
+					data-erankly-reset-confirm="<?php echo esc_attr( $confirm_global ); ?>"
+					data-erankly-reset-button="<?php echo esc_attr( $global_label ); ?>"
+				><?php echo esc_html( $global_label ); ?></button>
+			<?php endif; ?>
+		</div>
+		<noscript><p class="notice notice-warning inline"><?php esc_html_e( 'JavaScript is required to open the reset confirmation dialog. Enable JavaScript before using these destructive actions.', 'easyrankly' ); ?></p></noscript>
+	<?php erankly_section_close(); ?>
 
 	<div class="erankly-modal-overlay" data-erankly-reset-modal hidden>
 		<div class="erankly-modal" role="alertdialog" aria-modal="true" aria-labelledby="erankly-reset-modal-title" aria-describedby="erankly-reset-modal-desc">

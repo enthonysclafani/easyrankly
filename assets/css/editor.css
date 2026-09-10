@@ -72,7 +72,9 @@
 	align-items: flex-start;
 }
 
-/* Action button rows: spaced away from the field, full width, evenly split. */
+/* Action button rows: spaced away from the field, full width, evenly split.
+   The block editor loads this file only (not admin-core.css), so the field
+   anatomy that spaces the row on the classic screens is not available here. */
 .erankly-field__actions {
 	display: flex;
 	gap: var(--erankly-space-2);

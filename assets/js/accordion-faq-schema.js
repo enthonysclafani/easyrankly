@@ -56,10 +56,6 @@
 						},
 						el( ToggleControl, {
 							label: __( 'Generate FAQ schema', 'easyrankly' ),
-							help: __(
-								'Output FAQPage JSON-LD from accordion titles and panel content. This is Schema.org markup; Google no longer shows FAQ rich results for most sites as of 2026.',
-								'easyrankly'
-							),
 							checked: !! attributes[ ATTRIBUTE ],
 							onChange: ( value ) => setAttributes( { [ ATTRIBUTE ]: value } ),
 						} )

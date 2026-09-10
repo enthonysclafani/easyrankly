@@ -139,13 +139,6 @@ function erankly_render_schema_block( array $block, string $index, string $name_
 				<?php erankly_render_schema_targeting_fields( $block, $index, $name_prefix, $enabled, '', true ); ?>
 			<?php endif; ?>
 			<?php erankly_render_schema_textarea_field( $index, $name_prefix, 'custom_json', __( 'JSON-LD code', 'easyrankly' ), $custom_json, 10 ); ?>
-			<p class="description">
-				<?php if ( $is_global ) : ?>
-					<?php esc_html_e( 'Paste one JSON-LD object or use a top-level @graph array for multiple schemas. Supports {{variables}}.', 'easyrankly' ); ?>
-				<?php else : ?>
-					<?php esc_html_e( 'One JSON-LD object or @graph array; supports {{variables}}.', 'easyrankly' ); ?>
-				<?php endif; ?>
-			</p>
 			<button type="button" class="button erankly-btn-danger erankly-schema-delete" data-erankly-remove-schema><?php esc_html_e( 'Delete', 'easyrankly' ); ?></button>
 		</div>
 	</details>
@@ -159,8 +152,14 @@ function erankly_render_schema_targeting_fields( array $block, string $index, st
 	$name_hash         = sanitize_html_class( md5( $name_prefix ) );
 	$is_custom_code    = 'custom-code' === $ui_context;
 	$id_prefix         = $is_custom_code ? 'erankly-code-' : 'erankly-schema-';
-	$include_items_id  = $id_prefix . sanitize_html_class( $index ) . '-' . $name_hash . '-include-items';
-	$exclude_items_id  = $id_prefix . sanitize_html_class( $index ) . '-' . $name_hash . '-exclude-items';
+	$id_base           = $id_prefix . sanitize_html_class( $index ) . '-' . $name_hash;
+	$include_items_id  = $id_base . '-include-items';
+	$exclude_items_id  = $id_base . '-exclude-items';
+	// One id per group label: the block's own name prefix and index keep them unique
+	// across the settings panels and the meta box on the same request.
+	$targeting_label_id  = $id_base . '-targeting-label';
+	$contexts_label_id   = $id_base . '-contexts-label';
+	$post_types_label_id = $id_base . '-post-types-label';
 	$contexts          = array(
 		'front_page'        => __( 'Front page', 'easyrankly' ),
 		'posts_page'        => __( 'Posts page', 'easyrankly' ),
@@ -175,38 +174,34 @@ function erankly_render_schema_targeting_fields( array $block, string $index, st
 		$contexts['404']      = __( '404 page', 'easyrankly' );
 	}
 	?>
-	<fieldset class="<?php echo $is_custom_code ? 'erankly-code-targeting' : 'erankly-schema-targeting'; ?>">
-		<legend><?php echo $is_custom_code ? esc_html__( 'Snippet application rules', 'easyrankly' ) : esc_html__( 'Global schema application rules', 'easyrankly' ); ?></legend>
+	<div class="<?php echo $is_custom_code ? 'erankly-code-targeting' : 'erankly-schema-targeting'; ?>" role="group" aria-labelledby="<?php echo esc_attr( $targeting_label_id ); ?>">
+		<span class="erankly-field-label" id="<?php echo esc_attr( $targeting_label_id ); ?>"><?php echo $is_custom_code ? esc_html__( 'Snippet application rules', 'easyrankly' ) : esc_html__( 'Global schema application rules', 'easyrankly' ); ?></span>
 		<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( $name_prefix ); ?>[<?php echo esc_attr( $index ); ?>][enabled]" value="1" <?php checked( $enabled ); ?>> <?php echo '' !== $toggle_label ? esc_html( $toggle_label ) : esc_html__( 'Enable this schema block', 'easyrankly' ); ?></label>
 		<div class="<?php echo $is_custom_code ? 'erankly-code-targeting-grid' : 'erankly-schema-targeting-grid'; ?>">
-			<fieldset class="<?php echo $is_custom_code ? 'erankly-code-targeting-group' : 'erankly-schema-targeting-group'; ?>">
-				<legend><?php esc_html_e( 'Apply on', 'easyrankly' ); ?></legend>
+			<div class="<?php echo $is_custom_code ? 'erankly-code-targeting-group' : 'erankly-schema-targeting-group'; ?>" role="group" aria-labelledby="<?php echo esc_attr( $contexts_label_id ); ?>">
+				<span class="erankly-field-label" id="<?php echo esc_attr( $contexts_label_id ); ?>"><?php esc_html_e( 'Apply on', 'easyrankly' ); ?></span>
 				<?php foreach ( $contexts as $context => $label ) : ?>
 					<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( $name_prefix ); ?>[<?php echo esc_attr( $index ); ?>][target_contexts][]" value="<?php echo esc_attr( $context ); ?>" <?php checked( in_array( $context, $target_contexts, true ) ); ?> data-erankly-target-context="<?php echo esc_attr( $context ); ?>"> <?php echo esc_html( $label ); ?></label>
 				<?php endforeach; ?>
-				<p class="description"><?php esc_html_e( 'Choose at least one context. A block with no context is saved as disabled and is never emitted.', 'easyrankly' ); ?></p>
-			</fieldset>
-			<fieldset class="<?php echo $is_custom_code ? 'erankly-code-targeting-group' : 'erankly-schema-targeting-group'; ?>" data-erankly-targeting-for="post-types">
-				<legend><?php esc_html_e( 'Post types', 'easyrankly' ); ?></legend>
-				<p class="description"><?php esc_html_e( 'Applies to singular content and post type archives. Leave empty to match every public type in those contexts. Post type archives with no types selected are saved as disabled.', 'easyrankly' ); ?></p>
+			</div>
+			<div class="<?php echo $is_custom_code ? 'erankly-code-targeting-group' : 'erankly-schema-targeting-group'; ?>" data-erankly-targeting-for="post-types" role="group" aria-labelledby="<?php echo esc_attr( $post_types_label_id ); ?>">
+				<span class="erankly-field-label" id="<?php echo esc_attr( $post_types_label_id ); ?>"><?php esc_html_e( 'Post types', 'easyrankly' ); ?></span>
 				<?php foreach ( erankly_get_public_post_types() as $post_type => $object ) : ?>
 					<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( $name_prefix ); ?>[<?php echo esc_attr( $index ); ?>][target_post_types][]" value="<?php echo esc_attr( $post_type ); ?>" <?php checked( in_array( $post_type, $target_post_types, true ) ); ?>> <?php echo esc_html( $object->labels->singular_name ); ?></label>
 				<?php endforeach; ?>
-			</fieldset>
+			</div>
 		</div>
 		<div class="<?php echo $is_custom_code ? 'erankly-code-targeting-grid' : 'erankly-schema-targeting-grid'; ?>" data-erankly-targeting-for="include-exclude">
 			<div class="erankly-field">
 				<label for="<?php echo esc_attr( $include_items_id ); ?>"><?php esc_html_e( 'Include IDs or slugs', 'easyrankly' ); ?></label>
 				<textarea id="<?php echo esc_attr( $include_items_id ); ?>" class="widefat" rows="3" name="<?php echo esc_attr( $name_prefix ); ?>[<?php echo esc_attr( $index ); ?>][include_items]"><?php echo esc_textarea( $include_items ); ?></textarea>
-				<p class="description"><?php esc_html_e( 'Optional. Limits the block to matching singular posts, terms, or authors. Has no effect on front page, search, date archives, or 404.', 'easyrankly' ); ?></p>
 			</div>
 			<div class="erankly-field">
 				<label for="<?php echo esc_attr( $exclude_items_id ); ?>"><?php esc_html_e( 'Exclude IDs or slugs', 'easyrankly' ); ?></label>
 				<textarea id="<?php echo esc_attr( $exclude_items_id ); ?>" class="widefat" rows="3" name="<?php echo esc_attr( $name_prefix ); ?>[<?php echo esc_attr( $index ); ?>][exclude_items]"><?php echo esc_textarea( $exclude_items ); ?></textarea>
-				<p class="description"><?php esc_html_e( 'Optional. Skips matching singular posts, terms, or authors.', 'easyrankly' ); ?></p>
 			</div>
 		</div>
-	</fieldset>
+	</div>
 	<?php
 }
 function erankly_render_custom_code_block( array $block, string $index, string $name_prefix, bool $can_unfiltered ): void {

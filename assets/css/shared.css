@@ -22,7 +22,6 @@
 	--erankly-space-help: var(--erankly-space-1);
 	--erankly-space-field: var(--erankly-space-4);
 	--erankly-space-section: var(--erankly-space-5);
-	--erankly-space-divider: var(--erankly-space-6);
 
 	--erankly-color-border: #dcdcde;
 	--erankly-color-border-strong: #949494;
@@ -51,8 +50,6 @@
 	   {{variable}} preview overlay's unavailable marker). Kept apart from
 	   --erankly-color-warning, which flags something the user should act on. */
 	--erankly-color-orange: #c2410c;
-	--erankly-color-orange-surface: #fdf3ee;
-	--erankly-color-orange-border: #f0c2a8;
 	--erankly-shadow-popover: 0 4px 12px rgba(0, 0, 0, 0.12);
 	--erankly-font-mono: Consolas, Monaco, monospace;
 }
@@ -147,6 +144,12 @@
 	padding: var(--erankly-space-2) var(--erankly-space-3);
 	text-align: left;
 	width: 100%;
+}
+
+/* The display above beats the UA [hidden] { display: none }: without this the
+ * picker's search filter could not hide the options that do not match. */
+.erankly-variable-option[hidden] {
+	display: none;
 }
 
 .erankly-variable-option:hover,

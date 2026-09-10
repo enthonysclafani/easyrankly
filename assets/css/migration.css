@@ -25,7 +25,6 @@
 	flex-wrap: wrap;
 	font-size: 12px;
 	gap: var(--erankly-space-2);
-	margin: 0 0 var(--erankly-space-5);
 }
 
 .erankly-migration-context strong {
@@ -62,7 +61,6 @@
 	gap: var(--erankly-space-3);
 	grid-template-columns: repeat(3, minmax(0, 1fr));
 	list-style: none;
-	margin: var(--erankly-space-section) 0;
 	padding: 0;
 }
 
@@ -135,7 +133,6 @@
 	display: grid;
 	grid-template-columns: repeat(3, minmax(0, 1fr));
 	list-style: none;
-	margin: 0 0 var(--erankly-space-5);
 	padding: 0;
 }
 
@@ -177,7 +174,6 @@
 	display: flex;
 	flex-wrap: wrap;
 	gap: var(--erankly-space-2);
-	margin: 0 0 var(--erankly-space-5);
 }
 
 .erankly-migration-primary-action form {
@@ -188,7 +184,6 @@
 	background: var(--erankly-color-error-surface);
 	border: 1px solid var(--erankly-color-error-border);
 	border-radius: var(--erankly-radius-surface);
-	margin: 0 0 var(--erankly-space-5);
 	padding: var(--erankly-space-4);
 }
 
@@ -212,7 +207,6 @@
 	border: 1px solid var(--erankly-color-border);
 	border-radius: var(--erankly-radius-surface);
 	box-sizing: border-box;
-	margin: var(--erankly-space-3) 0 0;
 }
 
 .erankly-migration-disclosure > summary {
@@ -277,10 +271,6 @@
 	flex-wrap: wrap;
 	gap: var(--erankly-space-2);
 	margin-top: var(--erankly-space-4);
-}
-
-.erankly-migration-progress .erankly-migration-metrics {
-	margin-top: var(--erankly-space-5);
 }
 
 .erankly-migration-back {
@@ -421,5 +411,4 @@
 	flex-wrap: wrap;
 	align-items: center;
 	gap: var(--erankly-space-2);
-	margin-top: var(--erankly-space-3);
 }

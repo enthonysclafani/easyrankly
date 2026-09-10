@@ -141,17 +141,11 @@ final class ERankly_Redirects_Admin {
 		?>
 			<?php $this->render_notices(); ?>
 
-			<div class="erankly-settings-section">
-				<div class="erankly-section-title-row">
-					<h2 class="erankly-section-title"><?php echo $edit_redirect ? esc_html__( 'Edit Redirect', 'easyrankly' ) : esc_html__( 'Add Redirect', 'easyrankly' ); ?></h2>
-					<?php erankly_render_section_doc_link( 'redirect-form' ); ?>
-				</div>
-				<section class="erankly-card">
-					<p class="description"><?php esc_html_e( 'Redirects do not run for logged-in administrators. Test saved rules in a signed-out or incognito window.', 'easyrankly' ); ?></p>
-					<?php $this->render_redirect_form( $edit_redirect, $prefill, $table_state ); ?>
-				</section>
-			</div>
+			<?php erankly_section_open( $edit_redirect ? __( 'Edit Redirect', 'easyrankly' ) : __( 'Add Redirect', 'easyrankly' ), array( 'doc' => 'redirect-form' ) ); ?>
+				<?php $this->render_redirect_form( $edit_redirect, $prefill, $table_state ); ?>
+			<?php erankly_section_close(); ?>
 
+			<?php /* Kept inline: this section carries the id and the expandable hook that erankly_section_open() does not express. */ ?>
 			<div class="erankly-settings-section erankly-panel-expandable" id="erankly-redirects-table-wrap" data-erankly-expandable>
 				<div class="erankly-section-title-row">
 					<h2 class="erankly-section-title"><?php esc_html_e( 'Redirect rules', 'easyrankly' ); ?></h2>
@@ -416,13 +410,11 @@ final class ERankly_Redirects_Admin {
 			<label>
 				<span><?php esc_html_e( 'Source URL', 'easyrankly' ); ?></span>
 				<input type="text" name="source_path" value="<?php echo esc_attr( $source_path ); ?>" required placeholder="/old-page">
-				<span class="description"><?php esc_html_e( 'If this value contains a query string, it is moved to “Required query string” and matched exactly.', 'easyrankly' ); ?></span>
 			</label>
 
 			<details class="erankly-settings-details erankly-redirects-advanced"<?php echo $advanced_open ? ' open' : ''; ?>>
 				<summary><?php esc_html_e( 'Advanced matching', 'easyrankly' ); ?></summary>
 				<div class="erankly-settings-details-content">
-					<p class="description"><?php esc_html_e( 'Use these controls only when one exact source path is not enough. Exact rules take precedence over wildcard rules, which take precedence over regular expressions.', 'easyrankly' ); ?></p>
 					<div class="erankly-field">
 						<label for="erankly-redirects-match-type"><?php esc_html_e( 'Match type', 'easyrankly' ); ?></label>
 						<select name="match_type" id="erankly-redirects-match-type">
@@ -445,7 +437,6 @@ final class ERankly_Redirects_Admin {
 					<div class="erankly-field" id="erankly-redirects-source-query-field">
 						<label for="erankly-redirects-source-query"><?php esc_html_e( 'Required query string', 'easyrankly' ); ?></label>
 						<input type="text" name="source_query" id="erankly-redirects-source-query" value="<?php echo esc_attr( $source_query ); ?>" placeholder="product=123&amp;view=compact">
-						<p class="description"><?php esc_html_e( 'Enter the query string without the leading question mark. Parameter order is significant.', 'easyrankly' ); ?></p>
 					</div>
 
 					<div class="erankly-field erankly-checkboxes">
@@ -460,7 +451,6 @@ final class ERankly_Redirects_Admin {
 							<button type="button" class="button" id="erankly-redirects-test-button"><?php esc_html_e( 'Test rule', 'easyrankly' ); ?></button>
 						</div>
 						<p class="description" id="erankly-redirects-test-result" aria-live="polite"></p>
-						<p class="description"><?php esc_html_e( 'This test checks normalization and matching only. It does not reproduce the logged-in administrator exclusion, loop detection, or the final safe redirect.', 'easyrankly' ); ?></p>
 					</div>
 				</div>
 			</details>

@@ -111,6 +111,11 @@
 	overflow-wrap: anywhere;
 }
 
+/* The display above beats the UA stylesheet's [hidden] { display: none }: the Advanced tab is hidden with that attribute while Simplified mode is on. */
+.erankly-settings-nav-item[hidden] {
+	display: none;
+}
+
 .erankly-settings-nav-item .erankly-nav-icon {
 	flex-shrink: 0;
 	height: 18px;
@@ -160,8 +165,8 @@
 	margin-top: 0;
 }
 
-.erankly-settings-content > form > .erankly-tab-panel,
-.erankly-settings-content > .erankly-tab-panel {
+.erankly-settings-content > form > .erankly-settings-panel,
+.erankly-settings-content > .erankly-settings-panel {
 	margin-top: 0;
 }
 
@@ -275,98 +280,195 @@
 	box-shadow: 0 0 0 1px var(--erankly-color-surface), 0 0 0 3px var(--erankly-color-danger);
 }
 
-.erankly-field {
-	margin: 0 0 var(--erankly-space-field);
+/*
+ * Field anatomy: label, control and help text, stacked with one 8px gap on
+ * every classic admin surface. Same model as .erankly-card: the container owns
+ * the rhythm and its children carry no vertical margin of their own — not the
+ * 1em wp-admin gives every <p>, not the 16px the redirects form gives every
+ * label. Change the rhythm here, once, instead of on the individual children.
+ *
+ * Every one of these is a plain container: the group labels use
+ * .erankly-field-label rather than <legend>, because a legend is not a flex
+ * item (Chrome and Firefox paint it outside the flex flow, WebKit inside it),
+ * so a gap could never reach it consistently across browsers.
+ */
+.erankly-field,
+.erankly-schema-field,
+.erankly-code-field,
+.erankly-media-url-field,
+.erankly-schema-targeting,
+.erankly-schema-targeting-group,
+.erankly-code-targeting,
+.erankly-code-targeting-group,
+.erankly-post-type-schema-row {
+	display: flex;
+	flex-direction: column;
+	gap: var(--erankly-space-label);
 	min-width: 0;
 }
 
 /*
- * Field anatomy: one label-to-control gap on every classic admin surface.
- * Help text after a control uses the tighter help gap; help text between a
- * label and its control keeps the label gap below it.
+ * The author display above beats the UA stylesheet's [hidden] { display: none },
+ * so a field the markup or the JS hides needs its own rule. Same reason as
+ * .erankly-card[hidden] below. The list mirrors the one above: keep them in sync.
  */
+.erankly-field[hidden],
+.erankly-schema-field[hidden],
+.erankly-code-field[hidden],
+.erankly-media-url-field[hidden],
+.erankly-schema-targeting[hidden],
+.erankly-schema-targeting-group[hidden],
+.erankly-code-targeting[hidden],
+.erankly-code-targeting-group[hidden],
+.erankly-post-type-schema-row[hidden] {
+	display: none;
+}
+
+/* stylelint-disable declaration-no-important -- Field children carry vertical margins elsewhere: wp-admin gives every <p> 1em and the redirects form gives labels 16px, and those stylesheets load after this one. The card below uses the same reset for the same reason. */
+.erankly-field > *,
+.erankly-schema-field > *,
+.erankly-code-field > *,
+.erankly-media-url-field > *,
+.erankly-schema-targeting > *,
+.erankly-schema-targeting-group > *,
+.erankly-code-targeting > *,
+.erankly-code-targeting-group > *,
+.erankly-post-type-schema-row > * {
+	margin-bottom: 0 !important;
+	margin-top: 0 !important;
+}
+/* stylelint-enable declaration-no-important */
+
+.erankly-field {
+	margin: 0 0 var(--erankly-space-field);
+}
+
+/* Label of a field: block flow and weight, no spacing of its own. */
+.erankly-field-label {
+	display: block;
+	font-weight: 600;
+}
+
 .erankly-field > label,
-.erankly-field > .erankly-field-label,
-.erankly-field > legend,
 .erankly-schema-field > label,
 .erankly-code-field > label,
 .erankly-redirects-form label > span {
 	display: block;
-	margin: 0 0 var(--erankly-space-label);
-}
-
-.erankly-field:not(fieldset) > label,
-.erankly-field > .erankly-field-label,
-.erankly-field > legend,
-.erankly-schema-field > label,
-.erankly-code-field > label,
-.erankly-redirects-form label > span {
 	font-weight: 600;
 }
 
+/* Help text and character counter after a control. */
 .erankly-field > .description,
 .erankly-field > p.description,
 .erankly-meta-box .description,
 .erankly-character-counter {
 	display: block;
-	margin: var(--erankly-space-help) 0 0;
 }
 
 /*
- * Caption label, then help, then control: tighten label→help (4px) and keep
- * the label gap below the help. Skip labels that wrap a control (toggles);
- * those already are the control, so help uses the after-control gap above.
+ * A help placeholder that JavaScript fills later (an empty live region, e.g.
+ * the redirect rule test result) would otherwise hold a gap slot open while
+ * it has no content. Out of flow only while empty, so it still gets announced
+ * when it is written to — display: none would silence the live region.
  */
-.erankly-field > label:not(:has(input, select, textarea)):has(+ .description),
-.erankly-field > label:not(:has(input, select, textarea)):has(+ p.description),
-.erankly-field > .erankly-field-label:has(+ .description),
-.erankly-field > .erankly-field-label:has(+ p.description),
-.erankly-field > legend:has(+ .description),
-.erankly-field > legend:has(+ p.description) {
-	margin-bottom: var(--erankly-space-help);
+.erankly-field > .description:empty {
+	position: absolute;
 }
 
-.erankly-field > label:not(:has(input, select, textarea)) + .description,
-.erankly-field > label:not(:has(input, select, textarea)) + p.description,
-.erankly-field > .erankly-field-label + .description,
-.erankly-field > .erankly-field-label + p.description,
-.erankly-field > legend + .description,
-.erankly-field > legend + p.description {
-	margin: 0 0 var(--erankly-space-label);
-}
-
-.erankly-field > label:has(input, select, textarea) {
-	margin-bottom: 0;
+/*
+ * widefat textareas are inline-block: the line box adds a stray descender
+ * (~4px) below each one, which would leave the gap to the help text wider
+ * than the field's rhythm. Block display removes it.
+ */
+.erankly-field textarea.widefat,
+.erankly-schema-field textarea.widefat,
+.erankly-code-field textarea.widefat {
+	display: block;
 }
 
 /*
  * Card: the single container class shared by every settings section on
  * every screen (single-site, Network Admin and per-site on Multisite).
  * Restyle sections everywhere by editing this one block.
+ *
+ * The card owns the vertical rhythm of its own content: it stacks its
+ * children with one 16px gap and they never carry vertical margins of their
+ * own (not even the 1em wp-admin gives every <p>). Change the rhythm here,
+ * once, instead of on the individual children.
  */
 .erankly-card {
 	background: var(--erankly-color-surface);
 	border: 1px solid var(--erankly-color-border);
 	border-radius: var(--erankly-radius-surface);
 	box-sizing: border-box;
+	display: flex;
+	flex-direction: column;
+	gap: var(--erankly-space-field);
 	margin: 0 0 var(--erankly-space-section);
-	max-width: 720px;
 	padding: var(--erankly-space-section);
 }
 
+/*
+ * The card owns the vertical rhythm: no child margin may add to its gap.
+ * See the stylelint note below for why this reset has to be final.
+ */
+/* stylelint-disable declaration-no-important -- Card children carry vertical margins elsewhere: wp-admin gives every <p> 1em and the .notice rule in admin-settings.css gives 16px, so only an important reset keeps the card's gap authoritative. */
+.erankly-card > * {
+	margin-bottom: 0 !important;
+	margin-top: 0 !important;
+}
+/* stylelint-enable declaration-no-important */
+
+/* display: flex beats the UA stylesheet's [hidden] { display: none }. */
+.erankly-card[hidden],
+.erankly-settings-panel[hidden],
+.erankly-settings-section[hidden] {
+	display: none;
+}
+
+/* Section: heading row above the card, one 8px gap between the two. */
 .erankly-settings-section {
+	display: flex;
+	flex-direction: column;
+	gap: var(--erankly-space-label);
 	margin: 0 0 var(--erankly-space-section);
 	max-width: 720px;
 }
 
-.erankly-settings-section > .erankly-card {
-	margin-bottom: 0;
-	max-width: none;
+.erankly-settings-section > * {
+	margin: 0;
+}
+
+/*
+ * Panel: like the card, the panel owns the vertical rhythm of its children with
+ * one 24px gap. The sections drop their own bottom margin, so the last visible
+ * one never trails a margin below the panel — a section can be hidden by
+ * simplified mode, which makes ":last-child" the wrong tool for it.
+ */
+.erankly-settings-panel {
+	display: flex;
+	flex-direction: column;
+	gap: var(--erankly-space-section);
+}
+
+/* stylelint-disable declaration-no-important -- Panel children carry vertical margins elsewhere: wp-admin gives every <p> 1em and the .notice rule in admin-settings.css gives 16px, so only an important reset keeps the panel's gap authoritative — exactly as with .erankly-card > * above. */
+.erankly-settings-panel > *,
+.erankly-settings-panel > form > * {
+	margin-bottom: 0 !important;
+	margin-top: 0 !important;
+}
+/* stylelint-enable declaration-no-important */
+
+/* Row of actions closing a card: one button on its own or a pair. */
+.erankly-card-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--erankly-space-2);
 }
 
 /* Shared section heading. */
 .erankly-section-title,
-.erankly-global-meta-default h4 {
+.erankly-tabs-panel h4 {
 	color: var(--erankly-color-muted);
 	font-size: 12px;
 	font-weight: 600;
@@ -375,30 +477,15 @@
 	text-transform: uppercase;
 }
 
-.erankly-section-title {
-	max-width: 720px;
-}
-
 /* Section heading row: title on one side, documentation link on the other. */
 .erankly-section-title-row {
-	display: flex;
 	align-items: baseline;
-	justify-content: space-between;
+	display: flex;
 	gap: 12px;
-	margin: 0 0 var(--erankly-space-label);
-	max-width: 720px;
+	justify-content: space-between;
 }
 
 .erankly-section-title-row .erankly-section-title {
-	margin-bottom: 0;
-}
-
-.erankly-card > :first-child {
-	margin-top: 0;
-}
-
-.erankly-card > :last-child,
-.erankly-card .erankly-field:last-child > :last-child {
 	margin-bottom: 0;
 }
 
@@ -578,7 +665,6 @@
  * bordered table. Behavior is wired by bindExpandablePanel() in admin.js.
  */
 .erankly-panel-expandable {
-	max-width: 720px;
 	transition: max-width 0.15s ease;
 }
 
@@ -586,23 +672,11 @@
 	max-width: none;
 }
 
-/* Consistent vertical rhythm between the card's stacked children (intro text,
-   toolbar, table, notices, summary, action button) so every gap matches. */
-.erankly-panel-expandable > .erankly-card > * {
-	margin-top: 0;
-	margin-bottom: var(--erankly-space-3);
-}
-
-.erankly-panel-expandable > .erankly-card > *:last-child {
-	margin-bottom: 0;
-}
-
 .erankly-panel-toolbar {
 	align-items: center;
 	display: flex;
 	gap: var(--erankly-space-2);
 	justify-content: space-between;
-	margin: 0 0 var(--erankly-space-3);
 }
 
 .button.erankly-panel-expand-toggle {
@@ -662,9 +736,9 @@
 /*
  * Invalid custom JSON-LD is dropped when the block is saved, so the builder
  * flags it inline while typing instead of letting the paste disappear.
+ * Spacing comes from the field anatomy, like any other child of the field.
  */
 .erankly-schema-json-error {
-	margin: var(--erankly-space-help) 0 0;
 	color: var(--erankly-color-error);
 	font-size: 12px;
 }
@@ -677,19 +751,6 @@ textarea.erankly-is-invalid {
 	display: flex;
 	flex-wrap: wrap;
 	gap: var(--erankly-space-2);
-	margin-bottom: var(--erankly-space-3);
-}
-
-.erankly-post-type-schema-row {
-	border: 0;
-	margin: 0 0 var(--erankly-space-section);
-	min-width: 0;
-	padding: 0;
-}
-
-.erankly-post-type-schema-row > legend {
-	float: none;
-	padding: 0;
 }
 
 /* TEMP: nasconde la sezione "Useful resources" finché il sito non è pronto — da rimuovere */

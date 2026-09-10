@@ -126,6 +126,7 @@ function erankly_render_post_general_fields( WP_Post $post ): void {
 					'taxonomy'          => $taxonomy,
 					'name'              => 'erankly_primary_terms[' . $taxonomy . ']',
 					'id'                => $primary_select_id,
+					'class'             => 'widefat',
 					'selected'          => isset( $primary_terms[ $taxonomy ] ) ? absint( $primary_terms[ $taxonomy ] ) : 0,
 					'show_option_none'  => __( 'Automatic', 'easyrankly' ),
 					'option_none_value' => 0,
@@ -209,7 +210,6 @@ function erankly_render_post_social_fields( WP_Post $post ): void {
 		?>
 		<label for="erankly-social-image-alt"><?php esc_html_e( 'Social image alt text', 'easyrankly' ); ?></label>
 		<input id="erankly-social-image-alt" class="widefat" type="text" name="erankly_og_image_alt" value="<?php echo esc_attr( $social_image_alt ); ?>">
-		<span class="description"><?php esc_html_e( 'Shared by Open Graph and X. If blank, uses the Media Library alt text.', 'easyrankly' ); ?></span>
 	</div>
 	<div class="erankly-field">
 		<label for="erankly-twitter-image-url"><?php esc_html_e( 'X (Twitter) image URL', 'easyrankly' ); ?></label>
@@ -223,7 +223,6 @@ function erankly_render_post_social_fields( WP_Post $post ): void {
 		?>
 		<label for="erankly-twitter-image-alt"><?php esc_html_e( 'X image alt text override', 'easyrankly' ); ?></label>
 		<input id="erankly-twitter-image-alt" class="widefat" type="text" name="erankly_twitter_image_alt" value="<?php echo esc_attr( $twitter_image_alt ); ?>">
-		<span class="description"><?php esc_html_e( 'For a different X image only. If blank, uses that image’s Media Library alt text.', 'easyrankly' ); ?></span>
 	</div>
 	<?php do_action( 'erankly_post_social_fields_after', $post ); ?>
 	<?php
@@ -249,7 +248,6 @@ function erankly_render_post_visibility_fields( WP_Post $post ): void {
 		<input type="hidden" name="erankly_existing_index_directive" value="<?php echo esc_attr( $index_directive ); ?>">
 		<input type="hidden" name="erankly_existing_hide" value="<?php echo $hide_from_search_results ? '1' : '0'; ?>">
 		<label><input type="checkbox" class="erankly-toggle" name="erankly_hide_from_search_results" value="1" <?php checked( $hide_from_search_results ); ?>> <?php esc_html_e( 'Hide from search results', 'easyrankly' ); ?></label>
-		<span class="description"><?php esc_html_e( 'Adds noindex and removes this page from the sitemap; other robots rules stay unchanged.', 'easyrankly' ); ?></span>
 	</div>
 	<?php else : ?>
 		<?php
@@ -269,11 +267,11 @@ function erankly_render_post_visibility_fields( WP_Post $post ): void {
 		);
 		?>
 	<?php endif; ?>
-	<fieldset class="erankly-field erankly-checkboxes">
-		<legend><?php esc_html_e( 'Archives', 'easyrankly' ); ?></legend>
+	<div class="erankly-field erankly-checkboxes" role="group" aria-labelledby="erankly-post-archives-label">
+		<span class="erankly-field-label" id="erankly-post-archives-label"><?php esc_html_e( 'Archives', 'easyrankly' ); ?></span>
 		<label><input type="checkbox" class="erankly-toggle" name="erankly_exclude_search" value="1" <?php checked( $exclude_search ); ?>> <?php esc_html_e( 'Exclude from site search', 'easyrankly' ); ?></label>
 		<label><input type="checkbox" class="erankly-toggle" name="erankly_exclude_archive" value="1" <?php checked( $exclude_archive ); ?>> <?php esc_html_e( 'Exclude from archives', 'easyrankly' ); ?></label>
-	</fieldset>
+	</div>
 	<?php if ( (bool) erankly_get_setting( 'enable_news_sitemap', 0 ) ) : ?>
 	<div class="erankly-field erankly-checkboxes">
 		<label><input type="checkbox" class="erankly-toggle" name="erankly_exclude_from_news" value="1" <?php checked( $exclude_from_news ); ?>> <?php esc_html_e( 'Exclude this page from Google News sitemap', 'easyrankly' ); ?></label>
@@ -369,7 +367,7 @@ function erankly_render_post_schema_fields( WP_Post $post ): void {
 	<div class="erankly-post-schema" data-erankly-post-schema data-erankly-schema-mode="<?php echo esc_attr( $mode ); ?>">
 	<div class="erankly-field">
 		<label for="erankly-schema-mode"><?php esc_html_e( 'Schema mode', 'easyrankly' ); ?></label>
-		<select id="erankly-schema-mode" name="erankly_schema_mode" data-erankly-schema-mode-select>
+		<select id="erankly-schema-mode" class="widefat" name="erankly_schema_mode" data-erankly-schema-mode-select>
 			<option value="default" <?php selected( $mode, 'default' ); ?>><?php esc_html_e( 'Automatic schema', 'easyrankly' ); ?></option>
 			<option value="merge" <?php selected( $mode, 'merge' ); ?>><?php esc_html_e( 'Automatic + custom schema', 'easyrankly' ); ?></option>
 			<option value="replace" <?php selected( $mode, 'replace' ); ?>><?php esc_html_e( 'Custom schema only', 'easyrankly' ); ?></option>
@@ -391,7 +389,6 @@ function erankly_render_post_schema_fields( WP_Post $post ): void {
 	</div>
 	<div class="erankly-field" data-erankly-schema-generated-controls>
 		<span class="erankly-field-label" id="erankly-schema-disabled-types-label"><?php esc_html_e( 'Suppress generated schema types', 'easyrankly' ); ?></span>
-		<p class="description"><?php esc_html_e( 'Hides matching nodes from the automatic graph and from site-wide schema blocks. Custom JSON-LD on this content is never suppressed. Comparison is case-insensitive.', 'easyrankly' ); ?></p>
 		<div class="erankly-schema-type-tokens" role="group" aria-labelledby="erankly-schema-disabled-types-label">
 			<?php
 			$selected_lower = array_map( 'strtolower', $disabled_types );
@@ -600,8 +597,7 @@ function erankly_render_term_meta_fields( int $term_id, string $taxonomy ): void
 			?>
 			<label for="erankly-term-social-image-alt-<?php echo esc_attr( $id_suffix ); ?>"><?php esc_html_e( 'Social image alt text', 'easyrankly' ); ?></label>
 			<input id="erankly-term-social-image-alt-<?php echo esc_attr( $id_suffix ); ?>" class="widefat" type="text" name="erankly_og_image_alt" value="<?php echo esc_attr( $social_image_alt ); ?>">
-			<span class="description"><?php esc_html_e( 'Shared by Open Graph and X. If blank, uses the Media Library alt text.', 'easyrankly' ); ?></span>
-		</div>
+			</div>
 		<div class="erankly-field">
 			<label for="erankly-term-twitter-image-url-<?php echo esc_attr( $id_suffix ); ?>"><?php esc_html_e( 'X (Twitter) image URL', 'easyrankly' ); ?></label>
 			<?php
@@ -614,8 +610,7 @@ function erankly_render_term_meta_fields( int $term_id, string $taxonomy ): void
 			?>
 			<label for="erankly-term-twitter-image-alt-<?php echo esc_attr( $id_suffix ); ?>"><?php esc_html_e( 'X image alt text override', 'easyrankly' ); ?></label>
 			<input id="erankly-term-twitter-image-alt-<?php echo esc_attr( $id_suffix ); ?>" class="widefat" type="text" name="erankly_twitter_image_alt" value="<?php echo esc_attr( $twitter_image_alt ); ?>">
-			<span class="description"><?php esc_html_e( 'For a different X image only. If blank, uses that image’s Media Library alt text.', 'easyrankly' ); ?></span>
-		</div>
+			</div>
 		<?php do_action( 'erankly_term_social_fields_after', $term_id, $id_suffix ); ?>
 		<?php endif; ?>
 		<?php if ( $simplified_mode ) : ?>

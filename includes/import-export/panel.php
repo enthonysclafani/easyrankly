@@ -64,89 +64,64 @@ function erankly_import_export_render_panel(): void {
 		return;
 	}
 	?>
-		<div class="erankly-settings-section">
-			<div class="erankly-section-title-row">
-				<h2 class="erankly-section-title"><?php esc_html_e( 'Export', 'easyrankly' ); ?></h2>
-				<?php erankly_render_section_doc_link( 'export' ); ?>
-			</div>
-			<section class="erankly-card">
-				<p class="description"><?php esc_html_e( 'Download a JSON backup of your EasyRankly settings, redirects and SEO metadata.', 'easyrankly' ); ?></p>
-				<?php if ( is_multisite() ) : ?>
-					<p class="description"><?php esc_html_e( 'On this network the file holds the network-wide settings plus this primary site\'s content (redirects, post/term metadata, special page defaults), not a whole-network export of every site.', 'easyrankly' ); ?></p>
-				<?php endif; ?>
-				<p><a class="button button-primary" href="<?php echo esc_url( $export_url ); ?>"><?php esc_html_e( 'Export data', 'easyrankly' ); ?></a></p>
-			</section>
-		</div>
+		<?php erankly_section_open( __( 'Export', 'easyrankly' ), array( 'doc' => 'export' ) ); ?>
+			<div class="erankly-card-actions"><a class="button button-primary" href="<?php echo esc_url( $export_url ); ?>"><?php esc_html_e( 'Export data', 'easyrankly' ); ?></a></div>
+		<?php erankly_section_close(); ?>
 
-		<div class="erankly-settings-section">
-			<div class="erankly-section-title-row">
-				<h2 class="erankly-section-title"><?php esc_html_e( 'Import', 'easyrankly' ); ?></h2>
-				<?php erankly_render_section_doc_link( 'import' ); ?>
-			</div>
-			<section class="erankly-card">
-				<p class="description"><?php esc_html_e( 'Upload a JSON file previously exported by EasyRankly. Settings, redirects and special page defaults are replaced; post and term metadata is matched by ID and overwritten.', 'easyrankly' ); ?></p>
-				<p class="description">
-					<?php
-					printf(
-						/* translators: %s: maximum safe complete-import size. */
-						esc_html__( 'For memory safety, complete JSON imports are limited to %s on this request.', 'easyrankly' ),
-						esc_html( size_format( $import_max ) )
-					);
-					?>
-				</p>
-				<form method="post" action="<?php echo esc_url( $action_url ); ?>" enctype="multipart/form-data" class="erankly-io-form">
-					<?php wp_nonce_field( 'erankly_io_import' ); ?>
-					<input type="hidden" name="erankly_io_action" value="import">
-					<input type="hidden" name="MAX_FILE_SIZE" value="<?php echo esc_attr( (string) $import_max ); ?>">
-					<label class="erankly-dropzone" data-erankly-file-dropzone for="erankly-import-file">
-						<input type="file" id="erankly-import-file" name="erankly_import_file" accept=".json,application/json" required class="erankly-dropzone-input" data-erankly-file-dropzone-input>
-						<span class="erankly-dropzone-icon" aria-hidden="true">
-							<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-								<path d="M12 15.5V4M12 4L8 8M12 4l4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-								<path d="M4 15.5v3a2 2 0 002 2h12a2 2 0 002-2v-3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-							</svg>
-						</span>
-						<span class="erankly-dropzone-text" data-erankly-file-dropzone-text>
-							<strong><?php esc_html_e( 'Click to choose a file', 'easyrankly' ); ?></strong>
-							<?php esc_html_e( 'or drag and drop a JSON file here', 'easyrankly' ); ?>
-						</span>
-					</label>
-					<?php submit_button( __( 'Import file', 'easyrankly' ), 'secondary', 'submit', false ); ?>
-				</form>
-			</section>
-		</div>
+		<?php erankly_section_open( __( 'Import', 'easyrankly' ), array( 'doc' => 'import' ) ); ?>
+			<p class="description">
+				<?php
+				printf(
+					/* translators: %s: maximum safe complete-import size. */
+					esc_html__( 'For memory safety, complete JSON imports are limited to %s on this request.', 'easyrankly' ),
+					esc_html( size_format( $import_max ) )
+				);
+				?>
+			</p>
+			<form method="post" action="<?php echo esc_url( $action_url ); ?>" enctype="multipart/form-data" class="erankly-io-form">
+				<?php wp_nonce_field( 'erankly_io_import' ); ?>
+				<input type="hidden" name="erankly_io_action" value="import">
+				<input type="hidden" name="MAX_FILE_SIZE" value="<?php echo esc_attr( (string) $import_max ); ?>">
+				<label class="erankly-dropzone" data-erankly-file-dropzone for="erankly-import-file">
+					<input type="file" id="erankly-import-file" name="erankly_import_file" accept=".json,application/json" required class="erankly-dropzone-input" data-erankly-file-dropzone-input>
+					<span class="erankly-dropzone-icon" aria-hidden="true">
+						<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+							<path d="M12 15.5V4M12 4L8 8M12 4l4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+							<path d="M4 15.5v3a2 2 0 002 2h12a2 2 0 002-2v-3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+						</svg>
+					</span>
+					<span class="erankly-dropzone-text" data-erankly-file-dropzone-text>
+						<strong><?php esc_html_e( 'Click to choose a file', 'easyrankly' ); ?></strong>
+						<?php esc_html_e( 'or drag and drop a JSON file here', 'easyrankly' ); ?>
+					</span>
+				</label>
+				<?php submit_button( __( 'Import file', 'easyrankly' ), 'secondary', 'submit', false ); ?>
+			</form>
+		<?php erankly_section_close(); ?>
 
 		<?php if ( $has_any_source ) : ?>
-		<div class="erankly-settings-section">
-			<div class="erankly-section-title-row">
-				<h2 class="erankly-section-title"><?php esc_html_e( 'Import from other plugins', 'easyrankly' ); ?></h2>
-				<?php erankly_render_section_doc_link( 'import-other-plugins' ); ?>
-			</div>
-			<section class="erankly-card">
-				<p class="description"><?php esc_html_e( 'Migrate Free and PRO data: titles, descriptions, canonicals, separate social images, robots directives, primary terms, schemas and redirects. Existing EasyRankly values and unrelated redirects are preserved and reported as conflicts.', 'easyrankly' ); ?></p>
+		<?php erankly_section_open( __( 'Import from other plugins', 'easyrankly' ), array( 'doc' => 'import-other-plugins' ) ); ?>
 			<?php if ( ! is_array( $active_job ) ) : ?>
-					<form method="post" action="<?php echo esc_url( $action_url ); ?>" class="erankly-io-third-party">
-						<?php wp_nonce_field( 'erankly_io_third_party' ); ?>
-						<input type="hidden" name="erankly_io_action" value="migrate">
-						<label class="screen-reader-text" for="erankly-io-source"><?php esc_html_e( 'Source plugin', 'easyrankly' ); ?></label>
-						<select name="erankly_migration_source" id="erankly-io-source">
-							<?php foreach ( $sources as $key => $label ) : ?>
-								<?php if ( $source_availability[ $key ] ) : ?>
-									<option value="<?php echo esc_attr( $key ); ?>" <?php selected( $key, $default_source ); ?>><?php echo esc_html( $label ); ?></option>
-								<?php else : ?>
-									<?php /* translators: %s: source plugin name. */ ?>
-									<option value="<?php echo esc_attr( $key ); ?>" disabled><?php echo esc_html( sprintf( __( '%s: no data found', 'easyrankly' ), $label ) ); ?></option>
-								<?php endif; ?>
-							<?php endforeach; ?>
-						</select>
-						<button type="submit" class="button button-primary" name="erankly_migration_mode" value="preview"><?php esc_html_e( 'Preview migration', 'easyrankly' ); ?></button>
-						<p class="description"><?php esc_html_e( 'The preview scans everything without writing data. When it is ready, the migration assistant will offer the reviewed import as the next step.', 'easyrankly' ); ?></p>
-					</form>
+				<form method="post" action="<?php echo esc_url( $action_url ); ?>" class="erankly-io-third-party">
+					<?php wp_nonce_field( 'erankly_io_third_party' ); ?>
+					<input type="hidden" name="erankly_io_action" value="migrate">
+					<label class="screen-reader-text" for="erankly-io-source"><?php esc_html_e( 'Source plugin', 'easyrankly' ); ?></label>
+					<select name="erankly_migration_source" id="erankly-io-source">
+						<?php foreach ( $sources as $key => $label ) : ?>
+							<?php if ( $source_availability[ $key ] ) : ?>
+								<option value="<?php echo esc_attr( $key ); ?>" <?php selected( $key, $default_source ); ?>><?php echo esc_html( $label ); ?></option>
+							<?php else : ?>
+								<?php /* translators: %s: source plugin name. */ ?>
+								<option value="<?php echo esc_attr( $key ); ?>" disabled><?php echo esc_html( sprintf( __( '%s: no data found', 'easyrankly' ), $label ) ); ?></option>
+							<?php endif; ?>
+						<?php endforeach; ?>
+					</select>
+					<button type="submit" class="button button-primary" name="erankly_migration_mode" value="preview"><?php esc_html_e( 'Preview migration', 'easyrankly' ); ?></button>
+				</form>
 			<?php else : ?>
 				<p class="description"><?php esc_html_e( 'A migration is already active. Its checkpoint, controls and live counters are shown above; finish or cancel it before starting another source.', 'easyrankly' ); ?></p>
 			<?php endif; ?>
-			</section>
-		</div>
+		<?php erankly_section_close(); ?>
 		<?php endif; ?>
 	<?php
 }
