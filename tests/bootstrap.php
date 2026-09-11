@@ -49,3 +49,22 @@ function erankly_tests_load_settings_sanitizer(): void {
 	require_once dirname( __DIR__ ) . '/admin/settings-page.php';
 	$erankly_tests_settings_sanitizer_loaded = true;
 }
+
+/**
+ * Writes the plugin settings where the runtime actually reads them.
+ *
+ * erankly_get_stored_settings() reads a NETWORK option on Multisite and a per-site
+ * option otherwise, so a plain update_option() silently has no effect on the
+ * Multisite leg. Use this helper instead of writing the option directly.
+ *
+ * @param array<string,mixed> $settings Complete settings map to store.
+ */
+function erankly_tests_set_settings( array $settings ): void {
+	if ( is_multisite() ) {
+		update_site_option( ERANKLY_OPTION, $settings );
+	} else {
+		update_option( ERANKLY_OPTION, $settings );
+	}
+
+	erankly_clear_settings_cache();
+}
