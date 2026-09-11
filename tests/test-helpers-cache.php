@@ -2,9 +2,9 @@
 /**
  * Sitemap and redirect cache helpers: URL building, versioned keys, invalidation.
  *
- * The flush helpers guard against running twice per request with a function-static,
- * so the tests assert observable invariants (a version bump happens, and at most
- * once per request) instead of counting invocations across tests.
+ * The flush helpers guard against running twice per request with a function-static
+ * keyed by get_current_blog_id() (the $blog_id global). Tests that need a first
+ * bump pick a unique blog_id so an earlier flush in this process cannot no-op them.
  */
 
 final class ERankly_Helpers_Cache_Test extends WP_UnitTestCase {
@@ -21,6 +21,23 @@ final class ERankly_Helpers_Cache_Test extends WP_UnitTestCase {
 		}
 
 		erankly_ensure_redirect_classes_available();
+	}
+
+	/**
+	 * Runs $callback with a blog_id the sitemap flush static has not seen.
+	 *
+	 * get_current_blog_id() reads $GLOBALS['blog_id']; get_option() still uses the
+	 * current $wpdb prefix, so a synthetic ID only opens a fresh flush slot.
+	 */
+	private function with_fresh_sitemap_flush_slot( callable $callback ): void {
+		$original             = $GLOBALS['blog_id'] ?? 1;
+		$GLOBALS['blog_id'] = $original + wp_rand( 100000, 999999 );
+
+		try {
+			$callback();
+		} finally {
+			$GLOBALS['blog_id'] = $original;
+		}
 	}
 
 	public function test_get_sitemap_url_uses_pretty_permalinks_when_configured(): void {
@@ -82,39 +99,39 @@ final class ERankly_Helpers_Cache_Test extends WP_UnitTestCase {
 		$this->assertSame( ERANKLY_SITEMAP_TRANSIENT_PREFIX . '1_page', erankly_get_sitemap_cache_key( 'page' ) );
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
 	public function test_flush_sitemap_cache_bumps_the_version_at_most_once_per_request(): void {
-		$before = (int) get_option( ERANKLY_SITEMAP_CACHE_VERSION_OPTION, 1 );
+		$this->with_fresh_sitemap_flush_slot(
+			function (): void {
+				$before = (int) get_option( ERANKLY_SITEMAP_CACHE_VERSION_OPTION, 1 );
 
-		erankly_flush_sitemap_cache();
-		$first = (int) get_option( ERANKLY_SITEMAP_CACHE_VERSION_OPTION, 1 );
+				erankly_flush_sitemap_cache();
+				$first = (int) get_option( ERANKLY_SITEMAP_CACHE_VERSION_OPTION, 1 );
 
-		erankly_flush_sitemap_cache();
-		erankly_flush_sitemap_cache();
-		$second = (int) get_option( ERANKLY_SITEMAP_CACHE_VERSION_OPTION, 1 );
+				erankly_flush_sitemap_cache();
+				erankly_flush_sitemap_cache();
+				$second = (int) get_option( ERANKLY_SITEMAP_CACHE_VERSION_OPTION, 1 );
 
-		$this->assertSame( $before + 1, $first );
-		$this->assertSame( $first, $second );
+				$this->assertSame( $before + 1, $first );
+				$this->assertSame( $first, $second );
+			}
+		);
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
 	public function test_flush_sitemap_cache_accepts_arbitrary_hook_arguments(): void {
-		$before = (int) get_option( ERANKLY_SITEMAP_CACHE_VERSION_OPTION, 1 );
+		$this->with_fresh_sitemap_flush_slot(
+			function (): void {
+				$before = (int) get_option( ERANKLY_SITEMAP_CACHE_VERSION_OPTION, 1 );
 
-		erankly_flush_sitemap_cache( 1, 2, 3 );
-		$after_variadic = (int) get_option( ERANKLY_SITEMAP_CACHE_VERSION_OPTION, 1 );
+				erankly_flush_sitemap_cache( 1, 2, 3 );
+				$after_variadic = (int) get_option( ERANKLY_SITEMAP_CACHE_VERSION_OPTION, 1 );
 
-		erankly_flush_sitemap_cache();
-		$after_empty = (int) get_option( ERANKLY_SITEMAP_CACHE_VERSION_OPTION, 1 );
+				erankly_flush_sitemap_cache();
+				$after_empty = (int) get_option( ERANKLY_SITEMAP_CACHE_VERSION_OPTION, 1 );
 
-		$this->assertSame( $before + 1, $after_variadic );
-		$this->assertSame( $after_variadic, $after_empty );
+				$this->assertSame( $before + 1, $after_variadic );
+				$this->assertSame( $after_variadic, $after_empty );
+			}
+		);
 	}
 
 	public function test_flush_for_deleted_post_ignores_a_zero_id(): void {

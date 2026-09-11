@@ -129,7 +129,9 @@ final class ERankly_Canonical_Test extends WP_UnitTestCase {
 	 * @preserveGlobalState disabled
 	 */
 	public function test_get_canonical_is_empty_on_a_404(): void {
-		$this->go_to( home_url( '/this-page-does-not-exist-' . wp_generate_password( 8, false ) . '/' ) );
+		// A missing post ID reaches a 404 even with plain permalinks, where a
+		// missing path would resolve to the home page instead.
+		$this->go_to( home_url( '/?p=99999999' ) );
 
 		$this->assertTrue( is_404() );
 		$this->assertSame( '', erankly_get_canonical() );
