@@ -22,6 +22,46 @@ final class ERankly_Lifecycle_Test extends WP_UnitTestCase {
 	/** @var string Original $wpdb->blogs value, restored after the network table harness. */
 	private $original_blogs_table = '';
 
+	/** @var string Dedicated blogs fixture table, created once per class. */
+	private static $blogs_fixture_table = '';
+
+	/**
+	 * Creates the fixture table once, outside the per-test transaction.
+	 *
+	 * The fixture must not reuse the core `blogs` table name: a CREATE TABLE against it
+	 * empties the shared table on MySQL and breaks every later test. It also has to be
+	 * created here rather than inside a test, because MySQL commits implicitly on a
+	 * successful DDL statement, which would silently end the per-test transaction.
+	 */
+	public static function set_up_before_class(): void {
+		parent::set_up_before_class();
+
+		global $wpdb;
+
+		self::$blogs_fixture_table = $wpdb->base_prefix . 'erankly_test_blogs';
+
+		$wpdb->query( 'DROP TABLE IF EXISTS ' . self::$blogs_fixture_table ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Test harness DDL on a fixed, self-owned table name.
+		$wpdb->query( // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Test harness DDL on a fixed, self-owned table name.
+			'CREATE TABLE ' . self::$blogs_fixture_table . ' (
+				blog_id BIGINT(20) NOT NULL,
+				site_id BIGINT(20) NOT NULL DEFAULT 0,
+				domain VARCHAR(200) NOT NULL DEFAULT \'\',
+				path VARCHAR(100) NOT NULL DEFAULT \'\',
+				PRIMARY KEY (blog_id)
+			)'
+		);
+	}
+
+	public static function tear_down_after_class(): void {
+		global $wpdb;
+
+		if ( '' !== self::$blogs_fixture_table ) {
+			$wpdb->query( 'DROP TABLE IF EXISTS ' . self::$blogs_fixture_table ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Test harness DDL on a fixed, self-owned table name.
+		}
+
+		parent::tear_down_after_class();
+	}
+
 	public function set_up(): void {
 		parent::set_up();
 
@@ -62,33 +102,15 @@ final class ERankly_Lifecycle_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Creates the Multisite `blogs` table the network lifecycle functions query, inside the per-test transaction,
-	 * and points `$wpdb->blogs` at it. Single-site installs never create it, which is why the raw query would fail.
+	 * Points `$wpdb->blogs` at the class fixture table, whose contents each test owns.
+	 *
+	 * The table itself is created in set_up_before_class(); this only redirects the global,
+	 * and tear_down() restores it afterwards.
 	 */
-	private function install_network_blogs_table(): void {
+	private function use_network_blogs_table(): void {
 		global $wpdb;
 
-		$table = $wpdb->base_prefix . 'blogs';
-
-		$wpdb->query( // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Test harness DDL.
-			"CREATE TABLE {$table} (
-				blog_id BIGINT(20) NOT NULL AUTO_INCREMENT,
-				site_id BIGINT(20) NOT NULL DEFAULT 0,
-				domain VARCHAR(200) NOT NULL DEFAULT '',
-				path VARCHAR(100) NOT NULL DEFAULT '',
-				registered DATETIME NOT NULL DEFAULT '0000-00-00 00:00:00',
-				last_updated DATETIME NOT NULL DEFAULT '0000-00-00 00:00:00',
-				public TINYINT(2) NOT NULL DEFAULT 1,
-				archived TINYINT(2) NOT NULL DEFAULT 0,
-				mature TINYINT(2) NOT NULL DEFAULT 0,
-				spam TINYINT(2) NOT NULL DEFAULT 0,
-				deleted TINYINT(2) NOT NULL DEFAULT 0,
-				lang_id INT(11) NOT NULL DEFAULT 0,
-				PRIMARY KEY (blog_id)
-			) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"
-		);
-
-		$wpdb->blogs = $table;
+		$wpdb->blogs = self::$blogs_fixture_table;
 	}
 
 	private function insert_network_site( int $blog_id, int $site_id = 1 ): void {
@@ -227,7 +249,7 @@ final class ERankly_Lifecycle_Test extends WP_UnitTestCase {
 	 * -------------------------------------------------------------------- */
 
 	public function test_get_network_site_ids_batch_paginates_by_keyset(): void {
-		$this->install_network_blogs_table();
+		$this->use_network_blogs_table();
 		$this->insert_network_site( 5 );
 		$this->insert_network_site( 9 );
 		$this->insert_network_site( 12, 2 );
@@ -247,7 +269,7 @@ final class ERankly_Lifecycle_Test extends WP_UnitTestCase {
 	}
 
 	public function test_get_current_network_site_count_counts_only_the_current_network(): void {
-		$this->install_network_blogs_table();
+		$this->use_network_blogs_table();
 		$this->insert_network_site( 5 );
 		$this->insert_network_site( 9 );
 		$this->insert_network_site( 12, 2 );
@@ -257,7 +279,7 @@ final class ERankly_Lifecycle_Test extends WP_UnitTestCase {
 	}
 
 	public function test_network_lifecycle_requires_cli_honours_the_limit_filter(): void {
-		$this->install_network_blogs_table();
+		$this->use_network_blogs_table();
 		$this->insert_network_site( 5 );
 		$this->insert_network_site( 9 );
 

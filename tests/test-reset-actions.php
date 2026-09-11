@@ -183,8 +183,17 @@ final class ERankly_Reset_Actions_Test extends WP_UnitTestCase {
 		$this->assertFalse( get_option( 'erankly_redirects_db_version', false ) );
 
 		erankly_clear_settings_cache();
-		$defaults = erankly_default_settings();
-		$this->assertSame( $defaults['organization_name'], erankly_get_settings()['organization_name'] );
+
+		if ( is_multisite() ) {
+			// The shared settings are network-wide, so a per-site reset deliberately leaves
+			// them alone: erankly_reset_network_shared_data() is the phase that restores
+			// them, and it belongs to the network reset. Assert that instead of the
+			// single-site expectation, so the contract is pinned on both legs.
+			$this->assertSame( 'Custom organisation', erankly_get_settings()['organization_name'] );
+		} else {
+			$defaults = erankly_default_settings();
+			$this->assertSame( $defaults['organization_name'], erankly_get_settings()['organization_name'] );
+		}
 	}
 
 	/* ----------------------------------------------------------------------
