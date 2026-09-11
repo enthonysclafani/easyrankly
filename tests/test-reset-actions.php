@@ -70,12 +70,24 @@ final class ERankly_Reset_Actions_Test extends WP_UnitTestCase {
 	}
 
 	public function test_reset_redirect_sends_the_settings_url_and_exits(): void {
-		// erankly_reset_redirect() ends in wp_safe_redirect(); exit;, so it cannot be called here: the exit would
-		// terminate the PHPUnit process. Forking is not a safe alternative either — the child is a separate OS
-		// process, so on the Multisite leg it cannot see the tables the current test created inside its open
-		// transaction, and its failing queries leave the shared database locked for every later test. The
-		// function is therefore left uncovered rather than covered by a test that can wedge a CI leg.
-		$this->markTestSkipped( 'erankly_reset_redirect() ends in exit; callers are covered up to that point.' );
+		$location = '';
+		$catcher  = static function ( $url ) use ( &$location ) {
+			$location = (string) $url;
+			throw new WPDieException( (string) $url );
+		};
+		add_filter( 'wp_redirect', $catcher );
+
+		try {
+			erankly_reset_redirect( array( 'erankly_reset_notice' => 'done' ) );
+			$this->fail( 'erankly_reset_redirect() must terminate via redirect.' );
+		} catch ( WPDieException $exception ) {
+			$this->assertStringContainsString( 'page=erankly', $location );
+			$this->assertStringContainsString( 'erankly_tab=settings', $location );
+			$this->assertStringContainsString( 'erankly_reset_notice=done', $location );
+			$this->assertStringContainsString( $location, $exception->getMessage() );
+		} finally {
+			remove_filter( 'wp_redirect', $catcher );
+		}
 	}
 
 	public function test_reset_handle_actions_denies_a_user_without_capability(): void {

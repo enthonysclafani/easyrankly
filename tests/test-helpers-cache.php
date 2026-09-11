@@ -82,28 +82,39 @@ final class ERankly_Helpers_Cache_Test extends WP_UnitTestCase {
 		$this->assertSame( ERANKLY_SITEMAP_TRANSIENT_PREFIX . '1_page', erankly_get_sitemap_cache_key( 'page' ) );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
 	public function test_flush_sitemap_cache_bumps_the_version_at_most_once_per_request(): void {
 		$before = (int) get_option( ERANKLY_SITEMAP_CACHE_VERSION_OPTION, 1 );
 
 		erankly_flush_sitemap_cache();
-		erankly_flush_sitemap_cache();
 		$first = (int) get_option( ERANKLY_SITEMAP_CACHE_VERSION_OPTION, 1 );
 
 		erankly_flush_sitemap_cache();
+		erankly_flush_sitemap_cache();
 		$second = (int) get_option( ERANKLY_SITEMAP_CACHE_VERSION_OPTION, 1 );
 
-		$this->assertGreaterThanOrEqual( $before, $first );
-		$this->assertLessThanOrEqual( $before + 1, $first );
+		$this->assertSame( $before + 1, $first );
 		$this->assertSame( $first, $second );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
 	public function test_flush_sitemap_cache_accepts_arbitrary_hook_arguments(): void {
-		// The hook may pass any number of arguments; the helper ignores them all.
-		erankly_flush_sitemap_cache();
-		erankly_flush_sitemap_cache( 1 );
-		erankly_flush_sitemap_cache( 1, 2, 3 );
+		$before = (int) get_option( ERANKLY_SITEMAP_CACHE_VERSION_OPTION, 1 );
 
-		$this->assertTrue( true );
+		erankly_flush_sitemap_cache( 1, 2, 3 );
+		$after_variadic = (int) get_option( ERANKLY_SITEMAP_CACHE_VERSION_OPTION, 1 );
+
+		erankly_flush_sitemap_cache();
+		$after_empty = (int) get_option( ERANKLY_SITEMAP_CACHE_VERSION_OPTION, 1 );
+
+		$this->assertSame( $before + 1, $after_variadic );
+		$this->assertSame( $after_variadic, $after_empty );
 	}
 
 	public function test_flush_for_deleted_post_ignores_a_zero_id(): void {

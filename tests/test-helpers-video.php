@@ -16,7 +16,12 @@ final class ERankly_Helpers_Video_Test extends WP_UnitTestCase {
 		erankly_load_video_helpers();
 		erankly_load_video_helpers();
 
-		$this->assertTrue( function_exists( 'erankly_extract_video_urls' ) );
+		$content = '<iframe src="https://www.youtube.com/embed/dQw4w9WgXcQ"></iframe>';
+
+		$this->assertSame(
+			array( 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' ),
+			erankly_extract_video_urls( $content )
+		);
 	}
 
 	public function test_extract_video_urls_finds_youtube_watch_and_short_forms(): void {
@@ -63,16 +68,7 @@ final class ERankly_Helpers_Video_Test extends WP_UnitTestCase {
 		$this->assertSame( array( 'https://vimeo.com/987654321' ), erankly_extract_video_urls( $content ) );
 	}
 
-	/**
-	 * The iframe patterns require whitespace before src, so an iframe whose src is its
-	 * first attribute is skipped. WordPress emits embeds with the dimensions first and
-	 * its oEmbed markup is caught by the watch-URL pattern, so this only affects
-	 * hand-written iframes. Documented here rather than asserted so a future fix is
-	 * not blocked by this test.
-	 */
-	public function test_extract_video_urls_skips_iframe_whose_src_is_the_first_attribute(): void {
-		$this->markTestIncomplete( 'Known gap: the iframe patterns need an attribute before src.' );
-
+	public function test_extract_video_urls_finds_iframe_whose_src_is_the_first_attribute(): void {
 		$content = '<iframe src="https://www.youtube.com/embed/dQw4w9WgXcQ"></iframe>';
 
 		$this->assertSame(

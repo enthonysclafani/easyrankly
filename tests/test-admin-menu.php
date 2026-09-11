@@ -32,6 +32,9 @@ final class ERankly_Admin_Menu_Test extends WP_UnitTestCase {
 		$_POST    = array();
 		$_REQUEST = array();
 		unset( $GLOBALS['post'], $GLOBALS['current_screen'] );
+		if ( is_multisite() && $this->admin_id > 0 ) {
+			revoke_super_admin( $this->admin_id );
+		}
 		erankly_clear_settings_cache();
 		wp_set_current_user( 0 );
 		parent::tear_down();
@@ -42,6 +45,15 @@ final class ERankly_Admin_Menu_Test extends WP_UnitTestCase {
 		ob_start();
 		$render();
 		return (string) ob_get_clean();
+	}
+
+	/** Import/export and reset panels require the network capability on Multisite. */
+	private function grant_network_cap_if_needed(): void {
+		if ( ! is_multisite() ) {
+			return;
+		}
+
+		grant_super_admin( $this->admin_id );
 	}
 
 	/** Persists a full settings map and clears the request cache. */
@@ -116,17 +128,35 @@ final class ERankly_Admin_Menu_Test extends WP_UnitTestCase {
 	public function test_admin_load_modules_pulls_in_the_renderers(): void {
 		erankly_admin_load_settings_modules();
 
-		$this->assertTrue( function_exists( 'erankly_render_settings_page' ) );
-		$this->assertTrue( function_exists( 'erankly_render_settings_nav_link' ) );
-		$this->assertTrue( function_exists( 'erankly_render_settings_panel_general' ) );
+		$nav = $this->capture(
+			static function (): void {
+				erankly_render_settings_nav_link( 'general', 'General', 'settings-general' );
+			}
+		);
+		$this->assertStringContainsString( 'data-erankly-tab="settings-general"', $nav );
+		$this->assertStringContainsString( 'id="erankly-settings-tab-general"', $nav );
+
+		$settings = erankly_get_settings();
+		$panel    = $this->capture(
+			static function () use ( $settings ): void {
+				erankly_render_settings_panel_general( $settings, 0, null, true );
+			}
+		);
+		$this->assertStringContainsString( 'name="' . ERANKLY_OPTION . '[organization_name]"', $panel );
+		$this->assertStringContainsString( 'data-erankly-settings-panel="settings-general"', $panel );
 	}
 
 	public function test_admin_load_import_export_and_reset_modules(): void {
+		$this->grant_network_cap_if_needed();
+
 		erankly_admin_load_import_export_module();
-		$this->assertTrue( function_exists( 'erankly_import_export_render_panel' ) );
+		$export = $this->capture( static function (): void { erankly_import_export_render_panel(); } );
+		$this->assertStringContainsString( 'Export data', $export );
+		$this->assertStringContainsString( 'erankly_io_action=export', $export );
 
 		erankly_admin_load_reset_module();
-		$this->assertTrue( function_exists( 'erankly_reset_render_panel' ) );
+		$reset = $this->capture( static function (): void { erankly_reset_render_panel(); } );
+		$this->assertStringContainsString( 'data-erankly-reset-action="reset_local"', $reset );
 	}
 
 	public function test_requested_settings_tab_defaults_and_sanitizes(): void {
@@ -333,12 +363,16 @@ final class ERankly_Admin_Menu_Test extends WP_UnitTestCase {
 	}
 
 	public function test_maybe_handle_import_export_loads_the_module_on_its_tab(): void {
+		$this->grant_network_cap_if_needed();
+
 		$_GET['page']        = 'erankly';
 		$_GET['erankly_tab'] = 'import-export';
 
 		erankly_admin_maybe_handle_import_export();
 
-		$this->assertTrue( function_exists( 'erankly_import_export_render_panel' ) );
+		$export = $this->capture( static function (): void { erankly_import_export_render_panel(); } );
+		$this->assertStringContainsString( 'Export data', $export );
+		$this->assertStringContainsString( 'erankly_io_action=export', $export );
 	}
 
 	public function test_maybe_handle_reset_dispatches_the_authenticated_action(): void {

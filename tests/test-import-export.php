@@ -315,6 +315,37 @@ final class ERankly_Import_Export_Test extends WP_UnitTestCase {
 		}
 	}
 
+	public function test_export_download_filename_uses_the_dated_json_pattern(): void {
+		$this->assertMatchesRegularExpression(
+			'/^erankly-export-\d{4}-\d{2}-\d{2}-\d{6}\.json$/',
+			erankly_export_download_filename()
+		);
+	}
+
+	public function test_migration_backup_download_path_is_empty_for_an_unknown_report(): void {
+		$this->assertSame( '', erankly_migration_backup_download_path( 'no-such-report' ) );
+	}
+
+	public function test_migration_backup_download_redirects_when_the_path_is_missing(): void {
+		$location = '';
+		$catcher  = static function ( $url ) use ( &$location ) {
+			$location = (string) $url;
+			throw new WPDieException( (string) $url );
+		};
+		add_filter( 'wp_redirect', $catcher );
+
+		try {
+			erankly_migration_backup_download( 'no-such-report' );
+			$this->fail( 'A missing backup must redirect rather than stream.' );
+		} catch ( WPDieException $exception ) {
+			$this->assertStringContainsString( 'erankly_tab=import-export', $location );
+			$this->assertStringContainsString( 'erankly_io_notice=migration-backup-expired', $location );
+			$this->assertStringContainsString( 'report_id=no-such-report', $location );
+		} finally {
+			remove_filter( 'wp_redirect', $catcher );
+		}
+	}
+
 	public function test_import_apply_is_a_deprecated_wrapper_around_the_batch_runner(): void {
 		$this->setExpectedDeprecated( 'erankly_import_apply' );
 

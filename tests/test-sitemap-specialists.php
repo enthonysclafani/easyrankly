@@ -291,6 +291,52 @@ final class ERankly_Sitemap_Specialists_Test extends WP_UnitTestCase {
 		$this->assertSame( '', erankly_get_news_sitemap_xml( 1 ) );
 	}
 
+	public function test_build_sitemap_response_returns_news_xml_when_enabled(): void {
+		$this->set_settings(
+			array(
+				'global_post_type_meta_linked' => 0,
+				'global_taxonomy_meta_linked'  => 0,
+				'enable_sitemap'               => 1,
+				'enable_news_sitemap'          => 1,
+				'news_publication_name'        => 'Builder Publication',
+			)
+		);
+		$this->create_post( array( 'post_title' => 'Builder News' ) );
+		$this->fresh_generation();
+
+		$prepared = erankly_build_sitemap_response( 'news', 1 );
+
+		$this->assertSame( 200, $prepared['status'] );
+		$this->assertSame( 'application/xml', $prepared['content_type'] );
+		$this->assertStringContainsString( '<news:title>Builder News</news:title>', $prepared['body'] );
+		$this->assertStringContainsString( '<news:name>Builder Publication</news:name>', $prepared['body'] );
+	}
+
+	public function test_build_sitemap_response_returns_404_when_sitemaps_are_disabled(): void {
+		$this->set_settings(
+			array(
+				'enable_sitemap'      => 0,
+				'enable_news_sitemap' => 1,
+			)
+		);
+
+		$this->assertSame( 404, erankly_build_sitemap_response( 'news', 1 )['status'] );
+	}
+
+	public function test_build_sitemap_response_returns_404_when_the_feature_or_type_is_unavailable(): void {
+		$this->set_settings(
+			array(
+				'enable_sitemap'       => 1,
+				'enable_news_sitemap'  => 0,
+				'enable_image_sitemap' => 0,
+			)
+		);
+
+		$this->assertSame( 404, erankly_build_sitemap_response( 'news', 1 )['status'] );
+		$this->assertSame( 404, erankly_build_sitemap_response( 'image', 1 )['status'] );
+		$this->assertSame( 404, erankly_build_sitemap_response( 'not-a-sitemap', 1 )['status'] );
+	}
+
 	// Image sitemap ----------------------------------------------------------
 
 	public function test_image_sitemap_post_ids_and_count_track_posts_with_images(): void {

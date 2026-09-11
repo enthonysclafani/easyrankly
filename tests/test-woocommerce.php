@@ -120,6 +120,19 @@ final class ERankly_Woocommerce_Test extends WP_UnitTestCase {
 		$this->assertArrayNotHasKey( 'sku', erankly_build_woocommerce_product_data( $post_id ) );
 	}
 
+	public function test_build_product_data_maps_gtin_from_the_global_unique_id(): void {
+		$with_gtin = $this->make_product(
+			array(
+				'name'             => 'Con GTIN',
+				'global_unique_id' => '1234567890123',
+			)
+		);
+		$without   = $this->make_product( array( 'name' => 'Senza GTIN' ) );
+
+		$this->assertSame( '1234567890123', erankly_build_woocommerce_product_data( $with_gtin )['gtin'] );
+		$this->assertArrayNotHasKey( 'gtin', erankly_build_woocommerce_product_data( $without ) );
+	}
+
 	public function test_build_product_data_adds_the_brand_when_the_taxonomy_has_a_term(): void {
 		register_taxonomy( 'product_brand', array( 'product' ), array( 'public' => false ) );
 

@@ -42,6 +42,10 @@ if ( ! class_exists( 'WC_Product' ) ) {
 			return (string) ( $this->stub['sku'] ?? '' );
 		}
 
+		public function get_global_unique_id(): string {
+			return (string) ( $this->stub['global_unique_id'] ?? '' );
+		}
+
 		public function get_price(): string {
 			return (string) ( $this->stub['price'] ?? '' );
 		}

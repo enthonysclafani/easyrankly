@@ -381,61 +381,83 @@ function erankly_filter_core_sitemap_add_provider( $provider, string $name ) {
 	return $provider;
 }
 
-/** @return never */
-function erankly_render_sitemap_response( string $type, int $page = 1 ) {
+/**
+ * Builds the specialised sitemap payload without emitting headers or exiting.
+ *
+ * @return array{status:int,body:string,content_type:string}
+ */
+function erankly_build_sitemap_response( string $type, int $page = 1 ): array {
 	$type = sanitize_key( $type );
 	$page = max( 1, $page );
+
+	$not_found = array(
+		'status'       => 404,
+		'body'         => '',
+		'content_type' => '',
+	);
 
 	// This virtual-file handler only serves the specialised sitemaps (image, video, news).
 	// Standard post/taxonomy/user sitemaps come from the native wp_sitemaps API.
 
 	if ( ! erankly_sitemap_enabled() ) {
-		status_header( 404 );
-		exit;
+		return $not_found;
 	}
 
 	if ( in_array( $type, array( 'news', 'news-sitemap' ), true ) ) {
 		if ( ! (bool) erankly_get_setting( 'enable_news_sitemap', 0 ) || ! function_exists( 'erankly_get_news_sitemap_xml' ) ) {
-			status_header( 404 );
-			exit;
+			return $not_found;
 		}
 
 		$xml = erankly_get_news_sitemap_xml( $page );
 
 		if ( '' === $xml ) {
-			status_header( 404 );
-			exit;
+			return $not_found;
 		}
 
-		erankly_send_response( $xml, 'application/xml' );
+		return array(
+			'status'       => 200,
+			'body'         => $xml,
+			'content_type' => 'application/xml',
+		);
 	}
 
 	if ( 'image' === $type ) {
 		if ( ! (bool) erankly_get_setting( 'enable_image_sitemap', 0 ) || ! function_exists( 'erankly_get_image_sitemap_xml' ) ) {
-			status_header( 404 );
-			exit;
+			return $not_found;
 		}
 
 		$xml = erankly_get_image_sitemap_xml( $page );
 	} elseif ( 'video' === $type ) {
 		if ( ! (bool) erankly_get_setting( 'enable_video_sitemap', 0 ) || ! function_exists( 'erankly_get_video_sitemap_xml' ) ) {
-			status_header( 404 );
-			exit;
+			return $not_found;
 		}
 
 		$xml = erankly_get_video_sitemap_xml( $page );
 	} else {
-		// Unknown type. Return a 404.
-		status_header( 404 );
-		exit;
+		return $not_found;
 	}
 
 	if ( '' === $xml ) {
+		return $not_found;
+	}
+
+	return array(
+		'status'       => 200,
+		'body'         => $xml,
+		'content_type' => 'application/xml',
+	);
+}
+
+/** @return never */
+function erankly_render_sitemap_response( string $type, int $page = 1 ) {
+	$prepared = erankly_build_sitemap_response( $type, $page );
+
+	if ( 404 === $prepared['status'] ) {
 		status_header( 404 );
 		exit;
 	}
 
-	erankly_send_response( $xml, 'application/xml' );
+	erankly_send_response( $prepared['body'], $prepared['content_type'] );
 }
 
 /**

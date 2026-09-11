@@ -328,8 +328,10 @@ function erankly_bootstrap(): void {
 	}
 
 	add_action( 'rest_api_init', 'erankly_register_user_search_route' );
-	add_action( 'rest_api_init', 'erankly_register_settings_autosave_route' );
+	// Literal `/settings/special-pages` must register before the generic
+	// `/settings/(?P<panel>[a-z-]+)` pattern; WP_REST_Server keeps the first match.
 	add_action( 'rest_api_init', 'erankly_register_special_pages_autosave_route' );
+	add_action( 'rest_api_init', 'erankly_register_settings_autosave_route' );
 	add_action( 'rest_api_init', 'erankly_register_special_meta_setting', 5 );
 	add_filter( 'robots_txt', 'erankly_filter_robots_txt', 20, 2 );
 	add_action( 'parse_request', 'erankly_force_robots_txt_request' );

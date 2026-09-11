@@ -7,10 +7,6 @@
  * The callback writes through `erankly_update_special_meta_map()`, which stores the map in the shared settings
  * array on single-site (a dedicated per-site option on Multisite), so the persisted value is read back from
  * ERANKLY_OPTION['global_special_meta'] here.
- *
- * NOTE: the route `/erankly/v1/settings/special-pages` is currently shadowed by the generic panel route
- * `/erankly/v1/settings/(?P<panel>[a-z-]+)` registered earlier by erankly_register_settings_autosave_route().
- * The last test pins that (broken) dispatch behaviour on purpose; see its comment.
  */
 final class ERankly_Lifecycle_Rest_Test extends WP_UnitTestCase {
 
@@ -100,18 +96,8 @@ final class ERankly_Lifecycle_Rest_Test extends WP_UnitTestCase {
 		$this->assertTrue( (bool) call_user_func( $handler['permission_callback'] ) );
 	}
 
-	/**
-	 * KNOWN DEFECT (pinned, not desired): `/erankly/v1/settings/special-pages` never reaches
-	 * erankly_rest_save_special_pages().
-	 *
-	 * erankly_register_settings_autosave_route() registers `/settings/(?P<panel>[a-z-]+)` before the literal
-	 * `/settings/special-pages` route, and WP_REST_Server::match_request_to_handler() returns the first pattern
-	 * that matches. "special-pages" is not a member of erankly_settings_autosave_panels(), so the admin asset
-	 * (admin/assets/settings.php, restUrl = erankly/v1/settings/special-pages) gets a 404 instead of a save.
-	 * When the ordering is fixed, this test should assert a 200 and the saved payload instead.
-	 */
-	public function test_special_pages_endpoint_is_shadowed_by_the_settings_panel_route(): void {
-		$path = '/erankly/v1/settings/special-pages';
+	public function test_special_pages_endpoint_saves_through_the_literal_route(): void {
+		$path    = '/erankly/v1/settings/special-pages';
 		$matches = array();
 
 		foreach ( array_keys( rest_get_server()->get_routes() ) as $pattern ) {
@@ -120,43 +106,22 @@ final class ERankly_Lifecycle_Rest_Test extends WP_UnitTestCase {
 			}
 		}
 
-		$this->assertSame( '/erankly/v1/settings/(?P<panel>[a-z-]+)', $matches[0] );
+		$this->assertSame( '/erankly/v1/settings/special-pages', $matches[0] );
 
 		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
 
-		// The generic panel route requires manage_network_options on Multisite (the settings
-		// it edits are network-wide), while this per-site special-pages route requires only
-		// manage_options. Grant the network capability so dispatch reaches the shadowing
-		// panel handler (404) instead of short-circuiting at 403.
-		$grant = null;
+		$request = new WP_REST_Request( 'POST', $path );
+		$request->set_param(
+			'settings',
+			array(
+				'global_special_meta' => array( 'search' => array( 'title' => 'Saved via route' ) ),
+			)
+		);
 
-		if ( is_multisite() ) {
-			$grant = static function ( array $allcaps ): array {
-				$allcaps['manage_network_options'] = true;
-				return $allcaps;
-			};
-			add_filter( 'user_has_cap', $grant );
-		}
+		$response = rest_get_server()->dispatch( $request );
 
-		try {
-			$request = new WP_REST_Request( 'POST', $path );
-			$request->set_body_params(
-				array(
-					'settings' => array(
-						'global_special_meta' => array( 'search' => array( 'title' => 'Shadowed' ) ),
-					),
-				)
-			);
-
-			$response = rest_get_server()->dispatch( $request );
-		} finally {
-			if ( null !== $grant ) {
-				remove_filter( 'user_has_cap', $grant );
-			}
-		}
-
-		$this->assertSame( 404, $response->get_status() );
-		$this->assertSame( 'erankly_unknown_settings_panel', $response->get_data()['code'] );
-		$this->assertSame( array(), $this->stored_special_meta() );
+		$this->assertSame( 200, $response->get_status() );
+		$this->assertTrue( $response->get_data()['saved'] );
+		$this->assertSame( 'Saved via route', $this->stored_special_meta()['search']['title'] );
 	}
 }

@@ -1,25 +1,7 @@
 <?php
 /**
- * Handlers that terminate the request.
- *
- * Functions whose last statement is `exit` cannot be called from the suite: the
- * exit would end the PHPUnit process itself, and forking is not an option here
- * because a forked child inherits the per-test SQLite transaction and deadlocks
- * against it. They are therefore NOT called; this file covers the parts of the
- * request-handling surface that return normally, and documents what is left out.
- *
- * Deliberately not executed (each ends in `exit`, so it kills the test process):
- *   - erankly_send_response()                 includes/helpers/utils.php
- *   - erankly_render_sitemap_response()       includes/sitemap/core.php
- *   - erankly_export_download()               includes/import-export/export.php
- *   - erankly_migration_backup_download()     includes/import-export/actions.php
- *   - erankly_import_export_redirect()        includes/import-export/actions.php
- *   - erankly_reset_redirect()                includes/reset.php
- *   - ERankly_Redirects_Admin::redirect_with_error()
- *   - ERankly_Redirects_Admin::redirect_after_action()
- * Their guard branches are covered indirectly through the callers, and the
- * redirect helpers are additionally reached in the redirect/import-export tests
- * up to the point where they exit.
+ * Request-terminating handlers, tested through the extracted builders that do
+ * not call `exit`. The thin wrappers still emit headers and exit in production.
  */
 
 final class ERankly_Response_Handlers_Test extends WP_UnitTestCase {
@@ -29,16 +11,29 @@ final class ERankly_Response_Handlers_Test extends WP_UnitTestCase {
 
 		erankly_load_content_helpers();
 		erankly_load_default_helpers();
+		erankly_load_sitemap_helpers();
+		require_once ERANKLY_PATH . 'includes/sitemap/core.php';
+		require_once ERANKLY_PATH . 'includes/sitemap/news.php';
+		require_once ERANKLY_PATH . 'includes/sitemap/image.php';
+		require_once ERANKLY_PATH . 'includes/sitemap/video.php';
+	}
+
+	public function tear_down(): void {
+		unset( $_SERVER['HTTP_IF_NONE_MATCH'] );
+		erankly_clear_settings_cache();
+		parent::tear_down();
 	}
 
 	public function test_send_feed_robots_header_returns_early_when_the_setting_is_off(): void {
 		erankly_tests_set_settings( array( 'noindex_feeds' => 0 ) );
 		erankly_clear_settings_cache();
 
-		// Guard path: the setting is off, so the handler returns before emitting.
-		erankly_send_feed_robots_header();
+		$this->go_to( get_feed_link() );
 
-		$this->assertFalse( (bool) erankly_get_setting( 'noindex_feeds', 0 ) );
+		$this->assertTrue( is_feed() );
+		$this->assertSame( '', erankly_feed_robots_tag() );
+
+		erankly_send_feed_robots_header();
 	}
 
 	public function test_send_feed_robots_header_returns_early_outside_a_feed_request(): void {
@@ -47,12 +42,10 @@ final class ERankly_Response_Handlers_Test extends WP_UnitTestCase {
 
 		$this->go_to( home_url( '/' ) );
 
-		$this->assertTrue( (bool) erankly_get_setting( 'noindex_feeds', 1 ) );
 		$this->assertFalse( is_feed() );
+		$this->assertSame( '', erankly_feed_robots_tag() );
 
 		erankly_send_feed_robots_header();
-
-		$this->assertFalse( is_feed() );
 	}
 
 	public function test_send_feed_robots_header_is_wired_to_template_redirect(): void {
@@ -63,9 +56,42 @@ final class ERankly_Response_Handlers_Test extends WP_UnitTestCase {
 		erankly_tests_set_settings( array( 'noindex_feeds' => 1 ) );
 		erankly_clear_settings_cache();
 
-		erankly_send_feed_robots_header();
-		erankly_send_feed_robots_header();
+		$this->go_to( get_feed_link() );
 
-		$this->assertTrue( true );
+		$this->assertTrue( is_feed() );
+		$this->assertSame( 'noindex, follow', erankly_feed_robots_tag() );
+		$this->assertSame( 'noindex, follow', erankly_feed_robots_tag() );
+
+		erankly_send_feed_robots_header();
+		erankly_send_feed_robots_header();
+	}
+
+	public function test_prepare_xml_response_rejects_unsafe_or_invalid_documents(): void {
+		$valid = '<?xml version="1.0"?><urlset></urlset>';
+
+		$this->assertSame( 500, erankly_prepare_xml_response( $valid, 'text/plain' )['status'] );
+		$this->assertSame( 500, erankly_prepare_xml_response( '', 'application/xml' )['status'] );
+		$this->assertSame( 500, erankly_prepare_xml_response( '<?xml version="1.0"?><!DOCTYPE foo><urlset></urlset>', 'application/xml' )['status'] );
+		$this->assertSame( 500, erankly_prepare_xml_response( '<?xml version="1.0"?><urlset><!ENTITY xxe SYSTEM "http://x"></urlset>', 'application/xml' )['status'] );
+		$this->assertSame( 500, erankly_prepare_xml_response( '<not-xml', 'application/xml' )['status'] );
+	}
+
+	public function test_prepare_xml_response_accepts_valid_xml_and_honours_etag(): void {
+		$xml      = '<?xml version="1.0"?><urlset></urlset>';
+		$prepared = erankly_prepare_xml_response( $xml, 'application/xml' );
+
+		$this->assertSame( 200, $prepared['status'] );
+		$this->assertSame( $xml, $prepared['body'] );
+		$this->assertInstanceOf( DOMDocument::class, $prepared['document'] );
+		$this->assertSame( 'noindex, follow', $prepared['headers']['X-Robots-Tag'] );
+		$this->assertArrayHasKey( 'ETag', $prepared['headers'] );
+		$this->assertStringContainsString( 'application/xml', $prepared['headers']['Content-Type'] );
+
+		$_SERVER['HTTP_IF_NONE_MATCH'] = $prepared['headers']['ETag'];
+		$cached                        = erankly_prepare_xml_response( $xml, 'application/xml' );
+
+		$this->assertSame( 304, $cached['status'] );
+		$this->assertSame( '', $cached['body'] );
+		$this->assertSame( $prepared['headers']['ETag'], $cached['headers']['ETag'] );
 	}
 }
