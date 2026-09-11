@@ -227,8 +227,13 @@ final class ERankly_Migrations_Runtime_Test extends WP_UnitTestCase {
 	public function test_load_backup_import_helpers_requires_import_export_module(): void {
 		erankly_migration_load_backup_import_helpers();
 
-		$this->assertTrue( function_exists( 'erankly_import_export_read_bounded_file' ) );
-		$this->assertTrue( function_exists( 'erankly_import_export_max_bytes' ) );
+		$path = $this->temp_path( wp_json_encode( array( 'plugin' => 'erankly' ) ) );
+		$read = erankly_import_export_read_bounded_file( $path, erankly_import_export_max_bytes() );
+
+		$this->assertGreaterThan( 1, erankly_import_export_max_bytes() );
+		$this->assertTrue( $read['ok'] );
+		$this->assertStringContainsString( '"plugin"', $read['contents'] );
+		$this->assertStringContainsString( 'erankly', $read['contents'] );
 	}
 
 	public function test_read_backup_document_validates_plugin_document(): void {

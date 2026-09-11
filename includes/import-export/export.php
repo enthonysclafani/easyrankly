@@ -166,8 +166,12 @@ function erankly_export_write( $handle ): void {
 	erankly_export_write_all( $handle, '}' );
 }
 
+function erankly_export_download_filename(): string {
+	return 'erankly-export-' . gmdate( 'Y-m-d-His' ) . '.json';
+}
+
 function erankly_export_download(): void {
-	$filename = 'erankly-export-' . gmdate( 'Y-m-d-His' ) . '.json';
+	$filename = erankly_export_download_filename();
 
 	nocache_headers();
 	header( 'Content-Type: application/json; charset=utf-8' );

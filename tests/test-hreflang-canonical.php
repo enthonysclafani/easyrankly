@@ -22,31 +22,31 @@ final class ERankly_Hreflang_Canonical_Test extends WP_UnitTestCase {
 		$this->assertTrue( erankly_is_valid_hreflang_tag( 'ja' ) );
 	}
 
-	/**
-	 * The pattern covers language, language-region and language-numeric-region but not
-	 * the BCP-47 script subtag (4 letters) or variant subtags. Since
-	 * erankly_clean_hreflang_alternates() silently drops what fails validation, a site
-	 * emitting zh-Hant / zh-Hans / sr-Latn loses that alternate with no warning.
-	 * Documented rather than asserted so a fix is not blocked by this test.
-	 */
-	public function test_script_subtag_hreflangs_are_rejected(): void {
-		$this->markTestIncomplete( 'Known gap: 4-letter script subtags fail validation and are dropped.' );
-
+	public function test_script_subtag_hreflangs_are_accepted(): void {
 		$this->assertTrue( erankly_is_valid_hreflang_tag( 'zh-Hant' ) );
 		$this->assertTrue( erankly_is_valid_hreflang_tag( 'sr-Latn' ) );
+		$this->assertTrue( erankly_is_valid_hreflang_tag( 'zh-Hans-CN' ) );
 	}
 
-	public function test_script_subtag_hreflangs_are_currently_dropped_by_the_cleaner(): void {
-		// Locks down today's outcome so the silent-drop behaviour is visible.
+	public function test_script_subtag_hreflangs_are_kept_by_the_cleaner(): void {
 		$clean = erankly_clean_hreflang_alternates(
 			array(
-				'zh-Hant' => 'https://example.org/tw/',
-				'zh-Hans' => 'https://example.org/cn/',
-				'it-IT'   => 'https://example.org/it/',
+				'zh-Hant'    => 'https://example.org/tw/',
+				'zh-Hans'    => 'https://example.org/cn/',
+				'zh-Hans-CN' => 'https://example.org/cn-region/',
+				'it-IT'      => 'https://example.org/it/',
 			)
 		);
 
-		$this->assertSame( array( 'it-it' => 'https://example.org/it/' ), $clean );
+		$this->assertSame(
+			array(
+				'zh-hant'    => 'https://example.org/tw/',
+				'zh-hans'    => 'https://example.org/cn/',
+				'zh-hans-cn' => 'https://example.org/cn-region/',
+				'it-it'      => 'https://example.org/it/',
+			),
+			$clean
+		);
 	}
 
 	public function test_hreflang_validation_is_case_and_space_insensitive(): void {

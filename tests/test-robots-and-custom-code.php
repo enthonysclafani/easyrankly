@@ -22,13 +22,15 @@ final class ERankly_Robots_And_Custom_Code_Test extends WP_UnitTestCase {
 		parent::tear_down();
 	}
 
-	public function test_sanitize_settings_tests_load_admin_sanitizer_explicitly(): void {
-		$this->assertTrue( function_exists( 'erankly_sanitize_settings' ) );
-		$this->assertFalse( is_admin() );
-		$this->assertStringContainsString(
-			'admin/settings-page.php',
-			(string) ( ( new ReflectionFunction( 'erankly_sanitize_settings' ) )->getFileName() )
+	public function test_sanitize_settings_strips_unsafe_organization_name(): void {
+		$clean = erankly_sanitize_settings(
+			array(
+				'organization_name' => 'Acme <script>alert(1)</script>',
+			)
 		);
+
+		$this->assertSame( 'Acme', $clean['organization_name'] );
+		$this->assertArrayHasKey( 'website_name', $clean );
 	}
 
 	public function test_indexifembedded_is_only_emitted_with_noindex(): void {
@@ -485,6 +487,69 @@ final class ERankly_Robots_And_Custom_Code_Test extends WP_UnitTestCase {
 		erankly_render_custom_head_code();
 		$second = (string) ob_get_clean();
 		$this->assertSame( '', $second );
+	}
+
+	public function test_targeted_block_dispatcher_matches_front_page_and_rejects_singular(): void {
+		$this->go_to( home_url( '/' ) );
+		$this->assertTrue( is_front_page() );
+
+		$front = array(
+			'enabled'         => 1,
+			'target_contexts' => array( 'front_page' ),
+		);
+		$singular = array(
+			'enabled'         => 1,
+			'target_contexts' => array( 'singular' ),
+		);
+		$disabled = array(
+			'enabled'         => 0,
+			'target_contexts' => array( 'front_page' ),
+		);
+		$empty = array(
+			'enabled'         => 1,
+			'target_contexts' => array(),
+		);
+
+		$this->assertTrue( erankly_targeted_block_matches_request( $front ) );
+		$this->assertFalse( erankly_targeted_block_matches_request( $singular ) );
+		$this->assertFalse( erankly_targeted_block_matches_request( $disabled ) );
+		$this->assertFalse( erankly_targeted_block_matches_request( $empty ) );
+	}
+
+	public function test_get_matching_custom_code_returns_only_request_matching_snippets(): void {
+		require_once ERANKLY_PATH . 'includes/custom-code.php';
+
+		$match   = '<!-- erankly-dispatcher-match -->';
+		$miss    = '<!-- erankly-dispatcher-miss -->';
+		$stored  = erankly_get_settings();
+		$stored['enable_custom_code'] = 1;
+		$stored['head_code']          = '';
+		$stored['head_code_blocks']   = array(
+			array(
+				'enabled'         => 1,
+				'code'            => $match,
+				'target_contexts' => array( 'front_page' ),
+			),
+			array(
+				'enabled'         => 1,
+				'code'            => $miss,
+				'target_contexts' => array( 'singular' ),
+			),
+			array(
+				'enabled'         => 0,
+				'code'            => '<!-- disabled -->',
+				'target_contexts' => array( 'front_page' ),
+			),
+		);
+		erankly_update_plugin_settings( $stored, '', true );
+		erankly_clear_settings_cache();
+
+		$this->go_to( home_url( '/' ) );
+		$this->assertTrue( is_front_page() );
+
+		$snippets = erankly_get_matching_custom_code( 'head_code_blocks', 'head_code', 'erankly_custom_head_code' );
+
+		$this->assertSame( array( $match ), $snippets );
 	}
 
 	/**

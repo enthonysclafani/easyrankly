@@ -65,7 +65,7 @@ function erankly_is_valid_hreflang_tag( string $hreflang ): bool {
 		return true;
 	}
 
-	return (bool) preg_match( '/^[a-z]{2,3}(?:-[a-z]{2}|-[0-9]{3})?(?:-[a-z0-9]{5,8})*$/', $hreflang );
+	return (bool) preg_match( '/^[a-z]{2,3}(?:-[a-z]{4})?(?:-[a-z]{2}|-[0-9]{3})?(?:-[a-z0-9]{5,8})*$/', $hreflang );
 }
 
 /**

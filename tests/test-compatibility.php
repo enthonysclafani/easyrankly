@@ -79,7 +79,7 @@ final class ERankly_Compatibility_Test extends WP_UnitTestCase {
 		$this->assertSame( 'Reviewer Name', $reviews[0]['author']['name'] );
 		$this->assertSame( '4', $reviews[0]['reviewRating']['ratingValue'] );
 
-		register_taxonomy( 'product_brand', 'post', array( 'public' => true ) );
+		register_taxonomy( 'product_brand', 'product', array( 'public' => true ) );
 		$brand_term = self::factory()->term->create( array( 'taxonomy' => 'product_brand', 'name' => 'Acme' ) );
 		wp_set_post_terms( $post_id, array( $brand_term ), 'product_brand' );
 

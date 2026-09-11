@@ -565,11 +565,17 @@ function erankly_migration_report_download( string $report_id ): void {
 	exit;
 }
 
-/** Streams the stored pre-import backup of one migration report. */
-function erankly_migration_backup_download( string $report_id ): void {
+/** Returns the readable pre-import backup path for one report, or empty when none remains. */
+function erankly_migration_backup_download_path( string $report_id ): string {
 	$report = erankly_migration_manager()->get_report( $report_id );
 	$backup = is_array( $report ) ? erankly_migration_backup_state( $report ) : array();
-	$path   = (string) ( $backup['path'] ?? '' );
+
+	return (string) ( $backup['path'] ?? '' );
+}
+
+/** Streams the stored pre-import backup of one migration report. */
+function erankly_migration_backup_download( string $report_id ): void {
+	$path = erankly_migration_backup_download_path( $report_id );
 	if ( '' === $path ) {
 		erankly_import_export_redirect(
 			array(

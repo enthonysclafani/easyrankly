@@ -339,7 +339,7 @@ final class ERankly_Title_Description_Test extends WP_UnitTestCase {
 	 * @runInSeparateProcess
 	 * @preserveGlobalState disabled
 	 */
-	public function test_get_description_appends_the_paginated_title_format(): void {
+	public function test_get_title_appends_the_paginated_title_format(): void {
 		$post_id = $this->make_post( array( 'title' => 'Articolo' ) );
 
 		erankly_tests_set_settings( array( 'paginated_title_format' => 'Pagina {{page_number}}' ) );
@@ -348,9 +348,10 @@ final class ERankly_Title_Description_Test extends WP_UnitTestCase {
 		$this->go_to( get_permalink( $post_id ) );
 		// A static front page survives the paged query var; the suffix only
 		// applies when the request is actually paginated.
+		set_query_var( 'paged', 2 );
 		$GLOBALS['wp_query']->query_vars['paged'] = 2;
 		$GLOBALS['wp_query']->is_paged              = true;
 
-		$this->assertStringContainsString( 'Articolo', erankly_get_title() );
+		$this->assertSame( 'Articolo - Pagina 2', erankly_get_title() );
 	}
 }

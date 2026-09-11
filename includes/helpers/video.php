@@ -24,7 +24,7 @@ function erankly_extract_video_urls( string $content ): array {
 	}
 
 	preg_match_all(
-		'#<iframe[^>]+\ssrc=["\']https?://(?:www\.)?youtube(?:-nocookie)?\.com/embed/([a-zA-Z0-9_-]{11})(?:[^"\']*)["\']#i',
+		'#<iframe[^>]*\bsrc=["\']https?://(?:www\.)?youtube(?:-nocookie)?\.com/embed/([a-zA-Z0-9_-]{11})(?:[^"\']*)["\']#i',
 		$content,
 		$yt_iframes
 	);
@@ -33,7 +33,7 @@ function erankly_extract_video_urls( string $content ): array {
 	}
 
 	preg_match_all(
-		'#<iframe[^>]+\ssrc=["\']https?://(?:www\.)?player\.vimeo\.com/video/(\d+)(?:[^"\']*)["\']#i',
+		'#<iframe[^>]*\bsrc=["\']https?://(?:www\.)?player\.vimeo\.com/video/(\d+)(?:[^"\']*)["\']#i',
 		$content,
 		$vim_iframes
 	);

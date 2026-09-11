@@ -80,12 +80,19 @@ function erankly_get_social_profiles(): array {
 }
 
 /**
- * Emits a validated XML response and exits.
+ * Validates an XML body and decides the HTTP outcome without emitting headers or exiting.
  *
  * @param string $content_type Expected XML content type.
- * @return never
+ * @return array{status:int,headers:array<string,string>,body:string,document:?DOMDocument}
  */
-function erankly_send_response( string $body, string $content_type ) {
+function erankly_prepare_xml_response( string $body, string $content_type ): array {
+	$failure = array(
+		'status'   => 500,
+		'headers'  => array(),
+		'body'     => '',
+		'document' => null,
+	);
+
 	if (
 		'application/xml' !== $content_type
 		|| '' === trim( $body )
@@ -93,16 +100,20 @@ function erankly_send_response( string $body, string $content_type ) {
 		|| str_contains( $body, '<!ENTITY' )
 		|| ! class_exists( 'DOMDocument' )
 	) {
-		status_header( 500 );
-		exit;
+		return $failure;
 	}
 
 	$etag = '"' . hash( 'sha256', $body ) . '"';
 	if ( isset( $_SERVER['HTTP_IF_NONE_MATCH'] ) && trim( sanitize_text_field( wp_unslash( $_SERVER['HTTP_IF_NONE_MATCH'] ) ) ) === $etag ) {
-		status_header( 304 );
-		header( 'ETag: ' . $etag );
-		header( 'Cache-Control: public, max-age=300, stale-while-revalidate=60' );
-		exit;
+		return array(
+			'status'   => 304,
+			'headers'  => array(
+				'ETag'          => $etag,
+				'Cache-Control' => 'public, max-age=300, stale-while-revalidate=60',
+			),
+			'body'     => '',
+			'document' => null,
+		);
 	}
 
 	// Keep the final parse even though EasyRankly builds the base XML internally:
@@ -118,16 +129,40 @@ function erankly_send_response( string $body, string $content_type ) {
 	libxml_use_internal_errors( $previous_errors );
 
 	if ( ! $is_valid_xml ) {
-		status_header( 500 );
-		exit;
+		return $failure;
 	}
 
-	status_header( 200 );
-	header( 'Content-Type: application/xml; charset=' . get_bloginfo( 'charset' ) );
-	header( 'X-Robots-Tag: noindex, follow', true );
-	header( 'Cache-Control: public, max-age=300, stale-while-revalidate=60' );
-	header( 'ETag: ' . $etag );
+	return array(
+		'status'   => 200,
+		'headers'  => array(
+			'Content-Type'  => 'application/xml; charset=' . get_bloginfo( 'charset' ),
+			'X-Robots-Tag'  => 'noindex, follow',
+			'Cache-Control' => 'public, max-age=300, stale-while-revalidate=60',
+			'ETag'          => $etag,
+		),
+		'body'     => $body,
+		'document' => $document,
+	);
+}
 
-	$document->save( 'php://output' );
+/**
+ * Emits a validated XML response and exits.
+ *
+ * @param string $content_type Expected XML content type.
+ * @return never
+ */
+function erankly_send_response( string $body, string $content_type ) {
+	$prepared = erankly_prepare_xml_response( $body, $content_type );
+
+	status_header( $prepared['status'] );
+
+	foreach ( $prepared['headers'] as $name => $value ) {
+		header( $name . ': ' . $value );
+	}
+
+	if ( 200 === $prepared['status'] && $prepared['document'] instanceof DOMDocument ) {
+		$prepared['document']->save( 'php://output' );
+	}
+
 	exit;
 }

@@ -372,12 +372,22 @@ final class ERankly_Migration_Internals_Test extends WP_UnitTestCase {
 		$method = new ReflectionMethod( ERankly_Migration_Job_Runner::class, 'discard_unattached_backup' );
 		$method->setAccessible( true );
 
-		// No backup key, an empty path, and a non-array backup must all be no-ops.
-		$method->invoke( $runner, array() );
-		$method->invoke( $runner, array( 'backup' => array( 'path' => '' ) ) );
-		$method->invoke( $runner, array( 'backup' => 'not-an-array' ) );
+		$sentinel = tempnam( sys_get_temp_dir(), 'erankly-unmanaged-' );
+		$this->assertIsString( $sentinel );
+		file_put_contents( $sentinel, 'keep-me' );
 
-		$this->assertTrue( true );
+		try {
+			$method->invoke( $runner, array() );
+			$method->invoke( $runner, array( 'backup' => array( 'path' => '' ) ) );
+			$method->invoke( $runner, array( 'backup' => 'not-an-array' ) );
+			$method->invoke( $runner, array( 'backup' => array( 'path' => $sentinel ) ) );
+			$method->invoke( $runner, array( 'backup' => array( 'path' => $sentinel . '-missing.json' ) ) );
+
+			$this->assertFileExists( $sentinel );
+			$this->assertSame( 'keep-me', (string) file_get_contents( $sentinel ) );
+		} finally {
+			unlink( $sentinel );
+		}
 	}
 
 	public function test_migration_adapter_base_defaults_are_empty(): void {

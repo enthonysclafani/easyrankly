@@ -195,13 +195,23 @@ function erankly_filter_wp_robots( array $robots ): array {
 	return apply_filters( 'erankly_robots', $robots );
 }
 
+/** Returns the feed-level robots tag, or an empty string when it must not be sent. */
+function erankly_feed_robots_tag(): string {
+	if ( ! is_feed() || ! (bool) erankly_get_setting( 'noindex_feeds', 0 ) ) {
+		return '';
+	}
+
+	return 'noindex, follow';
+}
+
 /** Sends the feed-level robots policy through the HTTP header used by AIOSEO. */
 function erankly_send_feed_robots_header(): void {
-	if ( ! is_feed() || ! (bool) erankly_get_setting( 'noindex_feeds', 0 ) || headers_sent() ) {
+	$tag = erankly_feed_robots_tag();
+	if ( '' === $tag || headers_sent() ) {
 		return;
 	}
 
-	header( 'X-Robots-Tag: noindex, follow', true );
+	header( 'X-Robots-Tag: ' . $tag, true );
 }
 
 /** @return array<string,bool|string> */
