@@ -1,12 +1,14 @@
 <?php
-/** Plugin activation logic. */
+/**
+ * Redirects table schema. Creates or upgrades the custom table through dbDelta and runs the one-time backfill
+ * from the retired conditional-rule columns into the v3 matching model.
+ */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
 final class ERankly_Redirects_Activator {
-	/** Activation callback. */
 	public static function activate(): void {
 		global $wpdb;
 

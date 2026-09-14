@@ -16,7 +16,6 @@ final class ERankly_Migration_Adapter_RankMath extends ERankly_Migration_Adapter
 		return 'Rank Math';
 	}
 
-	/** Returns the detected source version. */
 	public function version(): string {
 		return $this->detect_version(
 			'RANK_MATH_VERSION',

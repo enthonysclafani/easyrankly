@@ -58,7 +58,6 @@ function erankly_sanitize_twitter_handle( mixed $value ): string {
 	return '' === $handle ? '' : '@' . $handle;
 }
 
-/** Sanitizes a URL field. */
 function erankly_sanitize_url( mixed $value ): string {
 	$value = trim( (string) $value );
 

@@ -63,14 +63,14 @@ final class ERankly_Redirects_Repository_Test extends WP_UnitTestCase {
 
 	private function invoke_static( string $class, string $method, array $args = array() ) {
 		$reflection = new ReflectionMethod( $class, $method );
-		$reflection->setAccessible( true );
+		erankly_tests_set_accessible( $reflection );
 
 		return $reflection->invokeArgs( null, $args );
 	}
 
 	private function invoke( ERankly_Redirects_Repository $repository, string $method, array $args = array() ) {
 		$reflection = new ReflectionMethod( $repository, $method );
-		$reflection->setAccessible( true );
+		erankly_tests_set_accessible( $reflection );
 
 		return $reflection->invokeArgs( $repository, $args );
 	}

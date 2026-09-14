@@ -82,14 +82,14 @@ final class ERankly_Redirects_Runtime_Test extends WP_UnitTestCase {
 
 	private function invoke( object $object, string $method, array $args = array() ) {
 		$reflection = new ReflectionMethod( $object, $method );
-		$reflection->setAccessible( true );
+		erankly_tests_set_accessible( $reflection );
 
 		return $reflection->invokeArgs( $object, $args );
 	}
 
 	private function invoke_static( string $class, string $method, array $args = array() ) {
 		$reflection = new ReflectionMethod( $class, $method );
-		$reflection->setAccessible( true );
+		erankly_tests_set_accessible( $reflection );
 
 		return $reflection->invokeArgs( null, $args );
 	}

@@ -1,5 +1,8 @@
 <?php
-/** Admin bootstrap. */
+/**
+ * Admin bootstrap: settings menus for both single-site and Network Admin, the shared asset registry, and the
+ * lazy require of each admin module (import/export, reset, meta boxes) only for the requests that need it.
+ */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -349,8 +352,7 @@ function erankly_add_plugin_action_links( array $links, string $settings_url ): 
 
 /**
  * Renders the shared expand/collapse toggle button for an expandable table panel (see .erankly-panel-* in
- * admin-core.css and bindExpandablePanel() in admin.js). Used by the Redirects, Broken-Link, and Frequent 404
- * sections.
+ * admin-core.css and bindExpandablePanel() in admin.js). Used by the Redirects table.
  *
  * @param string $target_id ID of the [data-erankly-expandable] section it controls.
  */

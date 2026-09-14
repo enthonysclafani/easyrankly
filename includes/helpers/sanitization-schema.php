@@ -138,7 +138,6 @@ function erankly_is_food_business_type( string $type ): bool {
 	return in_array( $type, array( 'Restaurant', 'CafeOrCoffeeShop', 'BarOrPub', 'Bakery', 'FoodEstablishment' ), true );
 }
 
-/** Sanitizes a relative site path. */
 function erankly_sanitize_relative_path( mixed $value ): string {
 	$value = trim( (string) $value );
 
@@ -157,7 +156,6 @@ function erankly_sanitize_relative_path( mixed $value ): string {
 	return '/' === $path ? '/' : trailingslashit( $path );
 }
 
-/** Sanitizes a business telephone number. */
 function erankly_sanitize_phone( mixed $value ): string {
 	$value  = erankly_sanitize_text( $value );
 	$value  = preg_replace( '/[^0-9+().\-\s]/', '', $value );
@@ -170,14 +168,12 @@ function erankly_sanitize_phone( mixed $value ): string {
 	return trim( $value );
 }
 
-/** Sanitizes an ISO 3166-1 alpha-2 country code. */
 function erankly_sanitize_country_code( mixed $value ): string {
 	$value = strtoupper( erankly_sanitize_text( $value ) );
 
 	return 1 === preg_match( '/^[A-Z]{2}$/', $value ) ? $value : '';
 }
 
-/** Sanitizes a geographic coordinate. */
 function erankly_sanitize_coordinate( mixed $value, float $minimum, float $maximum ): string {
 	$value = trim( (string) $value );
 
@@ -194,7 +190,6 @@ function erankly_sanitize_coordinate( mixed $value, float $minimum, float $maxim
 	return rtrim( rtrim( number_format( $number, 6, '.', '' ), '0' ), '.' );
 }
 
-/** Sanitizes a 24-hour time value. */
 function erankly_sanitize_time( mixed $value ): string {
 	$value = erankly_sanitize_text( $value );
 
@@ -263,7 +258,9 @@ function erankly_sanitize_opening_hours( mixed $value ): array {
 }
 
 /**
- * Sanitizes the per-site LocalBusiness page map. Keys are blog IDs, values are published page IDs.
+ * Sanitizes the per-site LocalBusiness page map. Keys are blog IDs on the current network, values are published
+ * page IDs on that site. Submitted keys overlay storage; keys omitted from a partial UI save are preserved by
+ * hidden inputs in the settings form, not by merging here, so an import can still replace the whole map.
  *
  * @return array<int,int>
  */
@@ -276,6 +273,17 @@ function erankly_sanitize_local_business_pages( mixed $value ): array {
 		$page_id = absint( $page_id );
 
 		if ( $blog_id <= 0 || $page_id <= 0 ) {
+			continue;
+		}
+
+		// Unloaded stored mappings are preserved by hidden inputs in the settings form, not by
+		// merging here, so import can still replace the whole map. On Multisite, drop IDs that
+		// are not live mapping targets. Single-site lookups do not switch blogs.
+		if (
+			is_multisite()
+			&& function_exists( 'erankly_local_business_site_is_selectable' )
+			&& ! erankly_local_business_site_is_selectable( $blog_id )
+		) {
 			continue;
 		}
 

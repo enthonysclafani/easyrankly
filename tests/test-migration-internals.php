@@ -64,7 +64,7 @@ final class ERankly_Migration_Internals_Test extends WP_UnitTestCase {
 	/** @return mixed */
 	private static function call_private( string $class, string $method, array $args = array(), ?object $instance = null ) {
 		$reflection = new ReflectionMethod( $class, $method );
-		$reflection->setAccessible( true );
+		erankly_tests_set_accessible( $reflection );
 
 		return $reflection->invokeArgs( $instance, $args );
 	}
@@ -294,7 +294,7 @@ final class ERankly_Migration_Internals_Test extends WP_UnitTestCase {
 	public function test_job_runner_add_warning_appends_and_dedupes_by_code_and_reference(): void {
 		$runner = new ERankly_Migration_Job_Runner();
 		$method = new ReflectionMethod( ERankly_Migration_Job_Runner::class, 'add_warning' );
-		$method->setAccessible( true );
+		erankly_tests_set_accessible( $method );
 
 		$job = array( 'report' => array( 'warnings' => array() ) );
 
@@ -321,7 +321,7 @@ final class ERankly_Migration_Internals_Test extends WP_UnitTestCase {
 	public function test_job_runner_add_warning_sanitizes_its_input(): void {
 		$runner = new ERankly_Migration_Job_Runner();
 		$method = new ReflectionMethod( ERankly_Migration_Job_Runner::class, 'add_warning' );
-		$method->setAccessible( true );
+		erankly_tests_set_accessible( $method );
 
 		$job  = array( 'report' => array( 'warnings' => array() ) );
 		$args = array( &$job, 'Code With Spaces', 'Messaggio <script>alert(1)</script>', 'Ref 1', true );
@@ -336,7 +336,7 @@ final class ERankly_Migration_Internals_Test extends WP_UnitTestCase {
 	public function test_job_runner_add_warning_initialises_a_missing_report(): void {
 		$runner = new ERankly_Migration_Job_Runner();
 		$method = new ReflectionMethod( ERankly_Migration_Job_Runner::class, 'add_warning' );
-		$method->setAccessible( true );
+		erankly_tests_set_accessible( $method );
 
 		$job  = array();
 		$args = array( &$job, 'code', 'Messaggio', 'ref', true );
@@ -349,7 +349,7 @@ final class ERankly_Migration_Internals_Test extends WP_UnitTestCase {
 	public function test_job_runner_discard_unattached_backup_deletes_the_reported_file(): void {
 		$runner = new ERankly_Migration_Job_Runner();
 		$method = new ReflectionMethod( ERankly_Migration_Job_Runner::class, 'discard_unattached_backup' );
-		$method->setAccessible( true );
+		erankly_tests_set_accessible( $method );
 
 		$path = ERankly_Migration_Upload_Store::reserve_backup_path();
 
@@ -370,7 +370,7 @@ final class ERankly_Migration_Internals_Test extends WP_UnitTestCase {
 	public function test_job_runner_discard_unattached_backup_tolerates_a_missing_path(): void {
 		$runner = new ERankly_Migration_Job_Runner();
 		$method = new ReflectionMethod( ERankly_Migration_Job_Runner::class, 'discard_unattached_backup' );
-		$method->setAccessible( true );
+		erankly_tests_set_accessible( $method );
 
 		$sentinel = tempnam( sys_get_temp_dir(), 'erankly-unmanaged-' );
 		$this->assertIsString( $sentinel );
@@ -417,8 +417,8 @@ final class ERankly_Migration_Internals_Test extends WP_UnitTestCase {
 
 		$storage  = new ReflectionMethod( ERankly_Migration_Adapter::class, 'storage_definitions' );
 		$versions = new ReflectionMethod( ERankly_Migration_Adapter::class, 'supported_versions' );
-		$storage->setAccessible( true );
-		$versions->setAccessible( true );
+		erankly_tests_set_accessible( $storage );
+		erankly_tests_set_accessible( $versions );
 
 		$this->assertSame( array(), $storage->invoke( $adapter ) );
 		$this->assertSame( array( 'min' => '', 'max' => '' ), $versions->invoke( $adapter ) );

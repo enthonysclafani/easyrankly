@@ -58,4 +58,32 @@ final class ERankly_Js_Contracts_Test extends WP_UnitTestCase {
 
 		$this->assertStringContainsString( '[data-erankly-reset-modal]', $source );
 	}
+
+	public function test_admin_widgets_load_more_local_business_sites_from_rest(): void {
+		$source = $this->source( 'assets/js/admin-widgets.js' );
+
+		$this->assertStringContainsString( 'eranklyLocalBusiness', $source );
+		$this->assertStringContainsString( 'data-erankly-local-business-load-more', $source );
+		$this->assertStringContainsString( 'config.pagesUrl', $source );
+		$this->assertStringContainsString( 'ensureSitesLoaded', $source );
+		$this->assertStringContainsString( 'data-erankly-local-business-page-search', $source );
+		$this->assertStringContainsString( 'X-WP-Nonce', $source );
+		$this->assertStringContainsString( 'indexOf("?")', $source );
+	}
+
+	public function test_local_business_widget_probe_covers_enable_and_page_search(): void {
+		$node = trim( (string) shell_exec( 'command -v node' ) );
+		if ( '' === $node ) {
+			$this->markTestSkipped( 'Node is required for the LocalBusiness widget probe.' );
+		}
+
+		$script = ERANKLY_PATH . 'tests/js/local-business-widget-probe.cjs';
+		$this->assertFileExists( $script );
+
+		$output     = array();
+		$exit_code  = 1;
+		exec( escapeshellarg( $node ) . ' ' . escapeshellarg( $script ), $output, $exit_code );
+
+		$this->assertSame( 0, $exit_code, implode( "\n", $output ) );
+	}
 }

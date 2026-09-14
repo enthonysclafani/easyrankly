@@ -79,7 +79,7 @@ final class ERankly_Migrations_Adapters_Test extends WP_UnitTestCase {
 	/** Invokes any private method declared on the given class. */
 	private function invoke_private( string $class, object $instance, string $method, array $args = array() ): mixed {
 		$reflection = new ReflectionMethod( $class, $method );
-		$reflection->setAccessible( true );
+		erankly_tests_set_accessible( $reflection );
 
 		return $reflection->invokeArgs( $instance, $args );
 	}

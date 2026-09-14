@@ -47,6 +47,9 @@ final class ERankly_Lifecycle_Test extends WP_UnitTestCase {
 				site_id BIGINT(20) NOT NULL DEFAULT 0,
 				domain VARCHAR(200) NOT NULL DEFAULT \'\',
 				path VARCHAR(100) NOT NULL DEFAULT \'\',
+				deleted TINYINT(2) NOT NULL DEFAULT 0,
+				spam TINYINT(2) NOT NULL DEFAULT 0,
+				archived TINYINT(2) NOT NULL DEFAULT 0,
 				PRIMARY KEY (blog_id)
 			)'
 		);
@@ -113,16 +116,28 @@ final class ERankly_Lifecycle_Test extends WP_UnitTestCase {
 		$wpdb->blogs = self::$blogs_fixture_table;
 	}
 
-	private function insert_network_site( int $blog_id, int $site_id = 1 ): void {
+	private function clear_local_business_migration_state(): void {
+		$checkpoint = erankly_local_business_pages_migration_checkpoint_option();
+
+		delete_option( 'erankly_migrated_local_business_pages_v1' );
+		delete_option( $checkpoint );
+		delete_site_option( 'erankly_migrated_local_business_pages_v1' );
+		delete_site_option( $checkpoint );
+	}
+
+	private function insert_network_site( int $blog_id, int $site_id = 1, array $status = array() ): void {
 		global $wpdb;
 
 		$wpdb->insert(
 			$wpdb->blogs,
 			array(
-				'blog_id' => $blog_id,
-				'site_id' => $site_id,
-				'domain'  => 'site-' . $blog_id . '.test',
-				'path'    => '/',
+				'blog_id'  => $blog_id,
+				'site_id'  => $site_id,
+				'domain'   => 'site-' . $blog_id . '.test',
+				'path'     => '/',
+				'deleted'  => (int) ( $status['deleted'] ?? 0 ),
+				'spam'     => (int) ( $status['spam'] ?? 0 ),
+				'archived' => (int) ( $status['archived'] ?? 0 ),
 			)
 		);
 	}
@@ -151,6 +166,9 @@ final class ERankly_Lifecycle_Test extends WP_UnitTestCase {
 	public function test_get_runtime_state_seeds_the_compact_state_from_the_legacy_options(): void {
 		update_option( ERANKLY_VERSION_OPTION, '9.9.9' );
 		update_option( ERANKLY_REWRITE_GENERATION_OPTION, 'gen-legacy' );
+		delete_option( 'erankly_migrated_post_type_schema_v1' );
+		delete_option( 'erankly_migrated_title_defaults_v1' );
+		delete_option( 'erankly_migrated_local_business_pages_v1' );
 		delete_option( ERANKLY_RUNTIME_STATE_OPTION );
 		unset( $GLOBALS['erankly_runtime_state_cache'] );
 
@@ -196,9 +214,10 @@ final class ERankly_Lifecycle_Test extends WP_UnitTestCase {
 		$this->assertSame( '3.3.3', erankly_get_runtime_state()['version'] );
 	}
 
-	public function test_runtime_state_key_maps_only_the_compact_options(): void {
+	public function test_runtime_state_key_maps_only_the_hot_bootstrap_options(): void {
 		$this->assertSame( 'version', erankly_runtime_state_key( ERANKLY_VERSION_OPTION ) );
 		$this->assertSame( 'rewrite_generation', erankly_runtime_state_key( ERANKLY_REWRITE_GENERATION_OPTION ) );
+		$this->assertSame( '', erankly_runtime_state_key( 'erankly_migrated_title_defaults_v1' ) );
 		$this->assertSame( '', erankly_runtime_state_key( ERANKLY_OPTION ) );
 	}
 
@@ -268,6 +287,366 @@ final class ERankly_Lifecycle_Test extends WP_UnitTestCase {
 		}
 	}
 
+	public function test_get_network_site_ids_batch_can_skip_deleted_spam_and_archived_sites(): void {
+		$this->use_network_blogs_table();
+		$this->insert_network_site( 5 );
+		$this->insert_network_site( 6, 1, array( 'deleted' => 1 ) );
+		$this->insert_network_site( 7, 1, array( 'spam' => 1 ) );
+		$this->insert_network_site( 8, 1, array( 'archived' => 1 ) );
+		$this->insert_network_site( 9 );
+
+		$this->assertSame( array( 5, 6, 7, 8, 9 ), erankly_get_network_site_ids_batch( 0, 100 ) );
+		$this->assertSame( array( 5, 9 ), erankly_get_network_site_ids_batch( 0, 100, true ) );
+		$this->assertSame( array( 9 ), erankly_get_network_site_ids_batch( 5, 100, true ) );
+	}
+
+	public function test_advance_local_business_pages_migration_completes_across_two_batches(): void {
+		if ( is_multisite() ) {
+			$this->markTestSkipped( 'The lifecycle blogs fixture is not a live switch_to_blog target.' );
+		}
+
+		$this->use_network_blogs_table();
+		$this->insert_network_site( 5 );
+		$this->insert_network_site( 9 );
+
+		erankly_load_default_helpers();
+		erankly_tests_load_settings_sanitizer();
+
+		$page_id = self::factory()->post->create(
+			array(
+				'post_type'   => 'page',
+				'post_status' => 'publish',
+				'post_name'   => 'contact',
+			)
+		);
+
+		$stored                             = erankly_get_settings();
+		$stored['local_business_page_path'] = '/contact/';
+		$stored['local_business_pages']     = array();
+		erankly_update_plugin_settings( $stored, '', true );
+		erankly_clear_settings_cache();
+
+		$this->clear_local_business_migration_state();
+
+		erankly_advance_local_business_pages_migration( '/contact/', 1 );
+
+		$checkpoint = erankly_get_plugin_option( erankly_local_business_pages_migration_checkpoint_option(), array() );
+		$this->assertIsArray( $checkpoint );
+		$this->assertSame( 5, (int) $checkpoint['last_site_id'] );
+		$this->assertSame( $page_id, (int) $checkpoint['map'][5] );
+		$this->assertSame( erankly_local_business_pages_migration_input_id( '/contact/' ), (string) $checkpoint['input'] );
+		$this->assertEmpty( erankly_get_plugin_option( 'erankly_migrated_local_business_pages_v1', false ) );
+		$this->assertSame( array(), erankly_get_stored_settings()['local_business_pages'] );
+
+		erankly_advance_local_business_pages_migration( '/contact/', 1 );
+
+		$this->assertNotEmpty( erankly_get_plugin_option( 'erankly_migrated_local_business_pages_v1', false ) );
+		$this->assertEmpty( erankly_get_plugin_option( erankly_local_business_pages_migration_checkpoint_option(), array() ) );
+
+		$pages = erankly_get_stored_settings()['local_business_pages'];
+		$this->assertSame( $page_id, (int) $pages[5] );
+		$this->assertSame( $page_id, (int) $pages[9] );
+	}
+
+	public function test_advance_local_business_pages_migration_restarts_when_the_path_changes(): void {
+		if ( is_multisite() ) {
+			$this->markTestSkipped( 'The lifecycle blogs fixture is not a live switch_to_blog target.' );
+		}
+
+		$this->use_network_blogs_table();
+		$this->insert_network_site( 5 );
+		$this->insert_network_site( 9 );
+
+		erankly_load_default_helpers();
+		erankly_tests_load_settings_sanitizer();
+
+		$old_id = self::factory()->post->create(
+			array(
+				'post_type'   => 'page',
+				'post_status' => 'publish',
+				'post_name'   => 'old-path',
+			)
+		);
+		$new_id = self::factory()->post->create(
+			array(
+				'post_type'   => 'page',
+				'post_status' => 'publish',
+				'post_name'   => 'new-path',
+			)
+		);
+
+		$stored                             = erankly_get_settings();
+		$stored['local_business_page_path'] = '/old-path/';
+		$stored['local_business_pages']     = array();
+		erankly_update_plugin_settings( $stored, '', true );
+		erankly_clear_settings_cache();
+
+		$this->clear_local_business_migration_state();
+
+		erankly_advance_local_business_pages_migration( '/old-path/', 1 );
+
+		$stored                             = erankly_get_stored_settings();
+		$stored['local_business_page_path'] = '/new-path/';
+		erankly_update_plugin_settings( $stored, '', true );
+		erankly_clear_settings_cache();
+
+		erankly_advance_local_business_pages_migration( '/old-path/', 100 );
+
+		$this->assertNotEmpty( erankly_get_plugin_option( 'erankly_migrated_local_business_pages_v1', false ) );
+		$pages = erankly_get_stored_settings()['local_business_pages'];
+		$this->assertSame( $new_id, (int) $pages[5] );
+		$this->assertSame( $new_id, (int) $pages[9] );
+		$this->assertNotSame( $old_id, (int) $pages[5] );
+	}
+
+	public function test_advance_local_business_pages_migration_ignores_a_stale_path_argument_after_lock(): void {
+		if ( is_multisite() ) {
+			$this->markTestSkipped( 'The lifecycle blogs fixture is not a live switch_to_blog target.' );
+		}
+
+		$this->use_network_blogs_table();
+		$this->insert_network_site( 5 );
+		$this->insert_network_site( 9 );
+
+		erankly_load_default_helpers();
+		erankly_tests_load_settings_sanitizer();
+
+		$old_id = self::factory()->post->create(
+			array(
+				'post_type'   => 'page',
+				'post_status' => 'publish',
+				'post_name'   => 'old-path',
+			)
+		);
+		$new_id = self::factory()->post->create(
+			array(
+				'post_type'   => 'page',
+				'post_status' => 'publish',
+				'post_name'   => 'new-path',
+			)
+		);
+
+		$stored                             = erankly_get_settings();
+		$stored['local_business_page_path'] = '/new-path/';
+		$stored['local_business_pages']     = array();
+		erankly_update_plugin_settings( $stored, '', true );
+		erankly_clear_settings_cache();
+
+		$this->clear_local_business_migration_state();
+
+		erankly_advance_local_business_pages_migration( '/old-path/', 100 );
+
+		$this->assertNotEmpty( erankly_get_plugin_option( 'erankly_migrated_local_business_pages_v1', false ) );
+		$pages = erankly_get_stored_settings()['local_business_pages'];
+		$this->assertSame( $new_id, (int) $pages[5] );
+		$this->assertNotSame( $old_id, (int) $pages[5] );
+	}
+
+	public function test_complete_local_business_pages_migration_rejects_a_foreign_input_id(): void {
+		erankly_load_default_helpers();
+		erankly_tests_load_settings_sanitizer();
+
+		$stored                             = erankly_get_settings();
+		$stored['local_business_page_path'] = '/new-path/';
+		$stored['local_business_pages']     = array();
+		erankly_update_plugin_settings( $stored, '', true );
+		erankly_clear_settings_cache();
+		$this->clear_local_business_migration_state();
+
+		$token = erankly_acquire_settings_lock();
+		$this->assertIsString( $token );
+
+		try {
+			$this->assertFalse(
+				erankly_complete_local_business_pages_migration(
+					array( 5 => 105 ),
+					$token,
+					erankly_local_business_pages_migration_input_id( '/old-path/' )
+				)
+			);
+			$this->assertEmpty( erankly_get_plugin_option( 'erankly_migrated_local_business_pages_v1', false ) );
+			$this->assertSame( array(), erankly_get_stored_settings()['local_business_pages'] );
+		} finally {
+			erankly_release_settings_lock( $token );
+		}
+	}
+
+	public function test_complete_local_business_pages_migration_requires_a_live_lease_when_the_map_is_unchanged(): void {
+		erankly_load_default_helpers();
+		erankly_tests_load_settings_sanitizer();
+		$this->clear_local_business_migration_state();
+
+		erankly_save_local_business_pages_checkpoint(
+			array(
+				'input'        => erankly_local_business_pages_migration_input_id( '/contact/' ),
+				'network_id'   => 0,
+				'path'         => '/contact/',
+				'last_site_id' => 5,
+				'map'          => array(),
+			)
+		);
+
+		$this->assertFalse( erankly_complete_local_business_pages_migration( array(), 'expired-worker' ) );
+		$this->assertEmpty( erankly_get_plugin_option( 'erankly_migrated_local_business_pages_v1', false ) );
+		$this->assertSame( 5, (int) erankly_get_local_business_pages_checkpoint()['last_site_id'] );
+	}
+
+	public function test_expired_local_business_worker_cannot_rewind_a_successor_checkpoint(): void {
+		if ( is_multisite() ) {
+			$this->markTestSkipped( 'The lifecycle blogs fixture is not a live switch_to_blog target.' );
+		}
+
+		erankly_load_default_helpers();
+		erankly_tests_load_settings_sanitizer();
+		$this->clear_local_business_migration_state();
+
+		$token_a = erankly_acquire_settings_lock();
+		$this->assertIsString( $token_a );
+
+		$old_checkpoint = array(
+			'input'        => erankly_local_business_pages_migration_input_id( '/contact/' ),
+			'network_id'   => 0,
+			'path'         => '/contact/',
+			'last_site_id' => 5,
+			'map'          => array( 5 => 105 ),
+		);
+		$this->assertTrue( erankly_save_local_business_pages_checkpoint( $old_checkpoint, $token_a ) );
+
+		$current = erankly_get_settings_lock();
+		$this->assertIsArray( $current );
+		$current['expires_at'] = time() - 1;
+		update_option( ERANKLY_SETTINGS_LOCK_OPTION, $current, false );
+
+		$token_b = erankly_acquire_settings_lock();
+		$this->assertIsString( $token_b );
+
+		try {
+			$successor = array(
+				'input'        => erankly_local_business_pages_migration_input_id( '/contact/' ),
+				'network_id'   => 0,
+				'path'         => '/contact/',
+				'last_site_id' => 9,
+				'map'          => array(
+					5 => 105,
+					9 => 109,
+				),
+			);
+			$this->assertTrue( erankly_save_local_business_pages_checkpoint( $successor, $token_b ) );
+			$this->assertFalse( erankly_save_local_business_pages_checkpoint( $old_checkpoint, $token_a ) );
+			$this->assertSame( 9, (int) erankly_get_local_business_pages_checkpoint()['last_site_id'] );
+			$this->assertFalse(
+				erankly_complete_local_business_pages_migration(
+					array( 5 => 105 ),
+					$token_a,
+					erankly_local_business_pages_migration_input_id( '/contact/' )
+				)
+			);
+			$this->assertEmpty( erankly_get_plugin_option( 'erankly_migrated_local_business_pages_v1', false ) );
+			$this->assertSame( 9, (int) erankly_get_local_business_pages_checkpoint()['last_site_id'] );
+		} finally {
+			erankly_release_settings_lock( $token_b );
+		}
+	}
+
+	public function test_renew_settings_lock_fails_after_expiry(): void {
+		$token = erankly_acquire_settings_lock();
+		$this->assertIsString( $token );
+		$this->assertTrue( erankly_renew_settings_lock( $token ) );
+
+		$current = erankly_get_settings_lock();
+		$this->assertIsArray( $current );
+		$current['expires_at'] = time() - 1;
+		if ( is_multisite() ) {
+			update_network_option( get_current_network_id(), ERANKLY_SETTINGS_LOCK_OPTION, $current );
+		} else {
+			update_option( ERANKLY_SETTINGS_LOCK_OPTION, $current, false );
+		}
+
+		$this->assertFalse( erankly_renew_settings_lock( $token ) );
+		$this->assertFalse( erankly_settings_lock_is_valid( $token ) );
+	}
+
+	public function test_advance_local_business_pages_migration_is_a_noop_while_the_settings_lock_is_held(): void {
+		if ( is_multisite() ) {
+			$this->markTestSkipped( 'The lifecycle blogs fixture is not a live switch_to_blog target.' );
+		}
+
+		$this->use_network_blogs_table();
+		$this->insert_network_site( 5 );
+
+		erankly_load_default_helpers();
+		$this->clear_local_business_migration_state();
+		$token = erankly_acquire_settings_lock();
+		$this->assertIsString( $token );
+
+		try {
+			erankly_advance_local_business_pages_migration( '/contact/', 1 );
+			$this->assertEmpty( erankly_get_plugin_option( erankly_local_business_pages_migration_checkpoint_option(), array() ) );
+			$this->assertEmpty( erankly_get_plugin_option( 'erankly_migrated_local_business_pages_v1', false ) );
+		} finally {
+			erankly_release_settings_lock( $token );
+		}
+	}
+
+	public function test_complete_local_business_pages_migration_keeps_the_checkpoint_when_the_writer_is_locked(): void {
+		erankly_load_default_helpers();
+		erankly_tests_load_settings_sanitizer();
+
+		$stored                         = erankly_get_settings();
+		$stored['local_business_pages'] = array();
+		erankly_update_plugin_settings( $stored, '', true );
+		erankly_clear_settings_cache();
+
+		$this->clear_local_business_migration_state();
+		erankly_save_local_business_pages_checkpoint(
+			array(
+				'input'        => erankly_local_business_pages_migration_input_id( '/contact/' ),
+				'network_id'   => 0,
+				'path'         => '/contact/',
+				'last_site_id' => 5,
+				'map'          => array( 5 => 105 ),
+			)
+		);
+
+		$token = erankly_acquire_settings_lock();
+		$this->assertIsString( $token );
+
+		try {
+			$this->assertFalse( erankly_complete_local_business_pages_migration( array( 5 => 105 ) ) );
+			$this->assertEmpty( erankly_get_plugin_option( 'erankly_migrated_local_business_pages_v1', false ) );
+			$this->assertSame( array(), erankly_get_stored_settings()['local_business_pages'] );
+			$checkpoint = erankly_get_local_business_pages_checkpoint();
+			$this->assertSame( 5, (int) $checkpoint['last_site_id'] );
+		} finally {
+			erankly_release_settings_lock( $token );
+		}
+	}
+
+	public function test_complete_local_business_pages_migration_preserves_unrelated_settings(): void {
+		erankly_load_default_helpers();
+		erankly_tests_load_settings_sanitizer();
+
+		$stored                         = erankly_get_settings();
+		$stored['organization_name']    = 'Keep me';
+		$stored['local_business_pages'] = array();
+		erankly_update_plugin_settings( $stored, '', true );
+		erankly_clear_settings_cache();
+
+		$page_id = self::factory()->post->create(
+			array(
+				'post_type'   => 'page',
+				'post_status' => 'publish',
+			)
+		);
+
+		$this->assertTrue( erankly_complete_local_business_pages_migration( array( get_current_blog_id() => $page_id ) ) );
+		erankly_clear_settings_cache();
+		$this->assertSame( 'Keep me', erankly_get_stored_settings()['organization_name'] );
+		$this->assertSame( $page_id, (int) erankly_get_stored_settings()['local_business_pages'][ get_current_blog_id() ] );
+
+		$this->clear_local_business_migration_state();
+	}
+
 	public function test_get_current_network_site_count_counts_only_the_current_network(): void {
 		$this->use_network_blogs_table();
 		$this->insert_network_site( 5 );
@@ -305,6 +684,8 @@ final class ERankly_Lifecycle_Test extends WP_UnitTestCase {
 		$this->assertSame( 10, has_action( ERANKLY_MIGRATION_CRON_HOOK, 'erankly_process_migration_job' ) );
 		$this->assertSame( 10, has_action( ERANKLY_IMPORT_CRON_HOOK, 'erankly_process_import_job' ) );
 		$this->assertSame( 15, has_action( 'init', 'erankly_maybe_migrate_settings' ) );
+		$this->assertSame( 16, has_action( 'init', 'erankly_maybe_migrate_post_type_schema' ) );
+		$this->assertSame( 17, has_action( 'init', 'erankly_maybe_migrate_local_business_pages' ) );
 		$this->assertSame( 20, has_action( 'init', 'erankly_maybe_flush_after_upgrade' ) );
 		$this->assertSame( 30, has_action( 'init', 'erankly_maybe_flush_rewrite_rules' ) );
 		$this->assertSame(
@@ -313,6 +694,7 @@ final class ERankly_Lifecycle_Test extends WP_UnitTestCase {
 		);
 		$this->assertNotFalse( has_filter( 'debug_information', 'erankly_add_multilingual_debug_information' ) );
 		$this->assertNotFalse( has_action( 'rest_api_init', 'erankly_register_special_pages_autosave_route' ) );
+		$this->assertNotFalse( has_action( 'rest_api_init', 'erankly_register_local_business_routes' ) );
 	}
 
 	public function test_activate_initialises_a_fresh_install(): void {
@@ -600,5 +982,145 @@ final class ERankly_Lifecycle_Test extends WP_UnitTestCase {
 		return is_multisite()
 			? get_site_option( ERANKLY_NETWORK_RESET_JOB_OPTION, $default )
 			: get_option( ERANKLY_NETWORK_RESET_JOB_OPTION, $default );
+	}
+
+	/**
+	 * @group ms-required
+	 */
+	public function test_local_business_migration_uses_per_site_page_ids_on_multisite(): void {
+		if ( ! is_multisite() ) {
+			$this->markTestSkipped( 'Requires a live Multisite install.' );
+		}
+
+		erankly_load_default_helpers();
+		erankly_tests_load_settings_sanitizer();
+
+		$primary_id = self::factory()->post->create(
+			array(
+				'post_type'   => 'page',
+				'post_status' => 'publish',
+				'post_name'   => 'contact',
+			)
+		);
+
+		$secondary = self::factory()->blog->create();
+		switch_to_blog( $secondary );
+		$secondary_id = self::factory()->post->create(
+			array(
+				'post_type'   => 'page',
+				'post_status' => 'publish',
+				'post_name'   => 'contact',
+			)
+		);
+		restore_current_blog();
+
+		$foreign_network = self::factory()->network->create();
+		$foreign_blog    = self::factory()->blog->create( array( 'site_id' => $foreign_network ) );
+		switch_to_blog( $foreign_blog );
+		self::factory()->post->create(
+			array(
+				'post_type'   => 'page',
+				'post_status' => 'publish',
+				'post_name'   => 'contact',
+			)
+		);
+		restore_current_blog();
+
+		$stored                             = erankly_get_settings();
+		$stored['local_business_page_path'] = '/contact/';
+		$stored['local_business_pages']     = array();
+		erankly_update_plugin_settings( $stored, '', true );
+		erankly_clear_settings_cache();
+
+		$this->clear_local_business_migration_state();
+
+		erankly_advance_local_business_pages_migration( '/contact/', 100 );
+
+		$this->assertNotEmpty( erankly_get_plugin_option( 'erankly_migrated_local_business_pages_v1', false ) );
+		$pages = erankly_normalize_local_business_page_map( erankly_get_stored_settings()['local_business_pages'] ?? array() );
+		$this->assertSame( $primary_id, (int) $pages[ get_current_blog_id() ] );
+		$this->assertSame( $secondary_id, (int) $pages[ (int) $secondary ] );
+		$this->assertArrayNotHasKey( (int) $foreign_blog, $pages );
+		$this->assertNotSame( $primary_id, $secondary_id );
+	}
+
+	/**
+	 * @group ms-required
+	 */
+	public function test_local_business_migration_completes_across_live_multisite_batches(): void {
+		if ( ! is_multisite() ) {
+			$this->markTestSkipped( 'Requires a live Multisite install.' );
+		}
+
+		erankly_load_default_helpers();
+		erankly_tests_load_settings_sanitizer();
+
+		$primary_id = self::factory()->post->create(
+			array(
+				'post_type'   => 'page',
+				'post_status' => 'publish',
+				'post_name'   => 'contact',
+			)
+		);
+
+		$secondary = self::factory()->blog->create();
+		switch_to_blog( $secondary );
+		$secondary_id = self::factory()->post->create(
+			array(
+				'post_type'   => 'page',
+				'post_status' => 'publish',
+				'post_name'   => 'contact',
+			)
+		);
+		restore_current_blog();
+
+		$foreign_network = self::factory()->network->create();
+		$foreign_blog    = self::factory()->blog->create( array( 'site_id' => $foreign_network ) );
+		switch_to_blog( $foreign_blog );
+		self::factory()->post->create(
+			array(
+				'post_type'   => 'page',
+				'post_status' => 'publish',
+				'post_name'   => 'contact',
+			)
+		);
+		restore_current_blog();
+
+		$stored                             = erankly_get_settings();
+		$stored['local_business_page_path'] = '/contact/';
+		$stored['local_business_pages']     = array();
+		erankly_update_plugin_settings( $stored, '', true );
+		erankly_clear_settings_cache();
+		$this->clear_local_business_migration_state();
+
+		erankly_advance_local_business_pages_migration( '/contact/', 1 );
+		$this->assertEmpty( erankly_get_plugin_option( 'erankly_migrated_local_business_pages_v1', false ) );
+
+		for ( $attempt = 0; $attempt < 50 && ! erankly_get_plugin_option( 'erankly_migrated_local_business_pages_v1', false ); $attempt++ ) {
+			erankly_advance_local_business_pages_migration( '/contact/', 1 );
+		}
+
+		$this->assertNotEmpty( erankly_get_plugin_option( 'erankly_migrated_local_business_pages_v1', false ) );
+		$pages = erankly_normalize_local_business_page_map( erankly_get_stored_settings()['local_business_pages'] ?? array() );
+		$this->assertSame( $primary_id, (int) $pages[ get_current_blog_id() ] );
+		$this->assertSame( $secondary_id, (int) $pages[ (int) $secondary ] );
+		$this->assertArrayNotHasKey( (int) $foreign_blog, $pages );
+		$this->assertNotSame( $primary_id, $secondary_id );
+	}
+
+	/**
+	 * @group ms-required
+	 */
+	public function test_get_network_site_ids_batch_stays_on_the_current_live_network(): void {
+		if ( ! is_multisite() ) {
+			$this->markTestSkipped( 'Requires a live Multisite install.' );
+		}
+
+		$foreign_network = self::factory()->network->create();
+		$foreign_blog    = (int) self::factory()->blog->create( array( 'site_id' => $foreign_network ) );
+		$ids             = erankly_get_network_site_ids_batch( 0, 100, true );
+
+		$this->assertNotContains( $foreign_blog, $ids );
+		$this->assertContains( get_current_blog_id(), $ids );
 	}
 }

@@ -28,6 +28,7 @@ rm -rf \
 	"$STAGING/$PLUGIN_SLUG/.delta" \
 	"$STAGING/$PLUGIN_SLUG/.dist" \
 	"$STAGING/$PLUGIN_SLUG/.playwright-cli" \
+	"$STAGING/$PLUGIN_SLUG/.commandcode" \
 	"$STAGING/$PLUGIN_SLUG/tests" \
 	"$STAGING/$PLUGIN_SLUG/tools" \
 	"$STAGING/$PLUGIN_SLUG/vendor"
@@ -36,10 +37,17 @@ rm -f \
 	"$STAGING/$PLUGIN_SLUG/.distignore" \
 	"$STAGING/$PLUGIN_SLUG/.DS_Store" \
 	"$STAGING/$PLUGIN_SLUG/phpunit.xml.dist" \
+	"$STAGING/$PLUGIN_SLUG/composer.json" \
+	"$STAGING/$PLUGIN_SLUG/composer.lock" \
 	"$STAGING/$PLUGIN_SLUG/WORDPRESS-ORG-READINESS.md"
 
 if [[ ! -f "$STAGING/$PLUGIN_SLUG/easyrankly.php" ]] || [[ ! -f "$STAGING/$PLUGIN_SLUG/readme.txt" ]] || [[ ! -f "$STAGING/$PLUGIN_SLUG/uninstall.php" ]]; then
 	echo "error: staging tree is missing required plugin files" >&2
+	exit 1
+fi
+
+if [[ ! -f "$STAGING/$PLUGIN_SLUG/blocks/breadcrumbs/block.json" ]]; then
+	echo "error: staging tree is missing blocks/breadcrumbs/block.json (required after removing the PHP fallback)" >&2
 	exit 1
 fi
 

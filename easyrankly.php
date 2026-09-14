@@ -42,6 +42,8 @@ define( 'ERANKLY_REWRITE_SIGNATURE_OPTION', 'erankly_rewrite_signature' );
 define( 'ERANKLY_REWRITE_GENERATION_OPTION', 'erankly_rewrite_generation' );
 define( 'ERANKLY_REDIRECTS_CACHE_GENERATION_OPTION', 'erankly_redirects_cache_generation' );
 define( 'ERANKLY_NETWORK_SITE_BATCH_SIZE', 100 );
+define( 'ERANKLY_LOCAL_BUSINESS_SITE_CHOICE_LIMIT', 20 );
+define( 'ERANKLY_LOCAL_BUSINESS_PAGE_CHOICE_LIMIT', 50 );
 define( 'ERANKLY_NETWORK_RESET_JOB_OPTION', 'erankly_network_reset_job' );
 define( 'ERANKLY_NETWORK_RESET_CRON_HOOK', 'erankly_network_reset_batch' );
 define( 'ERANKLY_NETWORK_RESET_BATCH_SIZE', 10 );
@@ -61,11 +63,6 @@ define( 'ERANKLY_EXPORT_FORMAT', '4.0' );
 define( 'ERANKLY_IMPORT_JSON_MAX_DEPTH', 64 );
 
 require_once ERANKLY_PATH . 'includes/helpers.php';
-$erankly_plugin_check_helper = ERANKLY_PATH . 'includes/plugin-check.php';
-if ( file_exists( $erankly_plugin_check_helper ) && ( is_admin() || ( defined( 'WP_CLI' ) && WP_CLI ) ) ) {
-	require_once $erankly_plugin_check_helper;
-}
-unset( $erankly_plugin_check_helper );
 require_once ERANKLY_PATH . 'includes/settings-lock.php';
 require_once ERANKLY_PATH . 'includes/localized-value-writer.php';
 require_once ERANKLY_PATH . 'includes/class-erankly-multilingual-provider-registry.php';
@@ -74,6 +71,9 @@ require_once ERANKLY_PATH . 'includes/seo-state.php';
 /**
  * Maps a legacy hot option to its compact runtime-state key. The legacy options remain mirrored for rollback
  * compatibility, while the autoloaded state avoids separate queries for values read during bootstrap.
+ *
+ * One-time migrated_* flags stay as standalone options. Folding them into runtime_state duplicated writes without
+ * removing the original rows, so uninstall still has to delete both.
  */
 function erankly_runtime_state_key( string $option ): string {
 	$keys = array(
@@ -328,6 +328,7 @@ function erankly_bootstrap(): void {
 	}
 
 	add_action( 'rest_api_init', 'erankly_register_user_search_route' );
+	add_action( 'rest_api_init', 'erankly_register_local_business_routes' );
 	// Literal `/settings/special-pages` must register before the generic
 	// `/settings/(?P<panel>[a-z-]+)` pattern; WP_REST_Server keeps the first match.
 	add_action( 'rest_api_init', 'erankly_register_special_pages_autosave_route' );
@@ -445,26 +446,53 @@ register_activation_hook( ERANKLY_FILE, 'erankly_activate' );
 /**
  * Returns a keyset-paginated batch of site IDs for the current network.
  *
- * @param int $after_site_id Return sites whose ID is greater than this value.
- * @param int $limit         Maximum IDs to return.
+ * Uninstall, deactivation and network reset keep $active_only false so deleted,
+ * spam and archived blogs are still swept. Mapping migrations and admin pickers
+ * pass true to skip those sites. That is stricter than core get_sites() defaults,
+ * which leave deleted/spam/archived unfiltered (null) and do not limit network_id=0
+ * to the current network.
+ *
+ * @param int  $after_site_id Return sites whose ID is greater than this value.
+ * @param int  $limit         Maximum IDs to return.
+ * @param bool $active_only   Whether to skip deleted, spam and archived blogs.
  * @return int[]
  * @throws RuntimeException When the site batch cannot be read.
  */
 function erankly_get_network_site_ids_batch(
 	int $after_site_id = 0,
-	int $limit = ERANKLY_NETWORK_SITE_BATCH_SIZE
+	int $limit = ERANKLY_NETWORK_SITE_BATCH_SIZE,
+	bool $active_only = false
 ): array {
 	global $wpdb;
 
-	$site_ids = $wpdb->get_col( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Keyset pagination keeps lifecycle and reset sweeps bounded.
-		$wpdb->prepare(
-			'SELECT blog_id FROM %i WHERE site_id = %d AND blog_id > %d ORDER BY blog_id ASC LIMIT %d',
-			$wpdb->blogs,
-			(int) get_current_network_id(),
-			max( 0, $after_site_id ),
-			max( 1, $limit )
-		)
-	);
+	$after      = max( 0, $after_site_id );
+	$limit      = max( 1, $limit );
+	$network_id = (int) get_current_network_id();
+
+	if ( $active_only ) {
+		$site_ids = $wpdb->get_col( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Keyset pagination keeps lifecycle and reset sweeps bounded.
+			$wpdb->prepare(
+				'SELECT blog_id FROM %i WHERE site_id = %d AND blog_id > %d AND deleted = %d AND spam = %d AND archived = %d ORDER BY blog_id ASC LIMIT %d',
+				$wpdb->blogs,
+				$network_id,
+				$after,
+				0,
+				0,
+				0,
+				$limit
+			)
+		);
+	} else {
+		$site_ids = $wpdb->get_col( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Keyset pagination keeps lifecycle and reset sweeps bounded.
+			$wpdb->prepare(
+				'SELECT blog_id FROM %i WHERE site_id = %d AND blog_id > %d ORDER BY blog_id ASC LIMIT %d',
+				$wpdb->blogs,
+				$network_id,
+				$after,
+				$limit
+			)
+		);
+	}
 
 	if ( $wpdb->last_error ) {
 		throw new RuntimeException( esc_html__( 'EasyRankly could not retrieve the next network site batch.', 'easyrankly' ) );
@@ -653,8 +681,8 @@ function erankly_maybe_flush_rewrite_rules(): void {
 /**
  * Removes deactivation-only state from the current site. Clears every EasyRankly WP-Cron hook so pending import,
  * migration and rollback pages cannot fire after reactivation. Active job checkpoints are intentionally retained
- * so an administrator can resume from the admin UI (see migration Phase 3/5 lifecycle docs). Reset and uninstall
- * delete those checkpoints; deactivation must not.
+ * so an administrator can resume from the admin UI. Reset and uninstall delete those checkpoints; deactivation
+ * must not.
  *
  * @throws RuntimeException When a scheduled task cannot be removed.
  */
@@ -830,6 +858,107 @@ function erankly_rest_user_search( WP_REST_Request $request ): WP_REST_Response 
 	}
 
 	return new WP_REST_Response( $results, 200 );
+}
+
+function erankly_register_local_business_routes(): void {
+	$permission = static fn() => current_user_can( is_multisite() ? 'manage_network_options' : 'manage_options' );
+
+	register_rest_route(
+		'erankly/v1',
+		'/local-business/sites',
+		array(
+			'methods'             => WP_REST_Server::READABLE,
+			'callback'            => 'erankly_rest_local_business_sites',
+			'permission_callback' => $permission,
+			'args'                => array(
+				'after' => array(
+					'default'           => 0,
+					'type'              => 'integer',
+					'sanitize_callback' => 'absint',
+				),
+			),
+		)
+	);
+
+	register_rest_route(
+		'erankly/v1',
+		'/local-business/pages',
+		array(
+			'methods'             => WP_REST_Server::READABLE,
+			'callback'            => 'erankly_rest_local_business_pages',
+			'permission_callback' => $permission,
+			'args'                => array(
+				'blog_id' => array(
+					'required'          => true,
+					'type'              => 'integer',
+					'sanitize_callback' => 'absint',
+				),
+				'q'       => array(
+					'default'           => '',
+					'type'              => 'string',
+					'sanitize_callback' => 'sanitize_text_field',
+				),
+				'offset'  => array(
+					'default'           => 0,
+					'type'              => 'integer',
+					'sanitize_callback' => 'absint',
+				),
+			),
+		)
+	);
+}
+
+/**
+ * @return WP_REST_Response|WP_Error
+ */
+function erankly_rest_local_business_sites( WP_REST_Request $request ) {
+	$after = absint( $request->get_param( 'after' ) );
+	$map   = erankly_normalize_local_business_page_map( erankly_get_setting( 'local_business_pages', array() ) );
+	$sites = erankly_get_local_business_site_choices( $after, ERANKLY_LOCAL_BUSINESS_SITE_CHOICE_LIMIT, $map );
+
+	return new WP_REST_Response(
+		array(
+			'sites'   => $sites,
+			'hasMore' => count( $sites ) === ERANKLY_LOCAL_BUSINESS_SITE_CHOICE_LIMIT,
+		),
+		200
+	);
+}
+
+/**
+ * @return WP_REST_Response|WP_Error
+ */
+function erankly_rest_local_business_pages( WP_REST_Request $request ) {
+	$blog_id = absint( $request->get_param( 'blog_id' ) );
+
+	if ( ! erankly_local_business_site_is_selectable( $blog_id ) ) {
+		return new WP_Error( 'erankly_unknown_site', __( 'Unknown site.', 'easyrankly' ), array( 'status' => 404 ) );
+	}
+
+	$search   = (string) $request->get_param( 'q' );
+	$offset   = absint( $request->get_param( 'offset' ) );
+	$map      = erankly_normalize_local_business_page_map( erankly_get_setting( 'local_business_pages', array() ) );
+	$include  = isset( $map[ $blog_id ] ) ? absint( $map[ $blog_id ] ) : 0;
+	$has_more = false;
+	$pages    = erankly_get_local_business_published_pages(
+		$blog_id,
+		$search,
+		ERANKLY_LOCAL_BUSINESS_PAGE_CHOICE_LIMIT,
+		$include,
+		$offset,
+		$has_more
+	);
+
+	return new WP_REST_Response(
+		array(
+			'blog_id'    => $blog_id,
+			'pages'      => $pages,
+			'hasMore'    => $has_more,
+			'offset'     => $offset,
+			'nextOffset' => $offset + ERANKLY_LOCAL_BUSINESS_PAGE_CHOICE_LIMIT,
+		),
+		200
+	);
 }
 
 /**

@@ -290,7 +290,10 @@ final class ERankly_Migration_Manager {
 		return array_values( array_filter( array_reverse( array_values( $reports ) ), 'is_array' ) );
 	}
 
-	/** Replaces one existing report after a privileged verification or rollback action. */
+	/**
+	 * Replaces one existing report. Kept as a compatibility shim for integrations that still call it after
+	 * verification or rollback UI was retired from core.
+	 */
 	public function update_report( array $report ): bool {
 		$report_id = sanitize_text_field( (string) ( $report['id'] ?? '' ) );
 		$reports   = get_option( self::REPORTS_OPTION, array() );

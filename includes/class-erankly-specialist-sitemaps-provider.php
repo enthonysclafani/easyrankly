@@ -59,8 +59,8 @@ final class ERankly_Specialist_Sitemaps_Provider extends WP_Sitemaps_Provider {
 	}
 
 	/**
-	 * Required by WP_Sitemaps_Provider but unused here because we render specialist XML formats directly via
-	 * template_redirect.
+	 * Required by WP_Sitemaps_Provider but never called for this provider: the specialist XML formats are
+	 * rendered directly through template_redirect.
 	 *
 	 * @return array<int,array<string,string>>
 	 */
@@ -68,7 +68,10 @@ final class ERankly_Specialist_Sitemaps_Provider extends WP_Sitemaps_Provider {
 		return array();
 	}
 
-	/** Gets the max number of pages. Unused. */
+	/**
+	 * Required by WP_Sitemaps_Provider but unused on this path: get_sitemap_entries() already emits one loc per
+	 * paginated specialist document, and template_redirect serves the XML.
+	 */
 	public function get_max_num_pages( $object_subtype = '' ): int {
 		return 0;
 	}

@@ -68,3 +68,12 @@ function erankly_tests_set_settings( array $settings ): void {
 
 	erankly_clear_settings_cache();
 }
+
+/**
+ * PHP 8.1+ makes reflected methods accessible without setAccessible(); PHP 8.5 deprecates the call.
+ */
+function erankly_tests_set_accessible( ReflectionMethod $method ): void {
+	if ( PHP_VERSION_ID < 80100 ) {
+		$method->setAccessible( true );
+	}
+}

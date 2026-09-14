@@ -59,8 +59,22 @@ function erankly_render_local_business_settings( array $settings ): void {
 	$page_map  = isset( $settings['local_business_pages'] ) && is_array( $settings['local_business_pages'] )
 		? array_map( 'absint', $settings['local_business_pages'] )
 		: array();
-	$choices   = function_exists( 'erankly_get_local_business_site_choices' ) ? erankly_get_local_business_site_choices() : array();
+	$choices   = array();
 	$gaps      = function_exists( 'erankly_local_business_requirement_gaps' ) ? erankly_local_business_requirement_gaps( $settings ) : array();
+
+	if ( $enabled && function_exists( 'erankly_get_local_business_site_choices' ) ) {
+		$choices = erankly_get_local_business_site_choices( 0, ERANKLY_LOCAL_BUSINESS_SITE_CHOICE_LIMIT, $page_map );
+	}
+
+	$visible_blog_ids = array();
+	foreach ( $choices as $site ) {
+		$visible_blog_ids[ absint( $site['blog_id'] ?? 0 ) ] = true;
+	}
+
+	$last_visible_id = 0;
+	if ( $choices ) {
+		$last_visible_id = absint( $choices[ array_key_last( $choices ) ]['blog_id'] ?? 0 );
+	}
 	?>
 	<div class="erankly-local-business" data-erankly-local-business>
 		<div class="erankly-field erankly-checkboxes">
@@ -92,8 +106,19 @@ function erankly_render_local_business_settings( array $settings ): void {
 				</select>
 			</div>
 			<input type="hidden" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[local_business_page_path]" value="<?php echo esc_attr( $page_path ); ?>">
-			<div class="erankly-field">
+			<div class="erankly-field" data-erankly-local-business-sites data-erankly-after="<?php echo esc_attr( (string) $last_visible_id ); ?>" data-erankly-sites-initialized="<?php echo $enabled ? '1' : '0'; ?>">
 				<span class="erankly-field-label"><?php esc_html_e( 'Location page', 'easyrankly' ); ?></span>
+				<?php foreach ( $page_map as $stored_blog_id => $stored_page_id ) : ?>
+					<?php
+					$stored_blog_id = absint( $stored_blog_id );
+					$stored_page_id = absint( $stored_page_id );
+					if ( $stored_blog_id <= 0 || $stored_page_id <= 0 || isset( $visible_blog_ids[ $stored_blog_id ] ) ) {
+						continue;
+					}
+					?>
+					<input type="hidden" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[local_business_pages][<?php echo esc_attr( (string) $stored_blog_id ); ?>]" value="<?php echo esc_attr( (string) $stored_page_id ); ?>">
+				<?php endforeach; ?>
+				<div data-erankly-local-business-site-list>
 				<?php foreach ( $choices as $site ) : ?>
 					<?php
 					$blog_id     = absint( $site['blog_id'] ?? 0 );
@@ -106,23 +131,35 @@ function erankly_render_local_business_settings( array $settings ): void {
 						(string) ( $site['language'] ?? '' ),
 						(string) ( $site['path'] ?? '/' )
 					);
+					$pages       = (array) ( $site['pages'] ?? array() );
+					$has_more_pages = count( $pages ) >= ERANKLY_LOCAL_BUSINESS_PAGE_CHOICE_LIMIT;
 					?>
-					<div class="erankly-field">
+					<div class="erankly-field" data-erankly-local-business-site="<?php echo esc_attr( (string) $blog_id ); ?>" data-erankly-page-offset="<?php echo esc_attr( (string) min( count( $pages ), ERANKLY_LOCAL_BUSINESS_PAGE_CHOICE_LIMIT ) ); ?>">
 						<label for="<?php echo esc_attr( $field_id ); ?>"><?php echo esc_html( $site_label ); ?></label>
-						<select id="<?php echo esc_attr( $field_id ); ?>" class="widefat" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[local_business_pages][<?php echo esc_attr( (string) $blog_id ); ?>]">
-							<option value=""><?php esc_html_e( 'Select a published page', 'easyrankly' ); ?></option>
-							<?php foreach ( (array) ( $site['pages'] ?? array() ) as $page_option ) : ?>
-								<?php
-								$page_id    = absint( $page_option['id'] ?? 0 );
-								$page_title = (string) ( $page_option['title'] ?? '' );
-								$page_path_label = (string) ( $page_option['path'] ?? '' );
-								$page_label = trim( $page_title . ' (' . $page_path_label . ')' );
-								?>
-								<option value="<?php echo esc_attr( (string) $page_id ); ?>" <?php selected( $selected_id, $page_id ); ?>><?php echo esc_html( $page_label ); ?></option>
-							<?php endforeach; ?>
-						</select>
+						<div class="erankly-local-business-page-picker">
+							<label class="screen-reader-text" for="<?php echo esc_attr( $field_id ); ?>-search"><?php esc_html_e( 'Search pages', 'easyrankly' ); ?></label>
+							<input id="<?php echo esc_attr( $field_id ); ?>-search" type="search" class="widefat" data-erankly-local-business-page-search autocomplete="off" placeholder="<?php esc_attr_e( 'Search pages', 'easyrankly' ); ?>">
+							<select id="<?php echo esc_attr( $field_id ); ?>" class="widefat" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[local_business_pages][<?php echo esc_attr( (string) $blog_id ); ?>]" data-erankly-local-business-page-select>
+								<option value=""><?php esc_html_e( 'Select a published page', 'easyrankly' ); ?></option>
+								<?php foreach ( $pages as $page_option ) : ?>
+									<?php
+									$page_id = absint( $page_option['id'] ?? 0 );
+									?>
+									<option value="<?php echo esc_attr( (string) $page_id ); ?>" <?php selected( $selected_id, $page_id ); ?>><?php echo esc_html( erankly_local_business_page_choice_label( $page_option ) ); ?></option>
+								<?php endforeach; ?>
+							</select>
+							<p>
+								<button type="button" class="button" data-erankly-local-business-load-more-pages <?php echo $has_more_pages ? '' : 'hidden'; ?>><?php esc_html_e( 'Load more pages', 'easyrankly' ); ?></button>
+							</p>
+							<p class="description" data-erankly-local-business-page-status role="status"></p>
+						</div>
 					</div>
 				<?php endforeach; ?>
+				</div>
+				<p class="description" data-erankly-local-business-sites-status role="status"></p>
+				<p>
+					<button type="button" class="button" data-erankly-local-business-load-more <?php echo ( is_multisite() && $enabled && count( $choices ) === ERANKLY_LOCAL_BUSINESS_SITE_CHOICE_LIMIT ) ? '' : 'hidden'; ?>><?php esc_html_e( 'Load more sites', 'easyrankly' ); ?></button>
+				</p>
 			</div>
 			<details class="erankly-settings-details">
 				<summary><?php esc_html_e( 'Location details and opening hours', 'easyrankly' ); ?></summary>

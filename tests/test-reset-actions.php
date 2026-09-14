@@ -182,6 +182,7 @@ final class ERankly_Reset_Actions_Test extends WP_UnitTestCase {
 		update_post_meta( $post_id, '_erankly_title', 'Seeded title' );
 		update_option( ERANKLY_SPECIAL_META_OPTION, array( 'post' => array( 'noindex' => 1 ) ) );
 		update_option( 'erankly_redirects_db_version', '9' );
+		update_option( ERANKLY_REDIRECTS_CACHE_GENERATION_OPTION, 'pre-reset-generation', false );
 
 		$custom                      = erankly_get_settings();
 		$custom['organization_name'] = 'Custom organisation';
@@ -193,6 +194,9 @@ final class ERankly_Reset_Actions_Test extends WP_UnitTestCase {
 		$this->assertSame( '', (string) get_post_meta( $post_id, '_erankly_title', true ) );
 		$this->assertFalse( get_option( ERANKLY_SPECIAL_META_OPTION, false ) );
 		$this->assertFalse( get_option( 'erankly_redirects_db_version', false ) );
+		$generation = (string) get_option( ERANKLY_REDIRECTS_CACHE_GENERATION_OPTION, '' );
+		$this->assertNotSame( '', $generation );
+		$this->assertNotSame( 'pre-reset-generation', $generation );
 
 		erankly_clear_settings_cache();
 
@@ -227,9 +231,30 @@ final class ERankly_Reset_Actions_Test extends WP_UnitTestCase {
 		$log      = $this->temp_file( 'erankly-uninstall-' );
 		ini_set( 'error_log', $log );
 
+		global $wpdb;
+
+		$user_id = self::factory()->user->create();
+
 		update_option( 'erankly_special_meta', array( 'post' => array( 'noindex' => 1 ) ) );
 		update_option( 'erankly_runtime_state', array( 'version' => '2.0.0' ) );
 		update_option( 'erankly_redirects_db_version', '9' );
+		// One-time migration markers, the redirect upgrade report and the multilingual
+		// provider choice are all persistent options with no reader after uninstall.
+		update_option( 'erankly_migrated_post_type_schema_v1', true );
+		update_option( 'erankly_migrated_title_defaults_v1', true );
+		update_option( 'erankly_migrated_local_business_pages_v1', true );
+		update_option( 'erankly_legacy_social_image_migrated', 1 );
+		update_option( 'erankly_redirects_v3_migration_report', array( 'transformed' => array( 1 ) ) );
+		update_option( 'erankly_multilingual_provider_id', 'beta' );
+		// Locks belong to no active job and the runtime shard is missing from the prefix
+		// index, so only a prefix sweep can reach them.
+		update_option( 'erankly_migration_lock_' . str_repeat( 'a', 24 ), 1 );
+		update_option( 'erankly_import_lock_' . str_repeat( 'b', 24 ), 1 );
+		update_option( 'erankly_migration_cancel_' . str_repeat( 'c', 24 ), 1 );
+		update_option( 'erankly_redirects_runtime_rules_prefix_' . str_repeat( 'd', 24 ), array() );
+		set_transient( 'erankly_invalid_json_ld_' . $user_id, 'Broken JSON-LD probe', MINUTE_IN_SECONDS );
+		set_transient( 'erankly_redirect_form_' . $user_id, array( 'id' => 0 ), MINUTE_IN_SECONDS );
+		set_transient( 'erankly_settings_notices_' . $user_id, array(), MINUTE_IN_SECONDS );
 		wp_schedule_single_event( time() + 300, ERANKLY_NETWORK_RESET_CRON_HOOK, array( 'tok' ) );
 
 		$post_id = self::factory()->post->create();
@@ -260,5 +285,29 @@ final class ERankly_Reset_Actions_Test extends WP_UnitTestCase {
 		$this->assertFalse( get_option( 'erankly_redirects_db_version', false ) );
 		$this->assertSame( '', (string) get_post_meta( $post_id, '_erankly_title', true ) );
 		$this->assertFalse( wp_next_scheduled( ERANKLY_NETWORK_RESET_CRON_HOOK ) );
+
+		// "Every last bit": no plugin-owned option or transient row may survive. The
+		// assertions below query the storage directly instead of the (also cleaned)
+		// option cache, so a row left behind cannot pass by accident.
+		$remaining_options = $wpdb->get_col( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Uninstall contract assertion on plugin-owned rows.
+			$wpdb->prepare(
+				"SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE %s",
+				$wpdb->esc_like( 'erankly_' ) . '%'
+			)
+		);
+		$remaining_transients = $wpdb->get_col( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Uninstall contract assertion on plugin-owned rows.
+			$wpdb->prepare(
+				"SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE %s OR option_name LIKE %s",
+				$wpdb->esc_like( '_transient_erankly_' ) . '%',
+				$wpdb->esc_like( '_transient_timeout_erankly_' ) . '%'
+			)
+		);
+
+		$this->assertSame( array(), $remaining_options );
+		$this->assertSame( array(), $remaining_transients );
+
+		$uninstall_source = (string) file_get_contents( ERANKLY_PATH . 'uninstall.php' );
+		$this->assertDoesNotMatchRegularExpression( '/wp_cache_flush\s*\(\s*\)/', $uninstall_source );
+		$this->assertStringContainsString( 'wp_cache_flush_group', $uninstall_source );
 	}
 }

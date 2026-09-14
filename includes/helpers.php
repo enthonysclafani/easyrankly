@@ -1,5 +1,8 @@
 <?php
-/** Shared helpers. */
+/**
+ * Helper loader. Requires the small request-wide kernel here and exposes one loader per heavier group
+ * (defaults, rendered content, sitemap, schema sanitizers, video) for callers to pull in on demand.
+ */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -31,6 +34,7 @@ function erankly_load_schema_sanitizers(): void {
 	require_once ERANKLY_PATH . 'includes/helpers/sanitization-schema.php';
 }
 
+/** Loads video URL parsers used by sitemap and schema output. */
 function erankly_load_video_helpers(): void {
 	require_once ERANKLY_PATH . 'includes/helpers/video.php';
 }

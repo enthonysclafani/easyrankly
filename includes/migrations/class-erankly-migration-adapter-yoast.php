@@ -16,7 +16,6 @@ final class ERankly_Migration_Adapter_Yoast extends ERankly_Migration_Adapter {
 		return 'Yoast SEO';
 	}
 
-	/** Returns the detected version. */
 	public function version(): string {
 		$version = $this->detect_version(
 			'WPSEO_VERSION',

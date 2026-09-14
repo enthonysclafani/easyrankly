@@ -8,7 +8,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/** Filters the document title. */
 function erankly_filter_document_title( string $title ): string {
 	$seo_title = erankly_get_title();
 

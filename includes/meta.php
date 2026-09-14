@@ -12,13 +12,12 @@ require_once ERANKLY_PATH . 'includes/hreflang.php';
 require_once ERANKLY_PATH . 'includes/schema-jsonld.php';
 
 /**
- * Returns the registered EasyRankly meta keys mapped to their value type. Shared by meta registration and the
- * import/export module so both work from a single source of truth.
+ * Returns the core EasyRankly meta keys mapped to their value type, before add-on filters.
  *
  * @return array<string,string>
  */
-function erankly_get_meta_keys(): array {
-	$keys = array(
+function erankly_core_meta_keys(): array {
+	return array(
 		'_erankly_title'                 => 'string',
 		'_erankly_description'           => 'string',
 		'_erankly_canonical'             => 'string',
@@ -55,26 +54,48 @@ function erankly_get_meta_keys(): array {
 		'_erankly_exclude_archive'       => 'boolean',
 		'_erankly_exclude_from_news'     => 'boolean',
 	);
+}
 
+/**
+ * Returns the registered EasyRankly meta keys mapped to their value type. Shared by meta registration and the
+ * import/export module so both work from a single source of truth.
+ *
+ * @return array<string,string>
+ */
+function erankly_get_meta_keys(): array {
 	/**
  * Filters the registered EasyRankly meta keys. Add-ons may register extra keys so import/export and REST meta
- * share one list.
+ * share one list. Extra keys remain registered and importable on terms (the historical object type for the
+ * filter). Use `erankly_registered_meta_keys` to opt a key into user REST as well.
  *
  * @param array<string,string> $keys Meta key => value type.
  */
-	$keys = apply_filters( 'erankly_meta_keys', $keys );
+	$keys = apply_filters( 'erankly_meta_keys', erankly_core_meta_keys() );
 
 	return is_array( $keys ) ? $keys : array();
 }
 
 /**
- * Returns the meta keys an import may write for one object type.
+ * @return array<string,string>
+ */
+function erankly_addon_meta_keys(): array {
+	return array_diff_key( erankly_get_meta_keys(), erankly_core_meta_keys() );
+}
+
+/**
+ * Returns the meta keys one object type actually reads and writes.
  *
- * Every registered key is writable on posts, but terms and users only ever read a subset at runtime.
- * Importers write through this list so a source plugin that stores schema or primary terms on a taxonomy
- * cannot leave rows behind that nothing in EasyRankly can consume. Legacy keys superseded by the tri-state
- * robots directives are never imported either: they are read only as a fallback when the directive is absent,
- * so writing both would make the boolean inert while still costing a row.
+ * Every registered key belongs to posts, but terms and users only ever consume a subset at runtime, so this
+ * list also drives registration for those types (see erankly_register_meta()). Importers write through the
+ * same list so a source plugin that stores schema or primary terms on a taxonomy cannot leave rows behind that
+ * nothing in EasyRankly can consume. Legacy keys superseded by the tri-state robots directives are never
+ * imported either: they are read only as a fallback when the directive is absent, so writing both would make
+ * the boolean inert while still costing a row.
+ *
+ * Add-on keys registered via `erankly_meta_keys` are importable on terms (the historical object type for that
+ * filter) and are sanitized through `erankly_sanitize_extension_meta`. They are not imported onto users unless
+ * `erankly_registered_meta_keys` also opts them in there. Native EasyRankly JSON restores still walk
+ * `erankly_get_meta_keys()` for every object type.
  *
  * @param string $object_type One of post, term or user.
  * @return array<string,string> Meta key => value type.
@@ -118,93 +139,130 @@ function erankly_importable_meta_keys( string $object_type ): array {
 		$shared[] = '_erankly_disable_sitemap';
 	}
 
-	return array_intersect_key( $keys, array_flip( $shared ) );
+	$subset = array_intersect_key( $keys, array_flip( $shared ) );
+
+	if ( 'term' === $object_type ) {
+		$subset = array_merge( $subset, erankly_addon_meta_keys() );
+	}
+
+	return $subset;
+}
+
+/**
+ * Returns the meta keys registered for one object type.
+ *
+ * Import/export uses erankly_importable_meta_keys() and never writes the legacy robots booleans. Registration
+ * still exposes them on terms because the term editor dual-writes them alongside the tri-state directives.
+ *
+ * @param string $object_type One of post, term or user.
+ * @return array<string,string> Meta key => value type.
+ */
+function erankly_registered_meta_keys( string $object_type ): array {
+	if ( 'post' === $object_type ) {
+		return erankly_get_meta_keys();
+	}
+
+	$keys = erankly_importable_meta_keys( $object_type );
+
+	if ( 'term' === $object_type ) {
+		$all = erankly_get_meta_keys();
+
+		foreach ( array( '_erankly_noindex', '_erankly_nofollow', '_erankly_noarchive' ) as $legacy_boolean ) {
+			if ( isset( $all[ $legacy_boolean ] ) ) {
+				$keys[ $legacy_boolean ] = $all[ $legacy_boolean ];
+			}
+		}
+	}
+
+	/**
+ * Filters the meta keys registered for one object type. Add-ons that need a key on users (or extra term
+ * keys beyond `erankly_meta_keys`) should append them here.
+ *
+ * @param array<string,string> $keys        Meta key => value type.
+ * @param string               $object_type One of post, term or user.
+ */
+	$keys = apply_filters( 'erankly_registered_meta_keys', $keys, $object_type );
+
+	return is_array( $keys ) ? $keys : array();
+}
+
+/**
+ * Builds the shared registration arguments for one meta key.
+ *
+ * @param string   $key           Meta key.
+ * @param string   $type          Value type from erankly_get_meta_keys().
+ * @param callable $auth_callback Capability check for the object type being registered.
+ * @return array<string,mixed>
+ */
+function erankly_meta_registration_args( string $key, string $type, callable $auth_callback ): array {
+	$args = array(
+		'type'              => $type,
+		'single'            => true,
+		'show_in_rest'      => erankly_get_registered_meta_rest_schema( $key, $type ),
+		'auth_callback'     => $auth_callback,
+		'sanitize_callback' => 'erankly_sanitize_registered_meta',
+	);
+
+	if ( 'boolean' === $type ) {
+		$args['default'] = false;
+	} elseif ( 'integer' === $type ) {
+		$args['default'] = 0;
+	} elseif ( 'object' === $type || 'array' === $type ) {
+		$args['default'] = array();
+	}
+
+	return $args;
 }
 
 function erankly_register_meta(): void {
 	$meta = erankly_get_meta_keys();
 
+	// Posts carry the complete model. Terms and users are registered below with
+	// erankly_registered_meta_keys(): schema, targeting and primary-term keys have
+	// no reader outside posts, while terms still register the legacy robots booleans.
 	foreach ( $meta as $key => $type ) {
-		$rest_schema = erankly_get_registered_meta_rest_schema( $key, $type );
-		$args        = array(
-			'type'              => $type,
-			'single'            => true,
-			'show_in_rest'      => $rest_schema,
-			'auth_callback'     => static function ( bool $allowed, string $meta_key, int $object_id ): bool {
-				unset( $allowed, $meta_key );
-				return $object_id > 0 ? current_user_can( 'edit_post', $object_id ) : current_user_can( 'edit_posts' );
-			},
-			'sanitize_callback' => 'erankly_sanitize_registered_meta',
+		register_post_meta(
+			'',
+			$key,
+			erankly_meta_registration_args(
+				$key,
+				$type,
+				static function ( bool $allowed, string $meta_key, int $object_id ): bool {
+					unset( $allowed, $meta_key );
+					return $object_id > 0 ? current_user_can( 'edit_post', $object_id ) : current_user_can( 'edit_posts' );
+				}
+			)
 		);
-
-		if ( 'array' === $type ) {
-			$args['default'] = array();
-		}
-
-		register_post_meta( '', $key, $args );
-
-		$term_args                  = $args;
-		$term_args['auth_callback'] = static function ( bool $allowed, string $meta_key, int $object_id ): bool {
-			unset( $allowed, $meta_key );
-			// edit_term is the contextual meta capability; the generic
-			// edit_terms check does not resolve for custom taxonomies.
-			return $object_id > 0 && current_user_can( 'edit_term', $object_id );
-		};
-
-		register_term_meta( '', $key, $term_args );
 	}
 
-	$user_meta = array(
-		'_erankly_title',
-		'_erankly_description',
-		'_erankly_canonical',
-		'_erankly_og_title',
-		'_erankly_og_description',
-		'_erankly_twitter_title',
-		'_erankly_twitter_description',
-		'_erankly_twitter_card_type',
-		'_erankly_og_image_url',
-		'_erankly_og_image_alt',
-		'_erankly_twitter_image_url',
-		'_erankly_twitter_image_alt',
-		'_erankly_index_directive',
-		'_erankly_follow_directive',
-		'_erankly_archive_directive',
-		'_erankly_snippet_directive',
-		'_erankly_image_directive',
-		'_erankly_max_snippet',
-		'_erankly_max_video_preview',
-		'_erankly_max_image_preview',
-		'_erankly_indexifembedded',
-		'_erankly_schema_mode',
-		'_erankly_schema_blocks',
-	);
+	foreach ( erankly_registered_meta_keys( 'term' ) as $key => $type ) {
+		register_term_meta(
+			'',
+			$key,
+			erankly_meta_registration_args(
+				$key,
+				$type,
+				static function ( bool $allowed, string $meta_key, int $object_id ): bool {
+					unset( $allowed, $meta_key );
+					// edit_term is the contextual meta capability; the generic
+					// edit_terms check does not resolve for custom taxonomies.
+					return $object_id > 0 && current_user_can( 'edit_term', $object_id );
+				}
+			)
+		);
+	}
 
-	foreach ( $user_meta as $key ) {
-		$type = $meta[ $key ];
-
-		$default = '';
-		if ( 'array' === $type || 'object' === $type ) {
-			$default = array();
-		} elseif ( 'boolean' === $type ) {
-			$default = false;
-		} elseif ( 'integer' === $type ) {
-			$default = 0;
-		}
-
+	foreach ( erankly_registered_meta_keys( 'user' ) as $key => $type ) {
 		register_meta(
 			'user',
 			$key,
-			array(
-				'type'              => $type,
-				'single'            => true,
-				'default'           => $default,
-				'show_in_rest'      => erankly_get_registered_meta_rest_schema( $key, $type ),
-				'auth_callback'     => static function ( bool $allowed, string $meta_key, int $object_id ): bool {
+			erankly_meta_registration_args(
+				$key,
+				$type,
+				static function ( bool $allowed, string $meta_key, int $object_id ): bool {
 					unset( $allowed, $meta_key );
 					return $object_id > 0 && current_user_can( 'edit_user', $object_id );
-				},
-				'sanitize_callback' => 'erankly_sanitize_registered_meta',
+				}
 			)
 		);
 	}
@@ -309,7 +367,6 @@ function erankly_get_registered_meta_rest_schema( string $key, string $type ): b
 	return apply_filters( 'erankly_registered_meta_rest_schema', $schema, $key, $type );
 }
 
-/** Sanitizes registered post meta. */
 function erankly_sanitize_registered_meta( mixed $value, string $meta_key ): mixed {
 	switch ( $meta_key ) {
 		case '_erankly_title':
@@ -734,10 +791,6 @@ function erankly_render_invalid_json_ld_notice(): void {
 	);
 }
 
-function erankly_is_valid_custom_json_ld( string $json ): bool {
-	return erankly_validate_custom_json_ld( $json )['valid'];
-}
-
 /**
  * Decodes custom JSON-LD into graph entries. Supports one object, an array of objects, or an object containing
  * @graph. Nodes that fail Schema.org-minimum validation are rejected as a document, not silently dropped.
@@ -748,13 +801,4 @@ function erankly_decode_custom_json_ld( string $json ): array {
 	$result = erankly_validate_custom_json_ld( $json );
 
 	return $result['valid'] ? $result['nodes'] : array();
-}
-
-/** @return array<int,array<string,mixed>> */
-function erankly_normalize_custom_json_ld_data( array $decoded ): array {
-	return erankly_validate_json_ld_nodes(
-		isset( $decoded['@graph'] ) && is_array( $decoded['@graph'] )
-			? $decoded['@graph']
-			: ( erankly_array_is_list( $decoded ) ? $decoded : array( $decoded ) )
-	)['nodes'];
 }

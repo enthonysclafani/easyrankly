@@ -9,8 +9,11 @@
 /.dist
 /.phpunit.result.cache
 /phpunit.xml.dist
+/composer.json
+/composer.lock
 /tests
 /.playwright-cli
 /tools
 /vendor
+/.commandcode
 /WORDPRESS-ORG-READINESS.md

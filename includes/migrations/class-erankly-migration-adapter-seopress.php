@@ -16,7 +16,6 @@ final class ERankly_Migration_Adapter_SEOPress extends ERankly_Migration_Adapter
 		return 'SEOPress';
 	}
 
-	/** Returns the detected source version. */
 	public function version(): string {
 		return $this->detect_version(
 			'SEOPRESS_VERSION',

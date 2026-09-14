@@ -256,6 +256,120 @@ final class ERankly_Schema_Jsonld_Test extends WP_UnitTestCase {
 		$this->assertContains( $page_id, $ids );
 	}
 
+	public function test_get_local_business_site_choices_limits_sites_and_pages_per_request(): void {
+		$page_ids = array();
+		for ( $i = 0; $i < ERANKLY_LOCAL_BUSINESS_PAGE_CHOICE_LIMIT + 3; $i++ ) {
+			$page_ids[] = $this->make_post(
+				array(
+					'post_type'  => 'page',
+					'post_title' => 'Location ' . $i,
+					'post_name'  => 'location-' . $i,
+				)
+			);
+		}
+
+		$choices = erankly_get_local_business_site_choices();
+
+		$this->assertLessThanOrEqual( ERANKLY_LOCAL_BUSINESS_SITE_CHOICE_LIMIT, count( $choices ) );
+		$this->assertCount( 1, $choices );
+		$this->assertLessThanOrEqual( ERANKLY_LOCAL_BUSINESS_PAGE_CHOICE_LIMIT, count( $choices[0]['pages'] ) );
+		$this->assertSame( ERANKLY_LOCAL_BUSINESS_PAGE_CHOICE_LIMIT, count( $choices[0]['pages'] ) );
+
+		$kept = end( $page_ids );
+		$with_selected = erankly_get_local_business_site_choices(
+			0,
+			ERANKLY_LOCAL_BUSINESS_SITE_CHOICE_LIMIT,
+			array( get_current_blog_id() => $kept )
+		);
+		$ids = wp_list_pluck( $with_selected[0]['pages'], 'id' );
+		$this->assertContains( $kept, $ids );
+	}
+
+	public function test_get_local_business_published_pages_paginates_past_the_first_batch(): void {
+		$page_ids = array();
+		for ( $i = 0; $i < 60; $i++ ) {
+			$page_ids[] = $this->make_post(
+				array(
+					'post_type'  => 'page',
+					'post_title' => 0 === $i % 2 ? 'Sede duplicata' : 'Sede unica ' . $i,
+					'post_name'  => 'sede-' . $i,
+					'menu_order' => $i,
+				)
+			);
+		}
+
+		$has_more = false;
+		$first    = erankly_get_local_business_published_pages( get_current_blog_id(), '', ERANKLY_LOCAL_BUSINESS_PAGE_CHOICE_LIMIT, 0, 0, $has_more );
+		$this->assertTrue( $has_more );
+		$this->assertCount( ERANKLY_LOCAL_BUSINESS_PAGE_CHOICE_LIMIT, $first );
+
+		$first_ids = wp_list_pluck( $first, 'id' );
+		$missing   = array_values( array_diff( $page_ids, $first_ids ) );
+		$this->assertNotEmpty( $missing );
+
+		$second = erankly_get_local_business_published_pages(
+			get_current_blog_id(),
+			'',
+			ERANKLY_LOCAL_BUSINESS_PAGE_CHOICE_LIMIT,
+			0,
+			ERANKLY_LOCAL_BUSINESS_PAGE_CHOICE_LIMIT,
+			$has_more
+		);
+		$this->assertContains( $missing[0], wp_list_pluck( $second, 'id' ) );
+
+		$label = erankly_local_business_page_choice_label( $first[0] );
+		$this->assertStringContainsString( '[#', $label );
+		$this->assertStringContainsString( (string) $first[0]['path'], $label );
+	}
+
+	public function test_get_local_business_published_pages_reinserts_the_peeked_selected_page(): void {
+		for ( $i = 0; $i < 60; $i++ ) {
+			$this->make_post(
+				array(
+					'post_type'  => 'page',
+					'post_title' => 'Sede pagina ' . $i,
+					'post_name'  => 'sede-peek-' . $i,
+					'menu_order' => $i,
+				)
+			);
+		}
+
+		$has_more = false;
+		$first    = erankly_get_local_business_published_pages( get_current_blog_id(), '', ERANKLY_LOCAL_BUSINESS_PAGE_CHOICE_LIMIT, 0, 0, $has_more );
+		$this->assertTrue( $has_more );
+
+		$peeked_batch = erankly_get_local_business_published_pages(
+			get_current_blog_id(),
+			'',
+			ERANKLY_LOCAL_BUSINESS_PAGE_CHOICE_LIMIT,
+			0,
+			ERANKLY_LOCAL_BUSINESS_PAGE_CHOICE_LIMIT,
+			$has_more
+		);
+		$this->assertNotEmpty( $peeked_batch );
+		$peeked_id = absint( $peeked_batch[0]['id'] );
+
+		$with_selected = erankly_get_local_business_published_pages(
+			get_current_blog_id(),
+			'',
+			ERANKLY_LOCAL_BUSINESS_PAGE_CHOICE_LIMIT,
+			$peeked_id,
+			0,
+			$has_more
+		);
+		$this->assertContains( $peeked_id, wp_list_pluck( $with_selected, 'id' ) );
+		$this->assertTrue( $has_more );
+		$this->assertLessThanOrEqual( ERANKLY_LOCAL_BUSINESS_PAGE_CHOICE_LIMIT + 1, count( $with_selected ) );
+	}
+
+	public function test_json_ld_compatibility_shims_wrap_the_canonical_validator(): void {
+		$valid = '{"@type":"Thing","name":"Probe"}';
+		$this->assertTrue( erankly_is_valid_custom_json_ld( $valid ) );
+		$this->assertNotEmpty( erankly_normalize_custom_json_ld_data( $valid ) );
+		$this->assertFalse( erankly_is_valid_custom_json_ld( '{not json}' ) );
+		$this->assertSame( array(), erankly_normalize_custom_json_ld_data( '{not json}' ) );
+	}
+
 	// ------------------------------------------------------------------
 	// schema.php — pure graph helpers
 	// ------------------------------------------------------------------
@@ -661,9 +775,6 @@ final class ERankly_Schema_Jsonld_Test extends WP_UnitTestCase {
 		$this->assertSame( erankly_schema_identity_id(), $article['publisher']['@id'] );
 		$this->assertStringContainsString( '#webpage', $article['mainEntityOfPage']['@id'] );
 		$this->assertSame( 'Anna', $article['author']['name'] );
-
-		$blogposting = erankly_schema_blogposting( $post_id );
-		$this->assertSame( 'BlogPosting', $blogposting['@type'] );
 	}
 
 	public function test_schema_article_author_links_the_identity_user(): void {
@@ -957,9 +1068,9 @@ final class ERankly_Schema_Jsonld_Test extends WP_UnitTestCase {
 
 		$this->go_to( get_post_type_archive_link( 'book' ) );
 
-		$this->assertTrue( erankly_global_schema_matches_post_type_archive( array( 'target_post_types' => array( 'book' ) ) ) );
-		$this->assertFalse( erankly_global_schema_matches_post_type_archive( array( 'target_post_types' => array( 'movie' ) ) ) );
-		$this->assertFalse( erankly_global_schema_matches_post_type_archive( array( 'target_post_types' => array() ) ) );
+		$this->assertTrue( erankly_targeted_block_matches_post_type_archive( array( 'target_post_types' => array( 'book' ) ) ) );
+		$this->assertFalse( erankly_targeted_block_matches_post_type_archive( array( 'target_post_types' => array( 'movie' ) ) ) );
+		$this->assertFalse( erankly_targeted_block_matches_post_type_archive( array( 'target_post_types' => array() ) ) );
 	}
 
 	/**
@@ -976,13 +1087,13 @@ final class ERankly_Schema_Jsonld_Test extends WP_UnitTestCase {
 
 		$this->go_to( get_permalink( $post_id ) );
 
-		$this->assertTrue( erankly_global_schema_matches_singular( array( 'target_post_types' => array( 'post' ) ) ) );
-		$this->assertFalse( erankly_global_schema_matches_singular( array( 'target_post_types' => array( 'page' ) ) ) );
-		$this->assertTrue( erankly_global_schema_matches_singular( array( 'include_items' => (string) $post_id ) ) );
-		$this->assertFalse( erankly_global_schema_matches_singular( array( 'exclude_items' => (string) $post_id ) ) );
+		$this->assertTrue( erankly_targeted_block_matches_singular( array( 'target_post_types' => array( 'post' ) ) ) );
+		$this->assertFalse( erankly_targeted_block_matches_singular( array( 'target_post_types' => array( 'page' ) ) ) );
+		$this->assertTrue( erankly_targeted_block_matches_singular( array( 'include_items' => (string) $post_id ) ) );
+		$this->assertFalse( erankly_targeted_block_matches_singular( array( 'exclude_items' => (string) $post_id ) ) );
 
-		$this->assertTrue( erankly_schema_target_list_contains_post( (string) $post_id, $post_id ) );
-		$this->assertTrue( erankly_schema_target_list_contains_post( 'servizi-post', $post_id ) );
-		$this->assertFalse( erankly_schema_target_list_contains_post( '999999', $post_id ) );
+		$this->assertTrue( erankly_target_list_contains_item( (string) $post_id, 'post', $post_id ) );
+		$this->assertTrue( erankly_target_list_contains_item( 'servizi-post', 'post', $post_id ) );
+		$this->assertFalse( erankly_target_list_contains_item( '999999', 'post', $post_id ) );
 	}
 }

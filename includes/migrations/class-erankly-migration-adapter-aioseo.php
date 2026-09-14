@@ -17,7 +17,6 @@ final class ERankly_Migration_Adapter_AIOSEO extends ERankly_Migration_Adapter {
 		return 'All in One SEO';
 	}
 
-	/** Returns the detected source version. */
 	public function version(): string {
 		if ( function_exists( 'aioseo' ) ) {
 			$instance = aioseo();

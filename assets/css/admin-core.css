@@ -490,9 +490,9 @@
 }
 
 /*
- * Shared autocomplete used by Person references (settings)
- * and multilingual links. Lives here so every classic admin
- * surface gets the same control chrome.
+ * Shared autocomplete used by Person references (settings).
+ * Lives here so every classic admin surface gets the same
+ * control chrome.
  */
 [data-erankly-user-search-wrap],
 .erankly-user-search-wrap {
@@ -660,9 +660,9 @@
 /*
  * Reusable expandable table panel.
  *
- * Shared chrome for the Redirects, Broken-Link Candidates, and Frequent 404
- * sections: a white card with a toolbar (controls + expand toggle) above a
- * bordered table. Behavior is wired by bindExpandablePanel() in admin.js.
+ * Shared chrome for the Redirects table: a white card with a toolbar
+ * (controls + expand toggle) above a bordered table. Behavior is wired by
+ * bindExpandablePanel() in admin.js.
  */
 .erankly-panel-expandable {
 	transition: max-width 0.15s ease;

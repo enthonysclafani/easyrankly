@@ -5,29 +5,31 @@
 **Data `added` Directory (API 1.2, 9 settembre 2026):** 28 giugno 2026  
 **Release date changelog 1.0.0:** 14 giugno 2026  
 **Tree analizzato:** working copy locale 2.0.0, **non committata**  
-**Data verifica di questa revisione:** avviata il 9 settembre 2026, conclusa il 10 settembre 2026  
+**Data verifica di questa revisione:** avviata il 9 settembre 2026, conclusa il 10 settembre 2026; follow-up del 14 settembre 2026 sul delta non committato (report GPT-6, chiusura N1–N4, poi re-verifica PHP 8.0 / Multisite UI / revisione del tree)
 
 ## Verdetti (gate, non punteggio)
 
 | Gate | Esito | Cosa significa |
 | --- | --- | --- |
-| Revisione indipendente del tree finale | **ESEGUITA — BLOCKED** | Diff, test scritti, controlli statici, smoke CLI, packaging e Plugin Check sono stati riesaminati. La review ha trovato e corretto difetti nei test; PHPUnit/MySQL, CI remota e verifiche manuali isolate restano bloccati. |
-| Working tree (statica, packaging, test scritti) | **REVIEWED — BLOCKED** | Le correzioni verificabili localmente sono applicate; la suite PHPUnit richiesta non è stata eseguita in questo ambiente. |
+| Revisione indipendente del tree finale | **ESEGUITA — Cursor, non GPT-6** | Rilettura avversariale dei caller N1–N4 sul tree dopo la chiusura. Stesso lineage dell’implementazione: **non** sostituisce GPT-6. N1–N4 **RISOLTI** nei caller; restano P3 UI/`hasMore` e un P2 di tooling CI sul `composer.lock`. |
+| Working tree (statica, packaging, test scritti) | **REVIEWED — residui tooling** | N1–N4 e i test associati sono nel working tree. `composer.lock` (untracked, solo dev) non è installabile su PHP 8.0/8.3. |
 | Pubblicazione WordPress.org | **NOT READY** | Nessuna azione di release è stata eseguita o autorizzata. |
-| PHPUnit PHP 8.0 / 8.3 / Multisite su MySQL | **BLOCKED — ambiente locale** | Composer CLI e client MySQL assenti da PATH. Studio usa SQLite, non è la matrice ufficiale. |
-| CI remota sul tree corrente | **BLOCKED — push** | Workflow aggiornato nel working tree; nessun run sul commit candidato. |
-| ZIP installato e attivato in isolamento | **BLOCKED — ambiente isolato** | Lo ZIP è stato costruito, scansionato come sibling inattivo e rimosso. Working copy 2.0.0 resta il plugin attivo. |
-| Multisite UI / no-JS browser | **BLOCKED** | Studio locale single-site; no-JS non esercitato. |
+| PHPUnit PHP 8.0 / 8.3 / 8.5 / Multisite su MySQL | **ESEGUITO — locale Cursor** | PHP **8.0.30**, **8.3.33** e **8.5.10**, single-site e Multisite, vs MySQL `wordpress_test`. CI remota non lanciata. |
+| Plugin Check sul ZIP N1–N4 | **ESEGUITO — Cursor; non ripetuto** | ZIP `59d651b7…` invariato dopo questa re-verifica: 0 ERROR / 8 WARNING. PCP non rieseguito perché SHA e inventario coincidono. |
+| CI remota sul tree corrente | **BLOCKED — push + lockfile** | Nessun run remoto. In più `composer install` dal lock fallisce su PHP 8.0 e 8.3 (`doctrine/instantiator` 2.1.0 richiede `^8.4`). |
+| ZIP installato e attivato in isolamento | **BLOCKED — ambiente isolato** | Lo ZIP è stato costruito e scansionato come sibling inattivo `easyrankly-pcp-scan`, poi rimosso. Working copy 2.0.0 resta il plugin attivo. |
+| Multisite UI | **ESEGUITO — sito Studio separato** | `http://erankly-ms.local/` (non il sito primario `:8881`). N1/N2 sul network Schema. no-JS **non** esercitato. |
+| no-JS browser | **BLOCKED — no-JS** | Non esercitato. |
 | Asset marketing Directory | **BLOCKED — asset marketing opzionali** | SVN ha solo icone 128/256. Non è un blocco tecnico del codice. |
 
 Non c’è un punteggio 0–100 né un “Pass 18/18”.
 
 Questo file mescola **quattro livelli di prova**, da non confondere:
 
-1. **Risultati riprodotti in questa sessione** (lint, POT, build byte-identica, Plugin Check CSV/JSON, REST autosave con ripristino, smoke CLI Custom Code/import/user-search con cleanup, API Directory/SVN).
-2. **Ispezioni statiche** (guideline, mappa dei percorsi, lettura del codice).
-3. **Test automatici scritti ma non eseguiti** (PHPUnit locale assente).
-4. **Dichiarazioni o gate del developer / proprietario** (originalità, storia SVN completa, condotta, pubblicazione).
+1. **Risultati riprodotti in questa sessione Cursor** (lint PHP 8.0.30 e 8.3.33, probe JS, build byte-identica SHA `59d651b7…`, PHPUnit 8.0.30 / 8.3.33 / 8.5.10 single-site e Multisite su MySQL `wordpress_test`, browser N1/N2 su Studio `localhost:8881` e sul sito Multisite `erankly-ms.local`). Plugin Check sul ZIP **non** è stato ripetuto: SHA e 117 file invariati.
+2. **Ispezioni statiche** (guideline, mappa dei percorsi, lettura del codice, `composer install --dry-run` sul lock).
+3. **Esiti di sessioni precedenti** (Plugin Check 2.1.0 sul ZIP `59d651b7…`; REST autosave `website_name`; smoke CLI). Non vanno riattribuiti come se GPT-6 li avesse riprodotti.
+4. **Dichiarazioni o gate del developer / proprietario** (originalità, storia SVN completa, condotta, pubblicazione). GPT-6 **non** ha rieseguito questo follow-up. La rilettura N1–N4 è Cursor, stesso lineage dell’implementazione.
 
 Non è una garanzia di approvazione del Plugin Review Team.
 
@@ -39,10 +41,10 @@ Non è una garanzia di approvazione del Plugin Review Team.
 | --- | --- |
 | Root Git | `wp-content/plugins/easyrankly` |
 | Branch | `beta` tracking `origin/beta` |
-| HEAD iniziale | `7e56cbf8149629a96498971857a850b6a4f5dcf7` |
-| HEAD finale | `7e56cbf8149629a96498971857a850b6a4f5dcf7` |
-| Working tree iniziale (9 settembre 2026, revisione indipendente) | 19 file tracked modificati; untracked report, `admin-import-export.js`, `license.txt`, `test-rest-user-search.php`, `tools/` |
-| Working tree alla chiusura della verifica finale | 21 file tracked modificati; 6 entry untracked; 0 file staged |
+| HEAD iniziale (9 settembre 2026) | `7e56cbf8149629a96498971857a850b6a4f5dcf7` |
+| HEAD al follow-up N1–N4 | `08036d506ca2ec7434db9361afaeb9b22fe5fbda` |
+| HEAD finale | `08036d506ca2ec7434db9361afaeb9b22fe5fbda` (nessun commit in questa attività) |
+| Working tree alla chiusura N1–N4 | 41 file tracked modificati; untracked `composer.lock`, `tests/js/local-business-widget-probe.cjs`, `tests/test-local-business-rest.php`, `tests/test-uninstall-cleanup.php`; 0 file staged |
 | `origin/main` | `e62476a03ae9876e83a556131f0fdccdbf632c91` |
 | `git merge-base origin/main origin/beta` | exit 1 — **nessun merge base**. Non è stato tentato alcun riallineamento. |
 
@@ -54,9 +56,9 @@ Nessun commit, push, tag, SVN o release.
 
 1. **Working copy** — plugin attivo in Studio, HEAD invariato, tree sporco.
 2. **Artefatto** — `.dist/easyrankly.zip` (gitignored), SHA-256 sotto; **non** attivato al posto della working copy.
-3. **Suite PHPUnit** — scritta, **non eseguita** in locale.
-4. **CI** — YAML configurato (single-site 8.0/8.3, Multisite 8.3, Plugin Check); **run remoto assente**.
-5. **Browser** (sessione precedente, 9 settembre 2026) — caricamento schermate/script, copy di rischio, pulizia query reset, nessuna risorsa EasyRankly fallita osservata. **Non** è un salvataggio UI, **non** è l’autoreload con marker presente, **non** è Custom Code live.
+3. **Suite PHPUnit** — scritta; eseguita in questa sessione Cursor su PHP 8.0.30 / 8.3.33 / 8.5.10 e MySQL `wordpress_test` (single-site e Multisite). Non è un run CI remoto né una riproduzione GPT-6.
+4. **CI** — YAML configurato (single-site 8.0/8.3, Multisite 8.3, Plugin Check); **run remoto assente**. `composer.lock` corrente non è installabile su PHP 8.0/8.3.
+5. **Browser** — 9 settembre 2026: caricamento schermate (non N1/N2). 14 settembre 2026: N1/N2 su Schema (`localhost:8881`), poi probe pages e mapping LocalBusiness ripristinati su quel sito. Stesso giorno: N1/N2 sul network Schema di `http://erankly-ms.local/` (sito Studio separato). **Non** è no-JS, **non** è Custom Code live.
 6. **WordPress.org live / SVN** — 1.0.0.
 7. **Release** — non autorizzata.
 
@@ -66,12 +68,12 @@ Nessun commit, push, tag, SVN o release.
 
 | Strumento | Stato |
 | --- | --- |
-| WordPress Studio | 1.21.0 — `http://localhost:8881/`, WordPress **7.1**, PHP **8.4.24** |
-| Database Studio | SQLite |
-| Plugin Check | 2.1.0 |
-| EasyRankly locale | 2.0.0 attivo, `is_multisite()=0` |
+| WordPress Studio | 1.21.0 — sito primario `http://localhost:8881/` (single-site, **non** convertito). Sito Multisite di prova `http://erankly-ms.local/` in `~/Studio/easyrankly-ms`, WordPress **7.1**, PHP **8.4**, symlink al working copy, plugin network-activated |
+| Database Studio | SQLite (entrambi i siti). PHPUnit **non** usa questi DB |
+| Plugin Check | 2.1.0 usato in precedenza sul ZIP, poi disinstallato; **non** reinstallato in questa re-verifica |
+| EasyRankly locale | 2.0.0 attivo. Primario: `is_multisite()=0`. `erankly-ms.local`: `is_multisite()=1` |
 | WP-CLI | `studio wp` |
-| Composer CLI / `mysql` | assenti da PATH |
+| Composer CLI / `mysql` | `vendor/bin/phpunit` e `mysql` presenti; PHP CLI **8.5.10** (`/opt/homebrew/bin/php`), **8.3.33** (`/opt/homebrew/opt/php@8.3/bin/php`), **8.0.30** keg-only (`/opt/homebrew/opt/php@8.0/bin/php`, tap `shivammathur/php`, **non** linkato come default) |
 | Node / rsync / zip / ruby YAML | presenti |
 
 ---
@@ -104,7 +106,7 @@ La verifica indipendente finale:
 
 ### PHPUnit bootstrap
 
-`tests/bootstrap.php` espone `erankly_tests_load_settings_sanitizer()`. Il runtime di produzione non carica admin incondizionatamente. **I test non sono stati eseguiti.**
+`tests/bootstrap.php` espone `erankly_tests_load_settings_sanitizer()` e `erankly_tests_set_accessible()` (chiama `ReflectionMethod::setAccessible()` solo se `PHP_VERSION_ID < 80100`). È un fix **solo test** per la deprecazione PHP 8.5; non entra nello ZIP. Il runtime di produzione non carica admin incondizionatamente. PHPUnit 8.0.30 / 8.3.33 / 8.5.10 vs MySQL `wordpress_test` è stato eseguito in questa sessione Cursor dopo N1–N4.
 
 ### CI (configurazione locale, non run remoto)
 
@@ -124,7 +126,7 @@ Limite `number => 20`, niente email in JSON, ricerca server-side ancora su `user
 
 Non è Guideline 4. Rientra nella Review Checklist ufficiale, sezioni distinte **Subject Matter** (plugin che permettono raw JS/CSS/HTML/PHP senza sanitizzazione o sicurezza adeguata) e **Security and Privacy**. La presenza della feature **non** è un rifiuto automatico.
 
-Gate dichiarati e coperti da test **scritti** (non eseguiti):
+Gate dichiarati e coperti da test **scritti** (inclusi nella suite PHP 8.3.33 Cursor):
 
 | Percorso | Boundary | Test |
 | --- | --- | --- |
@@ -153,11 +155,52 @@ Default `enable_custom_code => 0`. Nessun `eval` / `create_function` nel PHP di 
 
 `tools/build-dist.sh`. `license.txt` GPL-2.0 ufficiale (SHA-256 `edaef632cbb643e4e7a221717a6c441a4c1a7c918e6e4d56debc3d8739b233f6`).
 
+### N1–N4 (14 settembre 2026)
+
+Chiusura dei quattro P2 della seconda revisione GPT-6, senza riaprire R1–R6.
+
+| Rilievo | Correzione |
+| --- | --- |
+| N1 | Abilitare LocalBusiness carica il primo batch siti/pagine (`ensureSitesLoaded` / `data-erankly-sites-initialized`). |
+| N2 | Il selettore usa `pagesUrl` con `q`/`offset`; “Load more pages”; etichette `title (path) [#id]`. |
+| N3 | Dopo il lock il worker rilegge il path persistito; `complete` richiede `$expected_input_id`. |
+| N4 | Checkpoint, marker e complete sono legati al proprietario della lease; renew o stop. |
+| Compat | Shim JSON-LD; meta add-on importabili sui term (documentato + sanitize); notice Multisite `get_users( blog_id => 0 )`; TTL utenti eliminati documentato; ganci uninstall `simulate_*` rimossi dal codice shipped. |
+
+R1–R6 restano chiusi come nella seconda revisione. Non è stata cambiata la politica sui network marcati v1.
+
+### Revisione del tree dopo N1–N4 (14 settembre 2026, Cursor)
+
+Non è GPT-6. È una rilettura dei caller di produzione e dei test rispetto all’accettazione del piano. Stesso lineage di chi ha implementato N1–N4.
+
+| Rilievo | Esito | Prove |
+| --- | --- | --- |
+| N1 | **RISOLTO** | Toggle off→on chiama `ensureSitesLoaded`; `data-erankly-sites-initialized` evita il refetch. Browser SS (`localhost:8881`) e MS (`erankly-ms.local`): primo batch senza reload. Probe Node. |
+| N2 | **RISOLTO** | `pagesUrl` + `q`/`offset`; “Load more pages”; etichette `title (path) [#id]`; selezione conservata in ricerca. Browser: pagina 51–60 selezionata e persistita (SS ID 69; MS ID 64). |
+| N3 | **RISOLTO** | Dopo il lock `unset( $path )` e rilettura dello stored path. `complete(..., $expected_input_id)`. Test: path persistito `/new-path/` prima del secondo `advance('/old-path/')`; `complete` rifiuta un `input_id` straniero. |
+| N4 | **RISOLTO** | Checkpoint/marker/complete richiedono lease viva; `erankly_renew_settings_lock()` CAS; worker scaduto non marca complete né riavvolge il checkpoint del successore. Test lifecycle + batch MS live `@group ms-required`. |
+| R1–R6 | **Non riaperti** | Nessun caller N1–N4 li reintroduce. |
+
+**Qualità.** Il protocollo di migrazione è verboso ma allineato al mutex esistente; niente nuove API di simulazione shipped. Gli shim JSON-LD sono due wrapper. Il CSS del page-picker è minimo.
+
+**Completezza.** I quattro P2 GPT-6 sono chiusi nei caller. Gap di verifica: “Load more sites” non esercitato in browser MS (6 siti < 20); retry di rete non esercitato in browser (coperto dal probe Node); no-JS assente.
+
+**Bloat.** Delta shipped vs HEAD ~+2050/−316 su 31 file, di cui N1–N4 sono soprattutto `admin-widgets.js`, `helpers/settings.php`, `schema-jsonld.php`, REST pages, renderer. `uninstall.php` +507 e i ritocchi meta/migrazione appartengono al lavoro R1–R6 da conservare. `composer.lock` è solo `packages-dev`, assente dallo ZIP.
+
+**Residui (non riaprono N1–N4).**
+
+- P3: `hasMore` siti usa `count === LIMIT` senza peek `LIMIT+1` (falso positivo a esattamente 20 siti). Pagine: il renderer/`appendSite` possono mostrare “Load more pages” quando `count >= 50` per via della pagina inclusa.
+- P3: `nextOffset` è sempre `$offset + LIMIT`. JS `appendSite` imposta l’offset a `pages.length` (il renderer PHP usa `min(count, LIMIT)`).
+- P3: `complete(..., $expected_input_id = '')` salta il check identità se il caller omette l’argomento; `advance()` / `maybe_migrate()` lo passano.
+- **P2 tooling:** `composer.lock` pinna `doctrine/instantiator` 2.1.0 (`php ^8.4`). `composer install --dry-run` fallisce su PHP 8.0.30 e 8.3.33. PHPUnit locale 8.0/8.3 ha usato il `vendor/` già installato con PHP 8.5. La job CI 8.0/8.3 farebbe `composer-install` e si fermerebbe lì. Non è un difetto del runtime shipped. Non corretto in questa revisione.
+
 ---
 
-## Plugin Check (9 settembre 2026, dopo le ultime modifiche)
+## Plugin Check (storico, 9 settembre 2026)
 
-Working copy:
+Questi esiti appartengono allo ZIP precedente (SHA-256 `38e9c909…`, 118 file). **Non** certificano l’artefatto del 14 settembre 2026. Plugin Check non è stato ripetuto sul nuovo ZIP.
+
+Working copy (scansione storica):
 
 ```bash
 studio wp plugin check easyrankly \
@@ -194,30 +237,79 @@ PCP non ha segnalato ERROR i18n. Questo **non** dimostra l’assenza assoluta di
 
 ---
 
-## Artefatto (dopo le ultime modifiche)
+## Plugin Check (14 settembre 2026, ZIP N1–N4)
+
+Questi esiti appartengono allo ZIP SHA-256 `59d651b77eb4635b7accffbd2aa196cc95b00b37a9a34feb1fb61d159eab11b3` (117 file). Plugin Check 2.1.0 è stato installato temporaneamente su Studio, usato per scansionare lo ZIP estratto in `wp-content/plugins/easyrankly-pcp-scan` (**inactive**, `--slug=easyrankly`), poi disinstallato. Il sibling è stato rimosso. Plugin attivo dopo la scansione: EasyRankly 2.0.0 working copy.
+
+Comando (CSV `type,code,file,line`; non è stato usato il solo exit code):
+
+```bash
+studio wp plugin check easyrankly-pcp-scan \
+  --mode=update \
+  --slug=easyrankly \
+  --format=csv \
+  --fields=type,code,file,line
+```
+
+Stesso comando con `--mode=new`.
+
+| Superficie | Modo | Exit CLI | ERROR | WARNING |
+| --- | --- | --- | --- | --- |
+| ZIP estratto in `easyrankly-pcp-scan` (sibling, **non** attivato, poi rimosso) | update | 0 | **0** | **8** |
+| Stesso artefatto | new | 0 | **0** | **8** |
+
+### WARNING sul ZIP `59d651b7…`
+
+| Codice | File:riga | Noto o nuovo rispetto a `38e9c909…` | Decisione |
+| --- | --- | --- | --- |
+| `WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound` | `includes/robots.php:509` | noto (riga spostata da 499) | Falso positivo — filtro core `robots_txt` |
+| `WordPress.Security.ValidatedSanitizedInput.InputNotSanitized` | `includes/robots.php:629` | nuovo rispetto allo scan storico | Preesistente: `$_SERVER['REQUEST_URI']` passa da `wp_unslash` + `wp_parse_url(…, PHP_URL_PATH)`. `robots.php` **non** è nel delta N1–N4. Non corretto in questo follow-up. |
+| `WordPress.DB.DirectDatabaseQuery.DirectQuery` | `includes/opengraph.php:463` | noto | Accettato — reverse-map attachment con `$wpdb->prepare` |
+| `WordPress.DB.DirectDatabaseQuery.NoCaching` | `includes/opengraph.php:463` | noto | Accettato — lookup puntuale |
+| `WordPress.DB.DirectDatabaseQuery.DirectQuery` | `includes/meta.php:471` | noto (riga spostata da 414) | Accettato — migrazione batch post meta |
+| `WordPress.DB.DirectDatabaseQuery.NoCaching` | `includes/meta.php:471` | noto | Accettato — stessa migrazione |
+| `WordPress.DB.DirectDatabaseQuery.DirectQuery` | `includes/meta.php:478` | noto (riga spostata da 421) | Accettato — term meta, stesso batch |
+| `WordPress.DB.DirectDatabaseQuery.NoCaching` | `includes/meta.php:478` | noto | Accettato — stessa migrazione |
+
+PCP non ha segnalato ERROR i18n. Questo **non** dimostra l’assenza assoluta di problemi di escaping/nonce/capability.
+
+---
+
+## Artefatto (14 settembre 2026, dopo N1–N4)
+
+Due build consecutive con `tools/build-dist.sh` (staging temporaneo + `.dist`), `cmp` identico, ripetute dopo la re-verifica PHP 8.0/8.5. `blocks/breadcrumbs/block.json` è presente; Composer, vendor, test e tooling sono assenti. SHA precedente `88cb40ae…` **non** è valido per questo tree. Plugin Check **non** ripetuto: SHA e 117 file invariati.
 
 | Campo | Valore |
 | --- | --- |
 | Percorso | `wp-content/plugins/easyrankly/.dist/easyrankly.zip` |
-| SHA-256 (due build temporanee + `.dist`, `cmp` identico) | `38e9c909cc64e9c59dff76f153d4914c004fc3b3259a87f6f1da29b6e3cf2aeb` |
-| File non-directory | 118 |
+| SHA-256 | `59d651b77eb4635b7accffbd2aa196cc95b00b37a9a34feb1fb61d159eab11b3` |
+| File non-directory | 117 |
 | Root | solo `easyrankly/` |
-| Inclusi | `easyrankly.php`, `readme.txt`, `uninstall.php`, `license.txt`, `composer.json` |
-| Assenti | `.git`, `.github`, `.dist`, `.distignore`, `.gitignore`, `tests`, `tools`, `vendor`, `phpunit.xml.dist`, `WORDPRESS-ORG-READINESS.md`, checklist Cursor |
+| Inclusi | `easyrankly.php`, `readme.txt`, `uninstall.php`, `license.txt`, `blocks/breadcrumbs/block.json` |
+| Assenti | `.git`, `.github`, `.dist`, `.distignore`, `.gitignore`, `tests`, `tools`, `vendor`, `composer.json`, `composer.lock`, `phpunit.xml.dist`, `WORDPRESS-ORG-READINESS.md`, checklist Cursor |
 
-Lo SHA precedente `9ded7388…` **non** è più valido: `admin/settings-page.php`, import runner, POT e test non entrano tutti nello zip, ma settings-page e import runner sì.
+SHA storici, **non** validi per questo artefatto: `88cb40ae9d8a54bffc7426254dcf35fa63ad823b3342b985f203c90031514e03`; `9ded7388…`; `38e9c909cc64e9c59dff76f153d4914c004fc3b3259a87f6f1da29b6e3cf2aeb` (118 file, PCP 0 ERROR / 7 WARNING). Non riutilizzare hash di una review precedente.
 
 ---
 
 ## PHPUnit
 
+Isolamento: suite WordPress in `/tmp/wordpress-develop/tests/phpunit`, database MySQL `wordpress_test` su `127.0.0.1`. Il sito Studio usa `DB_NAME=wordpress` e non è stato toccato dalla suite. Comando: `WP_TESTS_DIR=/tmp/wordpress-develop/tests/phpunit WP_TESTS_PHPUNIT_POLYFILLS_PATH=vendor/yoast/phpunit-polyfills vendor/bin/phpunit -c phpunit.xml.dist`.
+
+I conteggi sotto sono esiti Cursor di questa sessione, dopo N1–N4 e dopo il helper `erankly_tests_set_accessible()`. GPT-6 **non** li ha riprodotti. Isolamento invariato: `wordpress_test` su `127.0.0.1`; i siti Studio SQLite non sono toccati. PHP 8.0 ha usato `WP_PHP_BINARY=/opt/homebrew/opt/php@8.0/bin/php` via prepend `/tmp/erankly-php80-prepend.php`. PHP 8.3 e 8.5 hanno usato il config di default (`WP_PHP_BINARY` 8.3); il processo PHPUnit 8.5 è comunque 8.5.10.
+
 | Ambiente | Esito |
 | --- | --- |
-| PHP 8.0 single-site/MySQL | **BLOCKED — Composer CLI + MySQL** |
-| PHP 8.3 single-site/MySQL | **BLOCKED — ambiente locale** |
-| PHP 8.3 Multisite/MySQL | **BLOCKED — ambiente locale** |
+| PHP 8.0.30 single-site / MySQL `wordpress_test` | **1025 test, 3690 assertion, 0 failure, 16 skipped.** |
+| PHP 8.0.30 Multisite (`WP_MULTISITE=1`) / MySQL `wordpress_test` | **1025 test, 3698 assertion, 0 failure, 10 skipped.** |
+| PHP 8.3.33 single-site / MySQL `wordpress_test` | **1025 test, 3690 assertion, 0 failure, 16 skipped.** |
+| PHP 8.3.33 Multisite (`WP_MULTISITE=1`) / MySQL `wordpress_test` | **1025 test, 3698 assertion, 0 failure, 10 skipped.** I 10 skip restanti non sono i `@group ms-required`. |
+| PHP 8.5.10 single-site / MySQL `wordpress_test` | **1025 test, 3690 assertion, 0 failure, 16 skipped.** La failure storica `ReflectionMethod::setAccessible()` non si riproduce. |
+| PHP 8.5.10 Multisite (`WP_MULTISITE=1`) / MySQL `wordpress_test` | **1025 test, 3698 assertion, 0 failure, 10 skipped.** |
+| Probe JS `tests/js/local-business-widget-probe.cjs` | **ok** (Node, DOM simulato: toggle off→on, `pagesUrl`, paginazione) |
+| `composer install --dry-run` dal lock su PHP 8.0.30 e 8.3.33 | **FAIL** — `doctrine/instantiator` 2.1.0 richiede `php ^8.4` |
 
-Metodi `test_*` nel tree: **87**, di cui **5** `@group ms-required` (skippati su single-site per disegno). Non riutilizzare il run CI `59 test / 168 assertion / 4 errori` sul commit HEAD: precede queste modifiche.
+Metodi `test_*` nel tree: **1025**, di cui **10** annotazioni `@group ms-required`. Plugin Check sul ZIP `59d651b7…`: vedi sezione dedicata (0 ERROR / 8 WARNING).
 
 ---
 
@@ -246,7 +338,7 @@ Ogni riga: requisito ufficiale; evidenza esaminata; limite; stato non assoluto.
 | 13 | Must use WordPress’ default libraries | Nessuna copia di jQuery/SimplePie/PHPMailer/PHPass nel plugin | Non è una prova formale di ogni asset | Nessun rilievo sul perimetro |
 | 14 | Frequent commits should be avoided | SVN pubblico: un tag `1.0.0`; disciplina futura di release | Non è stata scaricata l’intera history SVN; G14 non chiede “aggiornamenti frequenti” | Gate futuro di release; storia SVN parziale |
 | 15 | Version numbers must be incremented | Locale 2.0.0 vs live 1.0.0 in header/readme; tag SVN `2.0.0` assente | Coerenza trunk/`Stable tag` è un passo SVN futuro | Incremento locale presente; tag Directory **non** creato |
-| 16 | A complete plugin must be available at submission | Zip 118 file con header, uninstall, license, runtime | CI verde **non** è il significato di G16; test non eseguiti impediscono di dichiarare il candidato pronto | Candidato zip completo; **non pronto** finché PHPUnit/CI restano BLOCKED |
+| 16 | A complete plugin must be available at submission | Zip 117 file con header, uninstall, license, runtime, `block.json`; PCP 0 ERROR / 8 WARNING sul ZIP `59d651b7…` | CI remota non eseguita; `composer.lock` non installabile su PHP 8.0/8.3; no-JS e ZIP-attivato assenti | Candidato zip completo; **non pronto** per Directory |
 | 17 | Respect trademarks, copyrights, project names | Slug `easyrankly`; nome non inizia con “wordpress”; riferimenti Yoast/Rank Math come importer | Titolarità del marchio EasyRankly: **attestazione** | Nessun rilievo evidente sul slug; titolarità da confermare |
 | 18 | Directory Team reserve rights | Non è un test tecnico | Non può essere “Pass” | **Non è un test** |
 
@@ -267,13 +359,15 @@ Fonti: [How to use Subversion](https://developer.wordpress.org/plugins/wordpress
 | Caso | Esito |
 | --- | --- |
 | Browser 9 settembre 2026 (sessione precedente) | Schermate e script attesi; copy Custom Code; `history.replaceState` su `erankly_reset_notice`; nessuna risorsa EasyRankly fallita osservata |
+| Browser 14 settembre 2026 — N1/N2 LocalBusiness | Studio `http://localhost:8881/` single-site. Toggle off→on ha caricato il primo batch (50 pagine + placeholder) senza reload. “Load more pages” ha mostrato le pagine 51–60 (`erankly-n2-probe-59` ID 69). Ricerca “Sede unica 59”, titoli duplicati distinguibili per path/ID, selezione 69 persistita da autosave (`local_business_pages[1]=69`), on→off→on senza righe sito duplicate. Probe pages eliminate e `enable_local_business` riportato a 0. Retry di rete non esercitato in browser (coperto dal probe Node). |
+| Browser 14 settembre 2026 — N1/N2 Multisite | Sito Studio **separato** `http://erankly-ms.local/` (WP 7.1, PHP 8.4, SQLite, `is_multisite()=1`). Il sito primario `:8881` **non** è stato convertito. Network Schema: toggle off→on ha mostrato 6 selettori sito; blog 1 ha caricato 50 pagine + “Load more pages”; dopo il click, `erankly-n2-probe-59` ID **64** selezionato e persistito (`local_business_pages[1]=64`); ricerca “Sede unica 59” ha tenuto la selezione. “Load more sites” non visibile (6 siti < 20). Fixture lasciate su quel sito: `enable_local_business=1`, mapping, 60 probe pages, siti `/sede-2/`…`/sede-6/`. |
 | Marker `[data-erankly-migration-autoreload]` | **Assente** in quella sessione: **non** è un test del ramo attivo |
 | REST autosave `website_name` (questa sessione) | `POST /erankly/v1/settings/general` status 200, valore persistito, poi ripristinato a stringa vuota tramite `erankly_update_plugin_option` (il `update_option` nativo non aveva riportato il valore) |
 | Smoke CLI Custom Code/import/user-search | **34 check pass**: fixture privilegiata, revoca `unfiltered_html` effettiva, REST ristretto senza sovrascrittura o marker forgiato, import ristretto rifiutato prima del job, 20 utenti unici restituiti su 21; option ripristinata e 22 utenti temporanei rimossi |
 | Salvataggio no-JS | **BLOCKED — no-JS** |
-| Custom Code live UI | **Non eseguito**. Lo smoke CLI non sostituisce il flusso UI e i test PHPUnit restano scritti ma non eseguiti |
+| Custom Code live UI | **Non eseguito**. Lo smoke CLI non sostituisce il flusso UI |
 | ZIP attivato isolato | **BLOCKED** — sibling PCP inattivo rimosso |
-| Multisite UI | **BLOCKED — ambiente Multisite manuale** |
+| Multisite UI | **ESEGUITO** sul sito Studio `erankly-ms.local` (vedi riga browser). Non è il sito primario. |
 
 ---
 
@@ -285,12 +379,14 @@ API 1.2: versione **1.0.0**, `added` 2026-06-28, `last_updated` 2026-06-28 12:27
 
 ## Cosa questa analisi non afferma
 
-- Che PHPUnit o la CI remota siano verdi.
+- Che la CI remota sia verde. PHPUnit 8.0/8.3/8.5 locale è un esito Cursor su `vendor/` già presente; `composer install` dal lock fallisce su PHP 8.0 e 8.3.
 - Che le guideline 2, 9, 14, 18 siano “Pass”.
 - Che tutti i percorsi Custom Code siano stati eseguiti in PHPUnit.
 - Che lo ZIP sia il plugin in esecuzione.
 - Che l’autoreload di migrazione sia stato visto in azione.
-- Che la revisione indipendente renda il candidato pronto nonostante i gate ancora `BLOCKED`.
+- Che Plugin Check 0 ERROR / 7 WARNING (SHA `38e9c909…`) o lo SHA `88cb40ae…` valgano per lo ZIP `59d651b7…`.
+- Che GPT-6 abbia verificato il tree N1–N4: ha riprodotto i quattro P2 sul delta precedente. La rilettura successiva è Cursor, stesso lineage dell’implementazione.
+- Che il sito primario Studio sia Multisite, o che le fixture su `erankly-ms.local` siano state rimosse.
 
 ---
 

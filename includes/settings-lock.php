@@ -19,7 +19,6 @@ function erankly_get_settings_lock(): mixed {
 		: get_option( ERANKLY_SETTINGS_LOCK_OPTION, false );
 }
 
-/** Adds the settings lock atomically. */
 function erankly_add_settings_lock( array $value ): bool {
 	return is_multisite()
 		? add_network_option( get_current_network_id(), ERANKLY_SETTINGS_LOCK_OPTION, $value )
@@ -57,6 +56,47 @@ function erankly_compare_delete_settings_lock( array $expected ): bool {
 	}
 
 	return 1 === $deleted;
+}
+
+/**
+ * Replaces the settings lock only when its serialized snapshot still matches.
+ *
+ * @param array<string,mixed> $expected Current stored lock.
+ * @param array<string,mixed> $next     Replacement lock.
+ */
+function erankly_compare_update_settings_lock( array $expected, array $next ): bool {
+	global $wpdb;
+
+	$expected_serialized = maybe_serialize( $expected );
+	$next_serialized     = maybe_serialize( $next );
+
+	if ( is_multisite() ) {
+		$network_id = get_current_network_id();
+		$updated    = $wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Conditional update is the settings mutex CAS.
+			$wpdb->prepare(
+				'UPDATE %i SET meta_value = %s WHERE site_id = %d AND meta_key = %s AND meta_value = %s',
+				$wpdb->sitemeta,
+				$next_serialized,
+				$network_id,
+				ERANKLY_SETTINGS_LOCK_OPTION,
+				$expected_serialized
+			)
+		);
+		wp_cache_delete( $network_id . ':' . ERANKLY_SETTINGS_LOCK_OPTION, 'site-options' );
+	} else {
+		$updated = $wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Conditional update is the settings mutex CAS.
+			$wpdb->prepare(
+				'UPDATE %i SET option_value = %s WHERE option_name = %s AND option_value = %s',
+				$wpdb->options,
+				$next_serialized,
+				ERANKLY_SETTINGS_LOCK_OPTION,
+				$expected_serialized
+			)
+		);
+		wp_cache_delete( ERANKLY_SETTINGS_LOCK_OPTION, 'options' );
+	}
+
+	return 1 === $updated;
 }
 
 /**
@@ -100,6 +140,35 @@ function erankly_settings_lock_is_valid( string $token ): bool {
 	return is_array( $current )
 		&& hash_equals( (string) ( $current['token'] ?? '' ), $token )
 		&& (int) ( $current['expires_at'] ?? 0 ) >= time();
+}
+
+/**
+ * Extends a settings lease only while this token still owns an unexpired lock.
+ *
+ * @param int $ttl Lease duration in seconds.
+ */
+function erankly_renew_settings_lock( string $token, int $ttl = 30 ): bool {
+	if ( '' === $token ) {
+		return false;
+	}
+
+	$ttl     = max( 5, min( 300, $ttl ) );
+	$current = erankly_get_settings_lock();
+
+	if ( ! is_array( $current ) || ! hash_equals( (string) ( $current['token'] ?? '' ), $token ) ) {
+		return false;
+	}
+
+	$expires_at = (int) ( $current['expires_at'] ?? 0 );
+
+	if ( $expires_at < time() ) {
+		return false;
+	}
+
+	$renewed               = $current;
+	$renewed['expires_at'] = max( time() + $ttl, $expires_at + 1 );
+
+	return erankly_compare_update_settings_lock( $current, $renewed );
 }
 
 /** Releases a settings lock held by the caller. */

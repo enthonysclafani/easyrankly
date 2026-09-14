@@ -770,7 +770,6 @@ final class ERankly_Import_Job_Runner {
 		wp_schedule_single_event( time() + max( 1, $delay ), ERANKLY_IMPORT_CRON_HOOK, $args, true );
 	}
 
-	/** Acquires a recoverable per-job lock. */
 	private static function acquire_lock( string $job_id ): string {
 		global $wpdb;
 

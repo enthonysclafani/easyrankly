@@ -39,6 +39,19 @@ final class ERankly_Meta_Helpers_Test extends WP_UnitTestCase {
 		}
 
 		delete_option( $option );
+
+		$runtime_key = erankly_runtime_state_key( $option );
+		if ( '' === $runtime_key ) {
+			return;
+		}
+
+		$state = get_option( ERANKLY_RUNTIME_STATE_OPTION, array() );
+		if ( is_array( $state ) && array_key_exists( $runtime_key, $state ) ) {
+			unset( $state[ $runtime_key ] );
+			update_option( ERANKLY_RUNTIME_STATE_OPTION, $state, true );
+		}
+
+		unset( $GLOBALS['erankly_runtime_state_cache'] );
 	}
 
 	/* ----------------------------------------------------------------------
@@ -133,25 +146,25 @@ final class ERankly_Meta_Helpers_Test extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'JSON-LD', $message );
 	}
 
-	public function test_is_valid_custom_json_ld_accepts_a_node_and_rejects_syntax(): void {
-		$this->assertTrue( erankly_is_valid_custom_json_ld( '{"@type":"Article","headline":"Probe"}' ) );
-		$this->assertTrue( erankly_is_valid_custom_json_ld( '{"@id":"https://example.test/#a"}' ) );
-		$this->assertFalse( erankly_is_valid_custom_json_ld( '{not json}' ) );
-		$this->assertFalse( erankly_is_valid_custom_json_ld( '[{"@type":"Article"}, 5]' ) );
+	public function test_validate_custom_json_ld_accepts_a_node_and_rejects_syntax(): void {
+		$this->assertTrue( erankly_validate_custom_json_ld( '{"@type":"Article","headline":"Probe"}' )['valid'] );
+		$this->assertTrue( erankly_validate_custom_json_ld( '{"@id":"https://example.test/#a"}' )['valid'] );
+		$this->assertFalse( erankly_validate_custom_json_ld( '{not json}' )['valid'] );
+		$this->assertFalse( erankly_validate_custom_json_ld( '[{"@type":"Article"}, 5]' )['valid'] );
 	}
 
-	public function test_normalize_custom_json_ld_data_handles_graph_list_and_object(): void {
-		$graph = erankly_normalize_custom_json_ld_data(
-			array( '@graph' => array( array( '@type' => 'Article', '@context' => 'https://schema.org' ) ) )
+	public function test_decode_custom_json_ld_handles_graph_list_and_object(): void {
+		$graph = erankly_decode_custom_json_ld(
+			'{"@graph":[{"@type":"Article","@context":"https://schema.org"}]}'
 		);
 		$this->assertCount( 1, $graph );
 		$this->assertSame( 'Article', $graph[0]['@type'] );
 		$this->assertArrayNotHasKey( '@context', $graph[0] );
 
-		$list = erankly_normalize_custom_json_ld_data( array( array( '@type' => 'Thing' ), array( '@type' => 'Person' ) ) );
+		$list = erankly_decode_custom_json_ld( '[{"@type":"Thing"},{"@type":"Person"}]' );
 		$this->assertCount( 2, $list );
 
-		$single = erankly_normalize_custom_json_ld_data( array( '@type' => 'Thing' ) );
+		$single = erankly_decode_custom_json_ld( '{"@type":"Thing"}' );
 		$this->assertCount( 1, $single );
 		$this->assertSame( 'Thing', $single[0]['@type'] );
 	}

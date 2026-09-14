@@ -666,9 +666,13 @@ final class ERankly_Import_Export_Test extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'Resume migration', $markup );
 	}
 
-	public function test_third_party_data_exists_reports_availability(): void {
-		$this->assertFalse( erankly_third_party_data_exists( 'unknown-source' ) );
-		$this->assertIsBool( erankly_third_party_data_exists( 'yoast' ) );
+	public function test_migration_adapter_availability_reports_known_sources(): void {
+		$this->assertNull( erankly_migration_manager()->adapter( 'unknown-source' ) );
+
+		$adapter = erankly_migration_manager()->adapter( 'yoast' );
+
+		$this->assertNotNull( $adapter );
+		$this->assertIsBool( $adapter->is_available() );
 	}
 
 	// ---------------------------------------------------------------------

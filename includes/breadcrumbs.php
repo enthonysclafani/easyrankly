@@ -361,31 +361,11 @@ function erankly_register_breadcrumb_integrations(): void {
 	);
 	wp_set_script_translations( 'erankly-breadcrumbs-block', 'easyrankly', ERANKLY_PATH . 'languages' );
 
-	if ( file_exists( $block_dir . '/block.json' ) ) {
-		register_block_type(
-			$block_dir,
-			array(
-				'render_callback'      => 'erankly_render_breadcrumbs_block',
-				'editor_script_handles' => array( 'erankly-breadcrumbs-block' ),
-			)
-		);
-
-		return;
-	}
-
 	register_block_type(
-		'easyrankly/breadcrumbs',
+		$block_dir,
 		array(
-			'api_version'     => 3,
-			'title'           => __( 'EasyRankly Breadcrumbs', 'easyrankly' ),
-			'description'     => __( 'Visible breadcrumb trail that matches EasyRankly structured data when JSON-LD is set to emit with a visible trail.', 'easyrankly' ),
-			'category'        => 'theme',
-			'icon'            => 'arrow-right-alt',
-			'render_callback' => 'erankly_render_breadcrumbs_block',
-			'supports'        => array(
-				'html'  => false,
-				'align' => array( 'wide', 'full' ),
-			),
+			'render_callback'      => 'erankly_render_breadcrumbs_block',
+			'editor_script_handles' => array( 'erankly-breadcrumbs-block' ),
 		)
 	);
 }

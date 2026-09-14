@@ -116,6 +116,28 @@ function erankly_admin_enqueue_assets( string $hook_suffix ): void {
 				),
 			)
 		);
+		wp_localize_script(
+			'erankly-admin',
+			'eranklyLocalBusiness',
+			array(
+				'sitesUrl'  => esc_url_raw( rest_url( 'erankly/v1/local-business/sites' ) ),
+				'pagesUrl'  => esc_url_raw( rest_url( 'erankly/v1/local-business/pages' ) ),
+				'nonce'     => wp_create_nonce( 'wp_rest' ),
+				'option'    => ERANKLY_OPTION,
+				'pageLimit' => ERANKLY_LOCAL_BUSINESS_PAGE_CHOICE_LIMIT,
+				'i18n'     => array(
+					'selectPage'    => __( 'Select a published page', 'easyrankly' ),
+					'searchPages'   => __( 'Search pages', 'easyrankly' ),
+					'loadMore'      => __( 'Load more sites', 'easyrankly' ),
+					'loadMorePages' => __( 'Load more pages', 'easyrankly' ),
+					'loading'       => __( 'Loading…', 'easyrankly' ),
+					'noResults'     => __( 'No matching pages.', 'easyrankly' ),
+					'retry'         => __( 'Retry', 'easyrankly' ),
+					'requestFailed' => __( 'Could not load more sites.', 'easyrankly' ),
+					'pagesFailed'   => __( 'Could not load pages.', 'easyrankly' ),
+				),
+			)
+		);
 	}
 	if ( $is_settings && in_array( 'settings', $asset_modules, true ) ) {
 		wp_localize_script(

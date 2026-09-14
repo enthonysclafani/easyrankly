@@ -21,6 +21,25 @@ function erankly_json_ld_placeholder_probe( string $json ): string {
 }
 
 /**
+ * Public JSON-LD helpers for add-ons:
+ * - erankly_validate_custom_json_ld() is the canonical validator.
+ * - erankly_is_valid_custom_json_ld() and erankly_normalize_custom_json_ld_data() are compatibility shims.
+ * Other erankly_json_ld_* functions in this file are internal.
+ */
+function erankly_is_valid_custom_json_ld( string $json ): bool {
+	return (bool) erankly_validate_custom_json_ld( $json )['valid'];
+}
+
+/**
+ * @return array<int,array<string,mixed>>
+ */
+function erankly_normalize_custom_json_ld_data( string $json ): array {
+	$result = erankly_validate_custom_json_ld( $json );
+
+	return ! empty( $result['valid'] ) && is_array( $result['nodes'] ) ? $result['nodes'] : array();
+}
+
+/**
  * Validates custom JSON-LD at two levels: syntax/structure, then Schema.org-minimum semantics.
  *
  * A document is accepted when it is one object, a list of objects, or an object with @graph, and every
@@ -689,72 +708,208 @@ function erankly_get_local_business_page_id( int $post_id = 0 ): int {
 }
 
 /**
- * @return array<int,array<string,mixed>>
+ * Returns whether a blog ID may be used as a LocalBusiness mapping target on the current network.
  */
-function erankly_get_local_business_site_choices(): array {
-	$sites = array();
-
-	if ( is_multisite() ) {
-		foreach ( get_sites( array( 'number' => 200 ) ) as $site ) {
-			if ( ! $site instanceof WP_Site ) {
-				continue;
-			}
-
-			$sites[] = array(
-				'blog_id' => (int) $site->blog_id,
-				'path'    => (string) $site->path,
-			);
-		}
-	} else {
-		$sites[] = array(
-			'blog_id' => get_current_blog_id(),
-			'path'    => '/',
-		);
+function erankly_local_business_site_is_selectable( int $blog_id ): bool {
+	if ( $blog_id <= 0 ) {
+		return false;
 	}
 
-	$choices = array();
+	if ( ! is_multisite() ) {
+		return $blog_id === (int) get_current_blog_id();
+	}
 
-	foreach ( $sites as $site ) {
-		$blog_id = (int) $site['blog_id'];
-		$switched = is_multisite() && get_current_blog_id() !== $blog_id;
+	$site = get_site( $blog_id );
 
-		if ( $switched ) {
-			switch_to_blog( $blog_id );
+	return $site instanceof WP_Site
+		&& (int) $site->site_id === (int) get_current_network_id()
+		&& empty( $site->deleted )
+		&& empty( $site->spam )
+		&& empty( $site->archived );
+}
+
+/**
+ * @param-out bool $has_more Whether another bounded page of results exists.
+ * @return array<int,array<string,mixed>>
+ */
+function erankly_get_local_business_published_pages( int $blog_id, string $search = '', int $limit = 0, int $include_page_id = 0, int $offset = 0, ?bool &$has_more = null ): array {
+	$limit    = $limit > 0 ? min( ERANKLY_LOCAL_BUSINESS_PAGE_CHOICE_LIMIT, $limit ) : ERANKLY_LOCAL_BUSINESS_PAGE_CHOICE_LIMIT;
+	$offset   = max( 0, $offset );
+	$has_more = false;
+	$switched = is_multisite() && get_current_blog_id() !== $blog_id;
+
+	if ( $switched ) {
+		if ( ! erankly_local_business_site_is_selectable( $blog_id ) ) {
+			return array();
 		}
 
-		$pages   = get_pages(
-			array(
-				'post_status' => 'publish',
-				'sort_column' => 'menu_order,post_title',
-			)
+		switch_to_blog( $blog_id );
+	}
+
+	try {
+		$query_args = array(
+			'post_type'              => 'page',
+			'post_status'            => 'publish',
+			'posts_per_page'         => $limit + 1,
+			'offset'                 => $offset,
+			'orderby'                => array(
+				'menu_order' => 'ASC',
+				'title'      => 'ASC',
+				'ID'         => 'ASC',
+			),
+			'no_found_rows'          => true,
+			'update_post_meta_cache' => false,
+			'update_post_term_cache' => false,
 		);
+
+		if ( '' !== $search ) {
+			$query_args['s'] = $search;
+		}
+
+		$query = new WP_Query( $query_args );
+
 		$options = array();
 
-		foreach ( is_array( $pages ) ? $pages : array() as $page ) {
+		foreach ( $query->posts as $page ) {
 			if ( ! $page instanceof WP_Post ) {
 				continue;
 			}
 
-			$uri = (string) get_page_uri( $page );
-			$options[] = array(
-				'id'    => (int) $page->ID,
-				'title' => get_the_title( $page ),
-				'path'  => '' !== $uri ? '/' . trim( $uri, '/' ) . '/' : '/',
-			);
+			$options[] = erankly_local_business_page_choice( $page );
 		}
 
-		$choices[] = array(
+		if ( count( $options ) > $limit ) {
+			$has_more = true;
+			array_pop( $options );
+		}
+
+		$seen = array();
+		foreach ( $options as $option ) {
+			$seen[ absint( $option['id'] ?? 0 ) ] = true;
+		}
+
+		if ( $include_page_id > 0 && empty( $seen[ $include_page_id ] ) ) {
+			$page = get_post( $include_page_id );
+
+			if ( $page instanceof WP_Post && 'page' === $page->post_type && 'publish' === $page->post_status ) {
+				$options[] = erankly_local_business_page_choice( $page );
+			}
+		}
+
+		return $options;
+	} finally {
+		if ( $switched ) {
+			restore_current_blog();
+		}
+	}
+}
+
+/**
+ * @return array{id:int,title:string,path:string}
+ */
+function erankly_local_business_page_choice( WP_Post $page ): array {
+	$uri = (string) get_page_uri( $page );
+
+	return array(
+		'id'    => (int) $page->ID,
+		'title' => get_the_title( $page ),
+		'path'  => '' !== $uri ? '/' . trim( $uri, '/' ) . '/' : '/',
+	);
+}
+
+function erankly_local_business_page_choice_label( array $page ): string {
+	$title = (string) ( $page['title'] ?? '' );
+	$path  = (string) ( $page['path'] ?? '' );
+	$id    = absint( $page['id'] ?? 0 );
+
+	return trim(
+		sprintf(
+			/* translators: 1: page title, 2: page path, 3: page ID. */
+			__( '%1$s (%2$s) [#%3$d]', 'easyrankly' ),
+			$title,
+			$path,
+			$id
+		)
+	);
+}
+
+/**
+ * @return array<string,mixed>
+ */
+function erankly_get_local_business_site_choice( int $blog_id, string $search = '', int $page_limit = 0, int $include_page_id = 0 ): array {
+	$path = '/';
+
+	if ( is_multisite() ) {
+		$site = get_site( $blog_id );
+		$path = $site instanceof WP_Site ? (string) $site->path : '/';
+	}
+
+	if ( is_multisite() && ! erankly_local_business_site_is_selectable( $blog_id ) ) {
+		return array(
+			'blog_id'  => $blog_id,
+			'name'     => '',
+			'language' => '',
+			'locale'   => '',
+			'path'     => $path,
+			'pages'    => array(),
+		);
+	}
+
+	$switched = is_multisite() && get_current_blog_id() !== $blog_id;
+
+	if ( $switched ) {
+		switch_to_blog( $blog_id );
+	}
+
+	try {
+		return array(
 			'blog_id'  => $blog_id,
 			'name'     => get_bloginfo( 'name' ),
 			'language' => get_bloginfo( 'language' ),
 			'locale'   => get_locale(),
-			'path'     => (string) $site['path'],
-			'pages'    => $options,
+			'path'     => $path,
+			'pages'    => erankly_get_local_business_published_pages( $blog_id, $search, $page_limit, $include_page_id ),
 		);
-
+	} finally {
 		if ( $switched ) {
 			restore_current_blog();
 		}
+	}
+}
+
+/**
+ * Returns one page of LocalBusiness site choices. Callers must not loop this until exhaustion: each request
+ * loads at most ERANKLY_LOCAL_BUSINESS_SITE_CHOICE_LIMIT sites and ERANKLY_LOCAL_BUSINESS_PAGE_CHOICE_LIMIT
+ * pages per site.
+ *
+ * @param array<int,int> $selected_pages Stored blog_id => page_id map used to keep the current selection visible.
+ * @return array<int,array<string,mixed>>
+ */
+function erankly_get_local_business_site_choices( int $after_site_id = 0, int $limit = 0, array $selected_pages = array(), string $search = '' ): array {
+	$limit = $limit > 0 ? min( ERANKLY_LOCAL_BUSINESS_SITE_CHOICE_LIMIT, $limit ) : ERANKLY_LOCAL_BUSINESS_SITE_CHOICE_LIMIT;
+	$sites = array();
+
+	if ( is_multisite() ) {
+		try {
+			$site_ids = erankly_get_network_site_ids_batch( max( 0, $after_site_id ), $limit, true );
+		} catch ( RuntimeException ) {
+			return array();
+		}
+
+		foreach ( $site_ids as $blog_id ) {
+			if ( erankly_local_business_site_is_selectable( $blog_id ) ) {
+				$sites[] = $blog_id;
+			}
+		}
+	} else {
+		$sites[] = (int) get_current_blog_id();
+	}
+
+	$choices = array();
+
+	foreach ( $sites as $blog_id ) {
+		$include_page_id = isset( $selected_pages[ $blog_id ] ) ? absint( $selected_pages[ $blog_id ] ) : 0;
+		$choices[]       = erankly_get_local_business_site_choice( $blog_id, $search, 0, $include_page_id );
 	}
 
 	return $choices;

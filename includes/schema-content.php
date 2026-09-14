@@ -453,7 +453,7 @@ function erankly_schema_event( int $post_id ): array {
 
 	$schema = 'tribe_events' === $post_type
 		? erankly_schema_event_from_tec( $post_id )
-		: erankly_schema_event_generic( $post_id, $post_type );
+		: erankly_schema_event_generic( $post_id );
 
 	if ( empty( $schema ) ) {
 		return array();
@@ -638,7 +638,7 @@ function erankly_schema_event_from_tec( int $post_id ): array {
 }
 
 /** @return array<string,mixed> */
-function erankly_schema_event_generic( int $post_id, string $post_type ): array { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- Keeps the event-builder signature consistent across adapters.
+function erankly_schema_event_generic( int $post_id ): array {
 	$start_keys = array( '_EventStartDate', '_event_start', 'event_start_date', 'event_start', 'start_date' );
 	$end_keys   = array( '_EventEndDate', '_event_end', 'event_end_date', 'event_end', 'end_date' );
 	$start      = erankly_schema_event_meta_value( $post_id, $start_keys );

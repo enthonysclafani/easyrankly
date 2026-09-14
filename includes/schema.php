@@ -717,7 +717,11 @@ function erankly_schema_article_author( int $author_id ): array {
 	return array_filter( $author );
 }
 
-/** @return array<string,mixed> */
+/**
+ * Legacy BlogPosting alias. New code should call erankly_schema_article() and set @type explicitly.
+ *
+ * @return array<string,mixed>
+ */
 function erankly_schema_blogposting( int $post_id = 0 ): array {
 	$schema          = erankly_schema_article( $post_id );
 	$schema['@type'] = 'BlogPosting';

@@ -339,7 +339,7 @@ final class ERankly_Schema_Content_Test extends WP_UnitTestCase {
 		update_post_meta( $post_id, '_EventEndDate', '2026-09-06 23:00:00' );
 		update_post_meta( $post_id, 'location', 'Arena' );
 
-		$schema = erankly_schema_event_generic( $post_id, 'event' );
+		$schema = erankly_schema_event_generic( $post_id );
 
 		$this->assertSame( 'Event', $schema['@type'] );
 		$this->assertSame( get_permalink( $post_id ) . '#event', $schema['@id'] );

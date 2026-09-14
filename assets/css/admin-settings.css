@@ -280,8 +280,14 @@
 	margin-top: var(--erankly-space-4);
 }
 
-.erankly-local-business > .erankly-field {
-	margin-bottom: 0;
+.erankly-local-business-page-picker {
+	display: grid;
+	gap: var(--erankly-space-2);
+}
+
+.erankly-local-business-page-picker [data-erankly-local-business-load-more-pages][hidden],
+[data-erankly-local-business-load-more][hidden] {
+	display: none;
 }
 
 .erankly-opening-hours {

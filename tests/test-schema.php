@@ -26,6 +26,137 @@ final class ERankly_Schema_Test extends WP_UnitTestCase {
 		$this->assertSame( 'semantic', $result['code'] );
 	}
 
+	public function test_registered_meta_matches_the_keys_each_object_type_consumes(): void {
+		$post_keys = array_keys( get_registered_meta_keys( 'post' ) );
+		$term_keys = array_keys( get_registered_meta_keys( 'term' ) );
+		$user_keys = array_keys( get_registered_meta_keys( 'user' ) );
+
+		// Post-only fields must not be exposed for terms or users: no reader or writer
+		// touches them there (see erankly_importable_meta_keys()).
+		foreach ( array( '_erankly_schema_mode', '_erankly_schema_blocks', '_erankly_primary_terms', '_erankly_breadcrumb_name' ) as $post_only_key ) {
+			$this->assertContains( $post_only_key, $post_keys );
+			$this->assertNotContains( $post_only_key, $term_keys );
+			$this->assertNotContains( $post_only_key, $user_keys );
+		}
+
+		// The shared fields and the legacy robots booleans stay registered everywhere
+		// they are written at runtime.
+		$this->assertContains( '_erankly_title', $term_keys );
+		$this->assertContains( '_erankly_title', $user_keys );
+		$this->assertContains( '_erankly_disable_sitemap', $term_keys );
+		$this->assertContains( '_erankly_noindex', $term_keys );
+	}
+
+	public function test_addon_meta_keys_register_on_terms_and_can_opt_into_users(): void {
+		$filter = static function ( array $keys ): array {
+			$keys['_erankly_addon_probe'] = 'string';
+			return $keys;
+		};
+		$register_users = static function ( array $keys, string $object_type ): array {
+			if ( 'user' === $object_type ) {
+				$keys['_erankly_addon_probe'] = 'string';
+			}
+			return $keys;
+		};
+
+		add_filter( 'erankly_meta_keys', $filter );
+		add_filter( 'erankly_registered_meta_keys', $register_users, 10, 2 );
+		erankly_register_meta();
+
+		try {
+			$this->assertArrayHasKey( '_erankly_addon_probe', erankly_importable_meta_keys( 'term' ) );
+			$this->assertArrayNotHasKey( '_erankly_addon_probe', erankly_importable_meta_keys( 'user' ) );
+			$this->assertContains( '_erankly_addon_probe', array_keys( get_registered_meta_keys( 'term' ) ) );
+			$this->assertContains( '_erankly_addon_probe', array_keys( get_registered_meta_keys( 'user' ) ) );
+			$this->assertContains( '_erankly_addon_probe', array_keys( get_registered_meta_keys( 'post' ) ) );
+		} finally {
+			remove_filter( 'erankly_meta_keys', $filter );
+			remove_filter( 'erankly_registered_meta_keys', $register_users, 10 );
+		}
+	}
+
+	public function test_addon_term_meta_payload_is_importable_and_sanitized(): void {
+		$filter = static function ( array $keys ): array {
+			$keys['_erankly_addon_probe'] = 'string';
+			return $keys;
+		};
+		$sanitize = static function ( $value, string $key ) {
+			if ( '_erankly_addon_probe' !== $key ) {
+				return $value;
+			}
+
+			return sanitize_text_field( (string) $value );
+		};
+
+		add_filter( 'erankly_meta_keys', $filter );
+		add_filter( 'erankly_sanitize_extension_meta', $sanitize, 10, 2 );
+
+		try {
+			$this->assertArrayHasKey( '_erankly_addon_probe', erankly_importable_meta_keys( 'term' ) );
+			$this->assertArrayNotHasKey( '_erankly_addon_probe', erankly_importable_meta_keys( 'user' ) );
+			$this->assertArrayNotHasKey( '_erankly_schema_blocks', erankly_importable_meta_keys( 'term' ) );
+			$this->assertSame( 'hello', erankly_sanitize_registered_meta( " hello \n", '_erankly_addon_probe' ) );
+		} finally {
+			remove_filter( 'erankly_meta_keys', $filter );
+			remove_filter( 'erankly_sanitize_extension_meta', $sanitize, 10 );
+		}
+	}
+
+	public function test_rest_term_and_user_meta_expose_typed_defaults_for_absent_values(): void {
+		$admin_id = self::factory()->user->create( array( 'role' => 'administrator' ) );
+		if ( is_multisite() ) {
+			grant_super_admin( $admin_id );
+		}
+		wp_set_current_user( $admin_id );
+
+		$term_id = self::factory()->term->create( array( 'taxonomy' => 'category' ) );
+		$user_id = self::factory()->user->create( array( 'role' => 'author' ) );
+
+		$this->assertFalse( (bool) get_term_meta( $term_id, '_erankly_noindex', true ) );
+		$this->assertSame( '', (string) get_term_meta( $term_id, '_erankly_title', true ) );
+		$this->assertSame( '', (string) get_user_meta( $user_id, '_erankly_title', true ) );
+
+		$term_request = new WP_REST_Request( 'GET', '/wp/v2/categories/' . $term_id );
+		$term_request->set_param( 'context', 'edit' );
+		$term_response = rest_get_server()->dispatch( $term_request );
+		$term_data     = $term_response->get_data();
+
+		$this->assertSame( 200, $term_response->get_status() );
+		$this->assertIsArray( $term_data['meta'] ?? null );
+		$this->assertArrayHasKey( '_erankly_title', $term_data['meta'] );
+
+		$user_request = new WP_REST_Request( 'GET', '/wp/v2/users/' . $user_id );
+		$user_request->set_param( 'context', 'edit' );
+		$user_response = rest_get_server()->dispatch( $user_request );
+		$user_data     = $user_response->get_data();
+
+		$this->assertSame( 200, $user_response->get_status() );
+		if ( isset( $user_data['meta'] ) && is_array( $user_data['meta'] ) ) {
+			$this->assertArrayNotHasKey( '_erankly_schema_blocks', $user_data['meta'] );
+		}
+	}
+
+	public function test_schema_blogposting_alias_still_emits_blogposting_type(): void {
+		$post_id = self::factory()->post->create();
+		$schema  = erankly_schema_blogposting( $post_id );
+
+		$this->assertSame( 'BlogPosting', $schema['@type'] );
+	}
+
+	public function test_meta_registration_args_set_typed_defaults(): void {
+		$boolean = erankly_meta_registration_args( '_erankly_noindex', 'boolean', '__return_true' );
+		$integer = erankly_meta_registration_args( '_erankly_og_image_id', 'integer', '__return_true' );
+		$object  = erankly_meta_registration_args( '_erankly_primary_terms', 'object', '__return_true' );
+		$array   = erankly_meta_registration_args( '_erankly_schema_blocks', 'array', '__return_true' );
+		$string  = erankly_meta_registration_args( '_erankly_title', 'string', '__return_true' );
+
+		$this->assertFalse( $boolean['default'] );
+		$this->assertSame( 0, $integer['default'] );
+		$this->assertSame( array(), $object['default'] );
+		$this->assertSame( array(), $array['default'] );
+		$this->assertArrayNotHasKey( 'default', $string );
+	}
+
 	public function test_custom_json_ld_rejects_syntax_errors(): void {
 		$result = erankly_validate_custom_json_ld( '{not json' );
 

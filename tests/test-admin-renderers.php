@@ -217,6 +217,33 @@ final class ERankly_Admin_Renderers_Test extends WP_UnitTestCase {
 
 		$this->assertStringContainsString( 'name="' . ERANKLY_OPTION . '[enable_local_business]" value="1"', $html );
 		$this->assertStringContainsString( 'data-erankly-local-business-fields hidden', $html );
+		$this->assertStringContainsString( 'data-erankly-local-business-site-list', $html );
+		$this->assertStringContainsString( 'data-erankly-sites-initialized="0"', $html );
+		$this->assertStringNotContainsString( 'data-erankly-local-business-site="', $html );
+	}
+
+	public function test_disabled_local_business_settings_preserve_stored_pages_as_hidden_fields(): void {
+		$page_id = self::factory()->post->create(
+			array(
+				'post_type'   => 'page',
+				'post_status' => 'publish',
+			)
+		);
+		$settings                          = erankly_get_settings();
+		$settings['enable_local_business'] = 0;
+		$settings['local_business_pages']  = array(
+			get_current_blog_id() => $page_id,
+			9999                  => 42,
+		);
+
+		$html = $this->capture( static fn() => erankly_render_local_business_settings( $settings ) );
+
+		$this->assertStringContainsString(
+			'name="' . ERANKLY_OPTION . '[local_business_pages][' . get_current_blog_id() . ']"',
+			$html
+		);
+		$this->assertStringContainsString( 'name="' . ERANKLY_OPTION . '[local_business_pages][9999]"', $html );
+		$this->assertStringNotContainsString( 'data-erankly-local-business-site="', $html );
 	}
 
 	public function test_local_business_settings_reveal_food_fields_for_a_food_business_type(): void {
@@ -230,6 +257,7 @@ final class ERankly_Admin_Renderers_Test extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'name="' . ERANKLY_OPTION . '[local_business_type]"', $html );
 		$this->assertStringNotContainsString( 'data-erankly-food-business-fields hidden', $html );
 		$this->assertStringContainsString( 'name="' . ERANKLY_OPTION . '[local_business_cuisine]"', $html );
+		$this->assertStringContainsString( 'data-erankly-local-business-page-search', $html );
 	}
 
 	public function test_opening_hours_fields_render_seven_rows_and_respect_closed_days(): void {
