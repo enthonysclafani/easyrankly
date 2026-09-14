@@ -201,7 +201,9 @@ function erankly_bootstrap(): void {
 	add_action( ERANKLY_MIGRATION_CRON_HOOK, 'erankly_process_migration_job' );
 	add_action( ERANKLY_IMPORT_CRON_HOOK, 'erankly_process_import_job' );
 	add_action( 'init', 'erankly_register_meta' );
-	add_action( 'init', 'erankly_register_breadcrumb_integrations', 5 );
+	add_action( 'init', 'erankly_register_breadcrumb_integrations', 11 );
+	add_action( 'wp_loaded', 'erankly_sync_legacy_breadcrumbs_availability' );
+	add_action( 'enqueue_block_editor_assets', 'erankly_sync_legacy_breadcrumbs_availability', 1 );
 	add_action( 'init', 'erankly_register_rewrites' );
 	add_action( 'init', 'erankly_migrate_legacy_social_image_meta', 14 );
 	add_action( 'init', 'erankly_maybe_migrate_settings', 15 );

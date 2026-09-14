@@ -179,6 +179,9 @@ final class ERankly_Redirects_Runtime_Test extends WP_UnitTestCase {
 
 		$this->assertStringContainsString( 'erankly-redirects-table-wrap', $markup );
 		$this->assertStringContainsString( 'Source URL', $markup );
+		$this->assertMatchesRegularExpression( '/<form\b[^>]*\bclass="erankly-card"/', $markup );
+		$this->assertStringContainsString( 'class="erankly-field" id="erankly-redirects-target-field"', $markup );
+		$this->assertStringNotContainsString( 'erankly-redirects-form', $markup );
 	}
 
 	// ---------------------------------------------------------------------
@@ -805,6 +808,12 @@ final class ERankly_Redirects_Runtime_Test extends WP_UnitTestCase {
 		);
 		$this->assertStringContainsString( 'Update Redirect', $edit );
 		$this->assertStringContainsString( '/edit-source', $edit );
+		$this->assertStringContainsString( 'class="erankly-card"', $edit );
+		$this->assertStringContainsString( 'class="erankly-field" id="erankly-redirects-target-field"', $edit );
+		$this->assertStringContainsString( 'erankly-card-actions', $edit );
+		$this->assertStringContainsString( 'erankly-checkboxes', $edit );
+		$this->assertStringNotContainsString( 'erankly-redirects-form', $edit );
+		$this->assertStringNotContainsString( 'erankly-redirects-checkbox', $edit );
 
 		$add = $this->capture(
 			function () use ( $admin ): void {
@@ -812,6 +821,11 @@ final class ERankly_Redirects_Runtime_Test extends WP_UnitTestCase {
 			}
 		);
 		$this->assertStringContainsString( 'Add Redirect', $add );
+		$this->assertStringContainsString( 'class="erankly-card"', $add );
+		$this->assertStringContainsString( 'class="erankly-field" id="erankly-redirects-target-field"', $add );
+		$this->assertStringContainsString( 'erankly-card-actions', $add );
+		$this->assertStringNotContainsString( 'erankly-redirects-form', $add );
+		$this->assertStringNotContainsString( 'erankly-redirects-checkbox', $add );
 	}
 
 	public function test_admin_url_builds_the_settings_screen_url(): void {

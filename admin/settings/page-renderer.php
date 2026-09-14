@@ -158,7 +158,9 @@ function erankly_render_settings_page(): void {
 	if ( 'settings-general' === $active_panel ) {
 		$schema_person_user_id    = isset( $settings['schema_person_user_id'] ) ? absint( $settings['schema_person_user_id'] ) : 0;
 		$schema_person_user       = $schema_person_user_id > 0 ? get_userdata( $schema_person_user_id ) : false;
-		$show_organization_fields = 'person' !== $settings['schema_identity'];
+		$show_organization_fields = function_exists( 'erankly_settings_show_organization_fields' )
+			? erankly_settings_show_organization_fields( $settings )
+			: ( 'person' !== $settings['schema_identity'] );
 	}
 	if ( 'settings-schema' === $active_panel ) {
 		$global_schema_blocks = isset( $settings['global_schema_blocks'] ) && is_array( $settings['global_schema_blocks'] ) ? $settings['global_schema_blocks'] : array();
@@ -182,7 +184,7 @@ function erankly_render_settings_page(): void {
 	}
 	$show_settings_submit = ! $is_site_admin_on_network && ! in_array( $active_panel, $standalone_panels, true );
 	?>
-	<div class="wrap erankly-settings">
+	<div class="wrap erankly-settings"<?php echo ! empty( $settings['enable_local_business'] ) ? ' data-erankly-local-business-enabled="1"' : ''; ?>>
 		<?php
 		$user_id        = get_current_user_id();
 		$stored_notices = $user_id > 0 ? get_transient( 'erankly_settings_notices_' . $user_id ) : false;

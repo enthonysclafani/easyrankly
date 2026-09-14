@@ -141,7 +141,7 @@ final class ERankly_Redirects_Admin {
 		?>
 			<?php $this->render_notices(); ?>
 
-			<?php erankly_section_open( $edit_redirect ? __( 'Edit Redirect', 'easyrankly' ) : __( 'Add Redirect', 'easyrankly' ), array( 'doc' => 'redirect-form' ) ); ?>
+			<?php erankly_section_open( $edit_redirect ? __( 'Edit Redirect', 'easyrankly' ) : __( 'Add Redirect', 'easyrankly' ), array( 'doc' => 'redirect-form', 'card' => false ) ); ?>
 				<?php $this->render_redirect_form( $edit_redirect, $prefill, $table_state ); ?>
 			<?php erankly_section_close(); ?>
 
@@ -399,7 +399,7 @@ final class ERankly_Redirects_Admin {
 		$advanced_open = 'exact' !== $match_type || 'ignore' !== $query_mode || $case_sensitive || 'exact' === $trailing_slash;
 
 		?>
-		<form method="post" action="<?php echo esc_url( $this->admin_url() ); ?>" class="erankly-redirects-form">
+		<form method="post" action="<?php echo esc_url( $this->admin_url() ); ?>" class="erankly-card">
 			<?php wp_nonce_field( 'erankly_redirects_save_redirect' ); ?>
 			<input type="hidden" name="erankly_redirects_action" value="save_redirect">
 			<input type="hidden" name="redirect_id" value="<?php echo esc_attr( (string) $id ); ?>">
@@ -407,17 +407,17 @@ final class ERankly_Redirects_Admin {
 				<input type="hidden" name="<?php echo esc_attr( $state_key ); ?>" value="<?php echo esc_attr( (string) $state_value ); ?>">
 			<?php endforeach; ?>
 
-			<label>
-				<span><?php esc_html_e( 'Source URL', 'easyrankly' ); ?></span>
-				<input type="text" name="source_path" value="<?php echo esc_attr( $source_path ); ?>" required placeholder="/old-page">
-			</label>
+			<div class="erankly-field">
+				<label for="erankly-redirects-source-path"><?php esc_html_e( 'Source URL', 'easyrankly' ); ?></label>
+				<input id="erankly-redirects-source-path" class="widefat" type="text" name="source_path" value="<?php echo esc_attr( $source_path ); ?>" required placeholder="/old-page">
+			</div>
 
-			<details class="erankly-settings-details erankly-redirects-advanced"<?php echo $advanced_open ? ' open' : ''; ?>>
+			<details class="erankly-settings-details"<?php echo $advanced_open ? ' open' : ''; ?>>
 				<summary><?php esc_html_e( 'Advanced matching', 'easyrankly' ); ?></summary>
 				<div class="erankly-settings-details-content">
 					<div class="erankly-field">
 						<label for="erankly-redirects-match-type"><?php esc_html_e( 'Match type', 'easyrankly' ); ?></label>
-						<select name="match_type" id="erankly-redirects-match-type">
+						<select name="match_type" id="erankly-redirects-match-type" class="widefat erankly-field-full-width">
 							<option value="exact" <?php selected( $match_type, 'exact' ); ?>><?php esc_html_e( 'Exact URL', 'easyrankly' ); ?></option>
 							<option value="wildcard" <?php selected( $match_type, 'wildcard' ); ?>><?php esc_html_e( 'Wildcard pattern', 'easyrankly' ); ?></option>
 							<option value="regex" <?php selected( $match_type, 'regex' ); ?>><?php esc_html_e( 'Regular expression', 'easyrankly' ); ?></option>
@@ -427,7 +427,7 @@ final class ERankly_Redirects_Admin {
 
 					<div class="erankly-field">
 						<label for="erankly-redirects-query-mode"><?php esc_html_e( 'Query parameters', 'easyrankly' ); ?></label>
-						<select name="query_mode" id="erankly-redirects-query-mode">
+						<select name="query_mode" id="erankly-redirects-query-mode" class="widefat erankly-field-full-width">
 						<option value="ignore" <?php selected( $query_mode, 'ignore' ); ?>><?php esc_html_e( 'Match any query and discard it', 'easyrankly' ); ?></option>
 						<option value="preserve" <?php selected( $query_mode, 'preserve' ); ?>><?php esc_html_e( 'Match any query and append it to the target', 'easyrankly' ); ?></option>
 						<option value="exact" <?php selected( $query_mode, 'exact' ); ?>><?php esc_html_e( 'Match only the required query string', 'easyrankly' ); ?></option>
@@ -436,7 +436,7 @@ final class ERankly_Redirects_Admin {
 
 					<div class="erankly-field" id="erankly-redirects-source-query-field">
 						<label for="erankly-redirects-source-query"><?php esc_html_e( 'Required query string', 'easyrankly' ); ?></label>
-						<input type="text" name="source_query" id="erankly-redirects-source-query" value="<?php echo esc_attr( $source_query ); ?>" placeholder="product=123&amp;view=compact">
+						<input class="widefat" type="text" name="source_query" id="erankly-redirects-source-query" value="<?php echo esc_attr( $source_query ); ?>" placeholder="product=123&amp;view=compact">
 					</div>
 
 					<div class="erankly-field erankly-checkboxes">
@@ -447,7 +447,7 @@ final class ERankly_Redirects_Admin {
 					<div class="erankly-field erankly-redirects-test">
 						<label for="erankly-redirects-test-url"><?php esc_html_e( 'Test URL', 'easyrankly' ); ?></label>
 						<div class="erankly-redirects-test-controls">
-							<input type="text" id="erankly-redirects-test-url" placeholder="/old-page?product=123">
+							<input class="widefat" type="text" id="erankly-redirects-test-url" placeholder="/old-page?product=123">
 							<button type="button" class="button" id="erankly-redirects-test-button"><?php esc_html_e( 'Test rule', 'easyrankly' ); ?></button>
 						</div>
 						<p class="description" id="erankly-redirects-test-result" aria-live="polite"></p>
@@ -455,16 +455,14 @@ final class ERankly_Redirects_Admin {
 				</div>
 			</details>
 
-			<div id="erankly-redirects-target-field">
-				<label>
-					<span><?php esc_html_e( 'Target URL', 'easyrankly' ); ?></span>
-					<input type="text" name="target_url" value="<?php echo esc_attr( $target_url ); ?>" placeholder="/new-page or https://example.com/new-page">
-				</label>
+			<div class="erankly-field" id="erankly-redirects-target-field">
+				<label for="erankly-redirects-target-url"><?php esc_html_e( 'Target URL', 'easyrankly' ); ?></label>
+				<input id="erankly-redirects-target-url" class="widefat" type="text" name="target_url" value="<?php echo esc_attr( $target_url ); ?>" placeholder="/new-page or https://example.com/new-page">
 			</div>
 
-			<label>
-				<span><?php esc_html_e( 'HTTP Code', 'easyrankly' ); ?></span>
-				<select name="status_code" id="erankly-redirects-status-code">
+			<div class="erankly-field">
+				<label for="erankly-redirects-status-code"><?php esc_html_e( 'HTTP Code', 'easyrankly' ); ?></label>
+				<select name="status_code" id="erankly-redirects-status-code" class="widefat erankly-field-full-width">
 					<?php foreach ( $status_codes as $code ) : ?>
 						<?php $code_label = $code_labels[ $code ] ?? ERankly_Redirects_Normalizer::status_code_label( $code ); ?>
 						<option value="<?php echo esc_attr( (string) $code ); ?>" <?php selected( $status_code, $code ); ?>>
@@ -472,22 +470,23 @@ final class ERankly_Redirects_Admin {
 						</option>
 					<?php endforeach; ?>
 				</select>
-			</label>
+			</div>
 
-			<label>
-				<span><?php esc_html_e( 'Note', 'easyrankly' ); ?> <span class="description"><?php esc_html_e( '(optional)', 'easyrankly' ); ?></span></span>
-				<textarea class="widefat" name="note" rows="3"><?php echo esc_textarea( $note ); ?></textarea>
-			</label>
+			<div class="erankly-field">
+				<label for="erankly-redirects-note"><?php esc_html_e( 'Note', 'easyrankly' ); ?> <span class="description"><?php esc_html_e( '(optional)', 'easyrankly' ); ?></span></label>
+				<textarea id="erankly-redirects-note" class="widefat" name="note" rows="3"><?php echo esc_textarea( $note ); ?></textarea>
+			</div>
 
-			<label class="erankly-redirects-checkbox">
-				<input type="checkbox" class="erankly-toggle" name="is_active" value="1" <?php checked( $is_active ); ?>>
-				<span><?php esc_html_e( 'Active', 'easyrankly' ); ?></span>
-			</label>
+			<div class="erankly-field erankly-checkboxes">
+				<label><input type="checkbox" class="erankly-toggle" name="is_active" value="1" <?php checked( $is_active ); ?>> <?php esc_html_e( 'Active', 'easyrankly' ); ?></label>
+			</div>
 
-			<?php submit_button( $id > 0 ? __( 'Update Redirect', 'easyrankly' ) : __( 'Add Redirect', 'easyrankly' ), 'primary', 'submit', false ); ?>
-			<?php if ( $id > 0 ) : ?>
-				<a class="button" href="<?php echo esc_url( $this->admin_url( $table_state ) ); ?>"><?php esc_html_e( 'Cancel', 'easyrankly' ); ?></a>
-			<?php endif; ?>
+			<div class="erankly-card-actions">
+				<?php submit_button( $id > 0 ? __( 'Update Redirect', 'easyrankly' ) : __( 'Add Redirect', 'easyrankly' ), 'primary', 'submit', false ); ?>
+				<?php if ( $id > 0 ) : ?>
+					<a class="button" href="<?php echo esc_url( $this->admin_url( $table_state ) ); ?>"><?php esc_html_e( 'Cancel', 'easyrankly' ); ?></a>
+				<?php endif; ?>
+			</div>
 		</form>
 		<?php
 	}

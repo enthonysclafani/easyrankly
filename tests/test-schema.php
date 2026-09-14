@@ -513,19 +513,25 @@ final class ERankly_Schema_Test extends WP_UnitTestCase {
 	}
 
 	public function test_local_business_gaps_include_page_and_address(): void {
-		$gaps = erankly_local_business_requirement_gaps(
-			array(
-				'organization_name'            => '',
-				'organization_street_address'  => '',
-				'organization_locality'        => '',
-				'organization_postal_code'     => '',
-				'organization_country'         => '',
-				'local_business_pages'         => array(),
-				'local_business_page_path'     => '',
-			)
+		$settings = array(
+			'organization_name'           => '',
+			'organization_street_address' => '',
+			'organization_locality'       => '',
+			'organization_postal_code'    => '',
+			'organization_country'        => '',
+			'local_business_pages'        => array(),
+			'local_business_page_path'    => '',
 		);
+		$map  = erankly_local_business_requirement_gap_map( $settings );
+		$gaps = erankly_local_business_requirement_gaps( $settings );
 
 		$this->assertNotEmpty( $gaps );
+		$this->assertSame( array_values( $map ), $gaps );
+		$this->assertArrayHasKey( 'organization_street_address', $map );
+		$this->assertArrayHasKey( 'organization_locality', $map );
+		$this->assertArrayHasKey( 'organization_postal_code', $map );
+		$this->assertArrayHasKey( 'organization_country', $map );
+		$this->assertArrayHasKey( 'location_page', $map );
 	}
 
 	public function test_variables_survive_placeholder_probe(): void {

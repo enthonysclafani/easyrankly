@@ -620,10 +620,29 @@ function erankly_get_schema_type_suggestions_for_post( int $post_id ): array {
 }
 
 /**
+ * Organization-only details (description, legal identifiers) are for Organization identity.
+ *
  * @param array<string,mixed> $settings Stored settings.
- * @return array<int,string> Missing requirement labels.
  */
-function erankly_local_business_requirement_gaps( array $settings ): array {
+function erankly_settings_show_organization_fields( array $settings ): bool {
+	return 'person' !== (string) ( $settings['schema_identity'] ?? 'organization' );
+}
+
+/**
+ * Address and contact fields stay available when LocalBusiness is enabled, even if
+ * the primary identity is a Person. LocalBusiness still needs a PostalAddress.
+ *
+ * @param array<string,mixed> $settings Stored settings.
+ */
+function erankly_settings_show_location_fields( array $settings ): bool {
+	return erankly_settings_show_organization_fields( $settings ) || ! empty( $settings['enable_local_business'] );
+}
+
+/**
+ * @param array<string,mixed> $settings Stored settings.
+ * @return array<string,string> Missing requirement key => label.
+ */
+function erankly_local_business_requirement_gap_map( array $settings ): array {
 	$gaps = array();
 	$name = trim( (string) ( $settings['organization_name'] ?? '' ) );
 
@@ -632,7 +651,7 @@ function erankly_local_business_requirement_gaps( array $settings ): array {
 	}
 
 	if ( '' === $name ) {
-		$gaps[] = __( 'Organization name', 'easyrankly' );
+		$gaps['organization_name'] = __( 'Organization name', 'easyrankly' );
 	}
 
 	$street   = trim( (string) ( $settings['organization_street_address'] ?? '' ) );
@@ -641,19 +660,19 @@ function erankly_local_business_requirement_gaps( array $settings ): array {
 	$country  = erankly_sanitize_country_code( $settings['organization_country'] ?? '' );
 
 	if ( '' === $street ) {
-		$gaps[] = __( 'Street address', 'easyrankly' );
+		$gaps['organization_street_address'] = __( 'Street address', 'easyrankly' );
 	}
 
 	if ( '' === $locality ) {
-		$gaps[] = __( 'City / locality', 'easyrankly' );
+		$gaps['organization_locality'] = __( 'City / locality', 'easyrankly' );
 	}
 
 	if ( '' === $postal ) {
-		$gaps[] = __( 'Postal code', 'easyrankly' );
+		$gaps['organization_postal_code'] = __( 'Postal code', 'easyrankly' );
 	}
 
 	if ( '' === $country ) {
-		$gaps[] = __( 'Country code', 'easyrankly' );
+		$gaps['organization_country'] = __( 'Country code', 'easyrankly' );
 	}
 
 	$pages = isset( $settings['local_business_pages'] ) && is_array( $settings['local_business_pages'] )
@@ -662,10 +681,18 @@ function erankly_local_business_requirement_gaps( array $settings ): array {
 	$path  = erankly_sanitize_relative_path( $settings['local_business_page_path'] ?? '' );
 
 	if ( array() === $pages && '' === $path ) {
-		$gaps[] = __( 'Location page', 'easyrankly' );
+		$gaps['location_page'] = __( 'Location page', 'easyrankly' );
 	}
 
 	return $gaps;
+}
+
+/**
+ * @param array<string,mixed> $settings Stored settings.
+ * @return array<int,string> Missing requirement labels.
+ */
+function erankly_local_business_requirement_gaps( array $settings ): array {
+	return array_values( erankly_local_business_requirement_gap_map( $settings ) );
 }
 
 /**

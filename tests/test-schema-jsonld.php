@@ -668,6 +668,50 @@ final class ERankly_Schema_Jsonld_Test extends WP_UnitTestCase {
 		$this->assertSame( 'Via Roma 1', erankly_schema_organization_address()['streetAddress'] );
 	}
 
+	public function test_organization_fields_are_hidden_for_person_identity(): void {
+		$this->assertTrue(
+			erankly_settings_show_organization_fields(
+				array(
+					'schema_identity' => 'organization',
+				)
+			)
+		);
+		$this->assertFalse(
+			erankly_settings_show_organization_fields(
+				array(
+					'schema_identity'       => 'person',
+					'enable_local_business' => 1,
+				)
+			)
+		);
+	}
+
+	public function test_location_fields_stay_visible_for_person_when_local_business_is_enabled(): void {
+		$this->assertTrue(
+			erankly_settings_show_location_fields(
+				array(
+					'schema_identity' => 'organization',
+				)
+			)
+		);
+		$this->assertFalse(
+			erankly_settings_show_location_fields(
+				array(
+					'schema_identity'       => 'person',
+					'enable_local_business' => 0,
+				)
+			)
+		);
+		$this->assertTrue(
+			erankly_settings_show_location_fields(
+				array(
+					'schema_identity'       => 'person',
+					'enable_local_business' => 1,
+				)
+			)
+		);
+	}
+
 	public function test_schema_person_uses_the_configured_user(): void {
 		$user_id = self::factory()->user->create(
 			array(

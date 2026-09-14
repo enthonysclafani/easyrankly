@@ -6,22 +6,28 @@
  */
 defined( 'ABSPATH' ) || exit;
 function erankly_render_organization_details( array $settings ): void {
+	$open           = ! empty( $settings['enable_local_business'] );
+	$is_person      = 'person' === (string) ( $settings['schema_identity'] ?? 'organization' );
+	$org_summary    = __( 'Legal information and address', 'easyrankly' );
+	$person_summary = __( 'Address', 'easyrankly' );
 	?>
-	<details class="erankly-settings-details">
-		<summary><?php esc_html_e( 'Legal information and address', 'easyrankly' ); ?></summary>
+	<details class="erankly-settings-details" id="erankly-organization-details"<?php echo $open ? ' open' : ''; ?>>
+		<summary data-erankly-identity-label data-erankly-label-organization="<?php echo esc_attr( $org_summary ); ?>" data-erankly-label-person="<?php echo esc_attr( $person_summary ); ?>"><?php echo esc_html( $is_person ? $person_summary : $org_summary ); ?></summary>
 		<div class="erankly-settings-details-content">
-			<div class="erankly-field">
-				<label for="erankly-organization-legal-name"><?php esc_html_e( 'Legal name', 'easyrankly' ); ?></label>
-				<input id="erankly-organization-legal-name" class="widefat" type="text" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[organization_legal_name]" value="<?php echo esc_attr( (string) $settings['organization_legal_name'] ); ?>">
-			</div>
-			<div class="erankly-inline-fields erankly-inline-fields-two-columns">
+			<div data-erankly-organization-only <?php echo $is_person ? 'hidden' : ''; ?>>
 				<div class="erankly-field">
-					<label for="erankly-organization-vat-id"><?php esc_html_e( 'VAT ID', 'easyrankly' ); ?></label>
-					<input id="erankly-organization-vat-id" class="widefat" type="text" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[organization_vat_id]" value="<?php echo esc_attr( (string) $settings['organization_vat_id'] ); ?>">
+					<label for="erankly-organization-legal-name"><?php esc_html_e( 'Legal name', 'easyrankly' ); ?></label>
+					<input id="erankly-organization-legal-name" class="widefat" type="text" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[organization_legal_name]" value="<?php echo esc_attr( (string) $settings['organization_legal_name'] ); ?>">
 				</div>
-				<div class="erankly-field">
-					<label for="erankly-organization-tax-id"><?php esc_html_e( 'Tax ID', 'easyrankly' ); ?></label>
-					<input id="erankly-organization-tax-id" class="widefat" type="text" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[organization_tax_id]" value="<?php echo esc_attr( (string) $settings['organization_tax_id'] ); ?>">
+				<div class="erankly-inline-fields erankly-inline-fields-two-columns">
+					<div class="erankly-field">
+						<label for="erankly-organization-vat-id"><?php esc_html_e( 'VAT ID', 'easyrankly' ); ?></label>
+						<input id="erankly-organization-vat-id" class="widefat" type="text" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[organization_vat_id]" value="<?php echo esc_attr( (string) $settings['organization_vat_id'] ); ?>">
+					</div>
+					<div class="erankly-field">
+						<label for="erankly-organization-tax-id"><?php esc_html_e( 'Tax ID', 'easyrankly' ); ?></label>
+						<input id="erankly-organization-tax-id" class="widefat" type="text" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[organization_tax_id]" value="<?php echo esc_attr( (string) $settings['organization_tax_id'] ); ?>">
+					</div>
 				</div>
 			</div>
 			<div class="erankly-field">
@@ -59,8 +65,21 @@ function erankly_render_local_business_settings( array $settings ): void {
 	$page_map  = isset( $settings['local_business_pages'] ) && is_array( $settings['local_business_pages'] )
 		? array_map( 'absint', $settings['local_business_pages'] )
 		: array();
-	$choices   = array();
-	$gaps      = function_exists( 'erankly_local_business_requirement_gaps' ) ? erankly_local_business_requirement_gaps( $settings ) : array();
+	$choices              = array();
+	$gap_map              = function_exists( 'erankly_local_business_requirement_gap_map' )
+		? erankly_local_business_requirement_gap_map( $settings )
+		: array();
+	$gaps                 = array_values( $gap_map );
+	$needs_address_fields = (bool) array_intersect(
+		array(
+			'organization_name',
+			'organization_street_address',
+			'organization_locality',
+			'organization_postal_code',
+			'organization_country',
+		),
+		array_keys( $gap_map )
+	);
 
 	if ( $enabled && function_exists( 'erankly_get_local_business_site_choices' ) ) {
 		$choices = erankly_get_local_business_site_choices( 0, ERANKLY_LOCAL_BUSINESS_SITE_CHOICE_LIMIT, $page_map );
@@ -83,6 +102,7 @@ function erankly_render_local_business_settings( array $settings ): void {
 		<div class="erankly-local-business-fields" data-erankly-local-business-fields <?php echo $enabled ? '' : 'hidden'; ?>>
 			<?php if ( $enabled && ! empty( $gaps ) ) : ?>
 				<div class="notice notice-error inline" role="alert">
+					<div class="erankly-notice-body">
 					<p>
 						<strong><?php esc_html_e( 'Incomplete configuration', 'easyrankly' ); ?></strong>
 						<?php
@@ -95,11 +115,32 @@ function erankly_render_local_business_settings( array $settings ): void {
 						);
 						?>
 					</p>
+					<?php if ( $needs_address_fields && function_exists( 'erankly_settings_tab_url' ) ) : ?>
+						<?php
+						$address_heading = 'person' === (string) ( $settings['schema_identity'] ?? 'organization' )
+							? __( 'Address', 'easyrankly' )
+							: __( 'Legal information and address', 'easyrankly' );
+						?>
+						<p>
+							<a href="<?php echo esc_url( erankly_settings_tab_url( 'general' ) . '#erankly-organization-details' ); ?>">
+								<?php
+								echo esc_html(
+									sprintf(
+										/* translators: %s: settings section title. */
+										__( 'Set the address in General → %s.', 'easyrankly' ),
+										$address_heading
+									)
+								);
+								?>
+							</a>
+						</p>
+					<?php endif; ?>
+					</div>
 				</div>
 			<?php endif; ?>
 			<div class="erankly-field">
 				<label for="erankly-local-business-type"><?php esc_html_e( 'Business type', 'easyrankly' ); ?></label>
-				<select id="erankly-local-business-type" class="widefat" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[local_business_type]" data-erankly-local-business-type>
+				<select id="erankly-local-business-type" class="widefat erankly-field-full-width" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[local_business_type]" data-erankly-local-business-type>
 					<?php foreach ( $types as $type_key => $type_label ) : ?>
 						<option value="<?php echo esc_attr( $type_key ); ?>" <?php selected( $type, $type_key ); ?>><?php echo esc_html( $type_label ); ?></option>
 					<?php endforeach; ?>
@@ -139,7 +180,7 @@ function erankly_render_local_business_settings( array $settings ): void {
 						<div class="erankly-local-business-page-picker">
 							<label class="screen-reader-text" for="<?php echo esc_attr( $field_id ); ?>-search"><?php esc_html_e( 'Search pages', 'easyrankly' ); ?></label>
 							<input id="<?php echo esc_attr( $field_id ); ?>-search" type="search" class="widefat" data-erankly-local-business-page-search autocomplete="off" placeholder="<?php esc_attr_e( 'Search pages', 'easyrankly' ); ?>">
-							<select id="<?php echo esc_attr( $field_id ); ?>" class="widefat" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[local_business_pages][<?php echo esc_attr( (string) $blog_id ); ?>]" data-erankly-local-business-page-select>
+							<select id="<?php echo esc_attr( $field_id ); ?>" class="widefat erankly-field-full-width" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[local_business_pages][<?php echo esc_attr( (string) $blog_id ); ?>]" data-erankly-local-business-page-select>
 								<option value=""><?php esc_html_e( 'Select a published page', 'easyrankly' ); ?></option>
 								<?php foreach ( $pages as $page_option ) : ?>
 									<?php
@@ -148,18 +189,14 @@ function erankly_render_local_business_settings( array $settings ): void {
 									<option value="<?php echo esc_attr( (string) $page_id ); ?>" <?php selected( $selected_id, $page_id ); ?>><?php echo esc_html( erankly_local_business_page_choice_label( $page_option ) ); ?></option>
 								<?php endforeach; ?>
 							</select>
-							<p>
-								<button type="button" class="button" data-erankly-local-business-load-more-pages <?php echo $has_more_pages ? '' : 'hidden'; ?>><?php esc_html_e( 'Load more pages', 'easyrankly' ); ?></button>
-							</p>
+							<button type="button" class="button" data-erankly-local-business-load-more-pages <?php echo $has_more_pages ? '' : 'hidden'; ?>><?php esc_html_e( 'Load more pages', 'easyrankly' ); ?></button>
 							<p class="description" data-erankly-local-business-page-status role="status"></p>
 						</div>
 					</div>
 				<?php endforeach; ?>
 				</div>
 				<p class="description" data-erankly-local-business-sites-status role="status"></p>
-				<p>
-					<button type="button" class="button" data-erankly-local-business-load-more <?php echo ( is_multisite() && $enabled && count( $choices ) === ERANKLY_LOCAL_BUSINESS_SITE_CHOICE_LIMIT ) ? '' : 'hidden'; ?>><?php esc_html_e( 'Load more sites', 'easyrankly' ); ?></button>
-				</p>
+				<button type="button" class="button" data-erankly-local-business-load-more <?php echo ( is_multisite() && $enabled && count( $choices ) === ERANKLY_LOCAL_BUSINESS_SITE_CHOICE_LIMIT ) ? '' : 'hidden'; ?>><?php esc_html_e( 'Load more sites', 'easyrankly' ); ?></button>
 			</div>
 			<details class="erankly-settings-details">
 				<summary><?php esc_html_e( 'Location details and opening hours', 'easyrankly' ); ?></summary>
@@ -173,7 +210,7 @@ function erankly_render_local_business_settings( array $settings ): void {
 							<label for="erankly-local-business-latitude"><?php esc_html_e( 'Latitude', 'easyrankly' ); ?></label>
 							<input id="erankly-local-business-latitude" class="widefat" type="number" step="any" min="-90" max="90" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[local_business_latitude]" value="<?php echo esc_attr( (string) $settings['local_business_latitude'] ); ?>">
 						</div>
-						<div class="erankly-field">
+						<div class="erankly-field erankly-field-span-full">
 							<label for="erankly-local-business-longitude"><?php esc_html_e( 'Longitude', 'easyrankly' ); ?></label>
 							<input id="erankly-local-business-longitude" class="widefat" type="number" step="any" min="-180" max="180" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[local_business_longitude]" value="<?php echo esc_attr( (string) $settings['local_business_longitude'] ); ?>">
 						</div>
@@ -209,41 +246,58 @@ function erankly_render_opening_hours_fields( array $hours ): void {
 		'sunday'    => __( 'Sunday', 'easyrankly' ),
 	);
 	?>
-	<div class="erankly-opening-hours">
-		<?php foreach ( $days as $day => $label ) : ?>
-			<?php
-			$day_hours = isset( $hours[ $day ] ) && is_array( $hours[ $day ] ) ? $hours[ $day ] : array();
-			$closed    = ! empty( $day_hours['closed'] );
-			$intervals = isset( $day_hours['intervals'] ) && is_array( $day_hours['intervals'] ) ? $day_hours['intervals'] : array();
-			?>
-			<div class="erankly-opening-hours-row" data-erankly-opening-day>
-				<strong><?php echo esc_html( $label ); ?></strong>
-				<label>
-					<input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[local_business_hours][<?php echo esc_attr( $day ); ?>][closed]" value="1" <?php checked( $closed ); ?> data-erankly-day-closed aria-label="<?php echo esc_attr( sprintf( /* translators: %s: weekday name. */ __( '%s closed', 'easyrankly' ), $label ) ); ?>">
-					<?php esc_html_e( 'Closed', 'easyrankly' ); ?>
-				</label>
-				<div class="erankly-opening-intervals" data-erankly-opening-intervals <?php echo $closed ? 'hidden' : ''; ?>>
-					<?php foreach ( array( 0, 1 ) as $index ) : ?>
-						<?php
-						$interval = isset( $intervals[ $index ] ) && is_array( $intervals[ $index ] ) ? $intervals[ $index ] : array();
-						$opens    = isset( $interval['opens'] ) ? (string) $interval['opens'] : '';
-						$closes   = isset( $interval['closes'] ) ? (string) $interval['closes'] : '';
-						?>
-						<span>
-							<label>
-								<span class="screen-reader-text"><?php echo esc_html( sprintf( /* translators: 1: day, 2: interval number. */ __( '%1$s interval %2$d opens', 'easyrankly' ), $label, $index + 1 ) ); ?></span>
-								<input type="time" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[local_business_hours][<?php echo esc_attr( $day ); ?>][intervals][<?php echo esc_attr( (string) $index ); ?>][opens]" value="<?php echo esc_attr( $opens ); ?>">
+	<div class="erankly-opening-hours-wrap">
+		<table class="erankly-opening-hours">
+			<thead>
+				<tr>
+					<th scope="col" rowspan="2"><span class="screen-reader-text"><?php esc_html_e( 'Day', 'easyrankly' ); ?></span></th>
+					<th scope="col" colspan="2"><?php esc_html_e( 'First interval', 'easyrankly' ); ?></th>
+					<th scope="col" colspan="2"><?php esc_html_e( 'Second interval', 'easyrankly' ); ?></th>
+					<th scope="col" rowspan="2"><?php esc_html_e( 'Closed', 'easyrankly' ); ?></th>
+				</tr>
+				<tr>
+					<th scope="col"><?php esc_html_e( 'Opens', 'easyrankly' ); ?></th>
+					<th scope="col"><?php esc_html_e( 'Closes', 'easyrankly' ); ?></th>
+					<th scope="col"><?php esc_html_e( 'Opens', 'easyrankly' ); ?></th>
+					<th scope="col"><?php esc_html_e( 'Closes', 'easyrankly' ); ?></th>
+				</tr>
+			</thead>
+			<tbody>
+				<?php foreach ( $days as $day => $label ) : ?>
+					<?php
+					$day_hours = isset( $hours[ $day ] ) && is_array( $hours[ $day ] ) ? $hours[ $day ] : array();
+					$closed    = ! empty( $day_hours['closed'] );
+					$intervals = isset( $day_hours['intervals'] ) && is_array( $day_hours['intervals'] ) ? $day_hours['intervals'] : array();
+					?>
+					<tr class="erankly-opening-hours-row" data-erankly-opening-day>
+						<th scope="row"><?php echo esc_html( $label ); ?></th>
+						<?php foreach ( array( 0, 1 ) as $index ) : ?>
+							<?php
+							$interval  = isset( $intervals[ $index ] ) && is_array( $intervals[ $index ] ) ? $intervals[ $index ] : array();
+							$opens     = isset( $interval['opens'] ) ? (string) $interval['opens'] : '';
+							$closes    = isset( $interval['closes'] ) ? (string) $interval['closes'] : '';
+							$opens_id  = 'erankly-hours-' . $day . '-' . $index . '-opens';
+							$closes_id = 'erankly-hours-' . $day . '-' . $index . '-closes';
+							?>
+							<td data-erankly-opening-intervals>
+								<label class="screen-reader-text" for="<?php echo esc_attr( $opens_id ); ?>"><?php echo esc_html( sprintf( /* translators: 1: day, 2: interval number. */ __( '%1$s interval %2$d opens', 'easyrankly' ), $label, $index + 1 ) ); ?></label>
+								<input id="<?php echo esc_attr( $opens_id ); ?>" type="time" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[local_business_hours][<?php echo esc_attr( $day ); ?>][intervals][<?php echo esc_attr( (string) $index ); ?>][opens]" value="<?php echo esc_attr( $opens ); ?>">
+							</td>
+							<td data-erankly-opening-intervals>
+								<label class="screen-reader-text" for="<?php echo esc_attr( $closes_id ); ?>"><?php echo esc_html( sprintf( /* translators: 1: day, 2: interval number. */ __( '%1$s interval %2$d closes', 'easyrankly' ), $label, $index + 1 ) ); ?></label>
+								<input id="<?php echo esc_attr( $closes_id ); ?>" type="time" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[local_business_hours][<?php echo esc_attr( $day ); ?>][intervals][<?php echo esc_attr( (string) $index ); ?>][closes]" value="<?php echo esc_attr( $closes ); ?>">
+							</td>
+						<?php endforeach; ?>
+						<td class="erankly-opening-hours-closed-cell">
+							<label class="erankly-opening-hours-closed">
+								<span class="screen-reader-text"><?php esc_html_e( 'Closed', 'easyrankly' ); ?></span>
+								<input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[local_business_hours][<?php echo esc_attr( $day ); ?>][closed]" value="1" <?php checked( $closed ); ?> data-erankly-day-closed aria-label="<?php echo esc_attr( sprintf( /* translators: %s: weekday name. */ __( '%s closed', 'easyrankly' ), $label ) ); ?>">
 							</label>
-							<span aria-hidden="true">-</span>
-							<label>
-								<span class="screen-reader-text"><?php echo esc_html( sprintf( /* translators: 1: day, 2: interval number. */ __( '%1$s interval %2$d closes', 'easyrankly' ), $label, $index + 1 ) ); ?></span>
-								<input type="time" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[local_business_hours][<?php echo esc_attr( $day ); ?>][intervals][<?php echo esc_attr( (string) $index ); ?>][closes]" value="<?php echo esc_attr( $closes ); ?>">
-							</label>
-						</span>
-					<?php endforeach; ?>
-				</div>
-			</div>
-		<?php endforeach; ?>
+						</td>
+					</tr>
+				<?php endforeach; ?>
+			</tbody>
+		</table>
 	</div>
 	<?php
 }

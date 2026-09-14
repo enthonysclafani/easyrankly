@@ -250,7 +250,7 @@
 			return;
 		}
 
-		targetField.style.display = STATUS_ONLY_CODES.indexOf(statusSelect.value) !== -1 ? 'none' : '';
+		targetField.hidden = STATUS_ONLY_CODES.indexOf(statusSelect.value) !== -1;
 	}
 
 	syncTargetField();

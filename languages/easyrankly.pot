@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-09-10T20:40:18+00:00\n"
+"POT-Creation-Date: 2026-09-14T21:01:41+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: easyrankly\n"
@@ -20,11 +20,11 @@ msgstr ""
 #: admin/meta-box.php:24
 #: admin/meta-box.php:462
 #: admin/meta-box.php:471
-#: admin/settings/page-renderer.php:231
-#: includes/admin.php:125
-#: includes/admin.php:126
-#: includes/admin.php:177
-#: includes/admin.php:178
+#: admin/settings/page-renderer.php:233
+#: includes/admin.php:128
+#: includes/admin.php:129
+#: includes/admin.php:180
+#: includes/admin.php:181
 #: assets/js/accordion-faq-schema.js:54
 msgid "EasyRankly"
 msgstr ""
@@ -54,7 +54,7 @@ msgstr ""
 
 #: admin/assets/settings.php:75
 #: admin/field-renderers.php:263
-#: admin/settings/panels.php:148
+#: admin/settings/panels.php:158
 #: assets/js/editor-shared.js:524
 msgid "Remove"
 msgstr ""
@@ -69,8 +69,8 @@ msgid "Preview not available"
 msgstr ""
 
 #: admin/assets/settings.php:102
-#: includes/admin.php:359
-#: includes/admin.php:372
+#: includes/admin.php:361
+#: includes/admin.php:374
 msgid "Expand table"
 msgstr ""
 
@@ -89,122 +89,163 @@ msgstr ""
 msgid "Code snippet"
 msgstr ""
 
-#: admin/assets/settings.php:127
-msgid "Saving…"
-msgstr ""
-
-#: admin/assets/settings.php:128
-msgid "Saved"
-msgstr ""
-
 #: admin/assets/settings.php:129
-msgid "Saved with warnings"
+#: admin/settings/renderers.php:182
+msgid "Select a published page"
 msgstr ""
 
 #: admin/assets/settings.php:130
-msgid "Saving failed. Retrying…"
+#: admin/settings/renderers.php:179
+#: admin/settings/renderers.php:180
+msgid "Search pages"
 msgstr ""
 
 #: admin/assets/settings.php:131
-msgid "Could not save. Reload the page."
+#: admin/settings/renderers.php:197
+msgid "Load more sites"
 msgstr ""
 
 #: admin/assets/settings.php:132
+#: admin/settings/renderers.php:190
+msgid "Load more pages"
+msgstr ""
+
+#: admin/assets/settings.php:133
+msgid "Loading…"
+msgstr ""
+
+#: admin/assets/settings.php:134
+msgid "No matching pages."
+msgstr ""
+
+#: admin/assets/settings.php:135
+msgid "Retry"
+msgstr ""
+
+#: admin/assets/settings.php:136
+msgid "Could not load more sites."
+msgstr ""
+
+#: admin/assets/settings.php:137
+msgid "Could not load pages."
+msgstr ""
+
+#: admin/assets/settings.php:149
+msgid "Saving…"
+msgstr ""
+
+#: admin/assets/settings.php:150
+msgid "Saved"
+msgstr ""
+
+#: admin/assets/settings.php:151
+msgid "Saved with warnings"
+msgstr ""
+
+#: admin/assets/settings.php:152
+msgid "Saving failed. Retrying…"
+msgstr ""
+
+#: admin/assets/settings.php:153
+msgid "Could not save. Reload the page."
+msgstr ""
+
+#: admin/assets/settings.php:154
 msgid "Saved, but the configuration is incomplete."
 msgstr ""
 
-#: admin/assets/settings.php:187
+#: admin/assets/settings.php:209
 msgid "Request failed"
 msgstr ""
 
 #. translators: %s: Redirect source path.
-#: admin/assets/settings.php:190
+#: admin/assets/settings.php:212
 #, php-format
 msgid "The redirect from %s will be permanently deleted."
 msgstr ""
 
-#: admin/assets/settings.php:191
+#: admin/assets/settings.php:213
 #: includes/redirects/class-erankly-redirects-admin.php:586
 msgid "Enable"
 msgstr ""
 
-#: admin/assets/settings.php:192
+#: admin/assets/settings.php:214
 #: includes/redirects/class-erankly-redirects-admin.php:586
 msgid "Disable"
 msgstr ""
 
 #. translators: %s: Source path of the redirect to enable.
-#: admin/assets/settings.php:194
+#: admin/assets/settings.php:216
 #: includes/redirects/class-erankly-redirects-admin.php:580
 #, php-format
 msgid "Enable redirect from %s"
 msgstr ""
 
 #. translators: %s: Source path of the redirect to disable.
-#: admin/assets/settings.php:196
+#: admin/assets/settings.php:218
 #: includes/redirects/class-erankly-redirects-admin.php:577
 #, php-format
 msgid "Disable redirect from %s"
 msgstr ""
 
-#: admin/assets/settings.php:197
-#: admin/settings/renderers.php:269
-#: admin/settings/renderers.php:445
+#: admin/assets/settings.php:219
+#: admin/settings/renderers.php:358
+#: admin/settings/renderers.php:534
 #: includes/redirects/class-erankly-redirects-admin.php:568
 msgid "Yes"
 msgstr ""
 
-#: admin/assets/settings.php:198
-#: admin/settings/renderers.php:268
-#: admin/settings/renderers.php:444
+#: admin/assets/settings.php:220
+#: admin/settings/renderers.php:357
+#: admin/settings/renderers.php:533
 #: includes/redirects/class-erankly-redirects-admin.php:568
 msgid "No"
 msgstr ""
 
-#: admin/assets/settings.php:199
+#: admin/assets/settings.php:221
 #: includes/redirects/class-erankly-redirects-admin.php:318
 #: includes/redirects/class-erankly-redirects-rest.php:78
 msgid "The redirect status could not be changed."
 msgstr ""
 
-#: admin/assets/settings.php:200
+#: admin/assets/settings.php:222
 #: includes/redirects/class-erankly-redirects-admin.php:317
 #: includes/redirects/class-erankly-redirects-rest.php:101
 msgid "The redirect could not be deleted."
 msgstr ""
 
-#: admin/assets/settings.php:201
+#: admin/assets/settings.php:223
 #: includes/redirects/class-erankly-redirects-admin.php:517
 msgid "No redirects found."
 msgstr ""
 
 #. translators: %s: Redirect destination URL.
-#: admin/assets/settings.php:203
+#: admin/assets/settings.php:225
 #, php-format
 msgid "Matches. Destination: %s"
 msgstr ""
 
-#: admin/assets/settings.php:204
+#: admin/assets/settings.php:226
 msgid "Matches. This response has no destination."
 msgstr ""
 
-#: admin/assets/settings.php:205
+#: admin/assets/settings.php:227
 msgid "This URL does not match the rule."
 msgstr ""
 
-#: admin/assets/settings.php:206
+#: admin/assets/settings.php:228
 msgid "The rule could not be tested."
 msgstr ""
 
-#: admin/assets/settings.php:207
+#: admin/assets/settings.php:229
 msgid "Matches one path. By default, letter case and a final slash are ignored."
 msgstr ""
 
-#: admin/assets/settings.php:208
+#: admin/assets/settings.php:230
 msgid "Use * to capture variable path segments. Use * in the target to insert each captured value."
 msgstr ""
 
-#: admin/assets/settings.php:209
+#: admin/assets/settings.php:231
 msgid "Use a PCRE path expression and $1, $2… in the target for captured values."
 msgstr ""
 
@@ -303,8 +344,8 @@ msgstr ""
 #: admin/field-renderers.php:43
 #: admin/meta-box.php:88
 #: admin/meta-box.php:529
-#: admin/settings/renderers.php:302
-#: admin/settings/renderers.php:544
+#: admin/settings/renderers.php:391
+#: admin/settings/renderers.php:633
 #: assets/js/editor-shared.js:585
 msgid "Meta description"
 msgstr ""
@@ -353,7 +394,7 @@ msgid "Search query"
 msgstr ""
 
 #: admin/field-renderers.php:57
-#: admin/settings/panels.php:409
+#: admin/settings/panels.php:421
 msgid "Pagination"
 msgstr ""
 
@@ -410,17 +451,17 @@ msgid "Site language"
 msgstr ""
 
 #: admin/field-renderers.php:76
-#: includes/schema-jsonld.php:616
+#: includes/schema-jsonld.php:654
 msgid "Organization name"
 msgstr ""
 
 #: admin/field-renderers.php:77
-#: admin/settings/panels.php:98
+#: admin/settings/panels.php:108
 msgid "Website name"
 msgstr ""
 
 #: admin/field-renderers.php:78
-#: admin/settings/panels.php:105
+#: admin/settings/panels.php:115
 msgid "Website description"
 msgstr ""
 
@@ -536,8 +577,8 @@ msgstr ""
 
 #: admin/meta-box.php:80
 #: admin/meta-box.php:521
-#: admin/settings/renderers.php:295
-#: admin/settings/renderers.php:537
+#: admin/settings/renderers.php:384
+#: admin/settings/renderers.php:626
 #: assets/js/editor-shared.js:575
 msgid "Meta title"
 msgstr ""
@@ -586,14 +627,14 @@ msgstr ""
 
 #: admin/meta-box.php:178
 #: admin/meta-box.php:565
-#: admin/settings/renderers.php:600
+#: admin/settings/renderers.php:689
 #: assets/js/editor-shared.js:650
 msgid "X (Twitter) title"
 msgstr ""
 
 #: admin/meta-box.php:186
 #: admin/meta-box.php:573
-#: admin/settings/renderers.php:607
+#: admin/settings/renderers.php:696
 #: assets/js/editor-shared.js:660
 msgid "X (Twitter) description"
 msgstr ""
@@ -649,7 +690,7 @@ msgstr ""
 
 #: admin/meta-box.php:250
 #: admin/meta-box.php:620
-#: admin/settings/renderers.php:640
+#: admin/settings/renderers.php:729
 #: assets/js/editor-shared.js:939
 msgid "Hide from search results"
 msgstr ""
@@ -685,7 +726,7 @@ msgid "Index"
 msgstr ""
 
 #: admin/meta-box.php:317
-#: admin/settings/renderers.php:644
+#: admin/settings/renderers.php:733
 #: assets/js/editor-shared.js:1029
 msgid "Noindex"
 msgstr ""
@@ -699,7 +740,7 @@ msgid "Follow"
 msgstr ""
 
 #: admin/meta-box.php:318
-#: admin/settings/renderers.php:645
+#: admin/settings/renderers.php:734
 #: assets/js/editor-shared.js:1035
 msgid "Nofollow"
 msgstr ""
@@ -713,7 +754,7 @@ msgid "Allow archive"
 msgstr ""
 
 #: admin/meta-box.php:319
-#: admin/settings/renderers.php:646
+#: admin/settings/renderers.php:735
 #: assets/js/editor-shared.js:1041
 msgid "Noarchive"
 msgstr ""
@@ -763,7 +804,7 @@ msgid "Index if embedded when noindex applies"
 msgstr ""
 
 #: admin/meta-box.php:343
-#: admin/settings/renderers.php:648
+#: admin/settings/renderers.php:737
 #: assets/js/editor-shared.js:1051
 msgid "Disable sitemap"
 msgstr ""
@@ -847,14 +888,14 @@ msgstr ""
 
 #: admin/meta-box.php:448
 #: admin/meta-box.php:547
-#: admin/settings/renderers.php:584
+#: admin/settings/renderers.php:673
 #: assets/js/editor.js:189
 #: assets/js/site-editor.js:198
 msgid "Social sharing"
 msgstr ""
 
 #: admin/meta-box.php:450
-#: admin/settings/page-renderer.php:239
+#: admin/settings/page-renderer.php:241
 #: assets/js/editor.js:484
 msgid "Schema"
 msgstr ""
@@ -880,93 +921,92 @@ msgstr ""
 msgid "Permission denied."
 msgstr ""
 
-#: admin/settings/page-renderer.php:205
+#: admin/settings/page-renderer.php:207
 msgid "Settings were saved, but the configuration is incomplete."
 msgstr ""
 
-#: admin/settings/page-renderer.php:207
-#: admin/settings/page-renderer.php:211
+#: admin/settings/page-renderer.php:209
+#: admin/settings/page-renderer.php:213
 msgid "Settings saved."
 msgstr ""
 
 #. translators: %s: Network Admin settings URL.
-#: admin/settings/page-renderer.php:222
+#: admin/settings/page-renderer.php:224
 #, php-format
 msgid "Global SEO settings are managed from the %s."
 msgstr ""
 
-#: admin/settings/page-renderer.php:223
+#: admin/settings/page-renderer.php:225
 msgid "Network Admin"
 msgstr ""
 
-#: admin/settings/page-renderer.php:235
+#: admin/settings/page-renderer.php:237
 msgid "Plugin settings"
 msgstr ""
 
-#: admin/settings/page-renderer.php:237
-#: admin/settings/page-renderer.php:242
+#: admin/settings/page-renderer.php:239
+#: admin/settings/page-renderer.php:244
 msgid "General"
 msgstr ""
 
-#: admin/settings/page-renderer.php:238
+#: admin/settings/page-renderer.php:240
 msgid "Social"
 msgstr ""
 
-#: admin/settings/page-renderer.php:245
+#: admin/settings/page-renderer.php:247
 msgid "Advanced"
 msgstr ""
 
-#: admin/settings/page-renderer.php:246
+#: admin/settings/page-renderer.php:248
 msgid "Features"
 msgstr ""
 
-#: admin/settings/page-renderer.php:247
-#: includes/admin.php:342
+#: admin/settings/page-renderer.php:249
+#: includes/admin.php:345
 msgid "Settings"
 msgstr ""
 
-#: admin/settings/page-renderer.php:250
+#: admin/settings/page-renderer.php:252
 msgid "Import / Export"
 msgstr ""
 
-#: admin/settings/page-renderer.php:254
+#: admin/settings/page-renderer.php:256
 #: admin/settings/panels.php:7
 msgid "Feature modules"
 msgstr ""
 
-#: admin/settings/page-renderer.php:256
+#: admin/settings/page-renderer.php:258
 #: includes/import-export/report.php:307
 msgid "Redirects"
 msgstr ""
 
-#: admin/settings/page-renderer.php:259
+#: admin/settings/page-renderer.php:261
 msgid "Sitemap"
 msgstr ""
 
-#: admin/settings/page-renderer.php:262
-#: admin/settings/panels.php:37
+#: admin/settings/page-renderer.php:264
+#: admin/settings/panels.php:38
 msgid "Custom code"
 msgstr ""
 
-#: admin/settings/page-renderer.php:271
+#: admin/settings/page-renderer.php:273
 msgid "Additional Modules"
 msgstr ""
 
-#: admin/settings/page-renderer.php:278
+#: admin/settings/page-renderer.php:280
 msgid "Useful resources"
 msgstr ""
 
-#: admin/settings/page-renderer.php:279
+#: admin/settings/page-renderer.php:281
 msgid "Documentation"
 msgstr ""
 
-#: admin/settings/page-renderer.php:280
+#: admin/settings/page-renderer.php:282
 msgid "Need help?"
 msgstr ""
 
-#: admin/settings/page-renderer.php:333
-#: admin/settings/panels.php:177
-#: admin/settings/panels.php:182
+#: admin/settings/page-renderer.php:335
+#: admin/settings/panels.php:193
 #: includes/special-meta.php:32
 msgid "Special pages and archives"
 msgstr ""
@@ -983,557 +1023,595 @@ msgstr ""
 msgid "Enable custom code"
 msgstr ""
 
-#: admin/settings/panels.php:39
+#: admin/settings/panels.php:40
 msgid "Your user role cannot save custom code (unfiltered HTML is required). The fields below are read-only."
 msgstr ""
 
-#: admin/settings/panels.php:42
+#: admin/settings/panels.php:43
 msgid "A legacy snippet could not be persisted as a block. It still runs as a fail-safe for this request; reload this panel and check the database if the warning remains."
 msgstr ""
 
-#: admin/settings/panels.php:47
+#: admin/settings/panels.php:49
 msgid "HEAD code"
 msgstr ""
 
-#: admin/settings/panels.php:53
+#: admin/settings/panels.php:55
 msgid "Start of BODY code"
 msgstr ""
 
-#: admin/settings/panels.php:59
+#: admin/settings/panels.php:61
 msgid "End of BODY code"
 msgstr ""
 
-#: admin/settings/panels.php:80
+#: admin/settings/panels.php:82
 msgid "Add code"
 msgstr ""
 
 #. translators: %d: Maximum number of snippets allowed in one output location (head, start of body, or footer).
-#: admin/settings/panels.php:81
+#: admin/settings/panels.php:83
 #, php-format
 msgid "Maximum reached: %d snippets per location."
 msgstr ""
 
-#: admin/settings/panels.php:89
+#: admin/settings/panels.php:93
+msgid "Business email"
+msgstr ""
+
+#: admin/settings/panels.php:94
+msgid "Email"
+msgstr ""
+
+#: admin/settings/panels.php:95
+msgid "Business telephone"
+msgstr ""
+
+#: admin/settings/panels.php:96
+msgid "Telephone"
+msgstr ""
+
+#: admin/settings/panels.php:99
 msgid "Site identity"
 msgstr ""
 
-#: admin/settings/panels.php:91
+#: admin/settings/panels.php:101
 msgid "Organization or person name"
 msgstr ""
 
-#: admin/settings/panels.php:112
+#: admin/settings/panels.php:122
 msgid "Identity type"
 msgstr ""
 
-#: admin/settings/panels.php:114
+#: admin/settings/panels.php:124
 msgid "Organization"
 msgstr ""
 
-#: admin/settings/panels.php:115
+#: admin/settings/panels.php:125
 msgid "Person"
 msgstr ""
 
-#: admin/settings/panels.php:119
+#: admin/settings/panels.php:129
 msgid "Person reference user"
 msgstr ""
 
 #. translators: 1: User display name, 2: User ID.
-#: admin/settings/panels.php:131
-#: easyrankly.php:822
+#: admin/settings/panels.php:141
+#: easyrankly.php:852
 #, php-format
 msgid "%1$s (ID: %2$d)"
 msgstr ""
 
-#: admin/settings/panels.php:138
+#: admin/settings/panels.php:148
 msgid "Search users…"
 msgstr ""
 
-#: admin/settings/panels.php:154
+#: admin/settings/panels.php:164
 msgid "Organization description"
 msgstr ""
 
-#: admin/settings/panels.php:159
-msgid "Business email"
-msgstr ""
-
-#: admin/settings/panels.php:163
-msgid "Business telephone"
-msgstr ""
-
-#: admin/settings/panels.php:170
+#: admin/settings/panels.php:182
 msgid "Post type defaults"
 msgstr ""
 
-#: admin/settings/panels.php:173
+#: admin/settings/panels.php:185
 msgid "Taxonomy defaults"
 msgstr ""
 
-#: admin/settings/panels.php:192
+#: admin/settings/panels.php:203
 msgid "Default images"
 msgstr ""
 
-#: admin/settings/panels.php:194
+#: admin/settings/panels.php:205
 msgid "Organization logo"
 msgstr ""
 
-#: admin/settings/panels.php:216
+#: admin/settings/panels.php:227
 msgid "Default social image URL"
 msgstr ""
 
-#: admin/settings/panels.php:230
+#: admin/settings/panels.php:241
 msgid "Social defaults"
 msgstr ""
 
-#: admin/settings/panels.php:233
-#: admin/settings/panels.php:239
+#: admin/settings/panels.php:244
+#: admin/settings/panels.php:250
 msgid "Social profiles"
 msgstr ""
 
-#: admin/settings/panels.php:235
+#: admin/settings/panels.php:246
 msgid "X (Twitter) site"
 msgstr ""
 
-#: admin/settings/panels.php:249
+#: admin/settings/panels.php:260
 msgid "Information for Google and other search engines"
 msgstr ""
 
-#: admin/settings/panels.php:251
+#: admin/settings/panels.php:262
 msgid "Enable breadcrumbs"
 msgstr ""
 
-#: admin/settings/panels.php:254
+#: admin/settings/panels.php:266
 msgid "Breadcrumb JSON-LD"
 msgstr ""
 
-#: admin/settings/panels.php:256
+#: admin/settings/panels.php:268
 msgid "Only when a visible trail is present (recommended)"
 msgstr ""
 
-#: admin/settings/panels.php:257
+#: admin/settings/panels.php:269
 msgid "Always emit BreadcrumbList JSON-LD"
 msgstr ""
 
-#: admin/settings/panels.php:258
+#: admin/settings/panels.php:270
 msgid "Do not emit breadcrumb JSON-LD"
 msgstr ""
 
-#: admin/settings/panels.php:262
+#: admin/settings/panels.php:274
 msgid "Add WebSite SearchAction"
 msgstr ""
 
-#: admin/settings/panels.php:266
+#: admin/settings/panels.php:278
 msgid "Schema types by content type"
 msgstr ""
 
-#: admin/settings/panels.php:269
+#: admin/settings/panels.php:281
 msgid "Custom JSON-LD Schema"
 msgstr ""
 
-#: admin/settings/panels.php:279
+#: admin/settings/panels.php:291
 msgid "Add Schema"
 msgstr ""
 
-#: admin/settings/panels.php:288
+#: admin/settings/panels.php:300
 msgid "XML sitemap"
 msgstr ""
 
-#: admin/settings/panels.php:290
+#: admin/settings/panels.php:302
 msgid "Open wp-sitemap.xml"
 msgstr ""
 
-#: admin/settings/panels.php:293
+#: admin/settings/panels.php:305
 msgid "Google News sitemap"
 msgstr ""
 
-#: admin/settings/panels.php:295
+#: admin/settings/panels.php:307
 msgid "Generate Google News sitemap"
 msgstr ""
 
-#: admin/settings/panels.php:297
+#: admin/settings/panels.php:309
 msgid "Open sitemap-news-1.xml"
 msgstr ""
 
-#: admin/settings/panels.php:301
+#: admin/settings/panels.php:313
 msgid "Included post types"
 msgstr ""
 
-#: admin/settings/panels.php:315
+#: admin/settings/panels.php:327
 msgid "News publication name"
 msgstr ""
 
-#: admin/settings/panels.php:326
+#: admin/settings/panels.php:338
 msgid "Image sitemap"
 msgstr ""
 
-#: admin/settings/panels.php:328
+#: admin/settings/panels.php:340
 msgid "Generate image sitemap"
 msgstr ""
 
-#: admin/settings/panels.php:330
+#: admin/settings/panels.php:342
 msgid "Open sitemap-image-1.xml"
 msgstr ""
 
-#: admin/settings/panels.php:334
+#: admin/settings/panels.php:346
 msgid "Video sitemap"
 msgstr ""
 
-#: admin/settings/panels.php:336
+#: admin/settings/panels.php:348
 msgid "Generate video sitemap"
 msgstr ""
 
-#: admin/settings/panels.php:338
+#: admin/settings/panels.php:350
 msgid "Open sitemap-video-1.xml"
 msgstr ""
 
-#: admin/settings/panels.php:351
+#: admin/settings/panels.php:363
 msgid "Preferences"
 msgstr ""
 
-#: admin/settings/panels.php:353
+#: admin/settings/panels.php:365
 msgid "Simplified mode"
 msgstr ""
 
-#: admin/settings/panels.php:356
+#: admin/settings/panels.php:368
 msgid "Show resolved values for variables"
 msgstr ""
 
-#: admin/settings/panels.php:369
+#: admin/settings/panels.php:381
 msgid "Indexing & robots directives"
 msgstr ""
 
-#: admin/settings/panels.php:371
+#: admin/settings/panels.php:383
 msgid "max-image-preview"
 msgstr ""
 
-#: admin/settings/panels.php:373
+#: admin/settings/panels.php:385
 msgid "No explicit directive"
 msgstr ""
 
-#: admin/settings/panels.php:381
+#: admin/settings/panels.php:393
 msgid "max-snippet"
 msgstr ""
 
-#: admin/settings/panels.php:385
+#: admin/settings/panels.php:397
 msgid "max-video-preview"
 msgstr ""
 
-#: admin/settings/panels.php:390
+#: admin/settings/panels.php:402
 msgid "Add nosnippet"
 msgstr ""
 
-#: admin/settings/panels.php:391
+#: admin/settings/panels.php:403
 msgid "Add noimageindex"
 msgstr ""
 
-#: admin/settings/panels.php:392
+#: admin/settings/panels.php:404
 msgid "Add notranslate"
 msgstr ""
 
-#: admin/settings/panels.php:393
+#: admin/settings/panels.php:405
 msgid "Allow indexing of embedded content when noindex is active"
 msgstr ""
 
-#: admin/settings/panels.php:396
+#: admin/settings/panels.php:408
 msgid "robots.txt"
 msgstr ""
 
-#: admin/settings/panels.php:398
+#: admin/settings/panels.php:410
 msgid "robots.txt: custom rules"
 msgstr ""
 
-#: admin/settings/panels.php:402
+#: admin/settings/panels.php:414
 msgid "robots.txt preview"
 msgstr ""
 
-#: admin/settings/panels.php:405
+#: admin/settings/panels.php:417
 msgid "Open robots.txt"
 msgstr ""
 
-#: admin/settings/panels.php:411
+#: admin/settings/panels.php:423
 msgid "Noindex page 2, 3, … of archives"
 msgstr ""
 
-#: admin/settings/panels.php:412
+#: admin/settings/panels.php:424
 msgid "Noindex paginated posts, pages, and comments"
 msgstr ""
 
-#: admin/settings/panels.php:413
+#: admin/settings/panels.php:425
 msgid "Nofollow all paginated content"
 msgstr ""
 
-#: admin/settings/panels.php:414
+#: admin/settings/panels.php:426
 msgid "Send noindex for RSS feeds"
 msgstr ""
 
-#: admin/settings/panels.php:417
+#: admin/settings/panels.php:429
 msgid "Paginated title suffix"
 msgstr ""
 
-#: admin/settings/panels.php:419
+#: admin/settings/panels.php:431
 msgid "Page {{page_number}} of {{max_pages}}"
 msgstr ""
 
-#: admin/settings/panels.php:424
+#: admin/settings/panels.php:436
 msgid "Attachment pages"
 msgstr ""
 
-#: admin/settings/panels.php:426
+#: admin/settings/panels.php:438
 msgid "Redirect attachment pages"
 msgstr ""
 
-#: admin/settings/panels.php:428
+#: admin/settings/panels.php:440
 msgid "Redirect to parent post (fallback: media file)"
 msgstr ""
 
-#: admin/settings/panels.php:429
+#: admin/settings/panels.php:441
 msgid "Redirect to media file"
 msgstr ""
 
-#: admin/settings/panels.php:430
+#: admin/settings/panels.php:442
 msgid "Leave attachment pages unchanged"
 msgstr ""
 
 #: admin/settings/renderers.php:11
+#: admin/settings/renderers.php:121
 msgid "Legal information and address"
 msgstr ""
 
-#: admin/settings/renderers.php:14
-msgid "Legal name"
+#: admin/settings/renderers.php:12
+#: admin/settings/renderers.php:120
+msgid "Address"
 msgstr ""
 
 #: admin/settings/renderers.php:19
+msgid "Legal name"
+msgstr ""
+
+#: admin/settings/renderers.php:24
 msgid "VAT ID"
 msgstr ""
 
-#: admin/settings/renderers.php:23
+#: admin/settings/renderers.php:28
 msgid "Tax ID"
 msgstr ""
 
-#: admin/settings/renderers.php:28
-#: includes/schema-jsonld.php:625
+#: admin/settings/renderers.php:34
+#: includes/schema-jsonld.php:663
 msgid "Street address"
 msgstr ""
 
-#: admin/settings/renderers.php:33
-#: includes/schema-jsonld.php:629
+#: admin/settings/renderers.php:39
+#: includes/schema-jsonld.php:667
 msgid "City / locality"
 msgstr ""
 
-#: admin/settings/renderers.php:37
+#: admin/settings/renderers.php:43
 msgid "Region / state"
 msgstr ""
 
-#: admin/settings/renderers.php:41
-#: includes/schema-jsonld.php:633
+#: admin/settings/renderers.php:47
+#: includes/schema-jsonld.php:671
 msgid "Postal code"
 msgstr ""
 
-#: admin/settings/renderers.php:45
-#: includes/schema-jsonld.php:637
+#: admin/settings/renderers.php:51
+#: includes/schema-jsonld.php:675
 msgid "Country code"
 msgstr ""
 
-#: admin/settings/renderers.php:67
+#: admin/settings/renderers.php:100
 msgid "Add one physical business location for search engines"
 msgstr ""
 
-#: admin/settings/renderers.php:73
+#: admin/settings/renderers.php:106
 msgid "Incomplete configuration"
 msgstr ""
 
 #. translators: %s: comma-separated missing field names.
-#: admin/settings/renderers.php:78
+#: admin/settings/renderers.php:111
 #, php-format
 msgid "Local business schema will not be emitted until these fields are set: %s."
 msgstr ""
 
-#: admin/settings/renderers.php:87
+#. translators: %s: settings section title.
+#: admin/settings/renderers.php:129
+#, php-format
+msgid "Set the address in General → %s."
+msgstr ""
+
+#: admin/settings/renderers.php:140
 msgid "Business type"
 msgstr ""
 
-#: admin/settings/renderers.php:96
-#: includes/schema-jsonld.php:646
+#: admin/settings/renderers.php:149
+#: includes/schema-jsonld.php:684
 msgid "Location page"
 msgstr ""
 
 #. translators: 1: site name, 2: language, 3: site path.
-#: admin/settings/renderers.php:104
+#: admin/settings/renderers.php:168
 #, php-format
 msgid "%1$s (%2$s) — %3$s"
 msgstr ""
 
-#: admin/settings/renderers.php:113
-msgid "Select a published page"
-msgstr ""
-
-#: admin/settings/renderers.php:128
+#: admin/settings/renderers.php:200
 msgid "Location details and opening hours"
 msgstr ""
 
-#: admin/settings/renderers.php:132
+#: admin/settings/renderers.php:204
 msgid "Price range"
 msgstr ""
 
-#: admin/settings/renderers.php:136
+#: admin/settings/renderers.php:208
 msgid "Latitude"
 msgstr ""
 
-#: admin/settings/renderers.php:140
+#: admin/settings/renderers.php:212
 msgid "Longitude"
 msgstr ""
 
-#: admin/settings/renderers.php:147
+#: admin/settings/renderers.php:219
 msgid "Menu URL"
 msgstr ""
 
-#: admin/settings/renderers.php:151
+#: admin/settings/renderers.php:223
 msgid "Cuisine served"
 msgstr ""
 
-#: admin/settings/renderers.php:152
+#: admin/settings/renderers.php:224
 msgid "Italian, Mediterranean"
 msgstr ""
 
-#: admin/settings/renderers.php:156
+#: admin/settings/renderers.php:228
 msgid "Opening hours"
 msgstr ""
 
-#: admin/settings/renderers.php:166
+#: admin/settings/renderers.php:238
 msgid "Monday"
 msgstr ""
 
-#: admin/settings/renderers.php:167
+#: admin/settings/renderers.php:239
 msgid "Tuesday"
 msgstr ""
 
-#: admin/settings/renderers.php:168
+#: admin/settings/renderers.php:240
 msgid "Wednesday"
 msgstr ""
 
-#: admin/settings/renderers.php:169
+#: admin/settings/renderers.php:241
 msgid "Thursday"
 msgstr ""
 
-#: admin/settings/renderers.php:170
+#: admin/settings/renderers.php:242
 msgid "Friday"
 msgstr ""
 
-#: admin/settings/renderers.php:171
+#: admin/settings/renderers.php:243
 msgid "Saturday"
 msgstr ""
 
-#: admin/settings/renderers.php:172
+#: admin/settings/renderers.php:244
 msgid "Sunday"
 msgstr ""
 
-#. translators: %s: weekday name.
-#: admin/settings/renderers.php:185
-#, php-format
-msgid "%s closed"
+#: admin/settings/renderers.php:251
+msgid "Day"
 msgstr ""
 
-#. translators: %s: weekday name.
-#: admin/settings/renderers.php:186
+#: admin/settings/renderers.php:252
+msgid "First interval"
+msgstr ""
+
+#: admin/settings/renderers.php:253
+msgid "Second interval"
+msgstr ""
+
+#: admin/settings/renderers.php:254
+#: admin/settings/renderers.php:291
 msgid "Closed"
 msgstr ""
 
+#: admin/settings/renderers.php:257
+#: admin/settings/renderers.php:259
+msgid "Opens"
+msgstr ""
+
+#: admin/settings/renderers.php:258
+#: admin/settings/renderers.php:260
+msgid "Closes"
+msgstr ""
+
 #. translators: 1: day, 2: interval number.
-#: admin/settings/renderers.php:197
+#: admin/settings/renderers.php:281
 #, php-format
 msgid "%1$s interval %2$d opens"
 msgstr ""
 
 #. translators: 1: day, 2: interval number.
-#: admin/settings/renderers.php:202
+#: admin/settings/renderers.php:285
 #, php-format
 msgid "%1$s interval %2$d closes"
 msgstr ""
 
-#: admin/settings/renderers.php:225
+#. translators: %s: weekday name.
+#: admin/settings/renderers.php:292
+#, php-format
+msgid "%s closed"
+msgstr ""
+
+#: admin/settings/renderers.php:314
 msgid "No public items available."
 msgstr ""
 
-#: admin/settings/renderers.php:231
+#: admin/settings/renderers.php:320
 msgid "Default metadata by taxonomy"
 msgstr ""
 
-#: admin/settings/renderers.php:231
+#: admin/settings/renderers.php:320
 msgid "Default metadata by content type"
 msgstr ""
 
-#: admin/settings/renderers.php:232
-#: admin/settings/renderers.php:409
+#: admin/settings/renderers.php:321
+#: admin/settings/renderers.php:498
 msgid "Same for all"
 msgstr ""
 
 #. translators: %s: linked templates label.
-#: admin/settings/renderers.php:235
-#: admin/settings/renderers.php:412
+#: admin/settings/renderers.php:324
+#: admin/settings/renderers.php:501
 #, php-format
 msgid "%s: Yes"
 msgstr ""
 
 #. translators: %s: linked templates label.
-#: admin/settings/renderers.php:240
-#: admin/settings/renderers.php:417
+#: admin/settings/renderers.php:329
+#: admin/settings/renderers.php:506
 #, php-format
 msgid "%s: No"
 msgstr ""
 
-#: admin/settings/renderers.php:243
-#: admin/settings/renderers.php:420
+#: admin/settings/renderers.php:332
+#: admin/settings/renderers.php:509
 msgid "Unified"
 msgstr ""
 
-#: admin/settings/renderers.php:327
+#: admin/settings/renderers.php:416
 msgid "No public content types available."
 msgstr ""
 
-#: admin/settings/renderers.php:347
+#: admin/settings/renderers.php:436
 msgid "Page type"
 msgstr ""
 
-#: admin/settings/renderers.php:351
+#: admin/settings/renderers.php:440
 msgid "Article type"
 msgstr ""
 
-#: admin/settings/renderers.php:390
+#: admin/settings/renderers.php:479
 msgid "Open Graph"
 msgstr ""
 
-#: admin/settings/renderers.php:396
+#: admin/settings/renderers.php:485
 msgid "X (Twitter)"
 msgstr ""
 
-#: admin/settings/renderers.php:424
+#: admin/settings/renderers.php:513
 msgid "Default social metadata by network"
 msgstr ""
 
-#: admin/settings/renderers.php:462
+#: admin/settings/renderers.php:551
 msgid "Default title"
 msgstr ""
 
-#: admin/settings/renderers.php:469
+#: admin/settings/renderers.php:558
 msgid "Default description"
 msgstr ""
 
-#: admin/settings/renderers.php:489
+#: admin/settings/renderers.php:578
 msgid "Default metadata by WordPress context"
 msgstr ""
 
-#: admin/settings/renderers.php:586
+#: admin/settings/renderers.php:675
 msgid "Social title"
 msgstr ""
 
-#: admin/settings/renderers.php:593
+#: admin/settings/renderers.php:682
 msgid "Social description"
 msgstr ""
 
-#: admin/settings/renderers.php:614
+#: admin/settings/renderers.php:703
 msgid "Social image"
 msgstr ""
 
-#: admin/settings/renderers.php:637
+#: admin/settings/renderers.php:726
 msgid "Visibility defaults"
 msgstr ""
 
@@ -1541,72 +1619,80 @@ msgstr ""
 msgid "EasyRankly could not update its settings atomically."
 msgstr ""
 
-#: easyrankly.php:412
+#: easyrankly.php:415
 msgid "EasyRankly could not initialize its rewrite generation."
 msgstr ""
 
-#: easyrankly.php:425
+#: easyrankly.php:428
 msgid "EasyRankly could not initialize its settings."
 msgstr ""
 
-#: easyrankly.php:468
+#: easyrankly.php:498
 msgid "EasyRankly could not retrieve the next network site batch."
 msgstr ""
 
-#: easyrankly.php:491
+#: easyrankly.php:521
 msgid "EasyRankly could not count the current network sites."
 msgstr ""
 
-#: easyrankly.php:670
+#: easyrankly.php:700
 msgid "EasyRankly could not remove its scheduled tasks during deactivation."
 msgstr ""
 
-#: easyrankly.php:695
+#: easyrankly.php:725
 msgid "EasyRankly could not cancel the active network reset during deactivation."
 msgstr ""
 
-#: easyrankly.php:708
+#: easyrankly.php:738
 msgid "This network is too large to deactivate EasyRankly safely in one web request."
 msgstr ""
 
-#: easyrankly.php:709
+#: easyrankly.php:739
 msgid "Run the following WP-CLI command so every site can remove its scheduled tasks and rewrite rules:"
 msgstr ""
 
-#: easyrankly.php:714
-#: uninstall.php:154
+#: easyrankly.php:744
+#: uninstall.php:563
 msgid "EasyRankly network cleanup required"
 msgstr ""
 
 #. translators: %d: User ID shown instead of an email address.
-#: easyrankly.php:825
+#: easyrankly.php:855
 #, php-format
 msgid "ID %d"
 msgstr ""
 
-#: easyrankly.php:885
+#: easyrankly.php:935
+msgid "Unknown site."
+msgstr ""
+
+#: easyrankly.php:1016
 msgid "Unknown settings panel."
 msgstr ""
 
-#: includes/breadcrumbs.php:26
+#: includes/breadcrumbs.php:27
 msgid "Breadcrumbs"
 msgstr ""
 
-#: includes/breadcrumbs.php:114
+#: includes/breadcrumbs.php:122
 msgid "Home"
 msgstr ""
 
-#: includes/breadcrumbs.php:228
-#: includes/title-description.php:137
+#: includes/breadcrumbs.php:236
+#: includes/title-description.php:136
 msgid "Page not found"
 msgstr ""
 
-#: includes/breadcrumbs.php:380
-msgid "EasyRankly Breadcrumbs"
+#. translators: 1: shortcode, 2: PHP function name
+#: includes/breadcrumbs.php:403
+#, php-format
+msgid "Add a visible trail with WordPress's Breadcrumbs block (included from WordPress 7.0), the %1$s shortcode, or %2$s in your theme. EasyRankly does not add a separate Gutenberg block to the inserter."
 msgstr ""
 
-#: includes/breadcrumbs.php:381
-msgid "Visible breadcrumb trail that matches EasyRankly structured data when JSON-LD is set to emit with a visible trail."
+#. translators: 1: shortcode, 2: PHP function name
+#: includes/breadcrumbs.php:411
+#, php-format
+msgid "The WordPress Breadcrumbs block requires WordPress 7.0 or later and is not available on this site. Add a visible trail with EasyRankly's Breadcrumbs block, the %1$s shortcode, or %2$s in your theme."
 msgstr ""
 
 #: includes/class-erankly-multilingual-provider-registry.php:67
@@ -1817,46 +1903,46 @@ msgstr ""
 msgid "Lodging business"
 msgstr ""
 
-#: includes/helpers/sanitization.php:186
+#: includes/helpers/sanitization.php:185
 msgid "Custom code exceeds 100 KB and was truncated."
 msgstr ""
 
-#: includes/helpers/sanitization.php:202
-#: includes/helpers/sanitization.php:252
-#: includes/helpers/sanitization.php:291
-#: includes/helpers/sanitization.php:814
+#: includes/helpers/sanitization.php:201
+#: includes/helpers/sanitization.php:251
+#: includes/helpers/sanitization.php:290
+#: includes/helpers/sanitization.php:813
 msgid "Custom code was not saved because your user role cannot post unfiltered HTML."
 msgstr ""
 
-#: includes/helpers/sanitization.php:557
+#: includes/helpers/sanitization.php:556
 msgid "A code snippet that targets only post type archives was saved as disabled because no post types were selected."
 msgstr ""
 
-#: includes/helpers/sanitization.php:558
+#: includes/helpers/sanitization.php:557
 msgid "A code snippet without a context was saved as disabled. Choose at least one place where it should run."
 msgstr ""
 
-#: includes/helpers/sanitization.php:575
+#: includes/helpers/sanitization.php:574
 msgid "An empty code snippet was not saved. Add code before leaving the panel."
 msgstr ""
 
-#: includes/helpers/sanitization.php:650
+#: includes/helpers/sanitization.php:649
 msgid "Only the first 10 code snippets per location were kept."
 msgstr ""
 
-#: includes/helpers/sanitization.php:743
+#: includes/helpers/sanitization.php:742
 msgid "Custom code for this location exceeds 100 KB; additional snippets were not saved."
 msgstr ""
 
-#: includes/helpers/sanitization.php:760
+#: includes/helpers/sanitization.php:759
 msgid "Custom code for this location exceeds 100 KB and was truncated."
 msgstr ""
 
-#: includes/helpers/sanitization.php:761
+#: includes/helpers/sanitization.php:760
 msgid "A code snippet exceeds 100 KB and was truncated."
 msgstr ""
 
-#: includes/helpers/sanitization.php:831
+#: includes/helpers/sanitization.php:830
 msgid "Migrated code snippet"
 msgstr ""
 
@@ -1881,11 +1967,11 @@ msgstr ""
 msgid "The migration report could not be encoded."
 msgstr ""
 
-#: includes/import-export/export.php:178
+#: includes/import-export/export.php:182
 msgid "The export stream could not be opened."
 msgstr ""
 
-#: includes/import-export/export.php:183
+#: includes/import-export/export.php:187
 msgid "The export could not be generated."
 msgstr ""
 
@@ -2522,15 +2608,15 @@ msgstr ""
 msgid "The localized EasyRankly source value is invalid."
 msgstr ""
 
-#: includes/meta.php:646
+#: includes/meta.php:703
 msgid "Custom JSON-LD was not saved because it is not valid JSON-LD. Every node needs a valid @type or @id. Use one object, an array of objects, or an object with @graph."
 msgstr ""
 
-#: includes/meta.php:651
+#: includes/meta.php:708
 msgid "A schema block that targets only post type archives was saved as disabled because no post types were selected."
 msgstr ""
 
-#: includes/meta.php:654
+#: includes/meta.php:711
 msgid "A schema block without a valid context was saved as disabled. Choose at least one place where it should appear."
 msgstr ""
 
@@ -2607,11 +2693,11 @@ msgstr ""
 msgid "EasyRankly could not inspect or repair the network reset job because a database operation failed. Resolve the database issue, then reload this page."
 msgstr ""
 
-#: includes/redirects/class-erankly-redirects-activator.php:93
+#: includes/redirects/class-erankly-redirects-activator.php:95
 msgid "[Disabled during the redirect upgrade because the rule used audience, request, or schedule conditions.]"
 msgstr ""
 
-#: includes/redirects/class-erankly-redirects-activator.php:118
+#: includes/redirects/class-erankly-redirects-activator.php:120
 msgid "[Disabled during the redirect upgrade because another rule now has the same canonical match.]"
 msgstr ""
 
@@ -3076,161 +3162,187 @@ msgstr ""
 msgid "%1$s (video %2$d)"
 msgstr ""
 
-#: includes/schema-jsonld.php:45
+#: includes/schema-jsonld.php:64
 #: assets/js/admin-schema.js:62
 #: assets/js/editor.js:117
 #: assets/js/schema-jsonld.js:169
 msgid "This is not valid JSON, so it cannot be used as JSON-LD."
 msgstr ""
 
-#: includes/schema-jsonld.php:54
+#: includes/schema-jsonld.php:73
 #: assets/js/schema-jsonld.js:181
 msgid "JSON-LD must be an object, an array of objects, or an object with @graph."
 msgstr ""
 
-#: includes/schema-jsonld.php:64
+#: includes/schema-jsonld.php:83
 #: assets/js/schema-jsonld.js:190
 msgid "@graph must be an array of JSON-LD nodes."
 msgstr ""
 
-#: includes/schema-jsonld.php:88
+#: includes/schema-jsonld.php:107
 #: assets/js/schema-jsonld.js:128
 msgid "JSON-LD must contain at least one node."
 msgstr ""
 
 #. translators: %d: 1-based node index.
-#: includes/schema-jsonld.php:115
+#: includes/schema-jsonld.php:134
 #: assets/js/schema-jsonld.js:72
 #, php-format,js-format
 msgid "Node %d"
 msgstr ""
 
 #. translators: %s: node label such as "Node 1".
-#: includes/schema-jsonld.php:122
+#: includes/schema-jsonld.php:141
 #: assets/js/schema-jsonld.js:78
 #, php-format,js-format
 msgid "%s must be a JSON object."
 msgstr ""
 
 #. translators: %s: node label such as "Node 1".
-#: includes/schema-jsonld.php:132
+#: includes/schema-jsonld.php:151
 #: assets/js/schema-jsonld.js:88
 #, php-format,js-format
 msgid "%s is empty and is not valid JSON-LD."
 msgstr ""
 
 #. translators: %s: node label such as "Node 1".
-#: includes/schema-jsonld.php:143
+#: includes/schema-jsonld.php:162
 #: assets/js/schema-jsonld.js:96
 #, php-format,js-format
 msgid "%s has an invalid @type. Use a non-empty type name or a list of type names."
 msgstr ""
 
 #. translators: %s: node label such as "Node 1".
-#: includes/schema-jsonld.php:151
+#: includes/schema-jsonld.php:170
 #: assets/js/schema-jsonld.js:104
 #, php-format,js-format
 msgid "%s has an invalid @id. Use a non-empty string."
 msgstr ""
 
 #. translators: %s: node label such as "Node 1".
-#: includes/schema-jsonld.php:159
+#: includes/schema-jsonld.php:178
 #: assets/js/schema-jsonld.js:112
 #, php-format,js-format
 msgid "%s needs a valid @type or @id to be JSON-LD."
 msgstr ""
 
 #. translators: %s: Schema.org property name.
-#: includes/schema-jsonld.php:449
+#: includes/schema-jsonld.php:468
 #, php-format
 msgid "Conflicting Schema.org values for \"%s\" were merged; the later layer was kept."
 msgstr ""
 
 #. translators: 1: Schema.org property name, 2: node @id.
-#: includes/schema-jsonld.php:457
+#: includes/schema-jsonld.php:476
 #, php-format
 msgid "Conflicting Schema.org values for \"%1$s\" on %2$s were merged; the later layer was kept."
 msgstr ""
 
-#: includes/schema-jsonld.php:519
+#: includes/schema-jsonld.php:538
 msgid "Schema merge warning"
 msgstr ""
 
-#: includes/settings-lock.php:91
+#. translators: 1: page title, 2: page path, 3: page ID.
+#: includes/schema-jsonld.php:855
+#, php-format
+msgid "%1$s (%2$s) [#%3$d]"
+msgstr ""
+
+#: includes/settings-lock.php:131
 msgid "EasyRankly settings are being updated by another request."
 msgstr ""
 
-#: includes/settings-lock.php:133
+#: includes/settings-lock.php:202
 msgid "The shared settings lease expired."
 msgstr ""
 
 #. translators: %s: Search query.
-#: includes/title-description.php:128
+#: includes/title-description.php:127
 #, php-format
 msgid "Search results for %s"
 msgstr ""
 
-#: uninstall.php:25
+#: uninstall.php:38
 msgid "EasyRankly could not remove private import uploads during uninstall."
 msgstr ""
 
-#: uninstall.php:28
+#: uninstall.php:41
 msgid "EasyRankly could not remove private migration uploads during uninstall."
 msgstr ""
 
-#: uninstall.php:31
+#: uninstall.php:44
 msgid "EasyRankly could not remove retired migration state during uninstall."
 msgstr ""
 
-#: uninstall.php:74
+#: uninstall.php:100
 msgid "EasyRankly could not remove redirect storage during uninstall."
 msgstr ""
 
-#: uninstall.php:87
+#: uninstall.php:113
 msgid "EasyRankly could not remove post metadata during uninstall."
 msgstr ""
 
-#: uninstall.php:98
+#: uninstall.php:124
 msgid "EasyRankly could not remove term metadata during uninstall."
 msgstr ""
 
-#: uninstall.php:109
+#: uninstall.php:135
 msgid "EasyRankly could not remove user metadata during uninstall."
 msgstr ""
 
-#: uninstall.php:125
+#: uninstall.php:161
+msgid "EasyRankly could not inspect its options during uninstall."
+msgstr ""
+
+#: uninstall.php:180
+#: uninstall.php:195
+#: uninstall.php:203
+#: uninstall.php:239
+msgid "EasyRankly could not remove its options during uninstall."
+msgstr ""
+
+#: uninstall.php:282
+#: uninstall.php:295
+#: uninstall.php:333
 msgid "EasyRankly could not remove transient data during uninstall."
 msgstr ""
 
-#: uninstall.php:136
-msgid "EasyRankly could not count multisite sites before uninstall."
+#: uninstall.php:439
+msgid "EasyRankly could not inspect network options during uninstall."
 msgstr ""
 
-#: uninstall.php:148
-msgid "This installation is too large to uninstall EasyRankly safely in one web request."
-msgstr ""
-
-#: uninstall.php:149
-msgid "Run the following WP-CLI command so cleanup can finish without an HTTP timeout:"
-msgstr ""
-
-#: uninstall.php:181
-msgid "EasyRankly could not retrieve the next network site batch during uninstall."
-msgstr ""
-
-#: uninstall.php:228
-msgid "EasyRankly could not retrieve networks during uninstall."
-msgstr ""
-
-#: uninstall.php:239
+#: uninstall.php:456
+#: uninstall.php:473
+#: uninstall.php:479
+#: uninstall.php:519
 msgid "EasyRankly could not remove network options during uninstall."
 msgstr ""
 
-#: uninstall.php:270
+#: uninstall.php:545
+msgid "EasyRankly could not count multisite sites before uninstall."
+msgstr ""
+
+#: uninstall.php:557
+msgid "This installation is too large to uninstall EasyRankly safely in one web request."
+msgstr ""
+
+#: uninstall.php:558
+msgid "Run the following WP-CLI command so cleanup can finish without an HTTP timeout:"
+msgstr ""
+
+#: uninstall.php:590
+msgid "EasyRankly could not retrieve the next network site batch during uninstall."
+msgstr ""
+
+#: uninstall.php:642
+msgid "EasyRankly could not retrieve networks during uninstall."
+msgstr ""
+
+#: uninstall.php:677
 msgid "EasyRankly could not complete its data cleanup. No further cleanup steps were attempted. Check the server error log, resolve the reported storage problem, and retry the uninstall."
 msgstr ""
 
-#: uninstall.php:277
+#: uninstall.php:684
 msgid "EasyRankly uninstall incomplete"
 msgstr ""
 
@@ -3328,8 +3440,8 @@ msgstr ""
 msgid "EasyRankly settings are not available in the Site Editor."
 msgstr ""
 
-#: blocks/breadcrumbs/index.js:21
-msgid "Breadcrumb trail. The visible path is rendered on the front end."
+#: blocks/breadcrumbs/index.js:58
+msgid "Legacy breadcrumb trail. Prefer the WordPress Breadcrumbs block when it is available. The visible path is rendered on the front end."
 msgstr ""
 
 #: blocks/breadcrumbs/block.json
@@ -3339,7 +3451,7 @@ msgstr ""
 
 #: blocks/breadcrumbs/block.json
 msgctxt "block description"
-msgid "Visible breadcrumb trail. Pair this with EasyRankly breadcrumb JSON-LD so structured data matches what people see."
+msgid "Legacy visible trail kept for existing content. Prefer the WordPress Breadcrumbs block on WordPress 7.0 or later. On older WordPress the block remains available in the inserter."
 msgstr ""
 
 #: blocks/breadcrumbs/block.json

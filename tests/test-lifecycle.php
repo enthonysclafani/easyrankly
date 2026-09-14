@@ -683,6 +683,9 @@ final class ERankly_Lifecycle_Test extends WP_UnitTestCase {
 
 		$this->assertSame( 10, has_action( ERANKLY_MIGRATION_CRON_HOOK, 'erankly_process_migration_job' ) );
 		$this->assertSame( 10, has_action( ERANKLY_IMPORT_CRON_HOOK, 'erankly_process_import_job' ) );
+		$this->assertSame( 11, has_action( 'init', 'erankly_register_breadcrumb_integrations' ) );
+		$this->assertSame( 10, has_action( 'wp_loaded', 'erankly_sync_legacy_breadcrumbs_availability' ) );
+		$this->assertSame( 1, has_action( 'enqueue_block_editor_assets', 'erankly_sync_legacy_breadcrumbs_availability' ) );
 		$this->assertSame( 15, has_action( 'init', 'erankly_maybe_migrate_settings' ) );
 		$this->assertSame( 16, has_action( 'init', 'erankly_maybe_migrate_post_type_schema' ) );
 		$this->assertSame( 17, has_action( 'init', 'erankly_maybe_migrate_local_business_pages' ) );

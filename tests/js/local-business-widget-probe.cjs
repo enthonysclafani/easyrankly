@@ -71,6 +71,10 @@ class FakeNode {
     return null;
   }
 
+  removeAttribute(name) {
+    delete this.attributes[name];
+  }
+
   appendChild(child) {
     child.parentNode = this;
     child.document = this.document;
@@ -394,9 +398,18 @@ async function main() {
   assert(afterEnable === 1, "enabling must load the first site batch");
   assert(list.querySelector("[data-erankly-local-business-site]"), "first site must render");
   assert(sites.getAttribute("data-erankly-sites-initialized") === "1", "sites must be marked initialized");
+  const settingsRoot = root.closest(".erankly-settings");
+  assert(
+    settingsRoot && settingsRoot.getAttribute("data-erankly-local-business-enabled") === "1",
+    "enabling must keep organization address fields available",
+  );
 
   toggle.checked = false;
   toggle.dispatchEvent(createEvent("change"));
+  assert(
+    settingsRoot.getAttribute("data-erankly-local-business-enabled") === null,
+    "disabling must stop requiring organization address fields",
+  );
   toggle.checked = true;
   toggle.dispatchEvent(createEvent("change"));
   await flush();

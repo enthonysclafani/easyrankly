@@ -561,7 +561,7 @@
 
       var select = document.createElement("select");
       select.id = fieldId;
-      select.className = "widefat";
+      select.className = "widefat erankly-field-full-width";
       select.name = config.option + "[local_business_pages][" + blogId + "]";
       select.setAttribute("data-erankly-local-business-page-select", "");
 
@@ -574,14 +574,12 @@
         ensureOption(select, page, selected);
       });
 
-      var moreWrap = document.createElement("p");
       var loadMorePages = document.createElement("button");
       loadMorePages.type = "button";
       loadMorePages.className = "button";
       loadMorePages.setAttribute("data-erankly-local-business-load-more-pages", "");
       loadMorePages.textContent = i18n.loadMorePages || "";
       loadMorePages.hidden = (site.pages || []).length < (config.pageLimit || 50);
-      moreWrap.appendChild(loadMorePages);
 
       var status = document.createElement("p");
       status.className = "description";
@@ -591,7 +589,7 @@
       picker.appendChild(searchLabel);
       picker.appendChild(search);
       picker.appendChild(select);
-      picker.appendChild(moreWrap);
+      picker.appendChild(loadMorePages);
       picker.appendChild(status);
       wrap.appendChild(label);
       wrap.appendChild(picker);
@@ -701,7 +699,15 @@
 
     function syncVisibility() {
       fields.hidden = !toggle.checked;
-      ER.syncOrganizationFieldsVisibility(container.closest(".erankly-settings"));
+      var root = container.closest(".erankly-settings");
+      if (root) {
+        if (toggle.checked) {
+          root.setAttribute("data-erankly-local-business-enabled", "1");
+        } else {
+          root.removeAttribute("data-erankly-local-business-enabled");
+        }
+      }
+      ER.syncOrganizationFieldsVisibility(root);
 
       if (type && foodFields) {
         foodFields.hidden = foodTypes.indexOf(type.value) === -1;
@@ -722,14 +728,21 @@
       .querySelectorAll("[data-erankly-opening-day]")
       .forEach(function (day) {
         var closed = day.querySelector("[data-erankly-day-closed]");
-        var intervals = day.querySelector("[data-erankly-opening-intervals]");
+        var intervals = day.querySelectorAll("[data-erankly-opening-intervals]");
 
-        if (!closed || !intervals) {
+        if (!closed || !intervals.length) {
           return;
         }
 
         function syncDay() {
-          intervals.hidden = closed.checked;
+          day.classList.toggle("is-closed", closed.checked);
+          intervals.forEach(function (cell) {
+            if (closed.checked) {
+              cell.setAttribute("aria-hidden", "true");
+            } else {
+              cell.removeAttribute("aria-hidden");
+            }
+          });
         }
 
         closed.addEventListener("change", syncDay);

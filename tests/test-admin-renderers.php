@@ -204,9 +204,38 @@ final class ERankly_Admin_Renderers_Test extends WP_UnitTestCase {
 		$html = $this->capture( static fn() => erankly_render_organization_details( erankly_get_settings() ) );
 
 		$this->assertStringContainsString( 'class="erankly-settings-details"', $html );
+		$this->assertStringContainsString( 'id="erankly-organization-details"', $html );
 		foreach ( array( 'organization_legal_name', 'organization_vat_id', 'organization_tax_id', 'organization_street_address', 'organization_locality', 'organization_region', 'organization_postal_code', 'organization_country' ) as $key ) {
 			$this->assertStringContainsString( 'name="' . ERANKLY_OPTION . '[' . $key . ']"', $html );
 		}
+	}
+
+	public function test_organization_details_use_address_heading_for_person_identity(): void {
+		$settings                          = erankly_get_settings();
+		$settings['schema_identity']       = 'person';
+		$settings['enable_local_business'] = 1;
+
+		$html = $this->capture( static fn() => erankly_render_organization_details( $settings ) );
+
+		$this->assertStringContainsString( 'data-erankly-label-person="Address"', $html );
+		$this->assertStringContainsString( 'data-erankly-organization-only hidden', $html );
+		$this->assertMatchesRegularExpression( '/<details[^>]*\sopen/', $html );
+	}
+
+	public function test_local_business_incomplete_notice_links_to_the_address_fields(): void {
+		require_once ERANKLY_PATH . 'admin/settings-page.php';
+
+		$settings                          = erankly_get_settings();
+		$settings['enable_local_business'] = 1;
+
+		$html = $this->capture( static fn() => erankly_render_local_business_settings( $settings ) );
+
+		$this->assertStringContainsString( 'Incomplete configuration', $html );
+		$this->assertStringContainsString( 'erankly-notice-body', $html );
+		$this->assertStringContainsString( esc_url( erankly_settings_tab_url( 'general' ) ), $html );
+		$this->assertStringContainsString( 'erankly_tab=general', $html );
+		$this->assertStringContainsString( '#erankly-organization-details', $html );
+		$this->assertStringContainsString( 'Set the address in General', $html );
 	}
 
 	public function test_local_business_settings_hide_the_fieldset_until_enabled(): void {
@@ -268,7 +297,28 @@ final class ERankly_Admin_Renderers_Test extends WP_UnitTestCase {
 
 		$this->assertSame( 7, substr_count( $html, 'data-erankly-opening-day' ) );
 		$this->assertStringContainsString( 'name="' . ERANKLY_OPTION . '[local_business_hours][monday][intervals][0][opens]"', $html );
-		$this->assertStringContainsString( 'data-erankly-opening-intervals hidden', $html );
+		$this->assertStringNotContainsString( 'erankly-opening-hours-row is-closed', $html );
+		$this->assertStringContainsString( 'erankly-opening-hours-closed', $html );
+		$this->assertMatchesRegularExpression( '/name="' . preg_quote( ERANKLY_OPTION, '/' ) . '\[local_business_hours\]\[monday\]\[closed\]"[^>]*checked/', $html );
+		$this->assertStringContainsString( 'data-erankly-opening-intervals', $html );
+		$this->assertStringContainsString( '<table class="erankly-opening-hours">', $html );
+	}
+
+	public function test_opening_hours_css_hides_intervals_from_the_checked_state(): void {
+		$css = (string) file_get_contents( ERANKLY_PATH . 'assets/css/admin-settings.css' );
+
+		$this->assertStringContainsString(
+			'.erankly-opening-hours-row:has([data-erankly-day-closed]:checked) [data-erankly-opening-intervals]',
+			$css
+		);
+		$this->assertStringContainsString(
+			'.erankly-opening-hours-row:has([data-erankly-day-closed]:checked) [data-erankly-opening-intervals] input',
+			$css
+		);
+		$this->assertStringContainsString(
+			'.erankly-opening-hours-row.is-closed [data-erankly-opening-intervals] input',
+			$css
+		);
 	}
 
 	public function test_global_meta_defaults_render_linked_tabs_and_field_names(): void {

@@ -191,15 +191,18 @@
 	max-height: 0;
 	opacity: 0;
 	overflow: hidden;
+	overflow-wrap: anywhere;
 	padding: 0 var(--erankly-space-3);
 	transform: translateY(-4px);
 	transition: opacity 0.15s ease, transform 0.15s ease, max-height 0.15s ease, margin-top 0.15s ease, padding 0.15s ease, background-color 0.15s ease;
+	white-space: normal;
+	width: 100%;
 }
 
 .erankly-autosave-status.is-visible {
 	background: var(--erankly-color-success-surface);
 	margin-top: var(--erankly-space-2);
-	max-height: 34px;
+	max-height: 80rem;
 	opacity: 1;
 	padding: var(--erankly-space-2) var(--erankly-space-3);
 	transform: translateY(0);
@@ -284,8 +287,8 @@
  * Field anatomy: label, control and help text, stacked with one 8px gap on
  * every classic admin surface. Same model as .erankly-card: the container owns
  * the rhythm and its children carry no vertical margin of their own — not the
- * 1em wp-admin gives every <p>, not the 16px the redirects form gives every
- * label. Change the rhythm here, once, instead of on the individual children.
+ * 1em wp-admin gives every <p>. Change the rhythm here, once, instead of on
+ * the individual children.
  *
  * Every one of these is a plain container: the group labels use
  * .erankly-field-label rather than <legend>, because a legend is not a flex
@@ -324,7 +327,7 @@
 	display: none;
 }
 
-/* stylelint-disable declaration-no-important -- Field children carry vertical margins elsewhere: wp-admin gives every <p> 1em and the redirects form gives labels 16px, and those stylesheets load after this one. The card below uses the same reset for the same reason. */
+/* stylelint-disable declaration-no-important -- Field children carry vertical margins elsewhere: wp-admin gives every <p> 1em, and that stylesheet loads after this one. The card below uses the same reset for the same reason. */
 .erankly-field > *,
 .erankly-schema-field > *,
 .erankly-code-field > *,
@@ -351,8 +354,7 @@
 
 .erankly-field > label,
 .erankly-schema-field > label,
-.erankly-code-field > label,
-.erankly-redirects-form label > span {
+.erankly-code-field > label {
 	display: block;
 	font-weight: 600;
 }

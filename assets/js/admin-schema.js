@@ -382,11 +382,38 @@
     updatePersonField();
   }
 
+  function localBusinessIsEnabled(container) {
+    if (!container) {
+      return false;
+    }
+
+    var toggle = container.querySelector("[data-erankly-local-business-toggle]");
+    if (toggle) {
+      return !!toggle.checked;
+    }
+
+    return container.getAttribute("data-erankly-local-business-enabled") === "1";
+  }
+
+  function syncIdentityLabels(container, isPerson) {
+    container.querySelectorAll("[data-erankly-identity-label]").forEach(function (node) {
+      var label = isPerson
+        ? node.getAttribute("data-erankly-label-person")
+        : node.getAttribute("data-erankly-label-organization");
+      if (label) {
+        node.textContent = label;
+      }
+    });
+  }
+
   function syncOrganizationFieldsVisibility(container) {
     var identity = container
       ? container.querySelector("[data-erankly-schema-identity]")
       : null;
-    var showOrganizationFields = identity && identity.value !== "person";
+    var isPerson = !!(identity && identity.value === "person");
+    var showOrganizationFields = identity && !isPerson;
+    var showLocationFields =
+      identity && (!isPerson || localBusinessIsEnabled(container));
 
     if (!identity) {
       return;
@@ -397,6 +424,12 @@
       .forEach(function (fields) {
         fields.hidden = !showOrganizationFields;
       });
+    container
+      .querySelectorAll("[data-erankly-location-fields]")
+      .forEach(function (fields) {
+        fields.hidden = !showLocationFields;
+      });
+    syncIdentityLabels(container, isPerson);
   }
 
   ER.isValidJsonLd = isValidJsonLd;

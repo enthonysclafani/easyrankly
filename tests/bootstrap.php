@@ -29,6 +29,23 @@ tests_add_filter(
 	}
 );
 
+if ( getenv( 'ERANKLY_TEST_DEREGISTER_CORE_BREADCRUMBS' ) ) {
+	tests_add_filter(
+		'muplugins_loaded',
+		static function (): void {
+			add_action(
+				'init',
+				static function (): void {
+					if ( class_exists( 'WP_Block_Type_Registry', false ) && WP_Block_Type_Registry::get_instance()->is_registered( 'core/breadcrumbs' ) ) {
+						unregister_block_type( 'core/breadcrumbs' );
+					}
+				},
+				10
+			);
+		}
+	);
+}
+
 require $tests_dir . '/includes/bootstrap.php';
 
 /**

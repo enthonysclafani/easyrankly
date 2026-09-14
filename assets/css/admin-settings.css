@@ -80,7 +80,8 @@
 .erankly-settings .notice.notice-info p,
 .erankly-settings .notice.notice-success p,
 .erankly-settings .notice.notice-warning p,
-.erankly-settings .notice.notice-error p {
+.erankly-settings .notice.notice-error p,
+.erankly-settings .notice .erankly-notice-body {
 	flex: 1 1 auto;
 	margin: 0;
 	max-width: 100%;
@@ -88,6 +89,10 @@
 	overflow-wrap: anywhere;
 	padding: 0;
 	white-space: normal;
+}
+
+.erankly-settings .notice .erankly-notice-body p + p {
+	margin-top: var(--erankly-space-2);
 }
 
 .erankly-settings .notice.notice-info.is-dismissible,
@@ -166,6 +171,10 @@
 
 .erankly-inline-fields-two-columns {
 	grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.erankly-inline-fields .erankly-field-span-full {
+	grid-column: 1 / -1;
 }
 
 /* Group label of a post type row: the shared .erankly-field-label supplies the
@@ -280,9 +289,35 @@
 	margin-top: var(--erankly-space-4);
 }
 
+.erankly-local-business-fields .erankly-field select.widefat {
+	max-width: none;
+	width: 100%;
+}
+
 .erankly-local-business-page-picker {
 	display: grid;
 	gap: var(--erankly-space-2);
+}
+
+.erankly-local-business-page-picker > p {
+	margin: 0;
+}
+
+.erankly-local-business-page-picker > .button {
+	justify-self: start;
+}
+
+[data-erankly-local-business-sites] > .button {
+	align-self: start;
+}
+
+.erankly-local-business-page-picker > .description:empty,
+[data-erankly-local-business-sites] > .description:empty {
+	display: none;
+}
+
+[data-erankly-local-business-site-list] > .erankly-field {
+	margin-bottom: 0;
 }
 
 .erankly-local-business-page-picker [data-erankly-local-business-load-more-pages][hidden],
@@ -290,41 +325,108 @@
 	display: none;
 }
 
-.erankly-opening-hours {
-	border-top: 1px solid var(--erankly-color-border);
+.erankly-opening-hours-wrap {
 	margin: var(--erankly-space-4) 0;
+	max-width: 100%;
+	min-width: 0;
+	overflow-x: auto;
 }
 
-.erankly-opening-hours-row {
-	align-items: center;
+table.erankly-opening-hours {
+	border-collapse: collapse;
+	border-top: 1px solid var(--erankly-color-border);
+	width: 100%;
+}
+
+table.erankly-opening-hours th,
+table.erankly-opening-hours td {
+	background: transparent;
+	border: 0;
 	border-bottom: 1px solid var(--erankly-color-border);
-	display: grid;
-	gap: var(--erankly-space-3);
-	grid-template-columns: 110px 90px minmax(0, 1fr);
-	padding: var(--erankly-space-3) 0;
+	box-shadow: none;
+	font-size: 13px;
+	font-weight: 400;
+	padding: var(--erankly-space-2) var(--erankly-space-2) var(--erankly-space-2) 0;
+	text-align: left;
+	vertical-align: middle;
 }
 
-.erankly-opening-intervals {
-	display: flex;
-	flex-wrap: wrap;
-	gap: var(--erankly-space-2);
+table.erankly-opening-hours thead th {
+	color: var(--erankly-color-muted);
+	font-size: 12px;
+	font-weight: 600;
+	line-height: 1.3;
+	vertical-align: bottom;
+	white-space: nowrap;
 }
 
-.erankly-opening-intervals[hidden] {
-	display: none;
+table.erankly-opening-hours thead tr:first-child th {
+	border-bottom: 0;
 }
 
-.erankly-opening-intervals > span {
+table.erankly-opening-hours thead tr:first-child th[colspan] {
+	color: var(--erankly-color-text);
+	font-size: 13px;
+	padding-bottom: 2px;
+	text-align: center;
+}
+
+table.erankly-opening-hours thead tr:last-child th {
+	padding-top: 0;
+}
+
+table.erankly-opening-hours tbody th {
+	font-weight: 600;
+	white-space: nowrap;
+	width: 1%;
+}
+
+table.erankly-opening-hours thead th:nth-child(3),
+table.erankly-opening-hours thead tr:last-child th:nth-child(3),
+table.erankly-opening-hours tbody td:nth-child(4) {
+	padding-left: var(--erankly-space-4);
+}
+
+table.erankly-opening-hours tbody td:not(.erankly-opening-hours-closed-cell) {
+	white-space: nowrap;
+	width: 1%;
+}
+
+table.erankly-opening-hours thead tr:first-child th:last-child,
+table.erankly-opening-hours .erankly-opening-hours-closed-cell {
+	text-align: right;
+	white-space: nowrap;
+	width: auto;
+}
+
+table.erankly-opening-hours input[type="time"] {
+	box-sizing: border-box;
+	max-width: 7rem;
+	min-width: 0;
+	width: 7rem;
+}
+
+.erankly-opening-hours-closed {
 	align-items: center;
 	display: inline-flex;
-	gap: var(--erankly-space-1);
+	font-weight: 400;
+	gap: var(--erankly-space-2);
+	justify-content: flex-end;
+	line-height: 20px;
 }
 
-@media screen and (max-width: 782px) {
-	.erankly-opening-hours-row {
-		align-items: start;
-		grid-template-columns: 1fr;
-	}
+.erankly-opening-hours-closed input[type="checkbox"].erankly-toggle {
+	margin: 0;
+}
+
+.erankly-opening-hours-row:has([data-erankly-day-closed]:checked) [data-erankly-opening-intervals],
+.erankly-opening-hours-row.is-closed [data-erankly-opening-intervals] {
+	visibility: hidden;
+}
+
+.erankly-opening-hours-row:has([data-erankly-day-closed]:checked) [data-erankly-opening-intervals] input,
+.erankly-opening-hours-row.is-closed [data-erankly-opening-intervals] input {
+	display: none;
 }
 
 /*
@@ -656,18 +758,7 @@ input[type="checkbox"].erankly-toggle::before {
 }
 
 input[type="checkbox"].erankly-toggle:checked {
-	animation: erankly-toggle-pulse 0.4s ease-out;
 	background: var(--erankly-color-success);
-}
-
-@keyframes erankly-toggle-pulse {
-	0% {
-		box-shadow: 0 0 0 0 color-mix(in srgb, var(--erankly-color-success) 50%, transparent);
-	}
-
-	100% {
-		box-shadow: 0 0 0 6px color-mix(in srgb, var(--erankly-color-success) 0%, transparent);
-	}
 }
 
 /* Re-declares content/width/height/margin (not just left): wp-admin's own
@@ -698,10 +789,6 @@ input[type="checkbox"].erankly-toggle:focus-visible {
 }
 
 @media (prefers-reduced-motion: reduce) {
-	input[type="checkbox"].erankly-toggle:checked {
-		animation: none;
-	}
-
 	input[type="checkbox"].erankly-toggle,
 	input[type="checkbox"].erankly-toggle::before {
 		transition: none;

@@ -86,6 +86,14 @@ function erankly_render_custom_code_builder( string $title, array $blocks, strin
 	<?php
 }
 function erankly_render_settings_panel_general( array $settings, int $schema_person_user_id, $schema_person_user, bool $show_organization_fields ): void {
+	$is_person            = 'person' === (string) ( $settings['schema_identity'] ?? 'organization' );
+	$show_location_fields = function_exists( 'erankly_settings_show_location_fields' )
+		? erankly_settings_show_location_fields( $settings )
+		: ( ! $is_person || ! empty( $settings['enable_local_business'] ) );
+	$email_org_label      = __( 'Business email', 'easyrankly' );
+	$email_person_label   = __( 'Email', 'easyrankly' );
+	$phone_org_label      = __( 'Business telephone', 'easyrankly' );
+	$phone_person_label   = __( 'Telephone', 'easyrankly' );
 	?>
 				<div class="erankly-settings-panel is-active" id="erankly-settings-panel-general" role="region" aria-labelledby="erankly-settings-tab-general" data-erankly-settings-panel="settings-general">
 					<?php erankly_section_open( __( 'Site identity', 'easyrankly' ), array( 'doc' => 'site-identity' ) ); ?>
@@ -156,13 +164,15 @@ function erankly_render_settings_panel_general( array $settings, int $schema_per
 								<label for="erankly-organization-description"><?php esc_html_e( 'Organization description', 'easyrankly' ); ?></label>
 								<textarea id="erankly-organization-description" class="widefat" rows="3" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[organization_description]"><?php echo esc_textarea( (string) $settings['organization_description'] ); ?></textarea>
 							</div>
+						</div>
+						<div data-erankly-location-fields <?php echo $show_location_fields ? '' : 'hidden'; ?>>
 							<div class="erankly-inline-fields erankly-inline-fields-two-columns">
 								<div class="erankly-field">
-									<label for="erankly-organization-email"><?php esc_html_e( 'Business email', 'easyrankly' ); ?></label>
+									<label for="erankly-organization-email" data-erankly-identity-label data-erankly-label-organization="<?php echo esc_attr( $email_org_label ); ?>" data-erankly-label-person="<?php echo esc_attr( $email_person_label ); ?>"><?php echo esc_html( $is_person ? $email_person_label : $email_org_label ); ?></label>
 									<input id="erankly-organization-email" class="widefat" type="email" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[organization_email]" value="<?php echo esc_attr( (string) $settings['organization_email'] ); ?>">
 								</div>
 								<div class="erankly-field">
-									<label for="erankly-organization-phone"><?php esc_html_e( 'Business telephone', 'easyrankly' ); ?></label>
+									<label for="erankly-organization-phone" data-erankly-identity-label data-erankly-label-organization="<?php echo esc_attr( $phone_org_label ); ?>" data-erankly-label-person="<?php echo esc_attr( $phone_person_label ); ?>"><?php echo esc_html( $is_person ? $phone_person_label : $phone_org_label ); ?></label>
 									<input id="erankly-organization-phone" class="widefat" type="tel" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[organization_phone]" value="<?php echo esc_attr( (string) $settings['organization_phone'] ); ?>" placeholder="+1 555 123 4567">
 								</div>
 							</div>
@@ -250,6 +260,7 @@ function erankly_render_settings_panel_schema( array $settings, array $global_sc
 					<?php erankly_section_open( __( 'Information for Google and other search engines', 'easyrankly' ), array( 'doc' => 'search-engines' ) ); ?>
 						<div class="erankly-field erankly-checkboxes">
 							<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[enable_breadcrumbs]" value="1" <?php checked( $settings['enable_breadcrumbs'], 1 ); ?>> <?php esc_html_e( 'Enable breadcrumbs', 'easyrankly' ); ?></label>
+							<p class="description"><?php echo esc_html( erankly_breadcrumb_settings_help_text() ); ?></p>
 						</div>
 						<div class="erankly-field">
 							<label for="erankly-breadcrumb-jsonld-mode"><?php esc_html_e( 'Breadcrumb JSON-LD', 'easyrankly' ); ?></label>

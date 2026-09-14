@@ -22,6 +22,7 @@ final class ERankly_Admin_Settings_Panels_Test extends WP_UnitTestCase {
 		require_once ERANKLY_PATH . 'admin/settings/page-renderer.php';
 		erankly_load_content_helpers();
 		erankly_load_sitemap_helpers();
+		require_once ERANKLY_PATH . 'includes/breadcrumbs.php';
 
 		$this->admin_id = self::factory()->user->create( array( 'role' => 'administrator' ) );
 		wp_set_current_user( $this->admin_id );
@@ -154,12 +155,36 @@ final class ERankly_Admin_Settings_Panels_Test extends WP_UnitTestCase {
 	}
 
 	public function test_general_panel_hides_organization_fields_for_person_identity(): void {
-		$settings                    = erankly_get_settings();
-		$settings['schema_identity'] = 'person';
+		$settings                          = erankly_get_settings();
+		$settings['schema_identity']       = 'person';
+		$settings['enable_local_business'] = 0;
 
 		$html = $this->capture( static fn() => erankly_render_settings_panel_general( $settings, 0, false, false ) );
 
+		$this->assertFalse( erankly_settings_show_organization_fields( $settings ) );
+		$this->assertFalse( erankly_settings_show_location_fields( $settings ) );
 		$this->assertStringContainsString( 'data-erankly-organization-only hidden', $html );
+		$this->assertStringContainsString( 'data-erankly-location-fields hidden', $html );
+	}
+
+	public function test_general_panel_shows_location_fields_for_person_when_local_business_is_enabled(): void {
+		$settings                          = erankly_get_settings();
+		$settings['schema_identity']       = 'person';
+		$settings['enable_local_business'] = 1;
+
+		$html = $this->capture( static fn() => erankly_render_settings_panel_general( $settings, 0, false, false ) );
+
+		$this->assertFalse( erankly_settings_show_organization_fields( $settings ) );
+		$this->assertTrue( erankly_settings_show_location_fields( $settings ) );
+		$this->assertStringContainsString( 'data-erankly-organization-only hidden', $html );
+		$this->assertStringContainsString( 'data-erankly-location-fields', $html );
+		$this->assertStringNotContainsString( 'data-erankly-location-fields hidden', $html );
+		$this->assertStringNotContainsString( 'A physical location is enabled, so an address is still required', $html );
+		$this->assertStringContainsString( 'data-erankly-label-person="Email"', $html );
+		$this->assertStringContainsString( 'data-erankly-label-person="Telephone"', $html );
+		$this->assertStringContainsString( 'data-erankly-label-person="Address"', $html );
+		$this->assertStringContainsString( 'id="erankly-organization-details"', $html );
+		$this->assertMatchesRegularExpression( '/<details[^>]*\sopen/', $html );
 	}
 
 	public function test_social_panel_renders_media_and_profile_fields(): void {
@@ -189,6 +214,12 @@ final class ERankly_Admin_Settings_Panels_Test extends WP_UnitTestCase {
 
 		$this->assertStringContainsString( 'name="' . ERANKLY_OPTION . '[enable_breadcrumbs]"', $html );
 		$this->assertStringContainsString( 'name="' . ERANKLY_OPTION . '[breadcrumb_jsonld_mode]"', $html );
+		$help = erankly_breadcrumb_settings_help_text();
+		$this->assertStringContainsString( esc_html( $help ), $html );
+		if ( str_contains( $help, "'" ) ) {
+			$this->assertStringNotContainsString( $help, $html );
+		}
+		$this->assertStringContainsString( 'WordPress 7.0', $html );
 		$this->assertStringContainsString( 'data-erankly-local-business', $html );
 		$this->assertStringContainsString( 'data-erankly-schema-builder', $html );
 		$this->assertStringContainsString( 'data-erankly-collection="' . ERANKLY_OPTION . '[global_schema_blocks]"', $html );
