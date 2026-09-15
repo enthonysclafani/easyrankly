@@ -136,4 +136,36 @@ final class ERankly_Canonical_Test extends WP_UnitTestCase {
 		$this->assertTrue( is_404() );
 		$this->assertSame( '', erankly_get_canonical() );
 	}
+
+	/**
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_author_canonical_template_does_not_recurse_on_canonical_url(): void {
+		$user_id = self::factory()->user->create( array( 'role' => 'author' ) );
+		update_user_meta( $user_id, '_erankly_canonical', '{{canonical_url}}' );
+		$this->go_to( get_author_posts_url( $user_id ) );
+
+		$this->assertTrue( is_author() );
+
+		$canonical = erankly_get_canonical();
+
+		$this->assertIsString( $canonical );
+		$this->assertStringNotContainsString( '{{canonical_url}}', $canonical );
+		$this->assertSame( get_author_posts_url( $user_id ), $canonical );
+	}
+
+	/**
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_author_canonical_template_can_use_author_url(): void {
+		$user_id = self::factory()->user->create( array( 'role' => 'author' ) );
+		update_user_meta( $user_id, '_erankly_canonical', '{{author_url}}' );
+		$author_url = get_author_posts_url( $user_id );
+		$this->go_to( $author_url );
+
+		$this->assertTrue( is_author() );
+		$this->assertSame( $author_url, erankly_get_canonical() );
+	}
 }

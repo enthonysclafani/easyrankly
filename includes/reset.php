@@ -210,12 +210,7 @@ function erankly_reset_site_data(): void {
 		throw new RuntimeException( esc_html__( 'EasyRankly could not remove term metadata during reset.', 'easyrankly' ) );
 	}
 
-	$deleted_user_meta = $wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Reset removes plugin-owned user meta.
-		$wpdb->prepare(
-			"DELETE FROM {$wpdb->usermeta} WHERE meta_key LIKE %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-			$wpdb->esc_like( '_erankly_' ) . '%'
-		)
-	);
+	$deleted_user_meta = erankly_delete_current_site_user_meta();
 
 	if ( false === $deleted_user_meta ) {
 		throw new RuntimeException( esc_html__( 'EasyRankly could not remove user metadata during reset.', 'easyrankly' ) );

@@ -38,6 +38,10 @@ final class ERankly_Js_Contracts_Test extends WP_UnitTestCase {
 
 		$this->assertStringContainsString( 'function changedTopLevelKeys', $source );
 		$this->assertStringContainsString( 'fetch(config.restUrl', $source );
+		$this->assertStringContainsString( 'function bindSimplifiedModeNav', $source );
+		$this->assertStringContainsString( 'erankly-settings-tab-advanced', $source );
+		$this->assertStringContainsString( 'cache: "no-store"', $source );
+		$this->assertStringContainsString( 'bindRoot("bindSimplifiedModeNav")', $this->source( 'assets/js/admin.js' ) );
 	}
 
 	public function test_schema_jsonld_validates_type_names_with_the_plugin_textdomain(): void {
@@ -60,6 +64,10 @@ final class ERankly_Js_Contracts_Test extends WP_UnitTestCase {
 
 		$this->assertStringContainsString( 'PluginDocumentSettingPanel', $source );
 		$this->assertStringContainsString( 'specialMetaSetting', $source );
+		// Core Data edits replace the whole setting object; spreading the current
+		// map/row is what keeps fields the panel did not touch (index_directive).
+		$this->assertStringContainsString( '...map', $source );
+		$this->assertStringContainsString( '...row', $source );
 	}
 
 	public function test_admin_reset_script_targets_the_reset_modal(): void {
@@ -104,6 +112,22 @@ final class ERankly_Js_Contracts_Test extends WP_UnitTestCase {
 
 		$output     = array();
 		$exit_code  = 1;
+		exec( escapeshellarg( $node ) . ' ' . escapeshellarg( $script ), $output, $exit_code );
+
+		$this->assertSame( 0, $exit_code, implode( "\n", $output ) );
+	}
+
+	public function test_settings_autosave_probe_refreshes_after_incomplete_simplified_mode_save(): void {
+		$node = trim( (string) shell_exec( 'command -v node' ) );
+		if ( '' === $node ) {
+			$this->markTestSkipped( 'Node is required for the settings autosave probe.' );
+		}
+
+		$script = ERANKLY_PATH . 'tests/js/settings-autosave-probe.cjs';
+		$this->assertFileExists( $script );
+
+		$output    = array();
+		$exit_code = 1;
 		exec( escapeshellarg( $node ) . ' ' . escapeshellarg( $script ), $output, $exit_code );
 
 		$this->assertSame( 0, $exit_code, implode( "\n", $output ) );

@@ -310,4 +310,23 @@ final class ERankly_Helpers_Content_Defaults_Test extends WP_UnitTestCase {
 		$this->assertTrue( is_singular() );
 		$this->assertSame( '', erankly_current_special_page_key() );
 	}
+
+	public function test_current_special_page_key_returns_homepage_on_a_static_front_page(): void {
+		$page_id = self::factory()->post->create(
+			array(
+				'post_type'   => 'page',
+				'post_status' => 'publish',
+				'post_title'  => 'Static front',
+			)
+		);
+		$this->assertIsInt( $page_id );
+
+		update_option( 'show_on_front', 'page' );
+		update_option( 'page_on_front', $page_id );
+		$this->go_to( home_url( '/' ) );
+
+		$this->assertTrue( is_front_page() );
+		$this->assertTrue( is_singular() );
+		$this->assertSame( 'homepage', erankly_current_special_page_key() );
+	}
 }

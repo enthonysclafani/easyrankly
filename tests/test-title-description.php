@@ -354,4 +354,79 @@ final class ERankly_Title_Description_Test extends WP_UnitTestCase {
 
 		$this->assertSame( 'Articolo - Pagina 2', erankly_get_title() );
 	}
+
+	/**
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_get_title_uses_homepage_special_meta_on_a_static_front_page(): void {
+		$page_id = $this->go_to_static_front_page( array( 'post_title' => 'Titolo della pagina' ) );
+		update_post_meta( $page_id, '_erankly_title', 'Titolo SEO della pagina' );
+
+		$filter = $this->inject_entity_row(
+			'global_special_meta',
+			'homepage',
+			array(
+				'title'       => 'Titolo Homepage',
+				'description' => 'Descrizione Homepage',
+			)
+		);
+
+		try {
+			$this->assertSame( 'Titolo Homepage', erankly_get_title() );
+			$this->assertSame( 'Descrizione Homepage', erankly_get_description() );
+		} finally {
+			remove_filter( 'erankly_global_entity_meta_map', $filter, 10 );
+		}
+	}
+
+	/**
+	 * Injects a single row into a global entity metadata map for the request.
+	 *
+	 * @param array<string,mixed> $row Row fields to merge.
+	 */
+	private function inject_entity_row( string $setting_key, string $entity, array $row ): callable {
+		$filter = static function ( array $map, string $key ) use ( $setting_key, $entity, $row ): array {
+			if ( $key === $setting_key ) {
+				$map[ $entity ] = array_merge(
+					isset( $map[ $entity ] ) && is_array( $map[ $entity ] ) ? $map[ $entity ] : array(),
+					$row
+				);
+			}
+
+			return $map;
+		};
+
+		add_filter( 'erankly_global_entity_meta_map', $filter, 10, 2 );
+
+		return $filter;
+	}
+
+	/**
+	 * @param array<string,mixed> $page_args Extra factory args for the front page.
+	 */
+	private function go_to_static_front_page( array $page_args = array() ): int {
+		$page_id = self::factory()->post->create(
+			array_merge(
+				array(
+					'post_type'    => 'page',
+					'post_status'  => 'publish',
+					'post_title'   => 'Static front',
+					'post_content' => 'Front page body',
+					'post_excerpt' => '',
+				),
+				$page_args
+			)
+		);
+		$this->assertIsInt( $page_id );
+
+		update_option( 'show_on_front', 'page' );
+		update_option( 'page_on_front', $page_id );
+		$this->go_to( home_url( '/' ) );
+
+		$this->assertTrue( is_front_page() );
+		$this->assertTrue( is_singular() );
+
+		return (int) $page_id;
+	}
 }

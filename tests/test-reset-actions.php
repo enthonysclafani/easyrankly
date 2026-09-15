@@ -179,7 +179,9 @@ final class ERankly_Reset_Actions_Test extends WP_UnitTestCase {
 		}
 
 		$post_id = self::factory()->post->create();
+		$user_id = self::factory()->user->create();
 		update_post_meta( $post_id, '_erankly_title', 'Seeded title' );
+		update_user_meta( $user_id, '_erankly_title', 'Seeded author title' );
 		update_option( ERANKLY_SPECIAL_META_OPTION, array( 'post' => array( 'noindex' => 1 ) ) );
 		update_option( 'erankly_redirects_db_version', '9' );
 		update_option( ERANKLY_REDIRECTS_CACHE_GENERATION_OPTION, 'pre-reset-generation', false );
@@ -192,6 +194,7 @@ final class ERankly_Reset_Actions_Test extends WP_UnitTestCase {
 		erankly_reset_site_data();
 
 		$this->assertSame( '', (string) get_post_meta( $post_id, '_erankly_title', true ) );
+		$this->assertSame( '', (string) get_user_meta( $user_id, '_erankly_title', true ) );
 		$this->assertFalse( get_option( ERANKLY_SPECIAL_META_OPTION, false ) );
 		$this->assertFalse( get_option( 'erankly_redirects_db_version', false ) );
 		$generation = (string) get_option( ERANKLY_REDIRECTS_CACHE_GENERATION_OPTION, '' );

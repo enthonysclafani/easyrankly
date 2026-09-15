@@ -90,6 +90,10 @@ function erankly_localize_url( string $url ): string {
 	return (string) apply_filters( 'erankly_localized_url', $url, $context, $provider_id );
 }
 
+function erankly_finalize_canonical_url( string $canonical ): string {
+	return (string) apply_filters( 'erankly_canonical', erankly_localize_url( esc_url_raw( $canonical ) ) );
+}
+
 function erankly_is_woocommerce_active(): bool {
 	return function_exists( 'wc_get_product' );
 }

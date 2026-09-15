@@ -103,7 +103,7 @@ function erankly_resolve_social_text( string $meta_key, string $setting_key, str
 	$is_title = str_contains( $meta_key, 'title' );
 	$value    = '';
 
-	if ( is_singular() ) {
+	if ( is_singular() && ! is_front_page() ) {
 		$post_id = get_queried_object_id();
 		$value   = erankly_get_post_meta_string( $post_id, $meta_key );
 
@@ -147,7 +147,8 @@ function erankly_resolve_social_text( string $meta_key, string $setting_key, str
 			}
 
 			if ( '' !== $value ) {
-				$value = erankly_replace_variables( $value, 0, array( $is_title ? 'seo_title' : 'meta_description' ) );
+				$special_post_id = is_singular() ? get_queried_object_id() : 0;
+				$value           = erankly_replace_variables( $value, $special_post_id, array( $is_title ? 'seo_title' : 'meta_description' ) );
 			}
 		}
 	}
@@ -201,7 +202,7 @@ function erankly_get_twitter_description( string $fallback = '' ): string {
 function erankly_get_twitter_card_type( string $image = '' ): string {
 	$card_type = '';
 
-	if ( is_singular() ) {
+	if ( is_singular() && ! is_front_page() ) {
 		$card_type = erankly_get_post_meta_string( get_queried_object_id(), 'twitter_card_type' );
 	} elseif ( is_category() || is_tag() || is_tax() ) {
 		$term = get_queried_object();
@@ -241,7 +242,7 @@ function erankly_get_twitter_site(): string {
 function erankly_get_twitter_image( string $fallback = '' ): string {
 	$image = '';
 
-	if ( is_singular() ) {
+	if ( is_singular() && ! is_front_page() ) {
 		$post_id   = get_queried_object_id();
 		erankly_migrate_legacy_social_image_for_object( 'post', $post_id );
 		$image     = erankly_get_post_meta_string( $post_id, 'twitter_image_url' );
@@ -333,7 +334,7 @@ function erankly_get_og_image(): string {
 
 	$image = '';
 
-	if ( is_singular() ) {
+	if ( is_singular() && ! is_front_page() ) {
 		$post_id     = get_queried_object_id();
 		erankly_migrate_legacy_social_image_for_object( 'post', $post_id );
 		$custom_id   = absint( get_post_meta( $post_id, '_erankly_og_image_id', true ) );
@@ -552,7 +553,7 @@ function erankly_get_social_image_alt( string $network, string $fallback = '', s
 	$key = 'twitter' === $network ? 'twitter_image_alt' : 'og_image_alt';
 	$alt = '';
 
-	if ( is_singular() ) {
+	if ( is_singular() && ! is_front_page() ) {
 		$alt = erankly_get_post_meta_string( get_queried_object_id(), $key );
 	} elseif ( is_category() || is_tag() || is_tax() ) {
 		$term = get_queried_object();

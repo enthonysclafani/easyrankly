@@ -41,13 +41,19 @@ function erankly_replace_json_ld_variables( string $value, int $post_id = 0 ): s
 		$post_id = get_queried_object_id();
 	}
 
-	return (string) preg_replace_callback(
+	$failed   = false;
+	$replaced = preg_replace_callback(
 		'/{{\s*([a-z0-9_]+)\s*}}/i',
-		static function ( array $matches ) use ( $post_id ): string {
+		static function ( array $matches ) use ( $post_id, &$failed ): string {
 			$replacement = erankly_get_variable_value( strtolower( (string) $matches[1] ), $post_id );
-			$json        = wp_json_encode( $replacement, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE );
+			$json        = wp_json_encode(
+				$replacement,
+				JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE
+			);
 
-			if ( ! is_string( $json ) ) {
+			if ( ! is_string( $json ) || '' === $json ) {
+				$failed = true;
+
 				return '';
 			}
 
@@ -55,6 +61,12 @@ function erankly_replace_json_ld_variables( string $value, int $post_id = 0 ): s
 		},
 		$value
 	);
+
+	if ( $failed || ! is_string( $replaced ) ) {
+		return '';
+	}
+
+	return $replaced;
 }
 
 function erankly_get_variable_value( string $key, int $post_id = 0 ): string {

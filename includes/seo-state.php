@@ -139,6 +139,7 @@ function erankly_get_object_seo_state( array $context ): array {
 
 	try {
 		erankly_load_content_helpers();
+		require_once ERANKLY_PATH . 'includes/canonical.php';
 		$canonical = '';
 
 		if ( in_array( $kind, array( 'post', 'posts_page' ), true ) ) {
@@ -150,13 +151,7 @@ function erankly_get_object_seo_state( array $context ): array {
 					&& '' === (string) $post->post_password
 					&& ( function_exists( 'is_post_publicly_viewable' ) ? is_post_publicly_viewable( $post ) : is_post_type_viewable( $post->post_type ) );
 
-				$canonical = erankly_get_post_meta_string( $object_id, 'canonical' );
-				if ( '' !== $canonical ) {
-					$canonical = erankly_replace_variables( $canonical, $object_id, array( 'canonical_url' ) );
-				} else {
-					$wp_canonical = wp_get_canonical_url( $object_id );
-					$canonical    = is_string( $wp_canonical ) ? $wp_canonical : (string) get_permalink( $object_id );
-				}
+				$canonical = erankly_resolve_post_canonical( $object_id );
 			}
 		} elseif ( 'term' === $kind ) {
 			$term = get_term( $object_id, '' !== $subtype ? $subtype : '' );
@@ -165,13 +160,7 @@ function erankly_get_object_seo_state( array $context ): array {
 				$state['exists']    = true;
 				$state['published'] = true;
 				$state['public']    = $taxonomy instanceof WP_Taxonomy && is_taxonomy_viewable( $taxonomy );
-				$canonical          = erankly_get_term_meta_string( $term->term_id, 'canonical' );
-				if ( '' !== $canonical ) {
-					$canonical = erankly_replace_variables( $canonical, 0, array( 'canonical_url' ) );
-				} else {
-					$link      = get_term_link( $term );
-					$canonical = is_wp_error( $link ) ? '' : (string) $link;
-				}
+				$canonical          = erankly_resolve_term_canonical( $term );
 			}
 		} elseif ( 'archive' === $kind ) {
 			$state['exists']    = '' === $subtype || post_type_exists( $subtype ) || taxonomy_exists( $subtype ) || in_array( $subtype, array( 'author', 'date' ), true );
@@ -192,10 +181,11 @@ function erankly_get_object_seo_state( array $context ): array {
 			$canonical          = $self_url;
 		}
 
-		$canonical                  = esc_url_raw( (string) apply_filters( 'erankly_canonical', $canonical ) );
+		$canonical                  = erankly_finalize_canonical_url( (string) $canonical );
+		$localized_self             = erankly_localize_url( esc_url_raw( $self_url ) );
 		$state['canonical_url']     = erankly_is_absolute_http_url( $canonical ) ? $canonical : '';
 		$state['canonical_is_self'] = '' !== $state['canonical_url']
-			&& erankly_normalize_canonical_comparison_url( $state['canonical_url'] ) === erankly_normalize_canonical_comparison_url( $self_url );
+			&& erankly_normalize_canonical_comparison_url( $state['canonical_url'] ) === erankly_normalize_canonical_comparison_url( $localized_self );
 
 		$noindex            = $state['exists'] && erankly_object_seo_state_is_noindex( $kind, $object_id, $subtype );
 		$state['indexable'] = $state['exists'] && $state['published'] && $state['public'] && ! $noindex;

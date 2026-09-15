@@ -36,6 +36,7 @@
     bindEach("[data-erankly-file-dropzone]", "bindFileDropzone");
     bindEach(".erankly-term-doc-link", "moveTermDocLink");
 
+    bindRoot("bindSimplifiedModeNav");
     bindRoot("bindAllSettingsAutosave");
 
     // The variables module owns one delegated outside-click listener. Escape

@@ -334,6 +334,32 @@ final class ERankly_Meta_Helpers_Test extends WP_UnitTestCase {
 		$this->assertSame( 'Via REST', erankly_get_special_meta_rest_value()['search']['title'] );
 	}
 
+	public function test_special_meta_rest_schema_keeps_advanced_robots_through_prepare(): void {
+		$schema = erankly_get_special_meta_rest_schema();
+		$value  = erankly_special_meta_row_defaults(
+			array(
+				'title'             => 'Search SEO',
+				'noindex'           => 1,
+				'index_directive'   => 'noindex',
+				'max_snippet'       => '10',
+				'indexifembedded'   => 1,
+			)
+		);
+		$map = array();
+		foreach ( array_keys( erankly_special_page_keys() ) as $context ) {
+			$map[ $context ] = 'search' === $context ? $value : erankly_special_meta_row_defaults( array() );
+		}
+
+		$valid = rest_validate_value_from_schema( $map, $schema );
+		$this->assertTrue( $valid, is_wp_error( $valid ) ? $valid->get_error_message() : 'schema rejected advanced robots' );
+
+		$sanitized = rest_sanitize_value_from_schema( $map, $schema );
+		$this->assertIsArray( $sanitized );
+		$this->assertSame( 'noindex', $sanitized['search']['index_directive'] );
+		$this->assertSame( '10', $sanitized['search']['max_snippet'] );
+		$this->assertTrue( $sanitized['search']['indexifembedded'] );
+	}
+
 	/* ----------------------------------------------------------------------
 	 * includes/localized-value-writer.php
 	 * -------------------------------------------------------------------- */

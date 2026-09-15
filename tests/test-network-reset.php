@@ -218,4 +218,46 @@ final class ERankly_Network_Reset_Test extends WP_UnitTestCase {
 		$this->assertSame( 20, erankly_get_network_reset_snapshot()['state']['last_processed_id'] );
 		$this->assertNotFalse( wp_next_scheduled( ERANKLY_NETWORK_RESET_CRON_HOOK, array( 'tok-next' ) ) );
 	}
+
+	/**
+	 * @group ms-required
+	 */
+	public function test_site_reset_does_not_delete_other_sites_user_meta(): void {
+		if ( ! is_multisite() ) {
+			$this->markTestSkipped( 'User meta is network-global; this contract is only observable on Multisite.' );
+		}
+
+		$blog_a = get_current_blog_id();
+		$blog_b = (int) self::factory()->blog->create();
+
+		switch_to_blog( $blog_b );
+		$user_b = self::factory()->user->create( array( 'role' => 'author' ) );
+		update_user_meta( $user_b, '_erankly_title', 'Author on site B' );
+		restore_current_blog();
+
+		if ( is_user_member_of_blog( $user_b, $blog_a ) ) {
+			remove_user_from_blog( $user_b, $blog_a );
+		}
+
+		$user_a = self::factory()->user->create( array( 'role' => 'author' ) );
+		update_user_meta( $user_a, '_erankly_title', 'Author on site A' );
+
+		$neutralise_ddl = static function ( $query ) {
+			if ( preg_match( '/DROP\s+(?:TEMPORARY\s+)?TABLE\s+IF\s+EXISTS\s+[`"]?\w*erankly_/i', (string) $query ) ) {
+				return 'SELECT 1';
+			}
+
+			return $query;
+		};
+		add_filter( 'query', $neutralise_ddl, 20 );
+
+		try {
+			erankly_reset_site_data();
+		} finally {
+			remove_filter( 'query', $neutralise_ddl, 20 );
+		}
+
+		$this->assertSame( '', (string) get_user_meta( $user_a, '_erankly_title', true ) );
+		$this->assertSame( 'Author on site B', (string) get_user_meta( $user_b, '_erankly_title', true ) );
+	}
 }

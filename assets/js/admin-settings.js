@@ -76,6 +76,50 @@
     root.querySelectorAll(selector).forEach(ER[callbackName]);
   }
 
+  function findNamedCheckbox(root, key) {
+    var suffix = "[" + key + "]";
+    var inputs = root.querySelectorAll("input");
+    var i;
+    var name;
+
+    for (i = 0; i < inputs.length; i++) {
+      name = inputs[i].name || "";
+      if (
+        inputs[i].type === "checkbox" &&
+        name.length >= suffix.length &&
+        name.slice(-suffix.length) === suffix
+      ) {
+        return inputs[i];
+      }
+    }
+
+    return null;
+  }
+
+  // Simplified mode only hides Advanced with the hidden attribute: toggle it
+  // on change so the tab appears or disappears without waiting for the
+  // reloadOnSave HTML refresh (which incomplete-config saves used to skip).
+  function bindSimplifiedModeNav(root) {
+    var tab;
+    var input;
+
+    if (!root || typeof root.querySelector !== "function") {
+      return;
+    }
+
+    tab = root.querySelector("#erankly-settings-tab-advanced");
+    input = findNamedCheckbox(root, "simplified_mode");
+
+    if (!tab || !input || input.eranklySimplifiedModeBound) {
+      return;
+    }
+
+    input.eranklySimplifiedModeBound = true;
+    input.addEventListener("change", function () {
+      tab.hidden = !!input.checked;
+    });
+  }
+
   function bindSettingsReplacement(root) {
     ["bindTabs", "bindSettingsTabs"].forEach(
       function (callbackName) {
@@ -107,6 +151,7 @@
       ER.bindResetConfirmModal();
     }
 
+    bindSimplifiedModeNav(root);
     bindAllSettingsAutosave(root);
   }
 
@@ -124,6 +169,7 @@
     fetch(window.location.href, {
       method: "GET",
       credentials: "same-origin",
+      cache: "no-store",
       headers: {
         "X-Requested-With": "XMLHttpRequest",
       },
@@ -434,20 +480,23 @@
           var errors = (body && body.errors) || [];
           var incomplete = !!(body && body.incomplete);
 
+          // HTTP 200 means the panel was persisted. Incomplete Local Business
+          // (and similar settings_error notices) are configuration gaps, not
+          // failed writes: they must not skip lastSavedValues or the
+          // reloadOnSave refresh that shows or hides PHP-rendered tabs.
           if (errors.length || incomplete) {
             setStatus(
               errors[0] || i18n.incomplete || "Saved, but the configuration is incomplete.",
-              "error",
+              "warning",
             );
-            return;
+          } else {
+            setStatus(
+              warnings.length
+                ? i18n.warning || "Saved with warnings"
+                : i18n.saved || "Saved",
+              warnings.length ? "warning" : "success",
+            );
           }
-
-          setStatus(
-            warnings.length
-              ? i18n.warning || "Saved with warnings"
-              : i18n.saved || "Saved",
-            warnings.length ? "warning" : "success",
-          );
 
           // window.eranklyVariablePreview is only ever localized once, at
           // the page's initial render. Toggling this field via autosave
@@ -478,11 +527,7 @@
           var changedKeys = changedTopLevelKeys(payload, lastSavedValues);
           lastSavedValues = JSON.parse(JSON.stringify(payload));
 
-          if (
-            config.reloadOnSave &&
-            !warnings.length &&
-            refreshNeeded(changedKeys)
-          ) {
+          if (config.reloadOnSave && refreshNeeded(changedKeys)) {
             reloadTimer = window.setTimeout(function () {
               refreshSettingsRoot(settingsRoot);
             }, 700);
@@ -621,6 +666,7 @@
       });
   }
 
+  ER.bindSimplifiedModeNav = bindSimplifiedModeNav;
   ER.bindSettingsReplacement = bindSettingsReplacement;
   ER.refreshSettingsRoot = refreshSettingsRoot;
   ER.bindSettingsAutosave = bindSettingsAutosave;

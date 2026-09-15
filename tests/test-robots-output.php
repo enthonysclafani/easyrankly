@@ -235,6 +235,69 @@ final class ERankly_Robots_Output_Test extends WP_UnitTestCase {
 		$this->assertSame( '', $output );
 	}
 
+	public function test_filter_wp_robots_uses_homepage_special_noindex_on_a_static_front_page(): void {
+		require_once ERANKLY_PATH . 'includes/sitemap/core.php';
+
+		$page_id = self::factory()->post->create(
+			array(
+				'post_type'   => 'page',
+				'post_status' => 'publish',
+				'post_title'  => 'Static front',
+			)
+		);
+		$this->assertIsInt( $page_id );
+
+		update_option( 'show_on_front', 'page' );
+		update_option( 'page_on_front', $page_id );
+		$this->go_to( home_url( '/' ) );
+
+		$this->assertTrue( is_front_page() );
+		$this->assertTrue( is_singular() );
+		$this->assertSame( 'homepage', erankly_current_special_page_key() );
+
+		$filter = $this->inject_entity_row( 'global_special_meta', 'homepage', array( 'noindex' => true ) );
+
+		try {
+			$robots = erankly_filter_wp_robots( array() );
+
+			$this->assertTrue( $robots['noindex'] );
+			$this->assertArrayNotHasKey( 'index', $robots );
+			$this->assertTrue( erankly_special_page_is_sitemap_hidden( 'homepage', $page_id ) );
+		} finally {
+			remove_filter( 'erankly_global_entity_meta_map', $filter, 10 );
+		}
+	}
+
+	public function test_static_front_page_explicit_index_matches_sitemap_visibility(): void {
+		require_once ERANKLY_PATH . 'includes/sitemap/core.php';
+
+		$page_id = self::factory()->post->create(
+			array(
+				'post_type'   => 'page',
+				'post_status' => 'publish',
+				'post_title'  => 'Static front',
+			)
+		);
+		$this->assertIsInt( $page_id );
+
+		update_post_meta( $page_id, '_erankly_index_directive', 'index' );
+		update_option( 'show_on_front', 'page' );
+		update_option( 'page_on_front', $page_id );
+		$this->go_to( home_url( '/' ) );
+
+		$filter = $this->inject_entity_row( 'global_special_meta', 'homepage', array( 'noindex' => true ) );
+
+		try {
+			$robots = erankly_filter_wp_robots( array() );
+
+			$this->assertTrue( $robots['index'] );
+			$this->assertArrayNotHasKey( 'noindex', $robots );
+			$this->assertFalse( erankly_special_page_is_sitemap_hidden( 'homepage', $page_id ) );
+		} finally {
+			remove_filter( 'erankly_global_entity_meta_map', $filter, 10 );
+		}
+	}
+
 	private function get_a_post(): int {
 		$post_id = self::factory()->post->create( array( 'post_status' => 'publish' ) );
 		$this->assertIsInt( $post_id );

@@ -27,7 +27,7 @@ function erankly_is_paginated_content_request(): bool {
  * @return array<string,bool|string>
  */
 function erankly_filter_wp_robots( array $robots ): array {
-	if ( is_singular() ) {
+	if ( is_singular() && ! is_front_page() ) {
 		$post_id   = get_queried_object_id();
 		$post_type = get_post_type( $post_id );
 		$post_type = is_string( $post_type ) ? $post_type : '';
@@ -218,7 +218,7 @@ function erankly_send_feed_robots_header(): void {
 function erankly_apply_current_global_entity_robots( array $robots ): array {
 	$contexts = array();
 
-	if ( is_singular() ) {
+	if ( is_singular() && ! is_front_page() ) {
 		$post_type = get_post_type( get_queried_object_id() );
 		if ( is_string( $post_type ) && '' !== $post_type ) {
 			$contexts[] = array( 'global_post_type_meta', $post_type );

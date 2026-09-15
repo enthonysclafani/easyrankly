@@ -1038,9 +1038,9 @@ function erankly_configured_custom_schemas( array $block, int $post_id ): array 
 		return array();
 	}
 
-	$schemas = array();
+	$schemas  = array();
 	$replaced = erankly_replace_json_ld_variables( $json, $post_id );
-	$decoded  = erankly_decode_custom_json_ld( $replaced );
+	$decoded  = erankly_decode_custom_json_ld( $replaced, false );
 
 	foreach ( $decoded as $schema ) {
 		if ( ! empty( $schema ) ) {

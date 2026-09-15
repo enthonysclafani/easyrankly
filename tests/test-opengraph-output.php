@@ -294,4 +294,53 @@ final class ERankly_Opengraph_Output_Test extends WP_UnitTestCase {
 		// Exactly one discovery link is emitted, not the native JSON+XML pair as well.
 		$this->assertSame( 1, substr_count( $output, 'application/json+oembed' ) );
 	}
+
+	/**
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_static_front_page_uses_homepage_special_social_fields(): void {
+		$page_id = self::factory()->post->create(
+			array(
+				'post_type'    => 'page',
+				'post_status'  => 'publish',
+				'post_title'   => 'Static front',
+				'post_content' => 'Front page body',
+				'post_excerpt' => '',
+			)
+		);
+		$this->assertIsInt( $page_id );
+
+		update_post_meta( $page_id, '_erankly_og_title', 'OG della pagina' );
+		update_post_meta( $page_id, '_erankly_og_image_url', 'https://example.test/page-og.jpg' );
+		update_option( 'show_on_front', 'page' );
+		update_option( 'page_on_front', $page_id );
+		$this->go_to( home_url( '/' ) );
+
+		$filter = static function ( array $map, string $setting_key ): array {
+			if ( 'global_special_meta' === $setting_key ) {
+				$map['homepage'] = array_merge(
+					isset( $map['homepage'] ) && is_array( $map['homepage'] ) ? $map['homepage'] : array(),
+					array(
+						'og_title'         => 'OG Homepage',
+						'social_image_url' => 'https://example.test/homepage-social.jpg',
+					)
+				);
+			}
+
+			return $map;
+		};
+		add_filter( 'erankly_global_entity_meta_map', $filter, 10, 2 );
+
+		try {
+			$this->assertTrue( is_front_page() );
+			$this->assertTrue( is_singular() );
+			$this->assertSame( 'homepage', erankly_current_special_page_key() );
+			$this->assertSame( 'OG Homepage', erankly_get_og_title() );
+			$this->assertSame( 'https://example.test/homepage-social.jpg', erankly_get_og_image() );
+			$this->assertSame( 'https://example.test/homepage-social.jpg', erankly_get_special_page_social_image() );
+		} finally {
+			remove_filter( 'erankly_global_entity_meta_map', $filter, 10 );
+		}
+	}
 }

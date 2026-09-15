@@ -81,4 +81,91 @@ final class ERankly_SEO_State_Test extends WP_UnitTestCase {
 	public function test_posts_page_noindex_check_fails_closed_for_a_missing_page(): void {
 		$this->assertTrue( erankly_object_seo_state_is_noindex( 'posts_page', PHP_INT_MAX, 'page' ) );
 	}
+
+	/**
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_object_seo_state_canonical_matches_head_after_localize(): void {
+		require_once ERANKLY_PATH . 'includes/canonical.php';
+
+		$post_id   = self::factory()->post->create( array( 'post_status' => 'publish' ) );
+		$permalink = get_permalink( $post_id );
+		$this->assertIsString( $permalink );
+		$this->go_to( $permalink );
+
+		$localize = static function ( string $url ): string {
+			if ( '' === $url || str_contains( $url, 'erankly-lang=it' ) ) {
+				return $url;
+			}
+
+			return $url . ( str_contains( $url, '?' ) ? '&' : '?' ) . 'erankly-lang=it';
+		};
+		add_filter( 'erankly_localized_url', $localize );
+
+		try {
+			$head  = erankly_get_canonical();
+			$state = erankly_get_object_seo_state(
+				array(
+					'kind'           => 'post',
+					'object_id'      => $post_id,
+					'object_subtype' => 'post',
+					'blog_id'        => get_current_blog_id(),
+					'url'            => $permalink,
+				)
+			);
+
+			$this->assertStringContainsString( 'erankly-lang=it', $head );
+			$this->assertSame( $head, $state['canonical_url'] );
+			$this->assertTrue( $state['canonical_is_self'] );
+			$this->assertNotContains( 'canonical_not_self', $state['reason_codes'] );
+		} finally {
+			remove_filter( 'erankly_localized_url', $localize );
+		}
+	}
+
+	/**
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_object_seo_state_canonical_matches_head_on_paged_archive(): void {
+		require_once ERANKLY_PATH . 'includes/canonical.php';
+
+		self::factory()->post->create_many( 3, array( 'post_status' => 'publish' ) );
+		$this->set_permalink_structure( '/%postname%/' );
+		update_option( 'posts_per_page', 1 );
+
+		$this->go_to( home_url( '/page/2/' ) );
+
+		$localize = static function ( string $url ): string {
+			if ( '' === $url || str_contains( $url, 'erankly-lang=it' ) ) {
+				return $url;
+			}
+
+			return $url . ( str_contains( $url, '?' ) ? '&' : '?' ) . 'erankly-lang=it';
+		};
+		add_filter( 'erankly_localized_url', $localize );
+
+		try {
+			$this->assertTrue( is_paged() );
+
+			$request_url = erankly_get_paged_archive_canonical();
+			$head        = erankly_get_canonical();
+			$state       = erankly_get_object_seo_state(
+				array(
+					'kind'           => 'home',
+					'object_id'      => 0,
+					'object_subtype' => '',
+					'blog_id'        => get_current_blog_id(),
+					'url'            => $request_url,
+				)
+			);
+
+			$this->assertStringContainsString( 'page/2', $head );
+			$this->assertSame( $head, $state['canonical_url'] );
+			$this->assertTrue( $state['canonical_is_self'] );
+		} finally {
+			remove_filter( 'erankly_localized_url', $localize );
+		}
+	}
 }

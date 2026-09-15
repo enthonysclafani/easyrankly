@@ -58,7 +58,22 @@ function erankly_get_title(): string {
 
 	$title = '';
 
-	if ( is_singular() ) {
+	if ( is_front_page() ) {
+		$post_id = is_singular() ? get_queried_object_id() : 0;
+		$title   = erankly_get_global_entity_meta( 'global_special_meta', 'homepage', 'title' );
+		$title   = erankly_resolve_seo_template( $title, $post_id, array( 'seo_title' ) );
+
+		if ( '' === $title ) {
+			$title = get_bloginfo( 'name' );
+		}
+	} elseif ( is_home() ) {
+		$title = erankly_get_global_entity_meta( 'global_special_meta', 'blog', 'title' );
+		$title = erankly_resolve_seo_template( $title, 0, array( 'seo_title' ) );
+
+		if ( '' === $title ) {
+			$title = get_bloginfo( 'name' );
+		}
+	} elseif ( is_singular() ) {
 		$post_id = get_queried_object_id();
 		$title   = erankly_get_post_meta_string( $post_id, 'title' );
 
@@ -73,14 +88,6 @@ function erankly_get_title(): string {
 
 		if ( '' === $title ) {
 			$title = single_post_title( '', false );
-		}
-	} elseif ( is_home() || is_front_page() ) {
-		$special_key = is_front_page() ? 'homepage' : 'blog';
-		$title       = erankly_get_global_entity_meta( 'global_special_meta', $special_key, 'title' );
-		$title = erankly_resolve_seo_template( $title, 0, array( 'seo_title' ) );
-
-		if ( '' === $title ) {
-			$title = get_bloginfo( 'name' );
 		}
 	} elseif ( is_category() || is_tag() || is_tax() ) {
 		$term = get_queried_object();
@@ -166,7 +173,22 @@ function erankly_get_description(): string {
 	$description                    = '';
 	$description_generated_fallback = false;
 
-	if ( is_singular() ) {
+	if ( is_front_page() ) {
+		$post_id     = is_singular() ? get_queried_object_id() : 0;
+		$description = erankly_get_global_entity_meta( 'global_special_meta', 'homepage', 'description' );
+		$description = erankly_resolve_seo_template( $description, $post_id, array( 'meta_description' ) );
+
+		if ( '' === $description ) {
+			$description = get_bloginfo( 'description' );
+		}
+	} elseif ( is_home() ) {
+		$description = erankly_get_global_entity_meta( 'global_special_meta', 'blog', 'description' );
+		$description = erankly_resolve_seo_template( $description, 0, array( 'meta_description' ) );
+
+		if ( '' === $description ) {
+			$description = get_bloginfo( 'description' );
+		}
+	} elseif ( is_singular() ) {
 		$post_id     = get_queried_object_id();
 		$description = erankly_get_post_meta_string( $post_id, 'description' );
 
@@ -226,14 +248,6 @@ function erankly_get_description(): string {
 	} elseif ( is_404() ) {
 		$description = erankly_get_global_entity_meta( 'global_special_meta', '404', 'description' );
 		$description = erankly_resolve_seo_template( $description, 0, array( 'meta_description' ) );
-	} elseif ( is_home() || is_front_page() ) {
-		$special_key = is_front_page() ? 'homepage' : 'blog';
-		$description = erankly_get_global_entity_meta( 'global_special_meta', $special_key, 'description' );
-		$description = erankly_resolve_seo_template( $description, 0, array( 'meta_description' ) );
-
-		if ( '' === $description ) {
-			$description = get_bloginfo( 'description' );
-		}
 	}
 
 	$description = $description_generated_fallback ? erankly_trim_text( strip_shortcodes( $description ), 160 ) : erankly_normalize_seo_text( $description );

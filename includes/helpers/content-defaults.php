@@ -143,8 +143,9 @@ function erankly_special_page_keys( bool $translate_labels = true ): array {
 
 /**
  * Returns the special page entity key matching the current main query. Mirrors the page-type resolution used for
- * titles, descriptions and robots so the same metadata applies consistently. A static front page is handled as a
- * singular post, so it returns '' there; the 'homepage' key applies when the front page shows the blog.
+ * titles, descriptions and robots so the same metadata applies consistently. A static front page is still the
+ * homepage special page even though WordPress also treats it as singular; the 'blog' key is the posts page when
+ * it is not the front.
  *
  * @return string Entity key, or '' when the request is not a special page.
  */
@@ -165,7 +166,7 @@ function erankly_current_special_page_key(): string {
 		return 'date';
 	}
 
-	if ( ! is_singular() && is_front_page() ) {
+	if ( is_front_page() ) {
 		return 'homepage';
 	}
 

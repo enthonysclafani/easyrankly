@@ -46,16 +46,20 @@ function erankly_normalize_custom_json_ld_data( string $json ): array {
  * node is a non-empty object that carries a usable @type and/or @id. Parseable JSON without that
  * minimum is not treated as valid JSON-LD.
  *
+ * @param bool $allow_placeholders When true, {{variable}} tokens are replaced with a JSON-safe probe
+ *                                 so authored templates can be stored. Runtime callers must pass false
+ *                                 and validate the document after variable replacement.
  * @return array{valid:bool,code:string,message:string,nodes:array<int,array<string,mixed>>}
  */
-function erankly_validate_custom_json_ld( string $json ): array {
+function erankly_validate_custom_json_ld( string $json, bool $allow_placeholders = true ): array {
 	$json = trim( $json );
 
 	if ( '' === $json ) {
 		return erankly_json_ld_validation_result( true, '', '', array() );
 	}
 
-	$decoded = json_decode( erankly_json_ld_placeholder_probe( $json ), true );
+	$prepared = $allow_placeholders ? erankly_json_ld_placeholder_probe( $json ) : $json;
+	$decoded  = json_decode( $prepared, true );
 
 	if ( JSON_ERROR_NONE !== json_last_error() || ( ! is_array( $decoded ) && ! is_object( $decoded ) ) ) {
 		return erankly_json_ld_validation_result(

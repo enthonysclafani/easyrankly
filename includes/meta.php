@@ -76,6 +76,89 @@ function erankly_get_meta_keys(): array {
 }
 
 /**
+ * Deletes EasyRankly user meta for the current site only.
+ *
+ * User meta is network-global on Multisite. A per-site reset or restore must not
+ * wipe author SEO belonging to users who only exist on other sites.
+ *
+ * @param string[]|null $keys Specific meta keys, or null for every `_erankly_*` key.
+ * @return int|false Rows deleted, or false when a statement fails.
+ */
+function erankly_delete_current_site_user_meta( ?array $keys = null ) {
+	global $wpdb;
+
+	if ( is_array( $keys ) && array() === $keys ) {
+		return 0;
+	}
+
+	if ( ! is_multisite() ) {
+		if ( null === $keys ) {
+			return $wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Site reset/restore removes plugin-owned user meta.
+				$wpdb->prepare(
+					"DELETE FROM {$wpdb->usermeta} WHERE meta_key LIKE %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+					$wpdb->esc_like( '_erankly_' ) . '%'
+				)
+			);
+		}
+
+		$placeholders = implode( ', ', array_fill( 0, count( $keys ), '%s' ) );
+
+		return $wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Site reset/restore removes plugin-owned user meta.
+			$wpdb->prepare(
+				"DELETE FROM {$wpdb->usermeta} WHERE meta_key IN ({$placeholders})", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- Placeholder list matches $keys.
+				$keys
+			)
+		);
+	}
+
+	$cap_key  = $wpdb->get_blog_prefix() . 'capabilities';
+	$user_ids = $wpdb->get_col( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Resolve this site's members before a global usermeta delete.
+		$wpdb->prepare(
+			"SELECT user_id FROM {$wpdb->usermeta} WHERE meta_key = %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			$cap_key
+		)
+	);
+	if ( ! is_array( $user_ids ) || '' !== (string) $wpdb->last_error ) {
+		return false;
+	}
+	$user_ids = array_values(
+		array_filter(
+			array_unique( array_map( 'absint', $user_ids ) )
+		)
+	);
+	if ( array() === $user_ids ) {
+		return 0;
+	}
+
+	$deleted = 0;
+	foreach ( array_chunk( $user_ids, 100 ) as $chunk ) {
+		$id_placeholders = implode( ',', array_fill( 0, count( $chunk ), '%d' ) );
+		if ( null === $keys ) {
+			$result = $wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Per-site Multisite user-meta wipe.
+				$wpdb->prepare(
+					"DELETE FROM {$wpdb->usermeta} WHERE user_id IN ({$id_placeholders}) AND meta_key LIKE %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- Placeholder list matches $chunk.
+					array_merge( $chunk, array( $wpdb->esc_like( '_erankly_' ) . '%' ) )
+				)
+			);
+		} else {
+			$key_placeholders = implode( ', ', array_fill( 0, count( $keys ), '%s' ) );
+			$result           = $wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Per-site Multisite user-meta wipe.
+				$wpdb->prepare(
+					"DELETE FROM {$wpdb->usermeta} WHERE user_id IN ({$id_placeholders}) AND meta_key IN ({$key_placeholders})", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- Placeholder lists match $chunk and $keys.
+					array_merge( $chunk, $keys )
+				)
+			);
+		}
+		if ( false === $result ) {
+			return false;
+		}
+		$deleted += (int) $result;
+	}
+
+	return $deleted;
+}
+
+/**
  * @return array<string,string>
  */
 function erankly_addon_meta_keys(): array {
@@ -795,10 +878,11 @@ function erankly_render_invalid_json_ld_notice(): void {
  * Decodes custom JSON-LD into graph entries. Supports one object, an array of objects, or an object containing
  * @graph. Nodes that fail Schema.org-minimum validation are rejected as a document, not silently dropped.
  *
+ * @param bool $allow_placeholders See erankly_validate_custom_json_ld().
  * @return array<int,array<string,mixed>>
  */
-function erankly_decode_custom_json_ld( string $json ): array {
-	$result = erankly_validate_custom_json_ld( $json );
+function erankly_decode_custom_json_ld( string $json, bool $allow_placeholders = true ): array {
+	$result = erankly_validate_custom_json_ld( $json, $allow_placeholders );
 
 	return $result['valid'] ? $result['nodes'] : array();
 }

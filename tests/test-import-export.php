@@ -481,6 +481,104 @@ final class ERankly_Import_Export_Test extends WP_UnitTestCase {
 		$this->assertSame( '/imported-target', $imported[0]['target_url'] );
 	}
 
+	public function test_restore_failure_after_the_first_batch_keeps_the_spool_and_pauses_the_job(): void {
+		$post_id = self::factory()->post->create();
+		update_post_meta( $post_id, '_erankly_title', 'Live title that purge must remove' );
+
+		$data = array(
+			'plugin'       => 'erankly',
+			'format'       => '4.0',
+			'settings'     => array( 'website_name' => 'Restored Site' ),
+			'special_meta' => null,
+			'redirects'    => array(),
+			'user_meta'    => array(),
+			'post_meta'    => array(
+				array(
+					'id'    => $post_id,
+					'key'   => '_erankly_title',
+					'value' => 'Restored Title',
+				),
+			),
+			'term_meta'    => array(),
+		);
+
+		$path    = $this->create_private_import_file( $data );
+		$started = ERankly_Import_Job_Runner::start_from_file( $path, $data );
+		$this->assertTrue( $started['ok'] );
+
+		$job_id = (string) $started['job']['id'];
+		$spool  = $path . '.spool';
+		$this->assertFileExists( $spool );
+
+		wp_clear_scheduled_hook( ERANKLY_IMPORT_CRON_HOOK, array( $job_id ) );
+
+		$boom = static function (): void {
+			throw new RuntimeException( 'forced restore failure after purge' );
+		};
+		add_action( 'erankly_imported_payload', $boom );
+
+		try {
+			$paused = ERankly_Import_Job_Runner::process( $job_id );
+		} finally {
+			remove_action( 'erankly_imported_payload', $boom );
+		}
+
+		$this->assertIsArray( $paused );
+		$this->assertSame( 'paused', $paused['status'] );
+		$this->assertFileExists( $spool, 'A restore that already purged live data must keep the private spool.' );
+		$this->assertNotFalse(
+			wp_next_scheduled( ERANKLY_IMPORT_CRON_HOOK, array( $job_id ) ),
+			'A paused restore must keep a cron event so it can resume after the failed batch.'
+		);
+
+		$active = get_option( ERANKLY_IMPORT_ACTIVE_JOB_OPTION, null );
+		$this->assertIsArray( $active );
+		$this->assertSame( $job_id, $active['id'] );
+		$this->assertSame( 'paused', $active['status'] );
+		$this->assertSame( '', (string) get_post_meta( $post_id, '_erankly_title', true ) );
+
+		$this->run_import_job( $job_id );
+
+		$this->assertNull( ERankly_Import_Job_Runner::active_job() );
+		$this->assertFileDoesNotExist( $spool );
+		$this->assertSame( 'Restored Title', get_post_meta( $post_id, '_erankly_title', true ) );
+	}
+
+	public function test_restore_replaces_live_settings_keys_absent_from_the_snapshot(): void {
+		$live                   = erankly_get_settings();
+		$live['website_name']   = 'Live Name';
+		$live['addon_only_key'] = 'must-not-survive-restore';
+		$seeded                 = erankly_update_plugin_settings( $live, '', true );
+		$this->assertTrue( $seeded );
+		erankly_clear_settings_cache();
+		$this->assertSame( 'must-not-survive-restore', erankly_get_stored_settings()['addon_only_key'] );
+
+		$data = array(
+			'plugin'       => 'erankly',
+			'format'       => '4.0',
+			'settings'     => array( 'website_name' => 'Snapshot Name' ),
+			'special_meta' => null,
+			'redirects'    => array(),
+			'user_meta'    => array(),
+			'post_meta'    => array(),
+			'term_meta'    => array(),
+		);
+
+		$path    = $this->create_private_import_file( $data );
+		$started = ERankly_Import_Job_Runner::start_from_file( $path, $data );
+		$this->assertTrue( $started['ok'] );
+
+		$this->run_import_job( (string) $started['job']['id'] );
+
+		$finished = get_option( ERANKLY_IMPORT_LAST_RESULT_OPTION, array() );
+		$this->assertSame( 'complete', $finished['status'] ?? null, (string) ( $finished['error'] ?? '' ) );
+
+		erankly_clear_settings_cache();
+		$stored = erankly_get_stored_settings();
+		$this->assertSame( 'Snapshot Name', $stored['website_name'] );
+		$this->assertArrayNotHasKey( 'addon_only_key', $stored );
+	}
+
 	public function test_process_fails_safely_when_the_private_spool_is_tampered_with(): void {
 		$data = array(
 			'plugin'       => 'erankly',

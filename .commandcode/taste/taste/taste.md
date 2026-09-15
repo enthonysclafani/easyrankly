@@ -1,0 +1,20 @@
+# Taste
+- Communicates in Italian and expects replies/progress updates in Italian. Confidence: 0.75
+- Wants report/analysis deliverables written in Italian even when the request prompt itself is written in English (e.g. spec: "REPORT FORMAT (Italian, because the user writes in Italian)"). Confidence: 0.8
+- Asks for research before an opinion when the question is about current relevance/best practice (e.g. "Il file llms.txt è utile ad oggi? Fai ricerche in merito"). Confidence: 0.6
+- Runs a review-to-work pipeline: one agent audits and produces a report that doubles as a prompt + plan, then a separate model/agent ("manodopera") executes it. Confidence: 0.75
+- Wants analysis done read-only first — explicitly asks to report findings without making changes, and only then proceeds to edits. Confidence: 0.75
+- After fixes are applied, asks for a fresh, independent double-check of the previous findings instead of trusting the earlier verification pass. Confidence: 0.8
+- Re-runs the whole test suite "per sicurezza" after a batch of changes. Confidence: 0.6
+- Keeps review/audit artifacts in a dedicated, dated folder inside the project (e.g. "report errori al 15-09-2026") and keeps them out of the repo/version control via `.gitignore` rather than committing them. Confidence: 0.65
+- Expects review reports to separate verified facts from unverified limits, and to include priorities, evidence and acceptance criteria; treats "green tests" as insufficient proof when cases are skipped. Confidence: 0.7
+- Works on uncommitted diffs of the plugin as the authoritative state, then publishes the changes to GitHub when satisfied. Confidence: 0.6
+- Obsesses over bloat and over-engineering: wants unused code (comments included), dead branches, defensive code that never fires, and latent bugs that could fail "one time in a thousand" identified and justified line by line. Confidence: 0.8
+- Prefers reusing native WordPress core facilities (blocks, hooks, APIs) over duplicating functionality, with a version check and an explicit, documented fallback for unsupported versions rather than silent divergence. Confidence: 0.7
+- Flags duplicated UI blocks/settings and asks whether the duplication is justified, proposing to merge them. Confidence: 0.7
+- Prefers generic/neutral field labels and asks to remove fields or copy that are not actually used by the underlying feature. Confidence: 0.6
+- Wants admin DOM kept clean and consistent: reduce unnecessary nesting, uniform spacing, use global classes, and align the structure of similar screens to a reference component (e.g. "Add Redirect" aligned to "Site identity"). Confidence: 0.75
+- Dislikes unnecessary motion and redundant helper text in the admin UI (removed a pulsing green toggle entry animation and a stale explanatory notice). Confidence: 0.6
+- Expects admin panels to react live: toggling an option must show/hide dependent tabs without a manual page reload. Confidence: 0.6
+- macOS (Apple Silicon) with Homebrew at `/opt/homebrew`; Apple Container 1.4.1 is installed and its system services (apiserver, network-vmnet, core-images) are running, but the CLI is not in the default shell PATH — invoke it as `/opt/homebrew/bin/container`. Confidence: 0.9
+- Development context appears to be WordPress/PHP plugin work: a `wp-test-db` MySQL 8.4.11 container is kept running for testing and PHPUnit was referenced. Inferred from environment, not explicitly stated. Confidence: 0.5

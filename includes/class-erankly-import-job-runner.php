@@ -235,7 +235,9 @@ final class ERankly_Import_Job_Runner {
 	public static function active_job(): ?array {
 		$job = get_option( defined( 'ERANKLY_IMPORT_ACTIVE_JOB_OPTION' ) ? ERANKLY_IMPORT_ACTIVE_JOB_OPTION : 'erankly_import_active_job_v1', null );
 		if ( is_array( $job ) && ! empty( $job['id'] ) ) {
-			self::schedule( (string) $job['id'] );
+			if ( 'paused' !== (string) ( $job['status'] ?? '' ) ) {
+				self::schedule( (string) $job['id'] );
+			}
 			return $job;
 		}
 
@@ -364,6 +366,9 @@ final class ERankly_Import_Job_Runner {
 			}
 			$job['error']      = sanitize_text_field( get_class( $error ) );
 			$job['updated_at'] = gmdate( 'c' );
+			if ( ! empty( $job['owned_purged'] ) ) {
+				return self::pause( $job );
+			}
 			self::finish( $job, 'failed' );
 			return null;
 		} finally {
@@ -484,10 +489,11 @@ final class ERankly_Import_Job_Runner {
 				// created after it was taken, so they are removed before the document is replayed. This runs
 				// inside the job, after the spool is durably staged, so an interrupted restore still resumes.
 				if ( ! empty( $job['purge_owned'] ) ) {
+					$job['owned_purged'] = true;
 					self::purge_owned_data();
 					$job['purge_owned'] = false;
 				}
-				self::apply_settings( $data, $job['counts'] );
+				self::apply_settings( $data, $job['counts'], ! empty( $job['owned_purged'] ) );
 				self::advance_stage( $job );
 				continue;
 			}
@@ -565,8 +571,12 @@ final class ERankly_Import_Job_Runner {
 		}
 	}
 
-	/** Applies settings once, loading the canonical sanitizer in cron context. */
-	private static function apply_settings( array $data, array &$counts ): void {
+	/**
+	 * Applies settings once, loading the canonical sanitizer in cron context.
+	 *
+	 * @param bool $replace When true, replace the live option with the snapshot instead of merging.
+	 */
+	private static function apply_settings( array $data, array &$counts, bool $replace = false ): void {
 		if ( isset( $data['settings'] ) && is_array( $data['settings'] ) ) {
 			// The sanitizer reads the defaults and the global metadata maps. A background worker renders no
 			// admin screen first, so both helper bundles have to be loaded explicitly before it runs.
@@ -580,7 +590,24 @@ final class ERankly_Import_Job_Runner {
 			// HTTP settings saves omit this argument and can migrate only values that
 			// were already persisted before the request.
 			$clean = erankly_sanitize_settings( $data['settings'], $data['settings'] );
-			erankly_update_plugin_option( ERANKLY_OPTION, $clean );
+			if ( $replace ) {
+				// A restore is a snapshot. Live keys that only exist because they were
+				// created after the backup must not be merged back in as "extension" settings.
+				$drop_live_extensions = static function () {
+					return array();
+				};
+				add_filter( 'erankly_preserved_extension_settings', $drop_live_extensions );
+				try {
+					$result = erankly_update_plugin_settings( $clean, '', true );
+				} finally {
+					remove_filter( 'erankly_preserved_extension_settings', $drop_live_extensions );
+				}
+				if ( is_wp_error( $result ) || ! $result ) {
+					throw new RuntimeException( 'EasyRankly could not update its settings atomically.' );
+				}
+			} else {
+				erankly_update_plugin_option( ERANKLY_OPTION, $clean );
+			}
 			$counts['settings'] = 1;
 		}
 		if ( array_key_exists( 'special_meta', $data ) ) {
@@ -690,7 +717,7 @@ final class ERankly_Import_Job_Runner {
 
 		$keys         = array_keys( erankly_get_meta_keys() );
 		$placeholders = implode( ', ', array_fill( 0, count( $keys ), '%s' ) );
-		foreach ( array( $wpdb->postmeta, $wpdb->termmeta, $wpdb->usermeta ) as $table ) {
+		foreach ( array( $wpdb->postmeta, $wpdb->termmeta ) as $table ) {
 			$deleted = $wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Bulk removal of plugin-owned metadata before a restore.
 				$wpdb->prepare( // phpcs:ignore WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- The placeholder list and replacements come from the same fixed key map.
 					"DELETE FROM %i WHERE meta_key IN ( {$placeholders} )", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Only the fixed meta-key placeholder list is interpolated.
@@ -701,10 +728,26 @@ final class ERankly_Import_Job_Runner {
 				throw new RuntimeException( 'EasyRankly metadata could not be cleared before the restore.' );
 			}
 		}
+		$deleted_user_meta = erankly_delete_current_site_user_meta( $keys );
+		if ( false === $deleted_user_meta ) {
+			throw new RuntimeException( 'EasyRankly metadata could not be cleared before the restore.' );
+		}
 		// A bulk SQL delete leaves the per-object meta caches stale and core exposes no way to invalidate a
 		// single meta group. A restore is a rare, explicitly confirmed operation, so a full flush is the
 		// correct trade here.
 		wp_cache_flush();
+		$settings_sentinel = new stdClass();
+		if ( is_multisite() ) {
+			delete_site_option( ERANKLY_OPTION );
+			$remaining_settings = get_site_option( ERANKLY_OPTION, $settings_sentinel );
+		} else {
+			delete_option( ERANKLY_OPTION );
+			$remaining_settings = get_option( ERANKLY_OPTION, $settings_sentinel );
+		}
+		erankly_clear_settings_cache();
+		if ( $settings_sentinel !== $remaining_settings ) {
+			throw new RuntimeException( 'EasyRankly settings could not be cleared before the restore.' );
+		}
 		// The export now always carries this option (as an object or explicit null), so removing it first makes
 		// a restore exact even when the snapshot had no special-page metadata. Older exports without the key
 		// are also correctly treated as an empty map during a full restore.
@@ -733,6 +776,23 @@ final class ERankly_Import_Job_Runner {
 		if ( 'complete' !== $job['stage'] && is_array( $job['stage_offsets'] ?? null ) ) {
 			$job['byte'] = absint( $job['stage_offsets'][ $job['stage'] ] ?? 0 );
 		}
+	}
+
+	/**
+	 * Keeps the private spool and checkpoint after a restore has already purged live data.
+	 *
+	 * @param array<string,mixed> $job Mutated worker checkpoint.
+	 * @return array<string,mixed>
+	 */
+	private static function pause( array $job ): array {
+		$job['status'] = 'paused';
+		update_option( ERANKLY_IMPORT_ACTIVE_JOB_OPTION, $job, false );
+		// Always (re)schedule. update_option() is false when the row is unchanged
+		// (same-second retry of an already-paused job) and the previous cron event
+		// may already have been consumed.
+		self::schedule( (string) ( $job['id'] ?? '' ), 10 );
+
+		return $job;
 	}
 
 	/** Finalizes evidence, removes the private file and clears the active job. */

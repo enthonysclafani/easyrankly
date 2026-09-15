@@ -443,6 +443,43 @@ final class ERankly_Schema_Jsonld_Test extends WP_UnitTestCase {
 		$this->assertArrayNotHasKey( 'empty', $schemas[0] );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_configured_custom_schemas_keep_a_node_when_the_title_contains_quotes(): void {
+		$post_id = $this->make_post( array( 'post_title' => 'Titolo con "virgolette"' ) );
+		remove_filter( 'the_title', 'wptexturize' );
+
+		$block = array(
+			'type'   => 'custom',
+			'fields' => array(
+				'custom_json' => '{"@type":"Article","headline":"{{post_title}}"}',
+			),
+		);
+
+		$this->assertTrue( erankly_validate_custom_json_ld( $block['fields']['custom_json'] )['valid'] );
+
+		$schemas = erankly_configured_custom_schemas( $block, $post_id );
+
+		$this->assertCount( 1, $schemas );
+		$this->assertSame( 'Article', $schemas[0]['@type'] );
+		$this->assertSame( 'Titolo con "virgolette"', $schemas[0]['headline'] );
+		$this->assertSame( 'x', erankly_json_ld_placeholder_probe( '{{post_title}}' ) );
+	}
+
+	public function test_runtime_json_ld_validation_keeps_unreplaced_tokens_instead_of_probe_x(): void {
+		$json = '{"@type":"Article","headline":"{{post_title}}"}';
+
+		$this->assertTrue( erankly_validate_custom_json_ld( $json )['valid'] );
+		$this->assertSame( 'x', erankly_validate_custom_json_ld( $json )['nodes'][0]['headline'] );
+
+		$runtime = erankly_validate_custom_json_ld( $json, false );
+
+		$this->assertTrue( $runtime['valid'] );
+		$this->assertSame( '{{post_title}}', $runtime['nodes'][0]['headline'] );
+	}
+
 	public function test_schema_from_configured_block_only_builds_custom_types_and_is_filterable(): void {
 		$this->assertSame( array(), erankly_schema_from_configured_block( array( 'type' => 'other' ), 0 ) );
 
