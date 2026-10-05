@@ -38,10 +38,7 @@ final class ERankly_Js_Contracts_Test extends WP_UnitTestCase {
 
 		$this->assertStringContainsString( 'function changedTopLevelKeys', $source );
 		$this->assertStringContainsString( 'fetch(config.restUrl', $source );
-		$this->assertStringContainsString( 'function bindSimplifiedModeNav', $source );
-		$this->assertStringContainsString( 'erankly-settings-tab-advanced', $source );
 		$this->assertStringContainsString( 'cache: "no-store"', $source );
-		$this->assertStringContainsString( 'bindRoot("bindSimplifiedModeNav")', $this->source( 'assets/js/admin.js' ) );
 	}
 
 	public function test_schema_jsonld_validates_type_names_with_the_plugin_textdomain(): void {
@@ -70,12 +67,6 @@ final class ERankly_Js_Contracts_Test extends WP_UnitTestCase {
 		$this->assertStringContainsString( '...row', $source );
 	}
 
-	public function test_admin_reset_script_targets_the_reset_modal(): void {
-		$source = $this->source( 'assets/js/admin-reset.js' );
-
-		$this->assertStringContainsString( '[data-erankly-reset-modal]', $source );
-	}
-
 	public function test_admin_widgets_load_more_local_business_sites_from_rest(): void {
 		$source = $this->source( 'assets/js/admin-widgets.js' );
 
@@ -91,7 +82,7 @@ final class ERankly_Js_Contracts_Test extends WP_UnitTestCase {
 	}
 
 	public function test_schema_identity_keeps_location_fields_when_local_business_is_enabled(): void {
-		$source = $this->source( 'assets/js/admin-schema.js' );
+		$source = $this->source( 'assets/js/admin-identity.js' );
 
 		$this->assertStringContainsString( 'function localBusinessIsEnabled', $source );
 		$this->assertStringContainsString( 'data-erankly-local-business-enabled', $source );
@@ -117,7 +108,7 @@ final class ERankly_Js_Contracts_Test extends WP_UnitTestCase {
 		$this->assertSame( 0, $exit_code, implode( "\n", $output ) );
 	}
 
-	public function test_settings_autosave_probe_refreshes_after_incomplete_simplified_mode_save(): void {
+	public function test_settings_autosave_probe_refreshes_after_an_incomplete_save(): void {
 		$node = trim( (string) shell_exec( 'command -v node' ) );
 		if ( '' === $node ) {
 			$this->markTestSkipped( 'Node is required for the settings autosave probe.' );
@@ -130,6 +121,16 @@ final class ERankly_Js_Contracts_Test extends WP_UnitTestCase {
 		$exit_code = 1;
 		exec( escapeshellarg( $node ) . ' ' . escapeshellarg( $script ), $output, $exit_code );
 
+		$this->assertSame( 0, $exit_code, implode( "\n", $output ) );
+	}
+
+	public function test_forms_admin_probe_waits_for_saved_smtp_settings(): void {
+		$node = trim( (string) shell_exec( 'command -v node' ) );
+		if ( '' === $node ) { $this->markTestSkipped( 'Node is required for the forms admin probe.' ); }
+		$script = ERANKLY_PATH . 'tests/js/forms-admin-probe.cjs';
+		$this->assertFileExists( $script );
+		$output = array(); $exit_code = 1;
+		exec( escapeshellarg( $node ) . ' ' . escapeshellarg( $script ), $output, $exit_code );
 		$this->assertSame( 0, $exit_code, implode( "\n", $output ) );
 	}
 
@@ -146,6 +147,17 @@ final class ERankly_Js_Contracts_Test extends WP_UnitTestCase {
 		$exit_code = 1;
 		exec( escapeshellarg( $node ) . ' ' . escapeshellarg( $script ), $output, $exit_code );
 
+		$this->assertSame( 0, $exit_code, implode( "\n", $output ) );
+	}
+
+	public function test_shared_variable_menu_probe(): void {
+		$node = trim( (string) shell_exec( 'command -v node' ) );
+		if ( '' === $node ) {
+			$this->markTestSkipped( 'Node is required for the variable picker probe.' );
+		}
+		$output = array();
+		$exit_code = 1;
+		exec( escapeshellarg( $node ) . ' ' . escapeshellarg( ERANKLY_PATH . 'tests/js/variable-picker-probe.cjs' ), $output, $exit_code );
 		$this->assertSame( 0, $exit_code, implode( "\n", $output ) );
 	}
 

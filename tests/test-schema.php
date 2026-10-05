@@ -39,12 +39,11 @@ final class ERankly_Schema_Test extends WP_UnitTestCase {
 			$this->assertNotContains( $post_only_key, $user_keys );
 		}
 
-		// The shared fields and the legacy robots booleans stay registered everywhere
-		// they are written at runtime.
+		// The shared fields stay registered everywhere they are written at runtime.
 		$this->assertContains( '_erankly_title', $term_keys );
 		$this->assertContains( '_erankly_title', $user_keys );
 		$this->assertContains( '_erankly_disable_sitemap', $term_keys );
-		$this->assertContains( '_erankly_noindex', $term_keys );
+		$this->assertContains( '_erankly_index_directive', $term_keys );
 	}
 
 	public function test_addon_meta_keys_register_on_terms_and_can_opt_into_users(): void {
@@ -112,7 +111,7 @@ final class ERankly_Schema_Test extends WP_UnitTestCase {
 		$term_id = self::factory()->term->create( array( 'taxonomy' => 'category' ) );
 		$user_id = self::factory()->user->create( array( 'role' => 'author' ) );
 
-		$this->assertFalse( (bool) get_term_meta( $term_id, '_erankly_noindex', true ) );
+		$this->assertFalse( (bool) get_term_meta( $term_id, '_erankly_disable_sitemap', true ) );
 		$this->assertSame( '', (string) get_term_meta( $term_id, '_erankly_title', true ) );
 		$this->assertSame( '', (string) get_user_meta( $user_id, '_erankly_title', true ) );
 
@@ -136,15 +135,8 @@ final class ERankly_Schema_Test extends WP_UnitTestCase {
 		}
 	}
 
-	public function test_schema_blogposting_alias_still_emits_blogposting_type(): void {
-		$post_id = self::factory()->post->create();
-		$schema  = erankly_schema_blogposting( $post_id );
-
-		$this->assertSame( 'BlogPosting', $schema['@type'] );
-	}
-
 	public function test_meta_registration_args_set_typed_defaults(): void {
-		$boolean = erankly_meta_registration_args( '_erankly_noindex', 'boolean', '__return_true' );
+		$boolean = erankly_meta_registration_args( '_erankly_disable_sitemap', 'boolean', '__return_true' );
 		$integer = erankly_meta_registration_args( '_erankly_og_image_id', 'integer', '__return_true' );
 		$object  = erankly_meta_registration_args( '_erankly_primary_terms', 'object', '__return_true' );
 		$array   = erankly_meta_registration_args( '_erankly_schema_blocks', 'array', '__return_true' );
@@ -422,9 +414,8 @@ final class ERankly_Schema_Test extends WP_UnitTestCase {
 		$this->assertSame( 'VirtualLocation', $schema['location']['@type'] );
 	}
 
-	public function test_merge_conflict_surfaces_a_warning(): void {
-		erankly_clear_schema_merge_warnings();
-		erankly_merge_schema_nodes(
+	public function test_merge_conflict_keeps_the_later_layer(): void {
+		$merged = erankly_merge_schema_nodes(
 			array(
 				'@id'  => '#org',
 				'name' => array(
@@ -437,43 +428,7 @@ final class ERankly_Schema_Test extends WP_UnitTestCase {
 			)
 		);
 
-		$this->assertNotEmpty( erankly_get_schema_merge_warnings() );
-		$this->assertNotEmpty( erankly_schema_merge_warning_messages() );
-	}
-
-	public function test_howto_from_html_emits_steps(): void {
-		$html   = '<strong class="schema-how-to-step-name">Mix</strong><p class="schema-how-to-step-text">Stir the batter.</p>';
-		$schema = erankly_schema_howto_from_html( $html, 0 );
-
-		$this->assertSame( 'HowTo', $schema['@type'] );
-		$this->assertSame( 'Mix', $schema['step'][0]['name'] );
-		$this->assertSame( 'Stir the batter.', $schema['step'][0]['text'] );
-	}
-
-	public function test_faq_keeps_long_visible_text(): void {
-		$question = str_repeat( 'Q', 180 );
-		$answer   = str_repeat( 'A', 800 );
-		$items    = array(
-			array(
-				'question' => $question,
-				'answer'   => $answer,
-			),
-		);
-
-		add_filter(
-			'erankly_faq_items',
-			static function () use ( $items ) {
-				return $items;
-			},
-			20
-		);
-
-		$schema = erankly_schema_faq( 1 );
-		remove_all_filters( 'erankly_faq_items' );
-		add_filter( 'erankly_faq_items', 'erankly_faq_items_from_content', 10, 2 );
-
-		$this->assertSame( $question, $schema['mainEntity'][0]['name'] );
-		$this->assertSame( $answer, $schema['mainEntity'][0]['acceptedAnswer']['text'] );
+		$this->assertSame( 'Custom', $merged['name'] );
 	}
 
 	public function test_qapage_is_sanitized_to_webpage(): void {
@@ -481,10 +436,28 @@ final class ERankly_Schema_Test extends WP_UnitTestCase {
 		$this->assertArrayNotHasKey( 'QAPage', erankly_get_webpage_schema_types() );
 	}
 
-	public function test_search_action_is_off_by_default(): void {
-		$defaults = erankly_default_settings();
+	public function test_retired_search_action_setting_is_discarded_when_saving(): void {
+		erankly_tests_load_settings_sanitizer();
+		erankly_tests_set_settings(
+			array(
+				'enable_website_search_action' => 1,
+				'addon_probe'                 => 'preserved',
+			)
+		);
 
-		$this->assertSame( 0, (int) $defaults['enable_website_search_action'] );
+		$defaults = erankly_default_settings();
+		$settings = erankly_sanitize_settings(
+			array(
+				'erankly_settings_panel'       => 'schema',
+				'enable_breadcrumbs'           => 1,
+				'enable_website_search_action' => 1,
+			)
+		);
+
+		$this->assertArrayNotHasKey( 'enable_website_search_action', $defaults );
+		$this->assertArrayNotHasKey( 'enable_website_search_action', $settings );
+		$this->assertSame( 'preserved', $settings['addon_probe'] );
+		$this->assertSame( 1, $settings['enable_breadcrumbs'] );
 		$this->assertSame( 'when_visible', $defaults['breadcrumb_jsonld_mode'] );
 	}
 
@@ -520,7 +493,6 @@ final class ERankly_Schema_Test extends WP_UnitTestCase {
 			'organization_postal_code'    => '',
 			'organization_country'        => '',
 			'local_business_pages'        => array(),
-			'local_business_page_path'    => '',
 		);
 		$map  = erankly_local_business_requirement_gap_map( $settings );
 		$gaps = erankly_local_business_requirement_gaps( $settings );

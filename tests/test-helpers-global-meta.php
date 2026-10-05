@@ -39,34 +39,32 @@ final class ERankly_Helpers_Global_Meta_Test extends WP_UnitTestCase {
 
 	public function test_get_post_meta_bool_accepts_the_stored_one(): void {
 		$post_id = self::factory()->post->create();
-		update_post_meta( $post_id, '_erankly_noindex', '1' );
+		update_post_meta( $post_id, '_erankly_exclude_search', '1' );
 
-		$this->assertTrue( erankly_get_post_meta_bool( (int) $post_id, 'noindex' ) );
+		$this->assertTrue( erankly_get_post_meta_bool( (int) $post_id, 'exclude_search' ) );
 		$this->assertFalse( erankly_get_post_meta_bool( (int) $post_id, 'assente' ) );
 	}
 
 	public function test_registered_boolean_meta_is_normalised_on_save(): void {
 		$post_id = self::factory()->post->create();
 
-		// _erankly_nofollow is registered with a sanitize_callback that casts to
+		// _erankly_disable_sitemap is registered with a sanitize_callback that casts to
 		// bool, so any truthy input lands as a stored '1' rather than staying raw.
-		update_post_meta( $post_id, '_erankly_nofollow', 'yes' );
+		update_post_meta( $post_id, '_erankly_disable_sitemap', 'yes' );
 
-		$this->assertSame( '1', (string) get_post_meta( $post_id, '_erankly_nofollow', true ) );
-		$this->assertTrue( erankly_get_post_meta_bool( (int) $post_id, 'nofollow' ) );
+		$this->assertSame( '1', (string) get_post_meta( $post_id, '_erankly_disable_sitemap', true ) );
+		$this->assertTrue( erankly_get_post_meta_bool( (int) $post_id, 'disable_sitemap' ) );
 
-		update_post_meta( $post_id, '_erankly_nofollow', '' );
+		update_post_meta( $post_id, '_erankly_disable_sitemap', '' );
 
-		$this->assertFalse( erankly_get_post_meta_bool( (int) $post_id, 'nofollow' ) );
+		$this->assertFalse( erankly_get_post_meta_bool( (int) $post_id, 'disable_sitemap' ) );
 	}
 
 	public function test_get_term_meta_accessors(): void {
 		$term_id = self::factory()->term->create( array( 'taxonomy' => 'category' ) );
 		update_term_meta( $term_id, '_erankly_title', '  titolo termine  ' );
-		update_term_meta( $term_id, '_erankly_noindex', '1' );
 
 		$this->assertSame( 'titolo termine', erankly_get_term_meta_string( (int) $term_id, 'title' ) );
-		$this->assertTrue( erankly_get_term_meta_bool( (int) $term_id, 'noindex' ) );
 		$this->assertSame( '', erankly_get_term_meta_string( (int) $term_id, 'assente' ) );
 	}
 
@@ -106,24 +104,6 @@ final class ERankly_Helpers_Global_Meta_Test extends WP_UnitTestCase {
 
 		$this->assertSame( 'noindex', erankly_get_object_robots_directive( 'post', (int) $post_id, 'index' ) );
 		$this->assertSame( 'follow', erankly_get_object_robots_directive( 'post', (int) $post_id, 'follow' ) );
-	}
-
-	public function test_object_robots_directive_falls_back_to_legacy_boolean_meta(): void {
-		$post_id = self::factory()->post->create();
-		update_post_meta( $post_id, '_erankly_noindex', '1' );
-		update_post_meta( $post_id, '_erankly_nofollow', '1' );
-
-		$this->assertSame( 'noindex', erankly_get_object_robots_directive( 'post', (int) $post_id, 'index' ) );
-		$this->assertSame( 'nofollow', erankly_get_object_robots_directive( 'post', (int) $post_id, 'follow' ) );
-	}
-
-	public function test_object_robots_directive_prefers_the_tri_state_over_legacy(): void {
-		$post_id = self::factory()->post->create();
-		update_post_meta( $post_id, '_erankly_index_directive', 'index' );
-		update_post_meta( $post_id, '_erankly_noindex', '1' );
-
-		// An explicit positive directive must beat the restrictive legacy boolean.
-		$this->assertSame( 'index', erankly_get_object_robots_directive( 'post', (int) $post_id, 'index' ) );
 	}
 
 	public function test_object_robots_directive_treats_inherit_as_unset(): void {

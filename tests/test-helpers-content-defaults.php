@@ -19,11 +19,6 @@ final class ERankly_Helpers_Content_Defaults_Test extends WP_UnitTestCase {
 		erankly_clear_settings_cache();
 	}
 
-	public function test_placeholder_helpers_return_the_documented_examples(): void {
-		$this->assertSame( 'https://example.com/social-image.jpg', erankly_default_social_image_placeholder() );
-		$this->assertSame( 'https://example.com/logo.png', erankly_default_organization_logo_placeholder() );
-	}
-
 	public function test_default_templates_reference_site_variables(): void {
 		$this->assertSame( '{{site_name}}', erankly_default_organization_name_template() );
 		$this->assertSame( '{{site_name}}', erankly_default_website_name_template() );

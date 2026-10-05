@@ -1,6 +1,7 @@
 /**
  * Shared JSON-LD validation for the settings screen and the block editor.
- * Mirrors erankly_validate_custom_json_ld() in includes/schema-jsonld.php.
+ * Mirrors erankly_validate_custom_json_ld() in includes/schema-jsonld.php, and adds a non-blocking notice when a
+ * custom node will be merged into a node EasyRankly generates.
  */
 ( function ( root ) {
 	'use strict';
@@ -117,6 +118,33 @@
 		return '';
 	}
 
+	// Fragments of the @id values EasyRankly gives its own generated nodes.
+	var GENERATED_ID_FRAGMENTS = [ 'organization', 'person', 'website', 'webpage', 'article', 'breadcrumb', 'event', 'localbusiness', 'product' ];
+
+	/**
+	 * Explains, without blocking the save, that a custom node will be merged into a generated one: nodes that share
+	 * an @id are combined and the custom values take precedence.
+	 */
+	function mergeNotice( nodes ) {
+		var index;
+		var match;
+
+		for ( index = 0; index < nodes.length; index += 1 ) {
+			match = hasValidId( nodes[ index ] ) ? /#([a-z]+)$/i.exec( nodes[ index ][ '@id' ].trim() ) : null;
+
+			if ( match && GENERATED_ID_FRAGMENTS.indexOf( match[ 1 ].toLowerCase() ) !== -1 ) {
+				return sprintf(
+					/* translators: 1: 1-based node index, 2: @id fragment such as "webpage". */
+					__( 'Node %d uses the same @id as a node EasyRankly generates (#%s). The two are merged and your values take precedence.', 'easyrankly' ),
+					index + 1,
+					match[ 1 ]
+				);
+			}
+		}
+
+		return '';
+	}
+
 	function validateNodes( nodes ) {
 		var index;
 		var error;
@@ -145,6 +173,7 @@
 			valid: true,
 			code: '',
 			message: '',
+			notice: mergeNotice( nodes ),
 		};
 	}
 

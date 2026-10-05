@@ -165,18 +165,6 @@ final class ERankly_Migrations_Runner_Test extends WP_UnitTestCase {
 		$this->assertCount( 10, $manager->reports() );
 	}
 
-	public function test_manager_update_report_only_replaces_existing(): void {
-		$manager = new ERankly_Migration_Manager();
-		$report  = $manager->finish_report( $manager->new_report( 'yoast', true, 'run-update' ) );
-
-		$report['status'] = 'rolled_back';
-		$this->assertTrue( $manager->update_report( $report ) );
-		$this->assertSame( 'rolled_back', $manager->get_report( 'run-update' )['status'] );
-
-		$this->assertFalse( $manager->update_report( array( 'id' => 'unknown' ) ) );
-		$this->assertFalse( $manager->update_report( array() ) );
-	}
-
 	public function test_manager_verification_states_for_import_and_failures(): void {
 		$manager = new ERankly_Migration_Manager();
 
@@ -193,7 +181,8 @@ final class ERankly_Migrations_Runner_Test extends WP_UnitTestCase {
 		$failed['status']                  = 'failed';
 		$blocked                           = $manager->finish_report( $failed );
 		$this->assertSame( 'blocked', $blocked['verification']['state'] );
-		$this->assertContains( 'keep_source_active', $blocked['verification']['next_actions'] );
+		$this->assertContains( 'resolve_blockers', $blocked['verification']['next_actions'] );
+		$this->assertNotContains( 'keep_source_active', $blocked['verification']['next_actions'] );
 
 		$invalid = $manager->new_report( 'yoast', false, 'run-invalid' );
 		$invalid['counts']['objects_invalid']  = 1;
@@ -230,7 +219,6 @@ final class ERankly_Migrations_Runner_Test extends WP_UnitTestCase {
 				),
 				'warnings'       => array(),
 			),
-			false,
 			true
 		);
 		$this->assertSame( 'preview_ready', $ready['state'] );
@@ -248,7 +236,6 @@ final class ERankly_Migrations_Runner_Test extends WP_UnitTestCase {
 				'verification' => array( 'state' => 'blocked', 'ready_to_import' => false ),
 				'counts'       => array(),
 			),
-			false,
 			false
 		);
 		$this->assertSame( 'preview_blocked', $blocked['state'] );
@@ -269,20 +256,17 @@ final class ERankly_Migrations_Runner_Test extends WP_UnitTestCase {
 			),
 		);
 
-		$complete = $presenter->present( $report, false, false );
+		$complete = $presenter->present( $report, false );
 		$this->assertSame( 'complete', $complete['state'] );
 		$this->assertSame( 'open_settings', $complete['primary_action'] );
-		$this->assertSame( 3, $complete['step'] );
+		$this->assertSame( 2, $complete['step'] );
+		$this->assertSame( 2, $complete['steps_total'] );
 		$this->assertSame( 4, $complete['metadata_count'] );
 		$this->assertSame( 1, $complete['redirect_count'] );
 		$this->assertSame( 2, $complete['settings_count'] );
 
-		$active = $presenter->present( $report, true, false );
-		$this->assertSame( 'source_active', $active['state'] );
-		$this->assertSame( 'open_plugins', $active['primary_action'] );
-
-		$this->assertSame( 'blocked', $presenter->present( array( 'mode' => 'import', 'verification' => array( 'state' => 'blocked' ) ), false, false )['state'] );
-		$this->assertSame( 'needs_review', $presenter->present( array( 'mode' => 'import', 'verification' => array( 'state' => 'review' ) ), false, false )['state'] );
+		$this->assertSame( 'blocked', $presenter->present( array( 'mode' => 'import', 'verification' => array( 'state' => 'blocked' ) ), false )['state'] );
+		$this->assertSame( 'needs_review', $presenter->present( array( 'mode' => 'import', 'verification' => array( 'state' => 'review' ) ), false )['state'] );
 	}
 
 	public function test_presenter_problem_count_and_check_totals(): void {
@@ -307,7 +291,6 @@ final class ERankly_Migrations_Runner_Test extends WP_UnitTestCase {
 				),
 				'warnings'     => array(),
 			),
-			false,
 			false
 		);
 		$this->assertSame( 3, $with_failed_checks['problem_count'] );
@@ -320,7 +303,6 @@ final class ERankly_Migrations_Runner_Test extends WP_UnitTestCase {
 				'verification' => array( 'state' => 'blocked', 'checks' => array() ),
 				'warnings'     => array(),
 			),
-			false,
 			false
 		);
 		$this->assertSame( 2, $from_counts['problem_count'] );
@@ -338,7 +320,6 @@ final class ERankly_Migrations_Runner_Test extends WP_UnitTestCase {
 					),
 				),
 			),
-			false,
 			false
 		);
 		$this->assertSame( 1, $from_warnings['problem_count'] );
@@ -430,35 +411,6 @@ final class ERankly_Migrations_Runner_Test extends WP_UnitTestCase {
 		);
 		$this->assertFalse( $not_uploaded['ok'] );
 		$this->assertSame( 'invalid_http_upload', $not_uploaded['error'] );
-	}
-
-	// ---------------------------------------------------------------------
-	// erankly_migration_purge_legacy_state().
-	// ---------------------------------------------------------------------
-
-	public function test_purge_legacy_state_skips_active_migration(): void {
-		update_option( ERANKLY_MIGRATION_ACTIVE_JOB_OPTION, array( 'id' => 'active-job' ) );
-
-		$this->assertFalse( erankly_migration_purge_legacy_state() );
-	}
-
-	public function test_purge_legacy_state_removes_retired_options(): void {
-		global $wpdb;
-
-		update_option( 'erankly_migration_verify_job_1', array( 'x' ) );
-		update_option( 'erankly_migration_rollback_1', array( 'x' ) );
-		update_option( 'erankly_migration_queue_db_version', '1' );
-
-		$result = erankly_migration_purge_legacy_state( true );
-
-		// The option purge runs as a bulk DELETE before the retired-table DROP. That DROP cannot
-		// complete under the SQLite test drop-in (see report), and the bulk delete does not clear
-		// the options cache, so assert the durable database effect directly.
-		$this->assertIsBool( $result );
-		foreach ( array( 'erankly_migration_verify_job_1', 'erankly_migration_rollback_1', 'erankly_migration_queue_db_version' ) as $option_name ) {
-			$remaining = $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->options} WHERE option_name = %s", $option_name ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
-			$this->assertSame( 0, (int) $remaining, $option_name . ' should have been deleted' );
-		}
 	}
 
 	// ---------------------------------------------------------------------

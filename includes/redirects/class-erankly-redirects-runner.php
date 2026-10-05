@@ -27,7 +27,7 @@ final class ERankly_Redirects_Runner {
 			? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_URI'] ) )
 			: '';
 
-		if ( '' === $request_uri || $this->should_skip_request( $request_uri ) ) {
+		if ( '' === $request_uri || ! $this->repository->has_active_rules() || $this->should_skip_request( $request_uri ) ) {
 			return;
 		}
 		// Redirect behavior is intentionally fixed for administrators so the

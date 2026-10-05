@@ -2,28 +2,27 @@
   "use strict";
 
   var documentClickBound = false;
+  var activeField = null;
+  var sharedMenu = null;
+  var visibleOptions = [];
+  var activeIndex = -1;
 
   function closeVariablePicker(field) {
-    var menu = field.querySelector("[data-erankly-variable-menu]");
-    var control = field.querySelector('input:not([type="search"]), textarea');
-
-    if (!menu) {
+    if (!field || field !== activeField || !sharedMenu) {
       return;
     }
-
-    menu.hidden = true;
-
+    sharedMenu.hidden = true;
+    var control = field.querySelector('input:not([type="search"]), textarea');
     if (control) {
       control.setAttribute("aria-expanded", "false");
       control.removeAttribute("aria-activedescendant");
     }
-
-    field
-      .querySelectorAll('[data-erankly-variable][aria-selected="true"]')
-      .forEach(function (option) {
-        option.setAttribute("aria-selected", "false");
-        option.classList.remove("is-active");
-      });
+    sharedMenu.querySelectorAll('[aria-selected="true"]').forEach(function (option) {
+      option.setAttribute("aria-selected", "false");
+      option.classList.remove("is-active");
+    });
+    activeField = null;
+    activeIndex = -1;
   }
 
   // Reads the "word" the caret currently sits in (from the previous whitespace
@@ -50,28 +49,33 @@
     var query = (token || "").trim().toLowerCase();
     var visible = [];
 
-    field
-      .querySelectorAll("[data-erankly-variable]")
-      .forEach(function (option) {
-        var haystack =
-          option.getAttribute("data-erankly-variable-search-text") || "";
-        var isVisible = !query || haystack.indexOf(query) !== -1;
-
+    var preview = field.querySelector("[data-erankly-variable-preview]");
+    var groups;
+    try {
+      groups = JSON.parse(preview && preview.getAttribute("data-erankly-variable-groups"));
+    } catch (e) {
+      groups = null;
+    }
+    var menu = field.querySelector("[data-erankly-variable-menu]");
+    if (!menu) {
+      return visible;
+    }
+    menu.querySelectorAll("[data-erankly-variable-group]").forEach(function (group) {
+      var allowed = !groups || groups.indexOf(group.getAttribute("data-erankly-variable-group")) !== -1;
+      var hasVisible = false;
+      group.querySelectorAll("[data-erankly-variable]").forEach(function (option) {
+        var haystack = option.getAttribute("data-erankly-variable-search-text") || "";
+        var isVisible = allowed && (!query || haystack.indexOf(query) !== -1);
         option.hidden = !isVisible;
         option.classList.remove("is-active");
-
+        option.setAttribute("aria-selected", "false");
         if (isVisible) {
           visible.push(option);
+          hasVisible = true;
         }
       });
-
-    field
-      .querySelectorAll("[data-erankly-variable-group]")
-      .forEach(function (group) {
-        group.hidden = !group.querySelector(
-          "[data-erankly-variable]:not([hidden])",
-        );
-      });
+      group.hidden = !hasVisible;
+    });
 
     return visible;
   }
@@ -104,7 +108,7 @@
   function getVariableUnavailableLabel() {
     var config = window.eranklyVariablePreview;
 
-    return (config && config.unavailableLabel) || "Preview not available";
+    return (config && config.unavailableLabel) || "Preview not defined";
   }
 
   function buildVariablePreviewValues(examples, siteName, siteDescription) {
@@ -133,7 +137,7 @@
   // off the DOM, so swapping the real value would risk saving the resolved
   // text instead of the token on a mistimed autosave. Any token with no
   // example (e.g. a post type with no published posts yet) previews as the
-  // "Preview not available" label instead of the literal token.
+  // "Preview not defined" label instead of the literal token.
   function resolveVariablePreviewText(
     raw,
     examples,
@@ -221,7 +225,7 @@
     var preview = field.querySelector("[data-erankly-variable-preview]");
     var config = window.eranklyVariablePreview;
 
-    if (!preview || !control || !config || !config.resolvePlaceholders) {
+    if (!preview || !control || !config) {
       return;
     }
 
@@ -264,171 +268,118 @@
     update();
   }
 
-  function bindVariablePicker(field) {
-    var control = field.querySelector('input:not([type="search"]), textarea');
-    var menu = field.querySelector("[data-erankly-variable-menu]");
+  function highlightVariable(control, index) {
+    if (activeIndex >= 0 && visibleOptions[activeIndex]) {
+      visibleOptions[activeIndex].classList.remove("is-active");
+      visibleOptions[activeIndex].setAttribute("aria-selected", "false");
+    }
+    activeIndex = index;
+    var option = visibleOptions[index];
+    if (option) {
+      option.classList.add("is-active");
+      option.setAttribute("aria-selected", "true");
+      control.setAttribute("aria-activedescendant", option.id);
+      option.scrollIntoView({ block: "nearest" });
+    } else {
+      control.removeAttribute("aria-activedescendant");
+    }
+  }
 
-    if (
-      !control ||
-      !menu ||
-      field.getAttribute("data-erankly-variable-bound") === "true"
-    ) {
+  function bindVariablePicker(field) {
+    bindVariablePickerDocumentListener();
+    var control = field.querySelector('input:not([type="search"]), textarea');
+    if (!control || !sharedMenu || field.getAttribute("data-erankly-variable-bound") === "true") {
       return;
     }
-
     field.setAttribute("data-erankly-variable-bound", "true");
-
     bindVariablePreview(field, control);
-
-    if (control.id) {
-      menu.id = control.id + "-variables";
-    } else if (!menu.id) {
-      menu.id = "erankly-variable-listbox";
-    }
     control.setAttribute("role", "combobox");
     control.setAttribute("aria-autocomplete", "list");
-    control.setAttribute("aria-controls", menu.id);
+    control.setAttribute("aria-controls", sharedMenu.id);
     control.setAttribute("aria-haspopup", "listbox");
     control.setAttribute("aria-expanded", "false");
 
-    // Give each option a stable id so aria-activedescendant can point at it.
-    field
-      .querySelectorAll("[data-erankly-variable]")
-      .forEach(function (option, index) {
-        if (!option.id) {
-          option.id = menu.id + "-option-" + index;
-        }
-        option.setAttribute("aria-selected", "false");
-      });
-
-    // Per-field open state. `visibleOptions` is the currently matching list and
-    // `activeIndex` the keyboard-highlighted entry within it.
-    var visibleOptions = [];
-    var activeIndex = -1;
-
-    function highlight(index) {
-      if (activeIndex >= 0 && visibleOptions[activeIndex]) {
-        visibleOptions[activeIndex].classList.remove("is-active");
-        visibleOptions[activeIndex].setAttribute("aria-selected", "false");
-      }
-
-      activeIndex = index;
-
-      if (index >= 0 && visibleOptions[index]) {
-        visibleOptions[index].classList.add("is-active");
-        visibleOptions[index].setAttribute("aria-selected", "true");
-        control.setAttribute(
-          "aria-activedescendant",
-          visibleOptions[index].id || "",
-        );
-        visibleOptions[index].scrollIntoView({ block: "nearest" });
-      } else {
-        control.removeAttribute("aria-activedescendant");
-      }
-    }
-
     function openMenu() {
-      var token = getActiveVariableToken(control);
-
-      visibleOptions = filterVariablePicker(field, token.text);
+      if (activeField !== field) {
+        closeVariablePicker(activeField);
+        field.appendChild(sharedMenu);
+        activeField = field;
+      }
+      control.removeAttribute("aria-activedescendant");
+      visibleOptions = filterVariablePicker(field, getActiveVariableToken(control).text);
       activeIndex = -1;
-
       if (!visibleOptions.length) {
         closeVariablePicker(field);
         return;
       }
-
-      document
-        .querySelectorAll("[data-erankly-variable-field]")
-        .forEach(function (otherField) {
-          if (otherField !== field) {
-            closeVariablePicker(otherField);
-          }
-        });
-
-      menu.hidden = false;
+      sharedMenu.hidden = false;
       control.setAttribute("aria-expanded", "true");
     }
-
     control.addEventListener("focus", openMenu);
     control.addEventListener("click", openMenu);
     control.addEventListener("input", openMenu);
-
     control.addEventListener("keydown", function (event) {
-      if (menu.hidden) {
+      if (activeField !== field || sharedMenu.hidden) {
         return;
       }
-
-      if (event.key === "ArrowDown") {
+      if (event.key === "ArrowDown" || event.key === "ArrowUp") {
         event.preventDefault();
-        highlight(Math.min(activeIndex + 1, visibleOptions.length - 1));
-      } else if (event.key === "ArrowUp") {
+        highlightVariable(control, event.key === "ArrowDown"
+          ? Math.min(activeIndex + 1, visibleOptions.length - 1)
+          : Math.max(activeIndex - 1, 0));
+      } else if (event.key === "Enter" && visibleOptions[activeIndex]) {
         event.preventDefault();
-        highlight(Math.max(activeIndex - 1, 0));
-      } else if (event.key === "Enter") {
-        // Only hijack Enter once the user has arrowed onto a suggestion, so it
-        // still inserts newlines / submits when they're just typing prose.
-        if (activeIndex >= 0 && visibleOptions[activeIndex]) {
-          event.preventDefault();
-          insertVariable(
-            control,
-            visibleOptions[activeIndex].getAttribute("data-erankly-variable") ||
-              "",
-            getActiveVariableToken(control),
-          );
-          closeVariablePicker(field);
-        }
-      } else if (event.key === "Escape") {
+        insertVariable(control, visibleOptions[activeIndex].getAttribute("data-erankly-variable") || "", getActiveVariableToken(control));
+        closeVariablePicker(field);
+      } else if (event.key === "Escape" || event.key === "Tab") {
         closeVariablePicker(field);
       }
     });
-
-    menu.addEventListener("mousedown", function (event) {
-      // Keep the field focused so the caret/selection survives the click.
-      event.preventDefault();
-    });
-
-    menu.addEventListener("click", function (event) {
-      var option = event.target
-        ? event.target.closest("[data-erankly-variable]")
-        : null;
-
-      if (!option) {
-        return;
-      }
-
-      insertVariable(
-        control,
-        option.getAttribute("data-erankly-variable") || "",
-        getActiveVariableToken(control),
-      );
-      closeVariablePicker(field);
-    });
-
   }
 
   function bindVariablePickerDocumentListener() {
     if (documentClickBound) {
       return;
     }
-
+    sharedMenu = document.querySelector("[data-erankly-variable-menu]");
+    if (!sharedMenu) {
+      return;
+    }
     documentClickBound = true;
-    document.addEventListener("click", function (event) {
-      document
-        .querySelectorAll("[data-erankly-variable-field]")
-        .forEach(function (field) {
-          if (!field.contains(event.target)) {
-            closeVariablePicker(field);
-          }
-        });
+    sharedMenu.querySelectorAll("[data-erankly-variable]").forEach(function (option, index) {
+      option.id = sharedMenu.id + "-option-" + index;
+      option.setAttribute("aria-selected", "false");
+    });
+    sharedMenu.addEventListener("mousedown", function (event) {
+      event.preventDefault(); // Preserve the control's caret when choosing an option.
+    });
+    sharedMenu.addEventListener("click", function (event) {
+      var option = event.target.closest("[data-erankly-variable]");
+      if (!option || !activeField || option.hidden) {
+        return;
+      }
+      var field = activeField;
+      var control = field.querySelector('input:not([type="search"]), textarea');
+      insertVariable(control, option.getAttribute("data-erankly-variable") || "", getActiveVariableToken(control));
+      closeVariablePicker(field);
+    });
+    function closeOutside(event) {
+      if (activeField && !activeField.contains(event.target)) {
+        closeVariablePicker(activeField);
+      }
+    }
+    document.addEventListener("click", closeOutside);
+    document.addEventListener("focusin", closeOutside);
+    document.addEventListener("keydown", function (event) {
+      if (event.key === "Escape") {
+        closeVariablePicker(activeField);
+      }
     });
   }
 
   function bindVariablePickers(container) {
     bindVariablePickerDocumentListener();
-    container
-      .querySelectorAll("[data-erankly-variable-field]")
-      .forEach(bindVariablePicker);
+    container.querySelectorAll("[data-erankly-variable-field]").forEach(bindVariablePicker);
   }
 
   ER.closeVariablePicker = closeVariablePicker;

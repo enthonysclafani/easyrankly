@@ -1,5 +1,5 @@
 <?php
-/** Uninstall helpers: SQL transients, orphan timeouts, cache-only keys, and DELETE failure injection. */
+/** Uninstall helpers: options, SQL transients, orphan timeouts, network options and DELETE failure injection. */
 
 final class ERankly_Uninstall_Cleanup_Test extends WP_UnitTestCase {
 
@@ -21,9 +21,6 @@ final class ERankly_Uninstall_Cleanup_Test extends WP_UnitTestCase {
 		parent::tear_down();
 	}
 
-	/**
-	 * @param array<string,mixed> $row
-	 */
 	private function insert_option_row( string $name, string $value = '1' ): void {
 		global $wpdb;
 
@@ -50,180 +47,101 @@ final class ERankly_Uninstall_Cleanup_Test extends WP_UnitTestCase {
 		return is_string( $found ) && '' !== $found;
 	}
 
-	private function fail_deletes_containing( string $needle ): void {
-		add_filter(
-			'query',
-			static function ( $sql ) use ( $needle ) {
-				$sql = (string) $sql;
-				if ( preg_match( '/^\s*DELETE\b/i', $sql ) && str_contains( $sql, $needle ) ) {
-					return 'ERANKLY_FORCE_DELETE_FAILURE';
-				}
-
-				return $sql;
-			}
-		);
-	}
-
-	public function test_delete_transient_pair_removes_value_and_timeout_rows(): void {
+	public function test_delete_options_removes_options_transients_and_orphan_timeouts(): void {
+		$this->insert_option_row( 'erankly_import_lock_probe' );
+		$this->insert_option_row( 'erml_ms_settings' );
+		$this->insert_option_row( 'erml_ms_version' );
 		$this->insert_option_row( '_transient_erankly_sitemap_probe', 'data' );
 		$this->insert_option_row( '_transient_timeout_erankly_sitemap_probe', '123' );
-
-		erankly_uninstall_delete_transient_pair( 'erankly_sitemap_probe' );
-
-		$this->assertFalse( $this->option_row_exists( '_transient_erankly_sitemap_probe' ) );
-		$this->assertFalse( $this->option_row_exists( '_transient_timeout_erankly_sitemap_probe' ) );
-	}
-
-	public function test_prefixed_transients_remove_orphan_timeouts_and_values_without_timeouts(): void {
 		$this->insert_option_row( '_transient_timeout_erankly_sitemap_orphan', '123' );
-		$this->insert_option_row( '_transient_erankly_sitemap_value_only', 'data' );
-
-		erankly_uninstall_delete_prefixed_transients();
-
-		$this->assertFalse( $this->option_row_exists( '_transient_timeout_erankly_sitemap_orphan' ) );
-		$this->assertFalse( $this->option_row_exists( '_transient_erankly_sitemap_value_only' ) );
-	}
-
-	public function test_prefixed_transients_clear_sql_rows_when_external_object_cache_is_active(): void {
-		$this->insert_option_row( '_transient_erankly_sitemap_probe', 'data' );
-		$this->insert_option_row( '_transient_timeout_erankly_sitemap_probe', '123' );
-		wp_using_ext_object_cache( true );
-
-		erankly_uninstall_delete_prefixed_transients();
-
-		$this->assertFalse( $this->option_row_exists( '_transient_erankly_sitemap_probe' ) );
-		$this->assertFalse( $this->option_row_exists( '_transient_timeout_erankly_sitemap_probe' ) );
-	}
-
-	public function test_known_cache_transients_remove_cache_only_keys_and_leave_other_plugins(): void {
-		$user_id = self::factory()->user->create();
-		wp_using_ext_object_cache( true );
-		wp_cache_set( 'erankly_settings_notices_' . $user_id, array( 'notice' ), 'transient' );
-		wp_cache_set( 'otherplugin_keep', 'yes', 'transient' );
 		update_option( 'otherplugin_keep_option', 'yes' );
 
-		erankly_uninstall_delete_known_cache_transients();
+		erankly_uninstall_delete_options();
 
-		$this->assertFalse( wp_cache_get( 'erankly_settings_notices_' . $user_id, 'transient' ) );
-		$this->assertSame( 'yes', wp_cache_get( 'otherplugin_keep', 'transient' ) );
+		foreach ( array( 'erankly_import_lock_probe', 'erml_ms_settings', 'erml_ms_version', '_transient_erankly_sitemap_probe', '_transient_timeout_erankly_sitemap_probe', '_transient_timeout_erankly_sitemap_orphan' ) as $name ) {
+			$this->assertFalse( $this->option_row_exists( $name ), $name );
+		}
 		$this->assertSame( 'yes', get_option( 'otherplugin_keep_option' ) );
 	}
 
-	public function test_option_delete_failure_is_not_reported_as_success(): void {
+	public function test_delete_options_clears_sql_rows_when_external_object_cache_is_active(): void {
+		$this->insert_option_row( '_transient_erankly_sitemap_probe', 'data' );
+		wp_using_ext_object_cache( true );
+
+		erankly_uninstall_delete_options();
+
+		$this->assertFalse( $this->option_row_exists( '_transient_erankly_sitemap_probe' ) );
+	}
+
+	public function test_delete_options_keeps_the_object_cache_coherent(): void {
+		update_option( 'erankly_cached_probe', 'value', false );
+		$this->assertSame( 'value', get_option( 'erankly_cached_probe' ) );
+
+		erankly_uninstall_delete_options();
+
+		$this->assertFalse( get_option( 'erankly_cached_probe' ) );
+	}
+
+	public function test_failed_delete_is_not_reported_as_success(): void {
 		global $wpdb;
 
 		update_option( 'erankly_import_lock_probe', 1 );
-		$this->fail_deletes_containing( 'erankly_import_lock_probe' );
-		$wpdb->suppress_errors( true );
+		$this->assertTrue( $this->option_row_exists( 'erankly_import_lock_probe' ) );
+		$failed_deletes = 0;
+		$fail = static function ( $sql ) use ( &$failed_deletes ) {
+			if ( preg_match( '/^\s*DELETE\b/i', (string) $sql ) && str_contains( (string) $sql, 'erankly' ) ) {
+				++$failed_deletes;
+				// wpdb rejects an empty query on both drivers. Invalid SQL would also roll back SQLite's test fixtures.
+				return '';
+			}
+
+			return $sql;
+		};
+		add_filter( 'query', $fail );
+		$previous_suppress_errors = $wpdb->suppress_errors( true );
 
 		$thrown = false;
 		try {
-			erankly_uninstall_delete_option_row( 'erankly_import_lock_probe' );
+			erankly_uninstall_delete_options();
 		} catch ( RuntimeException $exception ) {
 			$thrown = true;
-			$this->assertStringContainsString( 'could not remove its options', $exception->getMessage() );
+			$this->assertStringContainsString( 'could not remove its data', $exception->getMessage() );
 		} finally {
-			$wpdb->suppress_errors( false );
+			remove_filter( 'query', $fail );
+			$wpdb->suppress_errors( $previous_suppress_errors );
 		}
 
+		$this->assertSame( 1, $failed_deletes, 'Uninstall must stop at the first failed DELETE.' );
 		$this->assertTrue( $thrown );
 		$this->assertTrue( $this->option_row_exists( 'erankly_import_lock_probe' ) );
-	}
-
-	public function test_idempotent_option_delete_of_a_missing_row_succeeds(): void {
-		erankly_uninstall_delete_option_row( 'erankly_missing_option_probe' );
-		$this->assertFalse( $this->option_row_exists( 'erankly_missing_option_probe' ) );
-	}
-
-	public function test_transient_delete_failure_is_not_reported_as_success(): void {
-		global $wpdb;
-
-		$this->insert_option_row( '_transient_erankly_sitemap_probe', 'data' );
-		$this->fail_deletes_containing( 'erankly_sitemap_probe' );
-		$wpdb->suppress_errors( true );
-
-		$thrown = false;
-		try {
-			erankly_uninstall_delete_transient_pair( 'erankly_sitemap_probe' );
-		} catch ( RuntimeException $exception ) {
-			$thrown = true;
-			$this->assertStringContainsString( 'could not remove transient data', $exception->getMessage() );
-		} finally {
-			$wpdb->suppress_errors( false );
-		}
-
-		$this->assertTrue( $thrown );
-		$this->assertTrue( $this->option_row_exists( '_transient_erankly_sitemap_probe' ) );
 	}
 
 	/**
 	 * @group ms-required
 	 */
-	public function test_network_option_delete_failure_is_not_reported_as_success(): void {
+	public function test_network_cleanup_removes_only_plugin_network_options(): void {
 		if ( ! is_multisite() ) {
 			$this->markTestSkipped( 'Requires a live Multisite install.' );
 		}
 
 		$network_id = (int) get_current_network_id();
-		update_network_option( $network_id, 'erankly_network_lock_probe', 1 );
-		$this->fail_deletes_containing( 'erankly_network_lock_probe' );
-		$wpdb = $GLOBALS['wpdb'];
-		$wpdb->suppress_errors( true );
+		update_network_option( $network_id, 'erankly_network_probe', 1 );
+		update_network_option( $network_id, 'erml_ms_settings', array( 'sites' => array() ) );
+		update_network_option( $network_id, 'erml_ms_version', '1.3.0' );
+		update_network_option( $network_id, 'otherplugin_network_keep', 'yes' );
 
-		$thrown = false;
-		try {
-			erankly_uninstall_delete_network_option_row( $network_id, 'erankly_network_lock_probe' );
-		} catch ( RuntimeException $exception ) {
-			$thrown = true;
-			$this->assertStringContainsString( 'could not remove network options', $exception->getMessage() );
-		} finally {
-			$wpdb->suppress_errors( false );
-		}
+		erankly_uninstall_network( $network_id );
 
-		$this->assertTrue( $thrown );
-		$this->assertTrue( erankly_uninstall_network_option_row_exists( $network_id, 'erankly_network_lock_probe' ) );
-	}
-
-	public function test_flush_object_cache_leaves_foreign_transient_keys_intact(): void {
-		wp_cache_set( 'otherplugin_keep', 'yes', 'transient' );
-		wp_cache_set( 'erankly_probe', '1', 'erankly_redirects' );
-
-		erankly_uninstall_flush_object_cache();
-
-		$this->assertSame( 'yes', wp_cache_get( 'otherplugin_keep', 'transient' ) );
-
-		if ( function_exists( 'wp_cache_supports' ) && wp_cache_supports( 'flush_group' ) ) {
-			$this->assertFalse( wp_cache_get( 'erankly_probe', 'erankly_redirects' ) );
-		} else {
-			$this->assertSame( '1', wp_cache_get( 'erankly_probe', 'erankly_redirects' ) );
-		}
+		$this->assertFalse( get_network_option( $network_id, 'erankly_network_probe', false ) );
+		$this->assertFalse( get_network_option( $network_id, 'erml_ms_settings', false ) );
+		$this->assertFalse( get_network_option( $network_id, 'erml_ms_version', false ) );
+		$this->assertSame( 'yes', get_network_option( $network_id, 'otherplugin_network_keep' ) );
 	}
 
 	public function test_uninstall_source_does_not_flush_the_shared_transient_group(): void {
 		$source = (string) file_get_contents( ERANKLY_PATH . 'uninstall.php' );
 		$this->assertDoesNotMatchRegularExpression( '/wp_cache_flush\s*\(\s*\)/', $source );
 		$this->assertDoesNotMatchRegularExpression( "/wp_cache_flush_group\\s*\\(\\s*['\"]transient['\"]/", $source );
-		$this->assertStringContainsString( 'wp_cache_flush_group', $source );
-		$this->assertStringNotContainsString( 'erankly_uninstall_simulate_delete_failure', $source );
-		$this->assertStringContainsString( "\$query['blog_id'] = 0;", $source );
-	}
-
-	/**
-	 * @group ms-required
-	 */
-	public function test_known_cache_transients_clear_notices_for_super_admins_outside_the_current_site(): void {
-		if ( ! is_multisite() ) {
-			$this->markTestSkipped( 'Requires a live Multisite install.' );
-		}
-
-		$user_id = self::factory()->user->create();
-		grant_super_admin( $user_id );
-		remove_user_from_blog( $user_id, get_current_blog_id() );
-		wp_using_ext_object_cache( true );
-		wp_cache_set( 'erankly_settings_notices_' . $user_id, array( 'notice' ), 'transient' );
-
-		erankly_uninstall_delete_known_cache_transients();
-
-		$this->assertFalse( wp_cache_get( 'erankly_settings_notices_' . $user_id, 'transient' ) );
+		$this->assertStringContainsString( "wp_cache_flush_group( 'erankly_redirects' )", $source );
 	}
 }

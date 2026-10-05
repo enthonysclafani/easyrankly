@@ -6,6 +6,7 @@
 	const {
 		Button,
 		FormTokenField,
+		Modal,
 		Notice,
 		SelectControl,
 		TextareaControl,
@@ -17,7 +18,7 @@
 	const PluginDocumentSettingPanel =
 		( wp.editor && wp.editor.PluginDocumentSettingPanel ) ||
 		( wp.editPost && wp.editPost.PluginDocumentSettingPanel );
-	const { createElement: el, Fragment } = wp.element;
+	const { createElement: el, createPortal, Fragment, useEffect, useState } = wp.element;
 	const { __ } = wp.i18n;
 	const { registerPlugin } = wp.plugins;
 	const config = eranklyEditor;
@@ -39,9 +40,6 @@
 		twitter_image_url: '_erankly_twitter_image_url',
 		twitter_image_id: '_erankly_twitter_image_id',
 		twitter_image_alt: '_erankly_twitter_image_alt',
-		noindex: '_erankly_noindex',
-		nofollow: '_erankly_nofollow',
-		noarchive: '_erankly_noarchive',
 		index_directive: '_erankly_index_directive',
 		follow_directive: '_erankly_follow_directive',
 		archive_directive: '_erankly_archive_directive',
@@ -62,8 +60,8 @@
 
 	// Optional controls available in the post editor.
 	const FEATURES = {
-		breadcrumbName: config.breadcrumbsEnabled && ! config.simplifiedMode,
-		canonical: ! config.simplifiedMode,
+		breadcrumbName: config.breadcrumbsEnabled,
+		canonical: true,
 		cardType: true,
 		disableSitemap: true,
 		excludeQueries: true,
@@ -203,7 +201,7 @@
 				name: 'erankly-visibility',
 				title: __( 'Search visibility', 'easyrankly' ),
 			},
-			...shared.visibilityFields( { config, data, features: FEATURES } )
+			...shared.visibilityFields( { data, features: FEATURES } )
 		);
 	}
 
@@ -297,7 +295,6 @@
 		);
 		const hasCustom = blocks.some( blockHasJson );
 		const suggestions = Array.isArray( config.schemaTypeSuggestions ) ? config.schemaTypeSuggestions : [];
-		const docUrl = String( config.schemaDocUrl || '' );
 		const isDisabled = 'disabled' === mode;
 
 		function setMode( value ) {
@@ -388,25 +385,6 @@
 			} ),
 		];
 
-		if ( docUrl ) {
-			fields.push(
-				el(
-					'p',
-					{ key: 'schema-doc' },
-					el(
-						'a',
-						{
-							className: 'erankly-section-doc-link',
-							href: docUrl,
-							rel: 'noopener noreferrer',
-							target: '_blank',
-						},
-						__( 'Learn more', 'easyrankly' )
-					)
-				)
-			);
-		}
-
 		if ( isDisabled ) {
 			fields.push( ...notices );
 		} else {
@@ -419,7 +397,6 @@
 					key: 'disabled-types',
 					label: __( 'Suppress generated schema types', 'easyrankly' ),
 					onChange: ( values ) => data.set( 'schema_disabled_types', uniqueSchemaTypes( values ) ),
-					placeholder: __( 'Add a schema type', 'easyrankly' ),
 					suggestions,
 					tokenizeOnSpace: false,
 					value: disabledTypes,
@@ -437,7 +414,7 @@
 						{ key: 'schema-block-' + index },
 						el( TextareaControl, {
 							className: result.valid ? undefined : 'erankly-is-invalid',
-							help: result.valid ? undefined : result.message,
+							help: result.valid ? ( result.notice || undefined ) : result.message,
 							label: `${ __( 'Custom JSON-LD', 'easyrankly' ) } ${ index + 1 }`,
 							onChange: ( value ) => {
 								const nextBlocks = [ ...blocks ];
@@ -487,15 +464,415 @@
 		);
 	}
 
+	// JS ports of erankly_normalize_seo_text() / erankly_trim_text(), so the SERP
+	// preview cleans up resolved templates the same way the front end does.
+	const SEPARATOR = '(?:-|\\||–|—)';
+
+	function htmlToText( html ) {
+		const withoutCode = String( html || '' )
+			.replace( /<!--[\s\S]*?-->/g, ' ' )
+			.replace( /<(script|style)\b[^>]*>[\s\S]*?<\/\1>/gi, ' ' )
+			.replace( /<\/?(p|div|h[1-6]|li|br|figure|blockquote)\b[^>]*>/gi, ' ' );
+		const doc = new window.DOMParser().parseFromString( withoutCode, 'text/html' );
+
+		return ( doc.body ? doc.body.textContent : '' ).replace( /\[\/?[a-z][^\]]*\]/gi, '' );
+	}
+
+	function normalizeSeoText( value ) {
+		return htmlToText( value )
+			.replace( /\s+/g, ' ' )
+			.replace( new RegExp( '\\s*(' + SEPARATOR + ')(?:\\s*' + SEPARATOR + ')+\\s*', 'gu' ), ' $1 ' )
+			.replace( /\s*(?:\(\s*\)|\[\s*\])/gu, '' )
+			.replace( new RegExp( '^(?:\\s*' + SEPARATOR + '\\s*)+', 'u' ), '' )
+			.replace( new RegExp( '(?:\\s*' + SEPARATOR + '\\s*)+$', 'u' ), '' )
+			.trim();
+	}
+
+	function trimText( text, limit ) {
+		const chars = Array.from( text );
+
+		if ( chars.length <= limit ) {
+			return text;
+		}
+
+		return chars.slice( 0, limit - 1 ).join( '' ).replace( /[\s.,;:-]+$/, '' );
+	}
+
+	function resolveTemplate( template, values, exclude ) {
+		return String( template || '' ).replace( /{{\s*([a-z0-9_]+)\s*}}/gi, ( match, key ) => {
+			const normalizedKey = key.toLowerCase();
+
+			return normalizedKey === exclude ? '' : String( values[ normalizedKey ] || '' );
+		} );
+	}
+
+	// Resolves the title, description and URL the front end would print for
+	// the post being edited, from its unsaved state.
+	function useSerpData() {
+		const serp = config.serp || {};
+		const post = useSelect( ( select ) => {
+			const editor = select( 'core/editor' );
+
+			return {
+				content: editor.getEditedPostContent(),
+				date: editor.getEditedPostAttribute( 'date' ),
+				excerpt: editor.getEditedPostAttribute( 'excerpt' ) || '',
+				meta: editor.getEditedPostAttribute( 'meta' ) || {},
+				permalink: editor.getPermalink() || '',
+				title: editor.getEditedPostAttribute( 'title' ) || '',
+			};
+		}, [] );
+		const isSingular = 'singular' === serp.context;
+		const values = {
+			...( config.variableExamples || {} ),
+			site_name: config.siteName,
+			site_description: config.siteDescription,
+			post_title: post.title,
+			post_url: post.permalink,
+		};
+
+		if ( post.excerpt ) {
+			values.post_excerpt = post.excerpt;
+		}
+
+		const titleTemplate = ( isSingular && String( post.meta[ META_MAP.title ] || '' ).trim() ) || serp.titleTemplate;
+		let title = normalizeSeoText( resolveTemplate( titleTemplate, values, 'seo_title' ) );
+
+		if ( '' === title ) {
+			title = isSingular ? normalizeSeoText( post.title ) : config.siteName;
+		}
+
+		const descriptionTemplate = ( isSingular && String( post.meta[ META_MAP.description ] || '' ).trim() ) || serp.descriptionTemplate;
+		let description = normalizeSeoText( resolveTemplate( descriptionTemplate, values, 'meta_description' ) );
+		const generated = isSingular ? htmlToText( post.excerpt || post.content ).replace( /\s+/g, ' ' ).trim() : '';
+
+		if ( '' === description ) {
+			description = isSingular ? trimText( generated, 160 ) : String( config.siteDescription || '' );
+		}
+
+		// A description cut from the content ({{post_excerpt}} or the generated
+		// fallback) stops mid-sentence; Google marks that with " ...".
+		const isDescriptionTrimmed = description.length < generated.length && generated.startsWith( description );
+
+		return {
+			date: serp.showDate && post.date ? wp.date.dateI18n( 'j M Y', post.date ) : '',
+			description,
+			isDescriptionTrimmed,
+			permalink: post.permalink,
+			query: normalizeSeoText( post.title ) || title,
+			siteIcon: serp.siteIcon || '',
+			siteName: config.siteName || '',
+			title,
+		};
+	}
+
+	// "https://example.com › blog › my-post", the way Google prints result URLs.
+	function serpBreadcrumb( permalink ) {
+		try {
+			const url = new window.URL( permalink );
+			const segments = url.pathname.split( '/' ).filter( Boolean ).map( ( segment ) => {
+				try {
+					return window.decodeURIComponent( segment );
+				} catch ( error ) {
+					return segment;
+				}
+			} );
+
+			return [ url.origin, ...segments ].join( ' › ' );
+		} catch ( error ) {
+			return permalink;
+		}
+	}
+
+	// Google bolds the query words it finds in the snippet.
+	function highlightQuery( text, query ) {
+		const words = Array.from( new Set(
+			String( query || '' ).toLowerCase().split( /[^\p{L}\p{N}]+/u ).filter( ( word ) => Array.from( word ).length > 2 )
+		) );
+
+		if ( ! words.length ) {
+			return text;
+		}
+
+		const pattern = new RegExp(
+			'(?<![\\p{L}\\p{N}])(' + words.map( ( word ) => word.replace( /[.*+?^${}()|[\]\\]/g, '\\$&' ) ).join( '|' ) + ')(?![\\p{L}\\p{N}])',
+			'giu'
+		);
+
+		return text.split( pattern ).map( ( part, index ) => ( index % 2 ? el( 'b', { key: index }, part ) : part ) );
+	}
+
+	// Material Design icon paths (Apache 2.0) for the mock results page.
+	const SERP_ICONS = {
+		apps: 'M6 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm6 12c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm-6 0c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0-6c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm6 0c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm4-8c0 1.1.9 2 2 2s2-.9 2-2-.9-2-2-2-2 .9-2 2zm-4 2c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm6 6c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 6c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2z',
+		caret: 'M7 10l5 5 5-5z',
+		clear: 'M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z',
+		globe: 'M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zm6.93 6h-2.95a15.65 15.65 0 0 0-1.38-3.56A8.03 8.03 0 0 1 18.92 8zM12 4.04c.83 1.2 1.48 2.53 1.91 3.96h-3.82c.43-1.43 1.08-2.76 1.91-3.96zM4.26 14C4.1 13.36 4 12.69 4 12s.1-1.36.26-2h3.38c-.08.66-.14 1.32-.14 2s.06 1.34.14 2H4.26zm.82 2h2.95c.32 1.25.78 2.45 1.38 3.56A7.987 7.987 0 0 1 5.08 16zm2.95-8H5.08a7.987 7.987 0 0 1 4.33-3.56A15.65 15.65 0 0 0 8.03 8zM12 19.96c-.83-1.2-1.48-2.53-1.91-3.96h3.82c-.43 1.43-1.08 2.76-1.91 3.96zM14.34 14H9.66c-.09-.66-.16-1.32-.16-2s.07-1.35.16-2h4.68c.09.65.16 1.32.16 2s-.07 1.34-.16 2zm.25 5.56c.6-1.11 1.06-2.31 1.38-3.56h2.95a8.03 8.03 0 0 1-4.33 3.56zM16.36 14c.08-.66.14-1.32.14-2s-.06-1.34-.14-2h3.38c.16.64.26 1.31.26 2s-.1 1.36-.26 2h-3.38z',
+		lens: 'M5 15H3v4c0 1.1.9 2 2 2h4v-2H5v-4zM5 5h4V3H5c-1.1 0-2 .9-2 2v4h2V5zm14-2h-4v2h4v4h2V5c0-1.1-.9-2-2-2zm0 16h-4v2h4c1.1 0 2-.9 2-2v-4h-2v4zM12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm0 6c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z',
+		lock: 'M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zM9 6c0-1.66 1.34-3 3-3s3 1.34 3 3v2H9V6zm3 11c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z',
+		mic: 'M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z',
+		more: 'M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z',
+		search: 'M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z',
+	};
+
+	function SerpIcon( { name, size = 24 } ) {
+		return el(
+			'svg',
+			{
+				'aria-hidden': true,
+				className: 'erankly-serp__icon erankly-serp__icon--' + name,
+				focusable: 'false',
+				height: size,
+				viewBox: '0 0 24 24',
+				width: size,
+			},
+			el( 'path', { d: SERP_ICONS[ name ], fill: 'currentColor' } )
+		);
+	}
+
+	function SerpSource( { children, favicon } ) {
+		return el(
+			'div',
+			{ className: 'erankly-serp__source' },
+			el( 'span', { className: 'erankly-serp__favicon', 'aria-hidden': true }, favicon ),
+			el( 'span', { className: 'erankly-serp__source-text' }, children )
+		);
+	}
+
+	function SerpResult( { data } ) {
+		const description = data.description + ( data.isDescriptionTrimmed ? ' ...' : '' );
+
+		return el(
+			'div',
+			{ className: 'erankly-serp__result' },
+			el(
+				SerpSource,
+				{
+					favicon: data.siteIcon
+						? el( 'img', { alt: '', src: data.siteIcon } )
+						: el( SerpIcon, { name: 'globe', size: 18 } ),
+				},
+				el( 'span', { className: 'erankly-serp__site-name' }, data.siteName ),
+				el(
+					'span',
+					{ className: 'erankly-serp__url-row' },
+					el( 'span', { className: 'erankly-serp__url' }, serpBreadcrumb( data.permalink ) ),
+					el( SerpIcon, { name: 'more', size: 18 } )
+				)
+			),
+			el( 'h3', { className: 'erankly-serp__title' }, data.title ),
+			description.trim()
+				? el(
+					'div',
+					{ className: 'erankly-serp__description' },
+					data.date ? el( 'span', { className: 'erankly-serp__date' }, data.date + ' — ' ) : null,
+					highlightQuery( description, data.query )
+				)
+				: null
+		);
+	}
+
+	// Grey placeholder results around the real one, so it reads as a results page.
+	function SerpSkeleton( { titleWidth } ) {
+		const bone = ( modifier, width ) => el( 'span', {
+			className: 'erankly-serp__bone' + ( modifier ? ' erankly-serp__bone--' + modifier : '' ),
+			style: { width },
+		} );
+
+		return el(
+			'div',
+			{ className: 'erankly-serp__result erankly-serp__result--skeleton', 'aria-hidden': true },
+			el( SerpSource, null, bone( '', '96px' ), bone( '', '188px' ) ),
+			bone( 'title', titleWidth ),
+			bone( 'text', '100%' ),
+			bone( 'text', '64%' )
+		);
+	}
+
+	function SerpPreviewModal( { onClose } ) {
+		const data = useSerpData();
+		const tabs = [
+			[ __( 'AI Mode', 'easyrankly' ) ],
+			[ __( 'All', 'easyrankly' ), 'is-active' ],
+			[ __( 'Images', 'easyrankly' ) ],
+			[ __( 'Videos', 'easyrankly' ) ],
+			[ __( 'News', 'easyrankly' ) ],
+			[ __( 'Short videos', 'easyrankly' ) ],
+			[ __( 'Web', 'easyrankly' ) ],
+			[ __( 'More', 'easyrankly' ), 'has-caret' ],
+			[ __( 'Tools', 'easyrankly' ), 'has-caret is-tools' ],
+		];
+
+		return el(
+			Modal,
+			{
+				className: 'erankly-serp-modal',
+				onRequestClose: onClose,
+				size: 'large',
+				title: __( 'SERP preview', 'easyrankly' ),
+			},
+			el(
+				'div',
+				{ className: 'erankly-serp-window' },
+				el(
+					'div',
+					{ className: 'erankly-serp-window__bar', 'aria-hidden': true },
+					el( 'span', { className: 'erankly-serp-window__dots' }, el( 'span' ), el( 'span' ), el( 'span' ) ),
+					el(
+						'span',
+						{ className: 'erankly-serp-window__address' },
+						el( SerpIcon, { name: 'lock', size: 12 } ),
+						el( 'span', null, 'google.com/search?q=' + data.query.replace( /\s+/g, '+' ) )
+					)
+				),
+				el(
+					'div',
+					{ className: 'erankly-serp' },
+					el(
+						'div',
+						{ className: 'erankly-serp__header' },
+						el( 'span', { className: 'erankly-serp__logo', 'aria-hidden': true }, 'Google' ),
+						el(
+							'div',
+							{ className: 'erankly-serp__searchbar' },
+							el( 'span', { className: 'erankly-serp__query' }, data.query ),
+							el(
+								'span',
+								{ className: 'erankly-serp__searchbar-actions', 'aria-hidden': true },
+								el( SerpIcon, { name: 'clear' } ),
+								el( 'span', { className: 'erankly-serp__divider' } ),
+								el( SerpIcon, { name: 'mic' } ),
+								el( SerpIcon, { name: 'lens' } ),
+								el( SerpIcon, { name: 'search' } )
+							)
+						),
+						el(
+							'div',
+							{ className: 'erankly-serp__account', 'aria-hidden': true },
+							el( SerpIcon, { name: 'apps' } ),
+							el( 'span', { className: 'erankly-serp__sign-in' }, __( 'Sign in', 'easyrankly' ) )
+						)
+					),
+					el(
+						'div',
+						{ className: 'erankly-serp__tabs', 'aria-hidden': true },
+						tabs.map( ( [ label, modifiers = '' ] ) => el(
+							'span',
+							{ className: ( 'erankly-serp__tab ' + modifiers ).trim(), key: label },
+							label,
+							modifiers.includes( 'has-caret' ) ? el( SerpIcon, { name: 'caret', size: 18 } ) : null
+						) )
+					),
+					el(
+						'div',
+						{ className: 'erankly-serp__results' },
+						el( SerpResult, { data } ),
+						el( SerpSkeleton, { titleWidth: '58%' } ),
+						el( SerpSkeleton, { titleWidth: '44%' } )
+					)
+				)
+			)
+		);
+	}
+
+	// Gutenberg has no slot next to the "View" link, so the button is portaled
+	// into the header settings bar and re-attached whenever the header remounts
+	// (for example after leaving distraction-free mode).
+	function useHeaderSlot() {
+		const [ host ] = useState( () => {
+			const node = window.document.createElement( 'div' );
+
+			node.className = 'erankly-serp-preview-slot';
+			return node;
+		} );
+
+		useEffect( () => {
+			let frameId = 0;
+			const attach = () => {
+				frameId = 0;
+
+				const settings = window.document.querySelector( '.editor-header__settings, .edit-post-header__settings' );
+
+				if ( ! settings ) {
+					return;
+				}
+
+				// Core's "View" link has no class of its own: it is the link
+				// right before the device preview dropdown.
+				let anchor = settings.querySelector( ':scope > .editor-preview-dropdown, :scope > .edit-post-post-preview-dropdown' );
+				let previous = anchor ? anchor.previousElementSibling : null;
+
+				if ( previous === host ) {
+					previous = host.previousElementSibling;
+				}
+
+				if ( previous && 'A' === previous.tagName ) {
+					anchor = previous;
+				}
+
+				if ( anchor ) {
+					if ( host.nextElementSibling !== anchor ) {
+						settings.insertBefore( host, anchor );
+					}
+				} else if ( host.parentElement !== settings ) {
+					settings.insertBefore( host, settings.firstChild );
+				}
+			};
+			const schedule = () => {
+				if ( ! frameId ) {
+					frameId = window.requestAnimationFrame( attach );
+				}
+			};
+			const observer = new window.MutationObserver( schedule );
+
+			observer.observe( window.document.body, { childList: true, subtree: true } );
+			attach();
+
+			return () => {
+				observer.disconnect();
+
+				if ( frameId ) {
+					window.cancelAnimationFrame( frameId );
+				}
+
+				host.remove();
+			};
+		}, [ host ] );
+
+		return host;
+	}
+
+	function SerpPreviewButton() {
+		const host = useHeaderSlot();
+		const [ isOpen, setIsOpen ] = useState( false );
+
+		return el(
+			Fragment,
+			null,
+			createPortal(
+				el( Button, {
+					__next40pxDefaultSize: true,
+					className: 'erankly-serp-preview-button',
+					onClick: () => setIsOpen( true ),
+					size: 'compact',
+					variant: 'tertiary',
+				}, __( 'SERP preview', 'easyrankly' ) ),
+				host
+			),
+			isOpen ? el( SerpPreviewModal, { onClose: () => setIsOpen( false ) } ) : null
+		);
+	}
+
 	function ERanklyDocumentSettings() {
 		shared.usePanelsAfterDefaults();
 
 		return el(
 			Fragment,
 			null,
+			el( SerpPreviewButton ),
 			el( GeneralPanel ),
-			! config.simplifiedMode && el( SocialPanel ),
-			! config.simplifiedMode && el( SchemaPanel ),
+			el( SocialPanel ),
+			el( SchemaPanel ),
 			el( VisibilityPanel )
 		);
 	}

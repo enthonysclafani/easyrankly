@@ -775,6 +775,22 @@ abstract class ERankly_Migration_Adapter {
 		return is_array( $filtered ) ? $filtered : $mapped;
 	}
 
+	/** Converts one source template value to EasyRankly {{variables}}. */
+	protected function convert_template( mixed $value ): string {
+		return erankly_import_convert_variables( is_scalar( $value ) ? (string) $value : '', $this->slug() );
+	}
+
+	/** Returns the first non-empty scalar candidate as a string, or the default. */
+	protected function first_scalar( array $values, string $default = '' ): string {
+		foreach ( $values as $value ) {
+			if ( is_scalar( $value ) && '' !== trim( (string) $value ) ) {
+				return (string) $value;
+			}
+		}
+
+		return $default;
+	}
+
 	protected function enabled( mixed $value ): bool {
 		return in_array( strtolower( trim( (string) $value ) ), array( '1', 'on', 'yes', 'true', 'active', 'enabled' ), true );
 	}

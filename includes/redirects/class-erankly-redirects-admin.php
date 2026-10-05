@@ -149,7 +149,6 @@ final class ERankly_Redirects_Admin {
 			<div class="erankly-settings-section erankly-panel-expandable" id="erankly-redirects-table-wrap" data-erankly-expandable>
 				<div class="erankly-section-title-row">
 					<h2 class="erankly-section-title"><?php esc_html_e( 'Redirect rules', 'easyrankly' ); ?></h2>
-					<?php erankly_render_section_doc_link( 'redirect-rules' ); ?>
 				</div>
 				<section class="erankly-card">
 				<div class="erankly-panel-toolbar erankly-redirects-toolbar">
@@ -161,7 +160,7 @@ final class ERankly_Redirects_Admin {
 							<input type="hidden" name="order" value="<?php echo esc_attr( $order ); ?>">
 						<?php endif; ?>
 						<label for="erankly-redirects-search-source" class="screen-reader-text"><?php esc_html_e( 'Search redirect rules', 'easyrankly' ); ?></label>
-						<input id="erankly-redirects-search-source" type="search" name="s" value="<?php echo esc_attr( $search ); ?>" placeholder="<?php esc_attr_e( 'Search rules…', 'easyrankly' ); ?>">
+						<input id="erankly-redirects-search-source" type="search" name="s" value="<?php echo esc_attr( $search ); ?>">
 						<?php submit_button( __( 'Search', 'easyrankly' ), 'secondary', '', false ); ?>
 						<?php if ( '' !== $search ) : ?>
 							<a class="button" href="<?php echo esc_url( $this->admin_url() ); ?>"><?php esc_html_e( 'Clear', 'easyrankly' ); ?></a>
@@ -282,21 +281,6 @@ final class ERankly_Redirects_Admin {
 	}
 
 	private function render_notices(): void {
-		$migration_report = get_option( 'erankly_redirects_v3_migration_report', array() );
-		if ( is_array( $migration_report ) && ( ! empty( $migration_report['transformed'] ) || ! empty( $migration_report['disabled'] ) ) ) {
-			printf(
-				'<div class="notice notice-warning inline"><p>%s</p></div>',
-				esc_html(
-					sprintf(
-						/* translators: 1: transformed legacy redirects, 2: disabled conditional redirects. */
-						__( 'Redirect upgrade completed: %1$d legacy matching rules were converted and %2$d conditional, scheduled, or duplicate rules were disabled for manual review.', 'easyrankly' ),
-						count( $migration_report['transformed'] ?? array() ),
-						count( $migration_report['disabled'] ?? array() )
-					)
-				)
-			);
-		}
-
 		$notice = isset( $_GET['erankly_redirects_notice'] ) ? sanitize_key( wp_unslash( $_GET['erankly_redirects_notice'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only notice display after redirect.
 		$error  = isset( $_GET['erankly_redirects_error'] ) ? sanitize_key( wp_unslash( $_GET['erankly_redirects_error'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only notice display after redirect.
 
@@ -409,12 +393,12 @@ final class ERankly_Redirects_Admin {
 
 			<div class="erankly-field">
 				<label for="erankly-redirects-source-path"><?php esc_html_e( 'Source URL', 'easyrankly' ); ?></label>
-				<input id="erankly-redirects-source-path" class="widefat" type="text" name="source_path" value="<?php echo esc_attr( $source_path ); ?>" required placeholder="/old-page">
+				<input id="erankly-redirects-source-path" class="widefat" type="text" name="source_path" value="<?php echo esc_attr( $source_path ); ?>" required>
 			</div>
 
 			<details class="erankly-settings-details"<?php echo $advanced_open ? ' open' : ''; ?>>
 				<summary><?php esc_html_e( 'Advanced matching', 'easyrankly' ); ?></summary>
-				<div class="erankly-settings-details-content">
+				<div class="erankly-settings-details-content erankly-stack">
 					<div class="erankly-field">
 						<label for="erankly-redirects-match-type"><?php esc_html_e( 'Match type', 'easyrankly' ); ?></label>
 						<select name="match_type" id="erankly-redirects-match-type" class="widefat erankly-field-full-width">
@@ -436,7 +420,7 @@ final class ERankly_Redirects_Admin {
 
 					<div class="erankly-field" id="erankly-redirects-source-query-field">
 						<label for="erankly-redirects-source-query"><?php esc_html_e( 'Required query string', 'easyrankly' ); ?></label>
-						<input class="widefat" type="text" name="source_query" id="erankly-redirects-source-query" value="<?php echo esc_attr( $source_query ); ?>" placeholder="product=123&amp;view=compact">
+						<input class="widefat" type="text" name="source_query" id="erankly-redirects-source-query" value="<?php echo esc_attr( $source_query ); ?>">
 					</div>
 
 					<div class="erankly-field erankly-checkboxes">
@@ -447,7 +431,7 @@ final class ERankly_Redirects_Admin {
 					<div class="erankly-field erankly-redirects-test">
 						<label for="erankly-redirects-test-url"><?php esc_html_e( 'Test URL', 'easyrankly' ); ?></label>
 						<div class="erankly-redirects-test-controls">
-							<input class="widefat" type="text" id="erankly-redirects-test-url" placeholder="/old-page?product=123">
+							<input class="widefat" type="text" id="erankly-redirects-test-url">
 							<button type="button" class="button" id="erankly-redirects-test-button"><?php esc_html_e( 'Test rule', 'easyrankly' ); ?></button>
 						</div>
 						<p class="description" id="erankly-redirects-test-result" aria-live="polite"></p>
@@ -457,7 +441,7 @@ final class ERankly_Redirects_Admin {
 
 			<div class="erankly-field" id="erankly-redirects-target-field">
 				<label for="erankly-redirects-target-url"><?php esc_html_e( 'Target URL', 'easyrankly' ); ?></label>
-				<input id="erankly-redirects-target-url" class="widefat" type="text" name="target_url" value="<?php echo esc_attr( $target_url ); ?>" placeholder="/new-page or https://example.com/new-page">
+				<input id="erankly-redirects-target-url" class="widefat" type="text" name="target_url" value="<?php echo esc_attr( $target_url ); ?>">
 			</div>
 
 			<div class="erankly-field">

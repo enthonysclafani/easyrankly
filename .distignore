@@ -7,6 +7,7 @@
 /.distignore
 /.DS_Store
 /.dist
+/.erankly-audit
 /.phpunit.result.cache
 /phpunit.xml.dist
 /composer.json
@@ -18,3 +19,4 @@
 /.commandcode
 /WORDPRESS-ORG-READINESS.md
 /report errori al 15-09-2026
+/piano moduli contatto al 01-10-2026

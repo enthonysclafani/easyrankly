@@ -21,6 +21,18 @@
     }
 
     function updatePreview(url) {
+      var hasValue = !!url.trim();
+      var focusedButton = document.activeElement;
+
+      selectButton.hidden = hasValue;
+      clearButton.hidden = !hasValue;
+
+      if (focusedButton === selectButton && hasValue) {
+        clearButton.focus();
+      } else if (focusedButton === clearButton && !hasValue) {
+        selectButton.focus();
+      }
+
       if (!preview) {
         return;
       }
@@ -91,6 +103,12 @@
 
       updatePreview(input.value);
     });
+
+    input.addEventListener("change", function () {
+      updatePreview(input.value);
+    });
+
+    updatePreview(input.value);
   }
 
   ER.bindMediaUrlField = bindMediaUrlField;

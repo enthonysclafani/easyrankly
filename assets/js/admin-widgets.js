@@ -1,257 +1,7 @@
 (function (ER) {
   "use strict";
 
-  var userSearchDocumentBound = false;
-
-  function bindUserSearch(wrap) {
-    var config = window.eranklyUserSearch;
-
-    if (!config || !config.restUrl || !config.nonce) {
-      return;
-    }
-
-    if (wrap.getAttribute("data-erankly-user-search-bound") === "true") {
-      return;
-    }
-
-    var idInput = wrap.querySelector("[data-erankly-user-id]");
-    var selected = wrap.querySelector("[data-erankly-user-selected]");
-    var selectedName = wrap.querySelector("[data-erankly-user-selected-name]");
-    var removeBtn = wrap.querySelector("[data-erankly-user-remove]");
-    var inputWrap = wrap.querySelector("[data-erankly-user-search-input-wrap]");
-    var searchInput = wrap.querySelector("[data-erankly-user-search-input]");
-    var resultsList = wrap.querySelector("[data-erankly-user-results]");
-
-    if (
-      !idInput ||
-      !selected ||
-      !removeBtn ||
-      !inputWrap ||
-      !searchInput ||
-      !resultsList
-    ) {
-      return;
-    }
-
-    wrap.setAttribute("data-erankly-user-search-bound", "true");
-
-    var debounceTimer = null;
-    var i18n = config.i18n || {};
-
-    function closeResults() {
-      resultsList.hidden = true;
-      resultsList.innerHTML = "";
-      searchInput.setAttribute("aria-expanded", "false");
-    }
-
-    wrap.eranklyCloseUserResults = closeResults;
-
-    function selectUser(id, text) {
-      idInput.value = id;
-      if (selectedName) {
-        selectedName.value = text;
-      }
-      selected.hidden = false;
-      inputWrap.hidden = true;
-      removeBtn.hidden = false;
-      searchInput.value = "";
-      closeResults();
-      idInput.dispatchEvent(new Event("input", { bubbles: true }));
-      idInput.dispatchEvent(new Event("change", { bubbles: true }));
-    }
-
-    function clearUser() {
-      idInput.value = "0";
-      if (selectedName) {
-        selectedName.value = "";
-      }
-      selected.hidden = true;
-      inputWrap.hidden = false;
-      removeBtn.hidden = true;
-      searchInput.value = "";
-      closeResults();
-      searchInput.focus();
-      idInput.dispatchEvent(new Event("input", { bubbles: true }));
-      idInput.dispatchEvent(new Event("change", { bubbles: true }));
-    }
-
-    function fetchResults(query) {
-      var url = config.restUrl + "?q=" + encodeURIComponent(query);
-
-      resultsList.hidden = false;
-      searchInput.setAttribute("aria-expanded", "true");
-      resultsList.innerHTML =
-        '<li class="erankly-autocomplete-status erankly-user-result-status">' +
-        (i18n.searching || "Searching…") +
-        "</li>";
-
-      fetch(url, {
-        headers: { "X-WP-Nonce": config.nonce },
-        credentials: "same-origin",
-      })
-        .then(function (res) {
-          return res.ok ? res.json() : [];
-        })
-        .then(function (items) {
-          resultsList.innerHTML = "";
-
-          if (!items || items.length === 0) {
-            resultsList.innerHTML =
-              '<li class="erankly-autocomplete-status erankly-user-result-status">' +
-              (i18n.noResults || "No matches found.") +
-              "</li>";
-            return;
-          }
-
-          items.forEach(function (item) {
-            var li = document.createElement("li");
-            var button = document.createElement("button");
-
-            button.type = "button";
-            button.className =
-              "erankly-autocomplete-item erankly-user-result-item";
-            button.setAttribute("role", "option");
-			button.id = resultsList.id + "-option-" + String(item.id);
-            button.setAttribute("tabindex", "-1");
-
-            if (item.name) {
-              if (item.avatar) {
-                var avatar = document.createElement("img");
-                avatar.className = "erankly-user-result-avatar";
-                avatar.src = item.avatar;
-                avatar.alt = "";
-                avatar.loading = "lazy";
-                button.appendChild(avatar);
-              }
-
-              var details = document.createElement("span");
-              details.className = "erankly-user-result-details";
-
-              var name = document.createElement("span");
-              name.className = "erankly-user-result-name";
-              name.textContent = item.name;
-              details.appendChild(name);
-
-              if (item.meta) {
-                var meta = document.createElement("span");
-                meta.className = "erankly-user-result-meta";
-                meta.textContent = item.meta;
-                details.appendChild(meta);
-              }
-
-              button.appendChild(details);
-            } else {
-              button.textContent = item.text;
-            }
-
-            function chooseUser(e) {
-              e.preventDefault();
-              selectUser(item.id, item.text);
-            }
-
-            button.addEventListener("mousedown", function (e) {
-              e.preventDefault();
-            });
-            button.addEventListener("click", chooseUser);
-            button.addEventListener("keydown", function (e) {
-              if (e.key === "Enter" || e.key === " ") {
-                chooseUser(e);
-              }
-            });
-            li.appendChild(button);
-            resultsList.appendChild(li);
-          });
-        })
-        .catch(function () {
-          closeResults();
-        });
-    }
-
-    removeBtn.addEventListener("click", clearUser);
-
-    searchInput.addEventListener("input", function () {
-      clearTimeout(debounceTimer);
-      var query = searchInput.value.trim();
-
-      debounceTimer = setTimeout(function () {
-        fetchResults(query);
-      }, 300);
-    });
-
-    searchInput.addEventListener("focus", function () {
-      if (resultsList.hidden) {
-        fetchResults(searchInput.value.trim());
-      }
-    });
-
-    searchInput.addEventListener("keydown", function (e) {
-	  if (e.key === "Enter") {
-	    e.preventDefault();
-	    var firstMatch = resultsList.querySelector('[role="option"]');
-	    if (firstMatch) {
-	      firstMatch.click();
-	    }
-	    return;
-	  }
-      if (e.key === "Escape") {
-        closeResults();
-        return;
-      }
-
-      if (e.key !== "ArrowDown") {
-        return;
-      }
-
-      var first = resultsList.querySelector('[role="option"]');
-
-      if (first) {
-        e.preventDefault();
-        first.focus();
-      }
-    });
-
-    resultsList.addEventListener("keydown", function (e) {
-      var items = Array.prototype.slice.call(
-        resultsList.querySelectorAll('[role="option"]'),
-      );
-      var current = items.indexOf(document.activeElement);
-
-      if (e.key === "ArrowDown") {
-        e.preventDefault();
-        if (current < items.length - 1) {
-          items[current + 1].focus();
-        }
-      } else if (e.key === "ArrowUp") {
-        e.preventDefault();
-        if (current > 0) {
-          items[current - 1].focus();
-        } else {
-          searchInput.focus();
-        }
-      } else if (e.key === "Escape") {
-        closeResults();
-        searchInput.focus();
-      }
-    });
-
-	if (!userSearchDocumentBound) {
-	  userSearchDocumentBound = true;
-	  document.addEventListener("click", function (e) {
-	    document
-	      .querySelectorAll("[data-erankly-user-search-wrap]")
-	      .forEach(function (currentWrap) {
-	        if (
-	          !currentWrap.contains(e.target) &&
-	          typeof currentWrap.eranklyCloseUserResults === "function"
-	        ) {
-	          currentWrap.eranklyCloseUserResults();
-	        }
-	      });
-	  });
-	}
-  }
-
-    function bindLocalBusiness(container) {
+  function bindLocalBusiness(container) {
     var toggle = container.querySelector(
       "[data-erankly-local-business-toggle]",
     );
@@ -557,7 +307,6 @@
       search.className = "widefat";
       search.setAttribute("data-erankly-local-business-page-search", "");
       search.setAttribute("autocomplete", "off");
-      search.placeholder = i18n.searchPages || "";
 
       var select = document.createElement("select");
       select.id = fieldId;
@@ -707,7 +456,9 @@
           root.removeAttribute("data-erankly-local-business-enabled");
         }
       }
-      ER.syncOrganizationFieldsVisibility(root);
+      if (typeof ER.syncOrganizationFieldsVisibility === "function") {
+        ER.syncOrganizationFieldsVisibility(root);
+      }
 
       if (type && foodFields) {
         foodFields.hidden = foodTypes.indexOf(type.value) === -1;
@@ -764,6 +515,5 @@
     syncVisibility();
   }
 
-  ER.bindUserSearch = bindUserSearch;
   ER.bindLocalBusiness = bindLocalBusiness;
 })(window.ERanklyAdmin = window.ERanklyAdmin || {});

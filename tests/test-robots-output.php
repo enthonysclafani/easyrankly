@@ -174,17 +174,30 @@ final class ERankly_Robots_Output_Test extends WP_UnitTestCase {
 		$this->assertStringNotContainsString( 'Allow: /wp-admin/admin-ajax.php', $output );
 	}
 
-	public function test_filter_robots_txt_appends_custom_rules_and_groups(): void {
+	public function test_custom_robots_txt_replaces_defaults_in_output_and_preview(): void {
+		$custom = "# Custom rules\nAllow: /wp-admin/\n\nUser-agent: BadBot\nDisallow: /badbot/\nDisallow: /badbot/";
 		erankly_update_plugin_settings(
-			array( 'robots_txt_extra' => "Disallow: /private/\n\nUser-agent: BadBot\nDisallow: /badbot/" )
+			array( 'robots_txt_extra' => $custom, 'enable_sitemap' => 1 )
 		);
 		erankly_clear_settings_cache();
 
-		$output = erankly_filter_robots_txt( "User-agent: *\n", true );
+		foreach ( array( true, false ) as $is_public ) {
+			update_option( 'blog_public', (int) $is_public );
+			$this->assertSame( $custom, erankly_filter_robots_txt( "User-agent: *\nDisallow: /wp-admin/\n", $is_public ) );
+			$this->assertSame( $custom, erankly_get_robots_txt_preview() );
+		}
+	}
 
-		$this->assertStringContainsString( 'Disallow: /private/', $output );
-		$this->assertStringContainsString( 'User-agent: BadBot', $output );
-		$this->assertStringContainsString( 'Disallow: /badbot/', $output );
+	public function test_empty_custom_robots_txt_keeps_automatic_rules(): void {
+		foreach ( array( '', " \n\t" ) as $custom ) {
+			erankly_update_plugin_settings( array( 'robots_txt_extra' => $custom, 'enable_sitemap' => 1 ) );
+			erankly_clear_settings_cache();
+			$output = erankly_filter_robots_txt( "User-agent: *\n", true );
+
+			$this->assertStringContainsString( 'Disallow: /wp-admin/', $output );
+			$this->assertStringContainsString( 'Allow: /wp-admin/admin-ajax.php', $output );
+			$this->assertStringContainsString( 'Sitemap: ', $output );
+		}
 	}
 
 	public function test_get_robots_txt_preview_runs_the_public_robots_txt_filter(): void {

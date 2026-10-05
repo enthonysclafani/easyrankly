@@ -35,7 +35,6 @@ function erankly_get_sitemap_stylesheet_url(): string {
 
 /** @param mixed ...$hook_args Hook arguments (not used, hook may pass any number of args). */
 function erankly_flush_sitemap_cache( mixed ...$hook_args ): void {
-	unset( $hook_args );
 	static $flushed_sites = array();
 
 	$site_id = get_current_blog_id();
@@ -90,7 +89,7 @@ function erankly_flush_sitemap_cache_for_status( string $new_status, string $old
 function erankly_flush_sitemap_cache_for_term_meta( mixed $meta_id, int $term_id, string $meta_key ): void {
 	unset( $meta_id, $term_id );
 
-	$keys = array( '_erankly_index_directive', '_erankly_noindex', '_erankly_disable_sitemap', '_erankly_canonical' );
+	$keys = array( '_erankly_index_directive', '_erankly_disable_sitemap', '_erankly_canonical' );
 	$keys = (array) apply_filters( 'erankly_sitemap_term_meta_cache_keys', $keys );
 
 	if ( in_array( $meta_key, $keys, true ) ) {
@@ -108,7 +107,6 @@ function erankly_flush_sitemap_cache_for_post_meta( mixed $meta_id, int $object_
 
 	$keys = array(
 		'_erankly_index_directive',
-		'_erankly_noindex',
 		'_erankly_disable_sitemap',
 		'_erankly_canonical',
 		'_erankly_exclude_from_news',
@@ -130,7 +128,7 @@ function erankly_flush_sitemap_cache_for_post_meta( mixed $meta_id, int $object_
 function erankly_flush_sitemap_cache_for_user_meta( mixed $meta_id, int $object_id, string $meta_key ): void {
 	unset( $meta_id, $object_id );
 
-	$keys = array( '_erankly_index_directive', '_erankly_noindex', '_erankly_canonical' );
+	$keys = array( '_erankly_index_directive', '_erankly_canonical' );
 	$keys = (array) apply_filters( 'erankly_sitemap_user_meta_cache_keys', $keys );
 
 	if ( in_array( $meta_key, $keys, true ) ) {

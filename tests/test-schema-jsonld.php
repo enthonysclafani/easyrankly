@@ -44,20 +44,6 @@ final class ERankly_Schema_Jsonld_Test extends WP_UnitTestCase {
 		erankly_clear_settings_cache();
 	}
 
-	private function seed_merge_conflict(): void {
-		erankly_clear_schema_merge_warnings();
-		erankly_merge_schema_nodes(
-			array(
-				'@id'  => '#org',
-				'name' => array( 'alternate' => 'Auto' ),
-			),
-			array(
-				'@id'  => '#org',
-				'name' => 'Custom',
-			)
-		);
-	}
-
 	// ------------------------------------------------------------------
 	// schema-jsonld.php
 	// ------------------------------------------------------------------
@@ -74,89 +60,11 @@ final class ERankly_Schema_Jsonld_Test extends WP_UnitTestCase {
 		$this->assertSame( 'B', $nodes[1]['name'] );
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
-	public function test_maybe_log_schema_merge_warnings_logs_once_when_debug(): void {
-		$previous = ini_get( 'error_log' );
-		$file     = tempnam( sys_get_temp_dir(), 'erankly_schema_log_' );
-		$this->assertIsString( $file );
-		ini_set( 'error_log', $file );
-
-		$this->seed_merge_conflict();
-
-		try {
-			erankly_maybe_log_schema_merge_warnings();
-			$logged = (string) file_get_contents( $file );
-
-			$this->assertStringContainsString( 'EasyRankly:', $logged );
-			$this->assertStringContainsString( 'name', $logged );
-
-			// The static guard means a second call does not write again.
-			erankly_maybe_log_schema_merge_warnings();
-			$this->assertSame( strlen( $logged ), strlen( (string) file_get_contents( $file ) ) );
-		} finally {
-			ini_set( 'error_log', (string) $previous );
-			@unlink( $file );
-		}
-	}
-
-	public function test_render_schema_merge_warning_comment_requires_capability(): void {
-		$this->seed_merge_conflict();
-
-		ob_start();
-		erankly_render_schema_merge_warning_comment();
-		$anonymous = ob_get_clean();
-		$this->assertSame( '', $anonymous );
-
-		$user_id = self::factory()->user->create( array( 'role' => 'editor' ) );
-		wp_set_current_user( $user_id );
-
-		try {
-			ob_start();
-			erankly_render_schema_merge_warning_comment();
-			$comment = ob_get_clean();
-
-			$this->assertStringContainsString( 'EasyRankly schema merge:', $comment );
-			$this->assertStringContainsString( 'name', $comment );
-		} finally {
-			wp_set_current_user( 0 );
-			erankly_clear_schema_merge_warnings();
-		}
-	}
-
-	public function test_admin_bar_schema_merge_warnings_adds_a_node_for_editors(): void {
-		erankly_clear_schema_merge_warnings();
-
-		$empty = new WP_Admin_Bar();
-		$empty->initialize();
-		erankly_admin_bar_schema_merge_warnings( $empty );
-		$this->assertNull( $empty->get_node( 'erankly-schema-merge' ) );
-
-		$this->seed_merge_conflict();
-
-		$user_id = self::factory()->user->create( array( 'role' => 'editor' ) );
-		wp_set_current_user( $user_id );
-
-		try {
-			$bar = new WP_Admin_Bar();
-			$bar->initialize();
-			erankly_admin_bar_schema_merge_warnings( $bar );
-
-			$this->assertNotNull( $bar->get_node( 'erankly-schema-merge' ) );
-			$this->assertNotNull( $bar->get_node( 'erankly-schema-merge-0' ) );
-		} finally {
-			wp_set_current_user( 0 );
-			erankly_clear_schema_merge_warnings();
-		}
-	}
-
 	public function test_get_schema_type_suggestions_is_filterable(): void {
 		$types = erankly_get_schema_type_suggestions();
 
 		$this->assertContains( 'Organization', $types );
-		$this->assertContains( 'FAQPage', $types );
+		$this->assertNotContains( 'FAQPage', $types );
 
 		$filter = static function ( array $list ): array {
 			$list[] = 'CustomThing';
@@ -206,30 +114,10 @@ final class ERankly_Schema_Jsonld_Test extends WP_UnitTestCase {
 		$this->assertSame( 4242, erankly_get_local_business_page_id() );
 	}
 
-	public function test_get_local_business_page_id_falls_back_to_the_shared_path(): void {
-		$page_id = $this->make_post(
-			array(
-				'post_type'  => 'page',
-				'post_name'  => 'contatti',
-				'post_title' => 'Contatti',
-			)
-		);
-
-		$this->store_settings(
-			array(
-				'local_business_pages'    => array(),
-				'local_business_page_path' => '/contatti/',
-			)
-		);
-
-		$this->assertSame( $page_id, erankly_get_local_business_page_id() );
-	}
-
 	public function test_get_local_business_page_id_returns_zero_when_unconfigured(): void {
 		$this->store_settings(
 			array(
-				'local_business_pages'    => array(),
-				'local_business_page_path' => '',
+				'local_business_pages' => array(),
 			)
 		);
 
@@ -771,7 +659,7 @@ final class ERankly_Schema_Jsonld_Test extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'author', $person['url'] );
 	}
 
-	public function test_schema_website_and_search_action(): void {
+	public function test_schema_website_ignores_retired_search_action_setting(): void {
 		$this->store_settings(
 			array(
 				'website_name'                 => 'Il mio sito',
@@ -785,11 +673,7 @@ final class ERankly_Schema_Jsonld_Test extends WP_UnitTestCase {
 		$this->assertSame( 'WebSite', $site['@type'] );
 		$this->assertSame( 'Il mio sito', $site['name'] );
 		$this->assertSame( 'Descrizione del sito', $site['description'] );
-		$this->assertSame( 'SearchAction', $site['potentialAction']['@type'] );
-
-		$action = erankly_schema_website_search_action();
-		$this->assertSame( 'required name=search_term_string', $action['query-input'] );
-		$this->assertStringContainsString( '{search_term_string}', $action['target']['urlTemplate'] );
+		$this->assertArrayNotHasKey( 'potentialAction', $site );
 	}
 
 	public function test_schema_webpage_builds_a_page_node_and_honours_configured_type(): void {
@@ -1122,8 +1006,8 @@ final class ERankly_Schema_Jsonld_Test extends WP_UnitTestCase {
 
 		$this->go_to( get_permalink( $post_id ) );
 
-		$this->assertTrue( erankly_global_schema_block_matches_request( $block ) );
-		$this->assertFalse( erankly_global_schema_block_matches_request( array_merge( $block, array( 'enabled' => 0 ) ) ) );
+		$this->assertTrue( erankly_targeted_block_matches_request( $block ) );
+		$this->assertFalse( erankly_targeted_block_matches_request( array_merge( $block, array( 'enabled' => 0 ) ) ) );
 
 		$graph = erankly_get_global_schema_graph();
 

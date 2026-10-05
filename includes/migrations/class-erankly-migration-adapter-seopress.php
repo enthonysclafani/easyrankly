@@ -94,16 +94,31 @@ final class ERankly_Migration_Adapter_SEOPress extends ERankly_Migration_Adapter
 	}
 
 	public function global_settings(): array {
-		$titles  = $this->option_array( 'seopress_titles_option_name' );
-		$social  = $this->option_array( 'seopress_social_option_name' );
-		$sitemap = $this->option_array( 'seopress_xml_sitemap_option_name' );
-		$toggles = $this->option_array( 'seopress_toggle' );
+		$titles   = $this->option_array( 'seopress_titles_option_name' );
+		$social   = $this->option_array( 'seopress_social_option_name' );
+		$sitemap  = $this->option_array( 'seopress_xml_sitemap_option_name' );
+		$toggles  = $this->option_array( 'seopress_toggle' );
 		$advanced = $this->option_array( 'seopress_advanced_option_name' );
 		if ( ! $titles && ! $social && ! $sitemap && ! $toggles && ! $advanced ) {
 			return array();
 		}
 
-		$convert  = static fn( mixed $value ): string => erankly_import_convert_variables( is_scalar( $value ) ? (string) $value : '', 'seopress' );
+		return array_merge(
+			$this->post_type_settings( $titles, $sitemap ),
+			$this->taxonomy_settings( $titles, $sitemap ),
+			$this->special_page_settings( $titles ),
+			$this->identity_settings( $social ),
+			$this->social_settings( $social ),
+			$this->feature_settings( $sitemap, $toggles, $advanced )
+		);
+	}
+
+	/**
+	 * Maps the per post type titles, descriptions, robots and schema types.
+	 *
+	 * @return array<string,mixed>
+	 */
+	private function post_type_settings( array $titles, array $sitemap ): array {
 		$settings = array();
 		$singles = $titles['seopress_titles_single_titles'] ?? array();
 		$singles = is_array( $singles ) ? $singles : array();
@@ -123,8 +138,8 @@ final class ERankly_Migration_Adapter_SEOPress extends ERankly_Migration_Adapter
 				$in_sitemap = $this->enabled( $this->nested_value( $sitemap, array( 'post_types', $post_type, 'include' ) ) );
 			}
 			$post_map[ $post_type ] = $this->global_meta_row(
-				$convert( $config['title'] ?? '' ),
-				$convert( $config['description'] ?? $config['desc'] ?? '' ),
+				$this->convert_template( $config['title'] ?? '' ),
+				$this->convert_template( $config['description'] ?? $config['desc'] ?? '' ),
 				$config,
 				$in_sitemap,
 				'WebPage',
@@ -142,6 +157,16 @@ final class ERankly_Migration_Adapter_SEOPress extends ERankly_Migration_Adapter
 			}
 		}
 
+		return $settings;
+	}
+
+	/**
+	 * Maps the per taxonomy titles, descriptions and robots.
+	 *
+	 * @return array<string,mixed>
+	 */
+	private function taxonomy_settings( array $titles, array $sitemap ): array {
+		$settings = array();
 		$taxonomies = $titles['seopress_titles_tax_titles'] ?? array();
 		$taxonomies = is_array( $taxonomies ) ? $taxonomies : array();
 		$taxonomy_map = array();
@@ -159,13 +184,23 @@ final class ERankly_Migration_Adapter_SEOPress extends ERankly_Migration_Adapter
 			} elseif ( $this->has_nested_value( $sitemap, array( 'taxonomies', $taxonomy, 'include' ) ) ) {
 				$in_sitemap = $this->enabled( $this->nested_value( $sitemap, array( 'taxonomies', $taxonomy, 'include' ) ) );
 			}
-			$taxonomy_map[ $taxonomy ] = $this->global_meta_row( $convert( $config['title'] ?? '' ), $convert( $config['description'] ?? $config['desc'] ?? '' ), $config, $in_sitemap );
+			$taxonomy_map[ $taxonomy ] = $this->global_meta_row( $this->convert_template( $config['title'] ?? '' ), $this->convert_template( $config['description'] ?? $config['desc'] ?? '' ), $config, $in_sitemap );
 		}
 		if ( $taxonomy_map ) {
 			$settings['global_taxonomy_meta']        = $taxonomy_map;
 			$settings['global_taxonomy_meta_linked'] = 0;
 		}
 
+		return $settings;
+	}
+
+	/**
+	 * Maps the homepage, archive, search and 404 defaults.
+	 *
+	 * @return array<string,mixed>
+	 */
+	private function special_page_settings( array $titles ): array {
+		$settings = array();
 		$special = array();
 		$special_keys = array(
 			'homepage' => array(
@@ -218,6 +253,16 @@ final class ERankly_Migration_Adapter_SEOPress extends ERankly_Migration_Adapter
 			$settings['global_special_meta'] = $special;
 		}
 
+		return $settings;
+	}
+
+	/**
+	 * Maps the Organization or Person identity with its logo and contact details.
+	 *
+	 * @return array<string,mixed>
+	 */
+	private function identity_settings( array $social ): array {
+		$settings = array();
 		$identity = strtolower( (string) ( $social['seopress_social_knowledge_type'] ?? '' ) );
 		if ( in_array( $identity, array( 'person', 'organization' ), true ) ) {
 			$settings['schema_identity'] = $identity;
@@ -252,6 +297,16 @@ final class ERankly_Migration_Adapter_SEOPress extends ERankly_Migration_Adapter
 			}
 		}
 
+		return $settings;
+	}
+
+	/**
+	 * Maps social profiles, the X handle and the default social image.
+	 *
+	 * @return array<string,mixed>
+	 */
+	private function social_settings( array $social ): array {
+		$settings = array();
 		$profile_keys = array( 'seopress_social_accounts_facebook', 'seopress_social_accounts_twitter', 'seopress_social_accounts_pinterest', 'seopress_social_accounts_instagram', 'seopress_social_accounts_youtube', 'seopress_social_accounts_linkedin', 'seopress_social_accounts_extra' );
 		$profile_values = array();
 		foreach ( $profile_keys as $key ) {
@@ -269,6 +324,16 @@ final class ERankly_Migration_Adapter_SEOPress extends ERankly_Migration_Adapter
 			$settings['default_social_image_url'] = esc_url_raw( (string) $social['seopress_social_facebook_img'] );
 		}
 
+		return $settings;
+	}
+
+	/**
+	 * Maps sitemap, breadcrumb, attachment and redirect options.
+	 *
+	 * @return array<string,mixed>
+	 */
+	private function feature_settings( array $sitemap, array $toggles, array $advanced ): array {
+		$settings = array();
 		if ( array_key_exists( 'seopress_xml_sitemap_general_enable', $sitemap ) ) {
 			$settings['enable_sitemap'] = $this->enabled( $sitemap['seopress_xml_sitemap_general_enable'] ) ? 1 : 0;
 		} else {
@@ -390,44 +455,10 @@ final class ERankly_Migration_Adapter_SEOPress extends ERankly_Migration_Adapter
 	public function redirect_records(): iterable {
 		foreach ( array( 'post', 'term' ) as $object_type ) {
 			foreach ( $this->meta_objects( $object_type, $this->redirect_keys() ) as $record ) {
-				$meta = $record['meta'];
-				if ( 'post' === $object_type ) {
-					$post = get_post( $record['id'] );
-					if ( ! $post instanceof WP_Post ) {
-						continue;
-					}
-					$source = 'seopress_404' === $post->post_type ? $post->post_title : get_permalink( $post );
-				} else {
-					$source = get_term_link( $record['id'] );
+				$redirect = $this->map_redirect_record( $object_type, $record );
+				if ( is_array( $redirect ) ) {
+					yield $redirect;
 				}
-
-				if ( ! is_string( $source ) || '' === trim( $source ) ) {
-					continue;
-				}
-
-				$type       = absint( $meta['_seopress_redirections_type'] ?? 301 );
-				$is_regex   = $this->enabled( $meta['_seopress_redirections_enabled_regex'] ?? false );
-				$param_mode = (string) ( $meta['_seopress_redirections_param'] ?? '' );
-				$query      = $is_regex ? '' : (string) wp_parse_url( $source, PHP_URL_QUERY );
-				$query_mode = 'with_ignored_param' === $param_mode ? 'preserve' : ( 'exact_match' === $param_mode ? 'exact' : 'ignore' );
-				$visibility = array(
-					'only_logged_in'     => 'logged_in',
-					'only_not_logged_in' => 'logged_out',
-				)[ (string) ( $meta['_seopress_redirections_logged_status'] ?? '' ) ] ?? 'all';
-
-				yield array(
-					'source_path'      => $source,
-					'source_query'     => 'exact' === $query_mode ? $query : '',
-					'target_url'       => (string) ( $meta['_seopress_redirections_value'] ?? '' ),
-					'status_code'      => $type,
-					'match_type'       => $is_regex ? 'regex' : 'exact',
-					'case_sensitive'   => 0,
-					'trailing_slash'   => 'ignore',
-					'query_mode'       => $query_mode,
-					'is_active'        => $this->enabled( $meta['_seopress_redirections_enabled'] ?? false ) ? 1 : 0,
-					'visibility'       => $visibility,
-					'source_reference' => $object_type . '-redirect:' . $record['id'],
-				);
 			}
 		}
 	}

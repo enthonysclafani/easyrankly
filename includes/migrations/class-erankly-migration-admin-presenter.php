@@ -10,11 +10,10 @@ final class ERankly_Migration_Admin_Presenter {
 	/**
  * Builds the compact state consumed by the migration report UI.
  *
- * @param bool                $source_owns_output Whether another SEO plugin still owns frontend output.
- * @param bool                $backup_available   Whether the pre-import backup can still be restored.
+ * @param bool $backup_available Whether the pre-import backup can still be restored.
  * @return array<string,mixed>
  */
-	public function present( array $report, bool $source_owns_output, bool $backup_available ): array {
+	public function present( array $report, bool $backup_available ): array {
 		$mode         = sanitize_key( (string) ( $report['mode'] ?? 'import' ) );
 		$verification = is_array( $report['verification'] ?? null ) ? $report['verification'] : array();
 		$profile      = is_array( $report['source_profile'] ?? null ) ? $report['source_profile'] : array();
@@ -43,13 +42,8 @@ final class ERankly_Migration_Admin_Presenter {
 			$state  = 'needs_review';
 			$action = 'review_issues';
 			$tone   = 'warning';
-		} elseif ( $source_owns_output ) {
-			$step   = 2;
-			$state  = 'source_active';
-			$action = 'open_plugins';
-			$tone   = 'success';
 		} else {
-			$step   = 3;
+			$step   = 2;
 			$state  = 'complete';
 			$action = 'open_settings';
 			$tone   = 'success';
@@ -69,12 +63,11 @@ final class ERankly_Migration_Admin_Presenter {
 			'state'                 => $state,
 			'tone'                  => $tone,
 			'step'                  => $step,
-			'steps_total'           => 3,
+			'steps_total'           => 2,
 			'primary_action'        => $action,
 			'source_label'          => sanitize_text_field( (string) ( $report['source_label'] ?? $report['source'] ?? '' ) ),
 			'source_slug'           => sanitize_key( (string) ( $report['source'] ?? '' ) ),
 			'source_mode'           => sanitize_key( (string) ( $profile['mode'] ?? 'database' ) ),
-			'source_owns_output'    => $source_owns_output,
 			'metadata_count'        => $metadata,
 			'settings_count'        => $settings_count,
 			'redirect_count'        => $redirects,

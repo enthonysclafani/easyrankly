@@ -1,0 +1,28 @@
+{
+  "$schema": "https://schemas.wp.org/trunk/block.json",
+  "apiVersion": 3,
+  "category": "widgets",
+  "textdomain": "easyrankly",
+  "name": "easyrankly/contact-form",
+  "title": "EasyRankly Form",
+  "description": "Display a reusable form.",
+  "attributes": {
+    "ref": {
+      "type": "number",
+      "default": 0
+    }
+  },
+  "supports": {
+    "html": false,
+    "align": [
+      "wide",
+      "full"
+    ],
+    "spacing": {
+      "margin": true
+    },
+    "interactivity": true
+  },
+  "editorScript": "erankly-contact-form-editor",
+  "style": "erankly-forms"
+}

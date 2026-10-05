@@ -3,11 +3,9 @@
  * Settings API: option registration, panel-scoped sanitizer, autosave panel registry, network/site save
  * handlers, extension tab normalization, sidebar nav links. Raw $_POST is wp_unslash()ed then sanitized
  * field-by-field inside erankly_sanitize_settings(); unknown extension keys survive unchanged via the
- * erankly_preserved_extension_settings filter. Legacy head/body_code snippets auto-migrate to the matching
- * *_code_blocks array on privileged saves (unfiltered_html or system context).
+ * erankly_preserved_extension_settings filter.
  */
 defined( 'ABSPATH' ) || exit;
-require_once ERANKLY_PATH . 'admin/settings/nav-icons.php';
 function erankly_register_settings(): void {
 	erankly_load_default_helpers();
 	register_setting(
@@ -20,216 +18,212 @@ function erankly_register_settings(): void {
 		)
 	);
 }
-/**
- * Sanitizes the plugin settings map.
- *
- * @param mixed                    $input                   Submitted settings.
- * @param array<string,mixed>|null $trusted_legacy_settings Explicitly trusted legacy source for internal imports.
- * @return array<string,mixed>
- */
-function erankly_sanitize_settings( mixed $input, ?array $trusted_legacy_settings = null ): array {
+function erankly_sanitize_settings( mixed $input ): array {
 	$input = is_array( $input ) ? $input : array();
 	$panel = isset( $input['erankly_settings_panel'] ) ? sanitize_key( (string) $input['erankly_settings_panel'] ) : '';
 	unset( $input['erankly_settings_panel'] );
 	if ( '' !== $panel ) {
 		$input = erankly_merge_settings_submission( $input, $panel );
 	}
-	$defaults                = erankly_default_settings();
-	$identity                = isset( $input['schema_identity'] ) ? erankly_sanitize_text( $input['schema_identity'] ) : '';
-	$person_user_id          = isset( $input['schema_person_user_id'] ) ? absint( $input['schema_person_user_id'] ) : 0;
-	$local_business_types    = erankly_get_local_business_types();
-	$local_business_type     = isset( $input['local_business_type'] ) ? erankly_sanitize_text( $input['local_business_type'] ) : 'LocalBusiness';
+	$defaults = erankly_default_settings();
+	$stored   = erankly_get_stored_settings();
+	$settings = array_merge(
+		erankly_sanitize_identity_settings( $input, $defaults ),
+		erankly_sanitize_social_settings( $input ),
+		erankly_sanitize_global_meta_settings( $input, $defaults ),
+		erankly_sanitize_schema_settings( $input, $stored ),
+		erankly_sanitize_output_settings( $input )
+	);
+	$option             = erankly_get_plugin_option( ERANKLY_OPTION, array() );
+	$extension_settings = apply_filters(
+		'erankly_preserved_extension_settings',
+		array_diff_key( is_array( $option ) ? $option : array(), $defaults ),
+		$input
+	);
+	$settings           = array_replace( is_array( $extension_settings ) ? $extension_settings : array(), $settings );
+	// A retired core setting must not survive as an unknown add-on option.
+	unset( $settings['enable_website_search_action'] );
+	erankly_report_incomplete_settings( $settings );
+
+	return $settings;
+}
+/**
+ * Sanitizes the organization identity, contact and address fields.
+ *
+ * @return array<string,mixed>
+ */
+function erankly_sanitize_identity_settings( array $input, array $defaults ): array {
+	$organization_logo_url = isset( $input['organization_logo_url'] ) ? erankly_sanitize_url_template( $input['organization_logo_url'] ) : $defaults['organization_logo_url'];
+	$organization_logo     = isset( $input['organization_logo'] ) ? absint( $input['organization_logo'] ) : $defaults['organization_logo'];
+	$organization_logo     = erankly_drop_stale_media_id( $organization_logo, $organization_logo_url );
+
+	return array(
+		'organization_name'           => isset( $input['organization_name'] ) ? erankly_sanitize_text( $input['organization_name'] ) : $defaults['organization_name'],
+		'website_name'                => isset( $input['website_name'] ) ? erankly_sanitize_text( $input['website_name'] ) : $defaults['website_name'],
+		'website_description'         => isset( $input['website_description'] ) ? erankly_sanitize_textarea( $input['website_description'] ) : $defaults['website_description'],
+		'organization_logo'           => $organization_logo,
+		'organization_logo_url'       => $organization_logo_url,
+		'organization_description'    => isset( $input['organization_description'] ) ? erankly_sanitize_textarea( $input['organization_description'] ) : '',
+		'organization_email'          => isset( $input['organization_email'] ) ? sanitize_email( (string) $input['organization_email'] ) : '',
+		'organization_phone'          => isset( $input['organization_phone'] ) ? erankly_sanitize_phone( $input['organization_phone'] ) : '',
+		'organization_legal_name'     => isset( $input['organization_legal_name'] ) ? erankly_sanitize_text( $input['organization_legal_name'] ) : '',
+		'organization_vat_id'         => isset( $input['organization_vat_id'] ) ? erankly_sanitize_text( $input['organization_vat_id'] ) : '',
+		'organization_tax_id'         => isset( $input['organization_tax_id'] ) ? erankly_sanitize_text( $input['organization_tax_id'] ) : '',
+		'organization_street_address' => isset( $input['organization_street_address'] ) ? erankly_sanitize_text( $input['organization_street_address'] ) : '',
+		'organization_locality'       => isset( $input['organization_locality'] ) ? erankly_sanitize_text( $input['organization_locality'] ) : '',
+		'organization_region'         => isset( $input['organization_region'] ) ? erankly_sanitize_text( $input['organization_region'] ) : '',
+		'organization_postal_code'    => isset( $input['organization_postal_code'] ) ? erankly_sanitize_text( $input['organization_postal_code'] ) : '',
+		'organization_country'        => isset( $input['organization_country'] ) ? erankly_sanitize_country_code( $input['organization_country'] ) : '',
+		'social_profiles'             => isset( $input['social_profiles'] ) ? erankly_sanitize_url_list( $input['social_profiles'] ) : '',
+	);
+}
+/**
+ * Sanitizes the default social image and X account.
+ *
+ * @return array<string,mixed>
+ */
+function erankly_sanitize_social_settings( array $input ): array {
+	$default_social_image_url = isset( $input['default_social_image_url'] ) ? erankly_sanitize_url_template( $input['default_social_image_url'] ) : '';
+	$default_og_image         = erankly_drop_stale_media_id( isset( $input['default_og_image'] ) ? absint( $input['default_og_image'] ) : 0, $default_social_image_url );
+
+	return array(
+		'default_og_image'         => $default_og_image,
+		'default_social_image_url' => $default_social_image_url,
+		'twitter_site'            => isset( $input['twitter_site'] ) ? erankly_sanitize_twitter_handle( $input['twitter_site'] ) : '',
+	);
+}
+/**
+ * Sanitizes the per post type, taxonomy and special page defaults.
+ *
+ * @return array<string,mixed>
+ */
+function erankly_sanitize_global_meta_settings( array $input, array $defaults ): array {
+	$global_special_meta = array();
+	if ( isset( $input['global_special_meta'] ) ) {
+		$global_special_meta = erankly_sanitize_global_entity_meta( $input['global_special_meta'], array_keys( erankly_special_page_keys() ), false, true );
+	} elseif ( ! empty( $input['preserve_global_special_meta'] ) && ! is_multisite() && erankly_use_site_editor_special_page_panels() ) {
+		$global_special_meta = erankly_get_global_entity_meta_map( 'global_special_meta' );
+	}
+
+	return array(
+		'global_post_type_meta_linked' => ! empty( $input['global_post_type_meta_linked'] ) ? 1 : 0,
+		'global_post_type_meta'        => isset( $input['global_post_type_meta'] ) ? erankly_sanitize_global_entity_meta( $input['global_post_type_meta'], array_keys( erankly_get_public_post_types() ), ! empty( $input['global_post_type_meta_linked'] ), false, true ) : array(),
+		'global_post_type_schema'      => isset( $input['global_post_type_schema'] ) ? erankly_sanitize_global_post_type_schema( $input['global_post_type_schema'] ) : $defaults['global_post_type_schema'],
+		'global_taxonomy_meta_linked'  => ! empty( $input['global_taxonomy_meta_linked'] ) ? 1 : 0,
+		'global_taxonomy_meta'         => isset( $input['global_taxonomy_meta'] ) ? erankly_sanitize_global_entity_meta( $input['global_taxonomy_meta'], array_keys( erankly_get_public_taxonomies() ), ! empty( $input['global_taxonomy_meta_linked'] ), false, true ) : array(),
+		'global_special_meta'          => $global_special_meta,
+	);
+}
+/**
+ * Sanitizes the schema identity, Local Business and global schema blocks. Fields a panel does not submit keep
+ * their stored value.
+ *
+ * @param array<string,mixed> $stored Stored settings.
+ * @return array<string,mixed>
+ */
+function erankly_sanitize_schema_settings( array $input, array $stored ): array {
+	$identity             = isset( $input['schema_identity'] ) ? erankly_sanitize_text( $input['schema_identity'] ) : '';
+	$person_user_id       = isset( $input['schema_person_user_id'] ) ? absint( $input['schema_person_user_id'] ) : 0;
+	$local_business_types = erankly_get_local_business_types();
+	$local_business_type  = isset( $input['local_business_type'] ) ? erankly_sanitize_text( $input['local_business_type'] ) : 'LocalBusiness';
 	if ( $person_user_id > 0 && ! get_userdata( $person_user_id ) ) {
 		$person_user_id = 0;
 	}
 	if ( ! isset( $local_business_types[ $local_business_type ] ) ) {
 		$local_business_type = 'LocalBusiness';
 	}
-	$social_defaults_linked      = ! empty( $input['social_defaults_linked'] );
-	$default_og_title            = isset( $input['default_og_title'] ) ? erankly_sanitize_text( $input['default_og_title'] ) : '';
-	$default_og_description      = isset( $input['default_og_description'] ) ? erankly_sanitize_textarea( $input['default_og_description'] ) : '';
-	$default_twitter_title       = isset( $input['default_twitter_title'] ) ? erankly_sanitize_text( $input['default_twitter_title'] ) : '';
-	$default_twitter_description = isset( $input['default_twitter_description'] ) ? erankly_sanitize_textarea( $input['default_twitter_description'] ) : '';
-	$global_special_meta         = array();
-	if ( $social_defaults_linked ) {
-		$default_twitter_title       = $default_og_title;
-		$default_twitter_description = $default_og_description;
-	}
-	if ( isset( $input['global_special_meta'] ) ) {
-		$global_special_meta = erankly_sanitize_global_entity_meta( $input['global_special_meta'], array_keys( erankly_special_page_keys() ), false, true );
-	} elseif ( ! empty( $input['preserve_global_special_meta'] ) && ! is_multisite() && erankly_use_site_editor_special_page_panels() ) {
-		$global_special_meta = erankly_get_global_entity_meta_map( 'global_special_meta' );
-	}
-	$organization_logo_url    = isset( $input['organization_logo_url'] ) ? erankly_sanitize_url_template( $input['organization_logo_url'] ) : $defaults['organization_logo_url'];
-	$default_social_image_url = isset( $input['default_social_image_url'] ) ? erankly_sanitize_url_template( $input['default_social_image_url'] ) : '';
-	$organization_logo        = isset( $input['organization_logo'] ) ? absint( $input['organization_logo'] ) : $defaults['organization_logo'];
-	$default_og_image         = isset( $input['default_og_image'] ) ? absint( $input['default_og_image'] ) : 0;
-	$organization_logo = erankly_drop_stale_media_id( $organization_logo, $organization_logo_url );
-	$default_og_image  = erankly_drop_stale_media_id( $default_og_image, $default_social_image_url );
-	$stored_for_schema         = erankly_get_stored_settings();
-	$legacy_source             = null === $trusted_legacy_settings ? $stored_for_schema : $trusted_legacy_settings;
-	$trusted_head_blocks       = null;
-	$trusted_body_open_blocks  = null;
-	$trusted_body_close_blocks = null;
-	if ( null !== $trusted_legacy_settings ) {
-		$trusted_head_blocks       = is_array( $trusted_legacy_settings['head_code_blocks'] ?? null ) ? $trusted_legacy_settings['head_code_blocks'] : array();
-		$trusted_body_open_blocks  = is_array( $trusted_legacy_settings['body_open_code_blocks'] ?? null ) ? $trusted_legacy_settings['body_open_code_blocks'] : array();
-		$trusted_body_close_blocks = is_array( $trusted_legacy_settings['body_close_code_blocks'] ?? null ) ? $trusted_legacy_settings['body_close_code_blocks'] : array();
-	}
-	$settings = array(
-		'organization_name'              => isset( $input['organization_name'] ) ? erankly_sanitize_text( $input['organization_name'] ) : $defaults['organization_name'],
-		'website_name'                   => isset( $input['website_name'] ) ? erankly_sanitize_text( $input['website_name'] ) : $defaults['website_name'],
-		'website_description'            => isset( $input['website_description'] ) ? erankly_sanitize_textarea( $input['website_description'] ) : $defaults['website_description'],
-		'organization_logo'              => $organization_logo,
-		'organization_logo_url'          => $organization_logo_url,
-		'organization_description'       => isset( $input['organization_description'] ) ? erankly_sanitize_textarea( $input['organization_description'] ) : '',
-		'organization_email'             => isset( $input['organization_email'] ) ? sanitize_email( (string) $input['organization_email'] ) : '',
-		'organization_phone'             => isset( $input['organization_phone'] ) ? erankly_sanitize_phone( $input['organization_phone'] ) : '',
-		'organization_legal_name'        => isset( $input['organization_legal_name'] ) ? erankly_sanitize_text( $input['organization_legal_name'] ) : '',
-		'organization_vat_id'            => isset( $input['organization_vat_id'] ) ? erankly_sanitize_text( $input['organization_vat_id'] ) : '',
-		'organization_tax_id'            => isset( $input['organization_tax_id'] ) ? erankly_sanitize_text( $input['organization_tax_id'] ) : '',
-		'organization_street_address'    => isset( $input['organization_street_address'] ) ? erankly_sanitize_text( $input['organization_street_address'] ) : '',
-		'organization_locality'          => isset( $input['organization_locality'] ) ? erankly_sanitize_text( $input['organization_locality'] ) : '',
-		'organization_region'            => isset( $input['organization_region'] ) ? erankly_sanitize_text( $input['organization_region'] ) : '',
-		'organization_postal_code'       => isset( $input['organization_postal_code'] ) ? erankly_sanitize_text( $input['organization_postal_code'] ) : '',
-		'organization_country'           => isset( $input['organization_country'] ) ? erankly_sanitize_country_code( $input['organization_country'] ) : '',
-		'social_profiles'                => isset( $input['social_profiles'] ) ? erankly_sanitize_url_list( $input['social_profiles'] ) : '',
-		'default_og_image'               => $default_og_image,
-		'default_social_image_url'       => $default_social_image_url,
-		'default_og_title'               => $default_og_title,
-		'default_og_description'         => $default_og_description,
-		'default_twitter_title'          => $default_twitter_title,
-		'default_twitter_description'    => $default_twitter_description,
-		'social_defaults_linked'         => $social_defaults_linked ? 1 : 0,
-		'twitter_site'                   => isset( $input['twitter_site'] ) ? erankly_sanitize_twitter_handle( $input['twitter_site'] ) : '',
-		'global_post_type_meta_linked'   => ! empty( $input['global_post_type_meta_linked'] ) ? 1 : 0,
-		'global_post_type_meta'          => isset( $input['global_post_type_meta'] ) ? erankly_sanitize_global_entity_meta( $input['global_post_type_meta'], array_keys( erankly_get_public_post_types() ), ! empty( $input['global_post_type_meta_linked'] ), false, true ) : array(),
-		'global_post_type_schema'        => isset( $input['global_post_type_schema'] ) ? erankly_sanitize_global_post_type_schema( $input['global_post_type_schema'] ) : $defaults['global_post_type_schema'],
-		'global_taxonomy_meta_linked'    => ! empty( $input['global_taxonomy_meta_linked'] ) ? 1 : 0,
-		'global_taxonomy_meta'           => isset( $input['global_taxonomy_meta'] ) ? erankly_sanitize_global_entity_meta( $input['global_taxonomy_meta'], array_keys( erankly_get_public_taxonomies() ), ! empty( $input['global_taxonomy_meta_linked'] ), false, true ) : array(),
-		'global_special_meta'            => $global_special_meta,
-		'schema_identity'                => 'person' === $identity ? 'person' : 'organization',
-		'schema_person_user_id'          => $person_user_id,
-		'enable_local_business'          => ! empty( $input['enable_local_business'] ) ? 1 : 0,
-		'local_business_type'            => $local_business_type,
-		'local_business_page_path'       => array_key_exists( 'local_business_page_path', $input )
-			? erankly_sanitize_relative_path( $input['local_business_page_path'] )
-			: (string) ( $stored_for_schema['local_business_page_path'] ?? '' ),
-		'local_business_pages'           => array_key_exists( 'local_business_pages', $input )
+
+	return array(
+		'schema_identity'              => 'person' === $identity ? 'person' : 'organization',
+		'schema_person_user_id'        => $person_user_id,
+		'enable_local_business'        => ! empty( $input['enable_local_business'] ) ? 1 : 0,
+		'local_business_type'          => $local_business_type,
+		'local_business_pages'         => array_key_exists( 'local_business_pages', $input )
 			? erankly_sanitize_local_business_pages( $input['local_business_pages'] )
-			: ( isset( $stored_for_schema['local_business_pages'] ) && is_array( $stored_for_schema['local_business_pages'] ) ? erankly_sanitize_local_business_pages( $stored_for_schema['local_business_pages'] ) : array() ),
-		'local_business_price_range'     => isset( $input['local_business_price_range'] ) ? erankly_trim_text( erankly_sanitize_text( $input['local_business_price_range'] ), 99 ) : '',
-		'local_business_latitude'        => isset( $input['local_business_latitude'] ) ? erankly_sanitize_coordinate( $input['local_business_latitude'], -90, 90 ) : '',
-		'local_business_longitude'       => isset( $input['local_business_longitude'] ) ? erankly_sanitize_coordinate( $input['local_business_longitude'], -180, 180 ) : '',
-		'local_business_menu_url'        => isset( $input['local_business_menu_url'] ) ? erankly_sanitize_url( $input['local_business_menu_url'] ) : '',
-		'local_business_cuisine'         => isset( $input['local_business_cuisine'] ) ? erankly_sanitize_text( $input['local_business_cuisine'] ) : '',
-		'local_business_hours'           => isset( $input['local_business_hours'] ) ? erankly_sanitize_opening_hours( $input['local_business_hours'] ) : erankly_default_opening_hours(),
-		'global_schema_blocks'           => isset( $input['global_schema_blocks'] )
+			: ( isset( $stored['local_business_pages'] ) && is_array( $stored['local_business_pages'] ) ? erankly_sanitize_local_business_pages( $stored['local_business_pages'] ) : array() ),
+		'local_business_price_range'   => isset( $input['local_business_price_range'] ) ? erankly_trim_text( erankly_sanitize_text( $input['local_business_price_range'] ), 99 ) : '',
+		'local_business_latitude'      => isset( $input['local_business_latitude'] ) ? erankly_sanitize_coordinate( $input['local_business_latitude'], -90, 90 ) : '',
+		'local_business_longitude'     => isset( $input['local_business_longitude'] ) ? erankly_sanitize_coordinate( $input['local_business_longitude'], -180, 180 ) : '',
+		'local_business_menu_url'      => isset( $input['local_business_menu_url'] ) ? erankly_sanitize_url( $input['local_business_menu_url'] ) : '',
+		'local_business_cuisine'       => isset( $input['local_business_cuisine'] ) ? erankly_sanitize_text( $input['local_business_cuisine'] ) : '',
+		'local_business_hours'         => isset( $input['local_business_hours'] ) ? erankly_sanitize_opening_hours( $input['local_business_hours'] ) : erankly_default_opening_hours(),
+		'global_schema_blocks'         => isset( $input['global_schema_blocks'] )
 			? erankly_sanitize_schema_blocks(
 				$input['global_schema_blocks'],
 				true,
-				isset( $stored_for_schema['global_schema_blocks'] ) && is_array( $stored_for_schema['global_schema_blocks'] )
-					? $stored_for_schema['global_schema_blocks']
+				isset( $stored['global_schema_blocks'] ) && is_array( $stored['global_schema_blocks'] )
+					? $stored['global_schema_blocks']
 					: array()
 			)
 			: array(),
-		'enable_website_search_action'   => ! empty( $input['enable_website_search_action'] ) ? 1 : 0,
-		'simplified_mode'                => ! empty( $input['simplified_mode'] ) ? 1 : 0,
-		'resolve_placeholders'           => ! empty( $input['resolve_placeholders'] ) ? 1 : 0,
-		'enable_sitemap'                 => ! empty( $input['enable_sitemap'] ) ? 1 : 0,
-		'enable_news_sitemap'            => ! empty( $input['enable_news_sitemap'] ) ? 1 : 0,
-		'news_sitemap_post_types'        => isset( $input['news_sitemap_post_types'] ) && is_array( $input['news_sitemap_post_types'] ) ? array_intersect( array_map( 'sanitize_text_field', $input['news_sitemap_post_types'] ), array_keys( erankly_get_public_post_types() ) ) : array( 'post' ),
-		'news_publication_name'          => isset( $input['news_publication_name'] ) ? sanitize_text_field( (string) $input['news_publication_name'] ) : '',
-		'enable_image_sitemap'           => ! empty( $input['enable_image_sitemap'] ) ? 1 : 0,
-		'enable_video_sitemap'           => ! empty( $input['enable_video_sitemap'] ) ? 1 : 0,
-		'enable_breadcrumbs'             => ! empty( $input['enable_breadcrumbs'] ) ? 1 : 0,
-		'breadcrumb_jsonld_mode'         => isset( $input['breadcrumb_jsonld_mode'] ) ? erankly_sanitize_breadcrumb_jsonld_mode( $input['breadcrumb_jsonld_mode'] ) : 'when_visible',
-		'robots_txt_extra'               => isset( $input['robots_txt_extra'] ) ? erankly_sanitize_textarea( $input['robots_txt_extra'] ) : '',
-		'noindex_paginated'              => ! empty( $input['noindex_paginated'] ) ? 1 : 0,
-		'noindex_paginated_content'      => ! empty( $input['noindex_paginated_content'] ) ? 1 : 0,
-		'nofollow_paginated'             => ! empty( $input['nofollow_paginated'] ) ? 1 : 0,
-		'noindex_feeds'                  => ! empty( $input['noindex_feeds'] ) ? 1 : 0,
-		'paginated_title_format'         => isset( $input['paginated_title_format'] ) ? erankly_sanitize_text( $input['paginated_title_format'] ) : '',
-		'attachment_redirect'            => ( isset( $input['attachment_redirect'] ) && in_array( $input['attachment_redirect'], array( 'parent', 'file', 'none' ), true ) ) ? $input['attachment_redirect'] : 'none',
-		'robots_max_image_preview'       => ( isset( $input['robots_max_image_preview'] ) && in_array( $input['robots_max_image_preview'], array( '', 'none', 'standard', 'large' ), true ) ) ? $input['robots_max_image_preview'] : '',
-		'robots_max_snippet'             => isset( $input['robots_max_snippet'] ) ? erankly_sanitize_robots_preview_value( $input['robots_max_snippet'] ) : '',
-		'robots_max_video_preview'       => isset( $input['robots_max_video_preview'] ) ? erankly_sanitize_robots_preview_value( $input['robots_max_video_preview'] ) : '',
-		'robots_nosnippet'               => ! empty( $input['robots_nosnippet'] ) ? 1 : 0,
-		'robots_noimageindex'            => ! empty( $input['robots_noimageindex'] ) ? 1 : 0,
-		'robots_notranslate'             => ! empty( $input['robots_notranslate'] ) ? 1 : 0,
-		'robots_indexifembedded'         => ! empty( $input['robots_indexifembedded'] ) ? 1 : 0,
-		'enable_redirects'               => ! empty( $input['enable_redirects'] ) ? 1 : 0,
-		'enable_custom_code'             => erankly_sanitize_custom_code_toggle( $input['enable_custom_code'] ?? 0 ),
-		'head_code_blocks'               => erankly_sanitize_custom_code_blocks_field(
-			$input['head_code_blocks'] ?? null,
-			'head_code_blocks',
-			$trusted_head_blocks
-		),
-		'body_open_code_blocks'          => erankly_sanitize_custom_code_blocks_field(
-			$input['body_open_code_blocks'] ?? null,
-			'body_open_code_blocks',
-			$trusted_body_open_blocks
-		),
-		'body_close_code_blocks'         => erankly_sanitize_custom_code_blocks_field(
-			$input['body_close_code_blocks'] ?? null,
-			'body_close_code_blocks',
-			$trusted_body_close_blocks
-		),
-		'head_code'                      => erankly_sanitize_custom_code_field( $input['head_code'] ?? null, 'head_code' ),
-		'body_open_code'                 => erankly_sanitize_custom_code_field( $input['body_open_code'] ?? null, 'body_open_code' ),
-		'body_close_code'                => erankly_sanitize_custom_code_field( $input['body_close_code'] ?? null, 'body_close_code' ),
 	);
-	$can_migrate_code = ! function_exists( 'get_current_user_id' ) || 0 === (int) get_current_user_id() || current_user_can( 'unfiltered_html' );
-	if ( $can_migrate_code ) {
-		foreach ( array( 'head_code' => 'head_code_blocks', 'body_open_code' => 'body_open_code_blocks', 'body_close_code' => 'body_close_code_blocks' ) as $legacy_key => $blocks_key ) {
-			// Legacy scalars submitted by the current request are untrusted. Only a
-			// value already persisted before this save (or supplied by the internal
-			// import runner) may create a migration overflow block.
-			$legacy_code            = erankly_sanitize_custom_code( $legacy_source[ $legacy_key ] ?? '' );
-			$settings[ $legacy_key ] = '';
-			if ( '' === $legacy_code ) {
-				continue;
-			}
-			$existing = is_array( $settings[ $blocks_key ] ) ? array_values( $settings[ $blocks_key ] ) : array();
-			$existing[]             = erankly_custom_code_migrated_block( $legacy_code );
-			$settings[ $blocks_key ] = $existing;
-		}
+}
+/**
+ * Sanitizes sitemaps, breadcrumbs, robots directives and the optional feature modules.
+ *
+ * @return array<string,mixed>
+ */
+function erankly_sanitize_output_settings( array $input ): array {
+	return array(
+		'enable_sitemap'            => ! empty( $input['enable_sitemap'] ) ? 1 : 0,
+		'enable_news_sitemap'       => ! empty( $input['enable_news_sitemap'] ) ? 1 : 0,
+		'news_sitemap_post_types'   => isset( $input['news_sitemap_post_types'] ) && is_array( $input['news_sitemap_post_types'] ) ? array_intersect( array_map( 'sanitize_text_field', $input['news_sitemap_post_types'] ), array_keys( erankly_get_public_post_types() ) ) : array( 'post' ),
+		'news_publication_name'     => isset( $input['news_publication_name'] ) ? sanitize_text_field( (string) $input['news_publication_name'] ) : '',
+		'enable_image_sitemap'      => ! empty( $input['enable_image_sitemap'] ) ? 1 : 0,
+		'enable_video_sitemap'      => ! empty( $input['enable_video_sitemap'] ) ? 1 : 0,
+		'enable_breadcrumbs'        => ! empty( $input['enable_breadcrumbs'] ) ? 1 : 0,
+		'breadcrumb_jsonld_mode'    => isset( $input['breadcrumb_jsonld_mode'] ) ? erankly_sanitize_breadcrumb_jsonld_mode( $input['breadcrumb_jsonld_mode'] ) : 'when_visible',
+		'robots_txt_extra'          => isset( $input['robots_txt_extra'] ) ? erankly_sanitize_textarea( $input['robots_txt_extra'] ) : '',
+		'noindex_paginated'         => ! empty( $input['noindex_paginated'] ) ? 1 : 0,
+		'noindex_paginated_content' => ! empty( $input['noindex_paginated_content'] ) ? 1 : 0,
+		'nofollow_paginated'        => ! empty( $input['nofollow_paginated'] ) ? 1 : 0,
+		'noindex_feeds'             => ! empty( $input['noindex_feeds'] ) ? 1 : 0,
+		'paginated_title_format'    => isset( $input['paginated_title_format'] ) ? erankly_sanitize_text( $input['paginated_title_format'] ) : '',
+		'attachment_redirect'       => ( isset( $input['attachment_redirect'] ) && in_array( $input['attachment_redirect'], array( 'parent', 'file', 'none' ), true ) ) ? $input['attachment_redirect'] : 'none',
+		'robots_max_image_preview'  => ( isset( $input['robots_max_image_preview'] ) && in_array( $input['robots_max_image_preview'], array( '', 'none', 'standard', 'large' ), true ) ) ? $input['robots_max_image_preview'] : '',
+		'robots_max_snippet'        => isset( $input['robots_max_snippet'] ) ? erankly_sanitize_robots_preview_value( $input['robots_max_snippet'] ) : '',
+		'robots_max_video_preview'  => isset( $input['robots_max_video_preview'] ) ? erankly_sanitize_robots_preview_value( $input['robots_max_video_preview'] ) : '',
+		'robots_nosnippet'          => ! empty( $input['robots_nosnippet'] ) ? 1 : 0,
+		'robots_noimageindex'       => ! empty( $input['robots_noimageindex'] ) ? 1 : 0,
+		'robots_notranslate'        => ! empty( $input['robots_notranslate'] ) ? 1 : 0,
+		'robots_indexifembedded'    => ! empty( $input['robots_indexifembedded'] ) ? 1 : 0,
+		'enable_seo'                => ! empty( $input['enable_seo'] ?? 1 ) ? 1 : 0,
+		'enable_tools'              => ! empty( $input['enable_tools'] ?? 1 ) ? 1 : 0,
+		'enable_redirects'          => ! empty( $input['enable_redirects'] ) ? 1 : 0,
+		'enable_forms'              => ! empty( $input['enable_forms'] ) ? 1 : 0,
+		'enable_multilingual'       => ! empty( $input['enable_multilingual'] ) ? 1 : 0,
+		'enable_custom_code'        => erankly_sanitize_custom_code_toggle( $input['enable_custom_code'] ?? 0 ),
+		'head_code_blocks'          => erankly_sanitize_custom_code_blocks_field( $input['head_code_blocks'] ?? null, 'head_code_blocks' ),
+		'body_open_code_blocks'     => erankly_sanitize_custom_code_blocks_field( $input['body_open_code_blocks'] ?? null, 'body_open_code_blocks' ),
+		'body_close_code_blocks'    => erankly_sanitize_custom_code_blocks_field( $input['body_close_code_blocks'] ?? null, 'body_close_code_blocks' ),
+	);
+}
+/** Reports configurations that save but cannot be emitted yet: incomplete Local Business, Person without a user. */
+function erankly_report_incomplete_settings( array $settings ): void {
+	if ( empty( $settings['enable_seo'] ?? 1 ) || ! function_exists( 'add_settings_error' ) ) {
+		return;
 	}
-	$stored = erankly_get_plugin_option( ERANKLY_OPTION, array() );
-	$stored = is_array( $stored ) ? $stored : array();
-	$extension_settings = apply_filters(
-		'erankly_preserved_extension_settings',
-		array_diff_key( $stored, $defaults ),
-		$input
-	);
-	$extension_settings = is_array( $extension_settings ) ? $extension_settings : array();
-	$settings           = array_replace( $extension_settings, $settings );
 
-	if ( ! empty( $settings['enable_local_business'] ) && function_exists( 'erankly_local_business_requirement_gaps' ) ) {
-		$gaps = erankly_local_business_requirement_gaps( $settings );
-
-		if ( ! empty( $gaps ) && function_exists( 'add_settings_error' ) ) {
-			add_settings_error(
-				ERANKLY_OPTION,
-				'erankly_local_business_incomplete',
-				sprintf(
-					/* translators: %s: comma-separated missing field names. */
-					__( 'Local business schema is incomplete and will not be emitted until these fields are set: %s.', 'easyrankly' ),
-					implode( ', ', $gaps )
-				),
-				'error'
-			);
-		}
+	$gaps = ! empty( $settings['enable_local_business'] ) && function_exists( 'erankly_local_business_requirement_gaps' )
+		? erankly_local_business_requirement_gaps( $settings )
+		: array();
+	if ( ! empty( $gaps ) ) {
+		add_settings_error(
+			ERANKLY_OPTION,
+			'erankly_local_business_incomplete',
+			sprintf(
+				/* translators: %s: comma-separated missing field names. */
+				__( 'Local business schema is incomplete and will not be emitted until these fields are set: %s.', 'easyrankly' ),
+				implode( ', ', $gaps )
+			),
+			'error'
+		);
 	}
 
 	// Identity = Person with no user selected used to save silently and emit a Person node built from the
 	// organization name and the home URL. Report it the same way an incomplete Local Business is reported: the
 	// graph now falls back to Organization until a user is chosen.
-	if (
-		'person' === ( $settings['schema_identity'] ?? 'organization' )
-		&& absint( $settings['schema_person_user_id'] ?? 0 ) < 1
-		&& function_exists( 'add_settings_error' )
-	) {
+	if ( 'person' === ( $settings['schema_identity'] ?? 'organization' ) && absint( $settings['schema_person_user_id'] ?? 0 ) < 1 ) {
 		add_settings_error(
 			ERANKLY_OPTION,
 			'erankly_schema_person_without_user',
@@ -237,8 +231,6 @@ function erankly_sanitize_settings( mixed $input, ?array $trusted_legacy_setting
 			'error'
 		);
 	}
-
-	return $settings;
 }
 function erankly_sanitize_robots_preview_value( mixed $value ): string {
 	$value = trim( (string) $value );
@@ -305,11 +297,7 @@ function erankly_settings_autosave_panels(): array {
 			),
 		),
 		'features' => array(
-			'keys' => array(
-				'enable_redirects',
-				'enable_sitemap',
-				'enable_custom_code',
-			),
+			'keys' => array_column( erankly_feature_modules(), 'setting' ),
 		),
 		'custom-code' => array(
 			'keys' => array(
@@ -318,23 +306,12 @@ function erankly_settings_autosave_panels(): array {
 				'body_close_code_blocks',
 			),
 		),
-		'settings' => array(
-			'keys' => array(
-				'simplified_mode',
-				'resolve_placeholders',
-			),
-		),
 		'social'   => array(
 			'keys' => array(
 				'organization_logo',
 				'organization_logo_url',
 				'default_social_image_url',
 				'default_og_image',
-				'default_og_title',
-				'default_og_description',
-				'default_twitter_title',
-				'default_twitter_description',
-				'social_defaults_linked',
 				'twitter_site',
 				'social_profiles',
 			),
@@ -344,10 +321,8 @@ function erankly_settings_autosave_panels(): array {
 				'global_post_type_schema',
 				'enable_breadcrumbs',
 				'breadcrumb_jsonld_mode',
-				'enable_website_search_action',
 				'enable_local_business',
 				'local_business_type',
-				'local_business_page_path',
 				'local_business_pages',
 				'local_business_price_range',
 				'local_business_latitude',
@@ -357,6 +332,19 @@ function erankly_settings_autosave_panels(): array {
 				'local_business_hours',
 				'global_schema_blocks',
 			),
+		),
+	);
+	// One submission owns all four former SEO panels; keep their scopes for legacy REST clients.
+	$panels['seo'] = array(
+		'keys' => array_values(
+			array_unique(
+				array_merge(
+					$panels['general']['keys'],
+					$panels['social']['keys'],
+					$panels['schema']['keys'],
+					$panels['advanced']['keys']
+				)
+			)
 		),
 	);
 	$panels = apply_filters( 'erankly_settings_autosave_panels', $panels );
@@ -445,7 +433,7 @@ function erankly_normalize_settings_tabs( mixed $tabs, array $screen_context ): 
 	if ( ! is_array( $tabs ) ) {
 		return array();
 	}
-	$reserved = array( 'general', 'features', 'social', 'schema', 'sitemap', 'custom-code', 'settings', 'advanced', 'import-export', 'redirects', 'special-pages' );
+	$reserved = array( 'seo', 'general', 'features', 'social', 'schema', 'sitemap', 'custom-code', 'advanced', 'import-export', 'tools', 'redirects', 'special-pages' );
 	$scope    = (string) ( $screen_context['scope'] ?? 'site' );
 	$clean    = array();
 	foreach ( $tabs as $slug => $tab ) {
@@ -496,23 +484,6 @@ function erankly_get_special_page_nav_subtabs( array $entities ): array {
 	}
 	return $items;
 }
-function erankly_get_social_nav_subtabs( array $settings ): array {
-	$og_title            = isset( $settings['default_og_title'] ) ? (string) $settings['default_og_title'] : '';
-	$og_description      = isset( $settings['default_og_description'] ) ? (string) $settings['default_og_description'] : '';
-	$twitter_title       = isset( $settings['default_twitter_title'] ) ? (string) $settings['default_twitter_title'] : '';
-	$twitter_description = isset( $settings['default_twitter_description'] ) ? (string) $settings['default_twitter_description'] : '';
-	$is_linked           = ( ! array_key_exists( 'social_defaults_linked', $settings ) || ! empty( $settings['social_defaults_linked'] ) )
-		&& $og_title === $twitter_title
-		&& $og_description === $twitter_description;
-	$items               = array();
-	foreach ( array( 'og', 'twitter' ) as $key ) {
-		$items[] = array(
-			'subtab'   => sanitize_key( 'social-defaults-' . $key ),
-			'disabled' => $is_linked,
-		);
-	}
-	return $items;
-}
 function erankly_settings_tab_url( string $tab ): string {
 	$base = is_network_admin()
 		? network_admin_url( 'settings.php' )
@@ -525,10 +496,10 @@ function erankly_settings_tab_url( string $tab ): string {
 		$base
 	);
 }
-function erankly_render_settings_nav_link( string $slug, string $label, string $active_panel, bool $hidden = false ): void {
+function erankly_render_settings_nav_link( string $slug, string $label, string $active_panel ): void {
 	$panel     = 'settings-' . $slug;
 	$is_active = $panel === $active_panel;
 	?>
-	<a class="erankly-settings-nav-item<?php echo $is_active ? ' is-active' : ''; ?>" id="erankly-settings-tab-<?php echo esc_attr( $slug ); ?>" href="<?php echo esc_url( erankly_settings_tab_url( $slug ) ); ?>" data-erankly-tab="<?php echo esc_attr( $panel ); ?>" <?php echo $is_active ? 'aria-current="page"' : ''; ?> <?php echo $hidden ? 'hidden' : ''; ?>><?php echo wp_kses( erankly_nav_icon( $slug ), erankly_nav_icon_allowed_html() ); ?><span class="erankly-settings-nav-label"><?php echo esc_html( $label ); ?></span></a>
+	<a class="erankly-settings-nav-item<?php echo $is_active ? ' is-active' : ''; ?>" id="erankly-settings-tab-<?php echo esc_attr( $slug ); ?>" href="<?php echo esc_url( erankly_settings_tab_url( $slug ) ); ?>" data-erankly-tab="<?php echo esc_attr( $panel ); ?>" <?php echo $is_active ? 'aria-current="page"' : ''; ?>><span class="erankly-settings-nav-label"><?php echo esc_html( $label ); ?></span></a>
 	<?php
 }

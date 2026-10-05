@@ -22,7 +22,7 @@ function erankly_get_video_sitemap_entries_for_post( int $post_id ): array {
 	}
 
 	$loc        = (string) get_permalink( $post );
-	$video_urls = erankly_extract_sitemap_video_urls( (string) $post->post_content );
+	$video_urls = erankly_extract_video_urls( (string) $post->post_content );
 
 	/**
 	 * Filters source video URLs for one post. Builder, ACF and additional
@@ -63,9 +63,9 @@ function erankly_get_video_sitemap_entries_for_post( int $post_id ): array {
 	$entries = array();
 
 	foreach ( $video_urls as $video_url ) {
-		$content_url   = erankly_get_sitemap_video_content_url( $video_url );
-		$embed_url     = erankly_get_sitemap_video_embed_url( $video_url );
-		$thumbnail_url = erankly_get_sitemap_video_thumbnail_url( $post_id, $video_url );
+		$content_url   = erankly_get_video_content_url( $video_url );
+		$embed_url     = erankly_get_video_embed_url( $video_url );
+		$thumbnail_url = erankly_get_video_thumbnail_url( $post_id, $video_url );
 
 		/**
 		 * Filters one final video sitemap entry. Integrations for providers other

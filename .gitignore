@@ -3,5 +3,7 @@
 .commandcode/
 vendor/
 .dist/
+.erankly-audit/
 .phpunit.result.cache
 /report errori al 15-09-2026/
+/piano moduli contatto al 01-10-2026/

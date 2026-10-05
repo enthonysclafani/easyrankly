@@ -1,16 +1,14 @@
 /** EasyRankly shared settings, classic-editor, and taxonomy components. */
 
 /* WordPress admin notices inside EasyRankly use the plugin's visual language. */
-.erankly-settings .notice.notice-info,
-.erankly-settings .notice.notice-success,
-.erankly-settings .notice.notice-warning,
-.erankly-settings .notice.notice-error {
+.erankly-settings .notice:is(.notice-info, .notice-success, .notice-warning, .notice-error) {
 	--erankly-alert-color: var(--erankly-color-warning);
 	--erankly-alert-surface: var(--erankly-color-warning-surface);
 	--erankly-alert-border: var(--erankly-color-warning-border);
 	align-items: flex-start;
 	background: var(--erankly-alert-surface);
 	border: 1px solid var(--erankly-alert-border);
+	border-left: 1px solid var(--erankly-alert-border);
 	border-radius: var(--erankly-radius-surface);
 	box-shadow: none;
 	box-sizing: border-box;
@@ -20,52 +18,42 @@
 	line-height: 1.45;
 	margin: 0 0 var(--erankly-space-field);
 	max-width: 100%;
+	min-height: 0;
 	min-width: 0;
 	padding: var(--erankly-space-5);
+	position: relative;
 	width: 100%;
 }
 
 .erankly-settings .notice.notice-info {
 	--erankly-alert-color: var(--erankly-color-info);
-	--erankly-alert-icon: url("data:image/svg+xml,%3Csvg%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%3E%3Ccircle%20cx%3D%2712%27%20cy%3D%2712%27%20r%3D%2710%27%20stroke%3D%27black%27%20stroke-width%3D%271.8%27%2F%3E%3Cpath%20d%3D%27M12%2011v5%27%20stroke%3D%27black%27%20stroke-width%3D%271.8%27%20stroke-linecap%3D%27round%27%2F%3E%3Cpath%20d%3D%27M12%208h.01%27%20stroke%3D%27black%27%20stroke-width%3D%271.8%27%20stroke-linecap%3D%27round%27%2F%3E%3C%2Fsvg%3E");
+	--erankly-alert-icon: url("../icons/hugeicons/information-circle.svg");
 	--erankly-alert-surface: var(--erankly-color-info-surface);
 	--erankly-alert-border: var(--erankly-color-info-border);
 }
 
 .erankly-settings .notice.notice-success {
 	--erankly-alert-color: var(--erankly-color-success);
-	--erankly-alert-icon: url("data:image/svg+xml,%3Csvg%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%3E%3Cpath%20d%3D%27M22%2011.08V12a10%2010%200%201%201-5.93-9.14%27%20stroke%3D%27black%27%20stroke-width%3D%271.8%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%2F%3E%3Cpath%20d%3D%27m9%2011%203%203L22%204%27%20stroke%3D%27black%27%20stroke-width%3D%271.8%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%2F%3E%3C%2Fsvg%3E");
+	--erankly-alert-icon: url("../icons/hugeicons/checkmark-circle-02.svg");
 	--erankly-alert-surface: var(--erankly-color-success-surface);
 	--erankly-alert-border: var(--erankly-color-success-border);
 }
 
 .erankly-settings .notice.notice-warning {
 	--erankly-alert-color: var(--erankly-color-warning);
-	--erankly-alert-icon: url("data:image/svg+xml,%3Csvg%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%3E%3Cpath%20d%3D%27M10.29%203.86%201.82%2018a2%202%200%200%200%201.71%203h16.94a2%202%200%200%200%201.71-3L13.71%203.86a2%202%200%200%200-3.42%200Z%27%20stroke%3D%27black%27%20stroke-width%3D%271.8%27%20stroke-linejoin%3D%27round%27%2F%3E%3Cpath%20d%3D%27M12%209v4%27%20stroke%3D%27black%27%20stroke-width%3D%271.8%27%20stroke-linecap%3D%27round%27%2F%3E%3Cpath%20d%3D%27M12%2017h.01%27%20stroke%3D%27black%27%20stroke-width%3D%271.8%27%20stroke-linecap%3D%27round%27%2F%3E%3C%2Fsvg%3E");
+	--erankly-alert-icon: url("../icons/hugeicons/alert-02.svg");
 	--erankly-alert-surface: var(--erankly-color-warning-surface);
 	--erankly-alert-border: var(--erankly-color-warning-border);
 }
 
 .erankly-settings .notice.notice-error {
 	--erankly-alert-color: var(--erankly-color-error);
-	--erankly-alert-icon: url("data:image/svg+xml,%3Csvg%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%3E%3Ccircle%20cx%3D%2712%27%20cy%3D%2712%27%20r%3D%2710%27%20stroke%3D%27black%27%20stroke-width%3D%271.8%27%2F%3E%3Cpath%20d%3D%27m15%209-6%206%27%20stroke%3D%27black%27%20stroke-width%3D%271.8%27%20stroke-linecap%3D%27round%27%2F%3E%3Cpath%20d%3D%27m9%209%206%206%27%20stroke%3D%27black%27%20stroke-width%3D%271.8%27%20stroke-linecap%3D%27round%27%2F%3E%3C%2Fsvg%3E");
+	--erankly-alert-icon: url("../icons/hugeicons/cancel-circle.svg");
 	--erankly-alert-surface: var(--erankly-color-error-surface);
 	--erankly-alert-border: var(--erankly-color-error-border);
 }
 
-.erankly-settings .notice.notice-info,
-.erankly-settings .notice.notice-success,
-.erankly-settings .notice.notice-warning,
-.erankly-settings .notice.notice-error {
-	border-left: 1px solid var(--erankly-alert-border);
-	min-height: 0;
-	position: relative;
-}
-
-.erankly-settings .notice.notice-info::before,
-.erankly-settings .notice.notice-success::before,
-.erankly-settings .notice.notice-warning::before,
-.erankly-settings .notice.notice-error::before {
+.erankly-settings .notice:is(.notice-info, .notice-success, .notice-warning, .notice-error)::before {
 	background-color: var(--erankly-alert-color);
 	content: "";
 	display: block;
@@ -77,10 +65,7 @@
 	width: 24px;
 }
 
-.erankly-settings .notice.notice-info p,
-.erankly-settings .notice.notice-success p,
-.erankly-settings .notice.notice-warning p,
-.erankly-settings .notice.notice-error p,
+.erankly-settings .notice:is(.notice-info, .notice-success, .notice-warning, .notice-error) p,
 .erankly-settings .notice .erankly-notice-body {
 	flex: 1 1 auto;
 	margin: 0;
@@ -91,21 +76,19 @@
 	white-space: normal;
 }
 
-.erankly-settings .notice .erankly-notice-body p + p {
-	margin-top: var(--erankly-space-2);
+/* The alert body owns the rhythm between its own paragraphs, like every other
+ * group in the panel: one gap, no collapsed margins between the children. */
+.erankly-settings .notice .erankly-notice-body {
+	display: flex;
+	flex-direction: column;
+	gap: var(--erankly-space-2);
 }
 
-.erankly-settings .notice.notice-info.is-dismissible,
-.erankly-settings .notice.notice-success.is-dismissible,
-.erankly-settings .notice.notice-warning.is-dismissible,
-.erankly-settings .notice.notice-error.is-dismissible {
+.erankly-settings .notice:is(.notice-info, .notice-success, .notice-warning, .notice-error).is-dismissible {
 	padding-right: 44px;
 }
 
-.erankly-settings .notice.notice-info .notice-dismiss,
-.erankly-settings .notice.notice-success .notice-dismiss,
-.erankly-settings .notice.notice-warning .notice-dismiss,
-.erankly-settings .notice.notice-error .notice-dismiss {
+.erankly-settings .notice:is(.notice-info, .notice-success, .notice-warning, .notice-error) .notice-dismiss {
 	top: 50%;
 	transform: translateY(-50%);
 }
@@ -209,20 +192,21 @@
 }
 
 .erankly-schema-block,
-.erankly-code-block {
-	background: var(--erankly-color-surface);
-	border: 1px solid var(--erankly-color-border-strong);
-	border-radius: var(--erankly-radius-surface);
-	margin: 0;
-	overflow: hidden;
-}
-
+.erankly-code-block,
 .erankly-settings-details {
 	background: var(--erankly-color-surface);
 	border: 1px solid var(--erankly-color-border-strong);
 	border-radius: var(--erankly-radius-surface);
-	margin: 0 0 var(--erankly-space-field);
 	overflow: hidden;
+}
+
+.erankly-schema-block,
+.erankly-code-block {
+	margin: 0;
+}
+
+.erankly-settings-details {
+	margin: 0 0 var(--erankly-space-field);
 }
 
 .erankly-settings-details:last-child {
@@ -275,18 +259,16 @@
 	transform: rotate(-135deg);
 }
 
+/* A stack owns the rhythm, so the content needs no trailing margin to balance:
+   the 1px the padding used to end with was the last child's own bottom margin. */
 .erankly-settings-details-content {
-	padding: var(--erankly-space-4) var(--erankly-space-4) 1px;
+	padding: var(--erankly-space-4);
 }
 
 .erankly-schema-panel,
 .erankly-code-panel {
 	background: var(--erankly-color-surface);
 	padding: var(--erankly-space-4);
-}
-
-.erankly-local-business-fields {
-	margin-top: var(--erankly-space-4);
 }
 
 .erankly-local-business-fields .erankly-field select.widefat {
@@ -316,17 +298,14 @@
 	display: none;
 }
 
-[data-erankly-local-business-site-list] > .erankly-field {
-	margin-bottom: 0;
-}
-
 .erankly-local-business-page-picker [data-erankly-local-business-load-more-pages][hidden],
 [data-erankly-local-business-load-more][hidden] {
 	display: none;
 }
 
+/* The table is a scroll container inside a stack: the stack's gap is the only
+   spacing it needs, so it takes none of its own. */
 .erankly-opening-hours-wrap {
-	margin: var(--erankly-space-4) 0;
 	max-width: 100%;
 	min-width: 0;
 	overflow-x: auto;
@@ -693,10 +672,6 @@ button.erankly-switch-toggle.erankly-tabs .erankly-switch-option {
 	color: var(--erankly-color-muted);
 }
 
-.erankly-character-counter.is-warning {
-	color: var(--erankly-color-warning);
-}
-
 .erankly-media-preview {
 	min-height: 0;
 }
@@ -720,6 +695,16 @@ button.erankly-switch-toggle.erankly-tabs .erankly-switch-option {
 .erankly-media-url-control .erankly-variable-field {
 	flex: 1 1 220px;
 	min-width: 0;
+}
+
+.erankly-media-url-control > .button {
+	box-sizing: border-box;
+	flex: 0 0 10rem;
+	width: 10rem;
+}
+
+.erankly-media-url-control > .button[hidden] {
+	display: none;
 }
 
 /* Single-class on/off toggle: overlays any input[type="checkbox"], no
@@ -832,12 +817,6 @@ input[type="checkbox"].erankly-toggle:focus-visible {
 	width: 100%;
 }
 
-.erankly-term-meta-box .erankly-term-twitter-card-type {
-	box-sizing: border-box;
-	max-width: none;
-	width: 100%;
-}
-
 /* The preview never paints a background/border of its own. It only draws
  * text over the real field, whose own text is made transparent while it's
  * showing (see .erankly-variable-field.erankly-is-previewing below). That
@@ -904,6 +883,47 @@ input[type="checkbox"].erankly-toggle:focus-visible {
 	z-index: 10000;
 }
 
+.erankly-code-heading-actions,
+.erankly-section-heading-actions {
+	align-items: baseline;
+	display: flex;
+	flex-shrink: 0;
+	gap: var(--erankly-space-2);
+}
+
+.erankly-code-heading-actions > a,
+.erankly-section-heading-actions > a,
+.erankly-code-add {
+	color: var(--wp-admin-theme-color, #3858e9);
+	font: inherit;
+	text-decoration: none;
+}
+
+.erankly-code-add {
+	appearance: none;
+	background: none;
+	border: 0;
+	cursor: pointer;
+	margin: 0;
+	padding: 0;
+}
+
+.erankly-code-heading-actions > a:hover,
+.erankly-section-heading-actions > a:hover,
+.erankly-code-add:hover:not(:disabled) {
+	text-decoration: underline;
+}
+
+.erankly-code-add:focus-visible {
+	outline: 2px solid var(--wp-admin-theme-color, #3858e9);
+	outline-offset: 2px;
+}
+
+.erankly-code-add:disabled {
+	color: var(--erankly-color-muted);
+	cursor: default;
+}
+
 .erankly-schema-blocks,
 .erankly-code-blocks {
 	display: grid;
@@ -913,6 +933,14 @@ input[type="checkbox"].erankly-toggle:focus-visible {
 .erankly-schema-blocks.is-empty,
 .erankly-code-blocks.is-empty {
 	display: none;
+}
+
+.erankly-code-empty {
+	display: none;
+}
+
+.erankly-code-blocks.is-empty + .erankly-code-empty {
+	display: block;
 }
 
 .erankly-schema-block-header,

@@ -378,7 +378,7 @@ final class ERankly_Redirects_Normalizer {
 			return false;
 		}
 
-		if ( function_exists( 'wp_http_validate_url' ) && ! wp_http_validate_url( $url ) ) {
+		if ( ! wp_http_validate_url( $url ) ) {
 			return false;
 		}
 

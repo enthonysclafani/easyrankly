@@ -146,7 +146,7 @@ final class ERankly_Import_Export_Test extends WP_UnitTestCase {
 		$this->assertFalse( $invalid['ok'] );
 		$this->assertSame( 'invalid', $invalid['error'] );
 
-		$upload = erankly_import_export_read_bounded_upload( $path, 100 );
+		$upload = erankly_import_export_read_bounded_file( $path, 100 );
 		$this->assertTrue( $upload['ok'] );
 		$this->assertSame( 'abcdef', $upload['contents'] );
 	}
@@ -346,31 +346,6 @@ final class ERankly_Import_Export_Test extends WP_UnitTestCase {
 		}
 	}
 
-	public function test_import_apply_is_a_deprecated_wrapper_around_the_batch_runner(): void {
-		$this->setExpectedDeprecated( 'erankly_import_apply' );
-
-		$result = erankly_import_apply(
-			array(
-				'plugin' => 'erankly',
-				'format' => '4.0',
-			)
-		);
-
-		$this->assertTrue( $result['done'] );
-		$this->assertSame( 'complete', $result['cursor']['stage'] );
-	}
-
-	public function test_import_third_party_is_a_deprecated_wrapper(): void {
-		$this->setExpectedDeprecated( 'erankly_import_third_party' );
-
-		$result = erankly_import_third_party( 'unknown-source' );
-
-		$this->assertSame( 0, $result['post_meta'] );
-		$this->assertSame( 0, $result['term_meta'] );
-		$this->assertFalse( $result['queued'] );
-		$this->assertSame( '', $result['job_id'] );
-	}
-
 	// ---------------------------------------------------------------------
 	// import job runner.
 	// ---------------------------------------------------------------------
@@ -413,7 +388,7 @@ final class ERankly_Import_Export_Test extends WP_UnitTestCase {
 		$this->assertSame( 'invalid_upload', $result['error'] );
 	}
 
-	public function test_start_from_file_stages_spools_and_completes_the_import(): void {
+	public function test_start_from_file_runs_batches_and_completes_the_import(): void {
 		$post_id = self::factory()->post->create();
 
 		$data = array(
@@ -450,18 +425,15 @@ final class ERankly_Import_Export_Test extends WP_UnitTestCase {
 		$this->assertFileExists( $path );
 
 		$started = ERankly_Import_Job_Runner::start_from_file( $path, $data );
-		$this->assertTrue( $started['ok'], 'start_from_file() should stage the private document.' );
-		$job     = $started['job'];
-		$job_id  = (string) $job['id'];
-		$spool   = $path . '.spool';
-		$this->assertFileExists( $spool );
+		$this->assertTrue( $started['ok'], 'start_from_file() should create the import job.' );
+		$job    = $started['job'];
+		$job_id = (string) $job['id'];
 		$this->assertSame( $job, ERankly_Import_Job_Runner::active_job() );
 
 		$this->run_import_job( $job_id );
 
 		$this->assertNull( ERankly_Import_Job_Runner::active_job() );
-		$this->assertFileDoesNotExist( $spool );
-		$this->assertFalse( wp_next_scheduled( ERANKLY_IMPORT_CRON_HOOK, array( $job_id ) ) );
+		$this->assertFileDoesNotExist( $path );
 
 		$finished = get_option( ERANKLY_IMPORT_LAST_RESULT_OPTION, array() );
 		$this->assertIsArray( $finished );
@@ -481,7 +453,7 @@ final class ERankly_Import_Export_Test extends WP_UnitTestCase {
 		$this->assertSame( '/imported-target', $imported[0]['target_url'] );
 	}
 
-	public function test_restore_failure_after_the_first_batch_keeps_the_spool_and_pauses_the_job(): void {
+	public function test_restore_failure_after_the_purge_keeps_the_job_for_resume(): void {
 		$post_id = self::factory()->post->create();
 		update_post_meta( $post_id, '_erankly_title', 'Live title that purge must remove' );
 
@@ -507,10 +479,6 @@ final class ERankly_Import_Export_Test extends WP_UnitTestCase {
 		$this->assertTrue( $started['ok'] );
 
 		$job_id = (string) $started['job']['id'];
-		$spool  = $path . '.spool';
-		$this->assertFileExists( $spool );
-
-		wp_clear_scheduled_hook( ERANKLY_IMPORT_CRON_HOOK, array( $job_id ) );
 
 		$boom = static function (): void {
 			throw new RuntimeException( 'forced restore failure after purge' );
@@ -524,23 +492,19 @@ final class ERankly_Import_Export_Test extends WP_UnitTestCase {
 		}
 
 		$this->assertIsArray( $paused );
-		$this->assertSame( 'paused', $paused['status'] );
-		$this->assertFileExists( $spool, 'A restore that already purged live data must keep the private spool.' );
-		$this->assertNotFalse(
-			wp_next_scheduled( ERANKLY_IMPORT_CRON_HOOK, array( $job_id ) ),
-			'A paused restore must keep a cron event so it can resume after the failed batch.'
-		);
+		$this->assertSame( 'RuntimeException', $paused['error'] );
+		$this->assertFileExists( $path, 'A restore that already purged live data must keep its private source.' );
+		$this->assertFalse( ERankly_Import_Job_Runner::cancel( $job_id ), 'A purged restore cannot be cancelled.' );
 
 		$active = get_option( ERANKLY_IMPORT_ACTIVE_JOB_OPTION, null );
 		$this->assertIsArray( $active );
 		$this->assertSame( $job_id, $active['id'] );
-		$this->assertSame( 'paused', $active['status'] );
 		$this->assertSame( '', (string) get_post_meta( $post_id, '_erankly_title', true ) );
 
 		$this->run_import_job( $job_id );
 
 		$this->assertNull( ERankly_Import_Job_Runner::active_job() );
-		$this->assertFileDoesNotExist( $spool );
+		$this->assertFileDoesNotExist( $path );
 		$this->assertSame( 'Restored Title', get_post_meta( $post_id, '_erankly_title', true ) );
 	}
 
@@ -548,7 +512,7 @@ final class ERankly_Import_Export_Test extends WP_UnitTestCase {
 		$live                   = erankly_get_settings();
 		$live['website_name']   = 'Live Name';
 		$live['addon_only_key'] = 'must-not-survive-restore';
-		$seeded                 = erankly_update_plugin_settings( $live, '', true );
+		$seeded                 = erankly_update_plugin_settings( $live, true );
 		$this->assertTrue( $seeded );
 		erankly_clear_settings_cache();
 		$this->assertSame( 'must-not-survive-restore', erankly_get_stored_settings()['addon_only_key'] );
@@ -579,7 +543,7 @@ final class ERankly_Import_Export_Test extends WP_UnitTestCase {
 		$this->assertArrayNotHasKey( 'addon_only_key', $stored );
 	}
 
-	public function test_process_fails_safely_when_the_private_spool_is_tampered_with(): void {
+	public function test_process_fails_safely_when_the_private_source_is_corrupted(): void {
 		$data = array(
 			'plugin'       => 'erankly',
 			'format'       => '4.0',
@@ -596,10 +560,7 @@ final class ERankly_Import_Export_Test extends WP_UnitTestCase {
 		$this->assertTrue( $started['ok'] );
 
 		$job_id = (string) $started['job']['id'];
-		$spool  = $path . '.spool';
-		// Grow the spool so its size no longer matches the durable checkpoint.
-		file_put_contents( $spool, "\n", FILE_APPEND ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Test tampering with a private spool.
-		clearstatcache( true, $spool );
+		file_put_contents( $path, '{"plugin":' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Test corrupting the private source.
 
 		$this->assertNull( ERankly_Import_Job_Runner::process( $job_id ) );
 
@@ -607,6 +568,22 @@ final class ERankly_Import_Export_Test extends WP_UnitTestCase {
 		$this->assertIsArray( $finished );
 		$this->assertSame( 'failed', $finished['status'] );
 		$this->assertNull( ERankly_Import_Job_Runner::active_job() );
+	}
+
+	public function test_cancel_removes_the_job_and_its_private_source(): void {
+		$data    = array(
+			'plugin'   => 'erankly',
+			'format'   => '4.0',
+			'settings' => array( 'website_name' => 'Never applied' ),
+		);
+		$path    = $this->create_private_import_file( $data );
+		$started = ERankly_Import_Job_Runner::start_from_file( $path, $data );
+		$this->assertTrue( $started['ok'] );
+
+		$this->assertTrue( ERankly_Import_Job_Runner::cancel( (string) $started['job']['id'] ) );
+		$this->assertNull( ERankly_Import_Job_Runner::active_job() );
+		$this->assertFileDoesNotExist( $path );
+		$this->assertSame( 'cancelled', get_option( ERANKLY_IMPORT_LAST_RESULT_OPTION, array() )['status'] ?? '' );
 	}
 
 	public function test_purge_all_removes_managed_import_files(): void {
@@ -637,13 +614,9 @@ final class ERankly_Import_Export_Test extends WP_UnitTestCase {
 		$fallback = erankly_migration_guided_copy( array( 'state' => 'something-else' ) );
 		$this->assertSame( 'Migration report', $fallback['title'] );
 
-		$source_active = erankly_migration_guided_copy(
-			array(
-				'state'           => 'source_active',
-				'source_label'    => 'Yoast SEO',
-			)
-		);
-		$this->assertStringContainsString( 'Yoast SEO', $source_active['instruction'] );
+		// The retired "deactivate the old plugin" state now falls back to the generic report copy.
+		$retired = erankly_migration_guided_copy( array( 'state' => 'source_active' ) );
+		$this->assertSame( 'Migration report', $retired['title'] );
 	}
 
 	public function test_migration_render_steps_marks_current_step(): void {
@@ -663,19 +636,6 @@ final class ERankly_Import_Export_Test extends WP_UnitTestCase {
 	}
 
 	public function test_migration_render_guided_action_outputs_expected_controls(): void {
-		$open_plugins = $this->capture(
-			static function (): void {
-				erankly_migration_render_guided_action(
-					array(
-						'primary_action' => 'open_plugins',
-						'source_label'   => 'Yoast SEO',
-					),
-					array( 'id' => 'report-1', 'source' => 'yoast' )
-				);
-			}
-		);
-		$this->assertStringContainsString( 'Open Plugins in a new tab', $open_plugins );
-
 		$run_import = $this->capture(
 			static function (): void {
 				erankly_migration_render_guided_action(

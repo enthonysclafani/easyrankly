@@ -15,7 +15,6 @@ final class ERankly_Admin_Settings_Panels_Test extends WP_UnitTestCase {
 		require_once ERANKLY_PATH . 'includes/admin.php';
 		require_once ERANKLY_PATH . 'admin/field-renderers.php';
 		require_once ERANKLY_PATH . 'admin/settings/section-links.php';
-		require_once ERANKLY_PATH . 'admin/settings/nav-icons.php';
 		require_once ERANKLY_PATH . 'admin/settings/renderers.php';
 		require_once ERANKLY_PATH . 'admin/settings/panels.php';
 		require_once ERANKLY_PATH . 'admin/settings-page.php';
@@ -55,6 +54,9 @@ final class ERankly_Admin_Settings_Panels_Test extends WP_UnitTestCase {
 
 		$this->assertStringContainsString( 'id="erankly-settings-panel-features"', $html );
 		$this->assertStringContainsString( 'data-erankly-settings-panel="settings-features"', $html );
+		$this->assertStringContainsString( 'name="' . ERANKLY_OPTION . '[enable_seo]"', $html );
+		$this->assertStringContainsString( 'name="' . ERANKLY_OPTION . '[enable_tools]"', $html );
+		$this->assertStringContainsString( 'Search Engine Optimization', $html );
 		$this->assertStringContainsString( 'name="' . ERANKLY_OPTION . '[enable_redirects]"', $html );
 		$this->assertStringContainsString( 'name="' . ERANKLY_OPTION . '[enable_sitemap]"', $html );
 		$this->assertStringContainsString( 'name="' . ERANKLY_OPTION . '[enable_custom_code]"', $html );
@@ -107,23 +109,6 @@ final class ERankly_Admin_Settings_Panels_Test extends WP_UnitTestCase {
 		);
 
 		$this->assertStringContainsString( 'readonly', $html );
-	}
-
-	public function test_custom_code_panel_warns_about_an_unmigrated_legacy_snippet(): void {
-		$this->store_settings( array( 'head_code' => '<meta name="legacy">' ) );
-
-		$html = $this->capture(
-			static fn() => erankly_render_settings_panel_custom_code(
-				array(),
-				ERANKLY_OPTION . '[head_code_blocks]',
-				array(),
-				ERANKLY_OPTION . '[body_open_code_blocks]',
-				array(),
-				ERANKLY_OPTION . '[body_close_code_blocks]'
-			)
-		);
-
-		$this->assertStringContainsString( 'notice notice-warning inline', $html );
 	}
 
 	public function test_custom_code_builder_seeds_the_next_index_with_the_block_count(): void {
@@ -195,7 +180,7 @@ final class ERankly_Admin_Settings_Panels_Test extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'name="' . ERANKLY_OPTION . '[default_social_image_url]"', $html );
 		$this->assertStringContainsString( 'name="' . ERANKLY_OPTION . '[twitter_site]"', $html );
 		$this->assertStringContainsString( 'name="' . ERANKLY_OPTION . '[social_profiles]"', $html );
-		$this->assertStringContainsString( 'data-erankly-tabs-root', $html );
+		$this->assertStringNotContainsString( 'data-erankly-tabs-root', $html );
 	}
 
 	public function test_schema_panel_renders_breadcrumbs_local_business_and_custom_blocks(): void {
@@ -228,21 +213,13 @@ final class ERankly_Admin_Settings_Panels_Test extends WP_UnitTestCase {
 	}
 
 	public function test_sitemap_panel_renders_each_specialised_toggle(): void {
-		$html = $this->capture( static fn() => erankly_render_settings_panel_sitemap( erankly_get_settings(), erankly_get_sitemap_url( '/wp-sitemap.xml' ) ) );
+		$html = $this->capture( static fn() => erankly_render_settings_panel_sitemap( erankly_get_settings() ) );
 
 		$this->assertStringContainsString( 'data-erankly-settings-panel="settings-sitemap"', $html );
 		$this->assertStringContainsString( 'name="' . ERANKLY_OPTION . '[enable_news_sitemap]"', $html );
 		$this->assertStringContainsString( 'name="' . ERANKLY_OPTION . '[enable_image_sitemap]"', $html );
 		$this->assertStringContainsString( 'name="' . ERANKLY_OPTION . '[enable_video_sitemap]"', $html );
 		$this->assertStringContainsString( 'name="' . ERANKLY_OPTION . '[news_sitemap_post_types][]"', $html );
-	}
-
-	public function test_settings_panel_renders_preferences_checkboxes(): void {
-		$html = $this->capture( static fn() => erankly_render_settings_panel_settings( erankly_get_settings() ) );
-
-		$this->assertStringContainsString( 'data-erankly-settings-panel="settings-settings"', $html );
-		$this->assertStringContainsString( 'name="' . ERANKLY_OPTION . '[simplified_mode]"', $html );
-		$this->assertStringContainsString( 'name="' . ERANKLY_OPTION . '[resolve_placeholders]"', $html );
 	}
 
 	public function test_advanced_panel_renders_robots_and_pagination_fields(): void {
@@ -340,40 +317,16 @@ final class ERankly_Admin_Settings_Panels_Test extends WP_UnitTestCase {
 		);
 	}
 
-	public function test_social_nav_subtabs_disable_the_subtabs_only_when_linked(): void {
-		$linked = array(
-			'default_og_title'            => 'T',
-			'default_twitter_title'       => 'T',
-			'default_og_description'      => 'D',
-			'default_twitter_description' => 'D',
-		);
+	public function test_social_panel_has_images_and_profiles_without_global_text_defaults(): void {
+		$html = $this->capture( static fn() => erankly_render_settings_panel_social( erankly_get_settings() ) );
 
-		$this->assertSame(
-			array(
-				array(
-					'subtab'   => 'social-defaults-og',
-					'disabled' => true,
-				),
-				array(
-					'subtab'   => 'social-defaults-twitter',
-					'disabled' => true,
-				),
-			),
-			erankly_get_social_nav_subtabs( $linked )
-		);
-
-		$divergent                    = $linked;
-		$divergent['default_og_title'] = 'Different';
-
-		$items = erankly_get_social_nav_subtabs( $divergent );
-		$this->assertFalse( $items[0]['disabled'] );
-		$this->assertFalse( $items[1]['disabled'] );
-
-		$explicitly_unlinked                    = $linked;
-		$explicitly_unlinked['social_defaults_linked'] = 0;
-
-		$items = erankly_get_social_nav_subtabs( $explicitly_unlinked );
-		$this->assertFalse( $items[0]['disabled'] );
+		$this->assertStringContainsString( '[default_social_image_url]', $html );
+		$this->assertStringContainsString( '[social_profiles]', $html );
+		$this->assertStringNotContainsString( 'Social defaults', $html );
+		$this->assertStringNotContainsString( '[default_og_title]', $html );
+		$this->assertStringNotContainsString( '[default_twitter_title]', $html );
+		$this->assertStringNotContainsString( 'social-defaults-', $html );
+		$this->assertNotContains( 'settings-social', erankly_settings_subtab_panel_map( erankly_get_settings(), false, false ) );
 	}
 
 	public function test_settings_tab_url_uses_the_settings_page_query_args(): void {
@@ -384,22 +337,19 @@ final class ERankly_Admin_Settings_Panels_Test extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'erankly_tab=schema', $url );
 	}
 
-	public function test_settings_nav_link_marks_the_active_panel_and_hidden_state(): void {
+	public function test_settings_nav_link_marks_the_active_panel(): void {
 		$active = $this->capture( static fn() => erankly_render_settings_nav_link( 'general', 'General', 'settings-general' ) );
 
 		$this->assertStringContainsString( 'class="erankly-settings-nav-item is-active"', $active );
 		$this->assertStringContainsString( 'id="erankly-settings-tab-general"', $active );
 		$this->assertStringContainsString( 'data-erankly-tab="settings-general"', $active );
 		$this->assertStringContainsString( 'aria-current="page"', $active );
-		$this->assertStringContainsString( 'erankly-nav-icon', $active );
+		$this->assertStringContainsString( '<span class="erankly-settings-nav-label">General</span>', $active );
 
 		$inactive = $this->capture( static fn() => erankly_render_settings_nav_link( 'general', 'General', 'settings-social' ) );
 
 		$this->assertStringNotContainsString( 'is-active', $inactive );
 		$this->assertStringNotContainsString( 'aria-current="page"', $inactive );
-
-		$hidden = $this->capture( static fn() => erankly_render_settings_nav_link( 'advanced', 'Advanced', 'settings-social', true ) );
-		$this->assertMatchesRegularExpression( '/\shidden>/', $hidden );
 	}
 
 	public function test_save_network_settings_requires_a_valid_nonce(): void {
@@ -437,8 +387,9 @@ final class ERankly_Admin_Settings_Panels_Test extends WP_UnitTestCase {
 		$this->assertSame( '', $this->capture( static fn() => erankly_render_settings_page() ) );
 	}
 
-	public function test_settings_page_renders_the_requested_general_panel_for_an_admin(): void {
+	public function test_settings_page_renders_the_combined_seo_panel_for_an_admin(): void {
 		set_current_screen( 'settings_page_erankly' );
+		$_GET['erankly_tab'] = 'seo';
 
 		$html = $this->capture( static fn() => erankly_render_settings_page() );
 
@@ -453,25 +404,32 @@ final class ERankly_Admin_Settings_Panels_Test extends WP_UnitTestCase {
 			return;
 		}
 
-		$this->assertStringContainsString( 'data-erankly-active-panel="settings-general"', $html );
-		$this->assertStringContainsString( 'id="erankly-settings-panel-general"', $html );
+		$this->assertStringContainsString( 'data-erankly-active-panel="settings-seo"', $html );
+		$this->assertStringContainsString( 'id="erankly-settings-panel-seo"', $html );
+		$this->assertSame( 1, substr_count( $html, 'data-erankly-settings-panel=' ) );
+		foreach ( array( 'website_name', 'twitter_site', 'global_post_type_schema', 'robots_txt_extra' ) as $key ) {
+			$this->assertStringContainsString( 'name="' . ERANKLY_OPTION . '[' . $key . ']', $html );
+		}
+		foreach ( array( 'general', 'social', 'schema', 'advanced' ) as $slug ) {
+			$this->assertStringNotContainsString( 'id="erankly-settings-tab-' . $slug . '"', $html );
+		}
+		$this->assertMatchesRegularExpression( '/id="erankly-settings-nav-feature-modules".*?id="erankly-settings-tab-seo"/s', $html );
 	}
 
-	public function test_settings_page_resolves_advanced_to_the_settings_panel_in_simplified_mode(): void {
+	public function test_settings_page_maps_the_former_advanced_tab_to_seo(): void {
 		set_current_screen( 'settings_page_erankly' );
 		$_GET['erankly_tab'] = 'advanced';
 
 		$html = $this->capture( static fn() => erankly_render_settings_page() );
 
 		if ( is_multisite() ) {
-			// There is no Advanced or Settings tab on the per-site screen, so 'advanced'
-			// resolves to the special-pages panel there.
+			// There is no Advanced tab on the per-site screen, so 'advanced' resolves to the special-pages panel.
 			$this->assertStringContainsString( 'data-erankly-active-panel="settings-special-pages"', $html );
 			$this->assertStringContainsString( 'id="erankly-settings-panel-special-pages"', $html );
 			return;
 		}
 
-		$this->assertStringContainsString( 'data-erankly-active-panel="settings-settings"', $html );
-		$this->assertStringContainsString( 'id="erankly-settings-panel-settings"', $html );
+		$this->assertStringContainsString( 'data-erankly-active-panel="settings-seo"', $html );
+		$this->assertStringContainsString( 'id="erankly-settings-panel-seo"', $html );
 	}
 }

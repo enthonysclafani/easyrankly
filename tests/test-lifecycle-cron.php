@@ -1,14 +1,12 @@
 <?php
-/** Cron callbacks for the resumable migration and import workers. */
+/** Migration WP-Cron callback and the import batch processor. */
 
 /**
- * Drives `erankly_process_migration_job()` / `erankly_process_import_job()` directly (their WP-Cron callbacks)
- * rather than waiting for a scheduled run.
- *
- * Both callbacks are declared `void`, so the assertions here are on the durable job checkpoints they advance, not
- * on a return value. Only the terminal and rejected branches are reachable without a real adapter or a valid
- * private spool file: an unknown or mismatched job ID leaves the checkpoint untouched, a matching migration job
- * whose adapter is gone is paused, and a matching import job whose source file disappeared is failed.
+ * Drives `erankly_process_migration_job()` (its WP-Cron callback) and `ERankly_Import_Job_Runner::process()`
+ * directly. The assertions are on the durable job checkpoints they advance. Only the terminal and rejected branches
+ * are reachable without a real adapter or a valid private source file: an unknown or mismatched job ID leaves the
+ * checkpoint untouched, a matching migration job whose adapter is gone is paused, and a matching import job whose
+ * source file disappeared is failed.
  */
 final class ERankly_Lifecycle_Cron_Test extends WP_UnitTestCase {
 
@@ -22,7 +20,6 @@ final class ERankly_Lifecycle_Cron_Test extends WP_UnitTestCase {
 
 	public function tear_down(): void {
 		wp_clear_scheduled_hook( ERANKLY_MIGRATION_CRON_HOOK );
-		wp_clear_scheduled_hook( ERANKLY_IMPORT_CRON_HOOK );
 
 		delete_option( ERANKLY_MIGRATION_ACTIVE_JOB_OPTION );
 		delete_option( ERANKLY_IMPORT_ACTIVE_JOB_OPTION );
@@ -95,8 +92,14 @@ final class ERankly_Lifecycle_Cron_Test extends WP_UnitTestCase {
 	 * Import worker
 	 * -------------------------------------------------------------------- */
 
+	private function process_import( string $job_id ): void {
+		require_once ERANKLY_PATH . 'includes/migrations.php';
+		require_once ERANKLY_PATH . 'includes/class-erankly-import-job-runner.php';
+		ERankly_Import_Job_Runner::process( $job_id );
+	}
+
 	public function test_process_import_job_does_nothing_without_a_checkpoint(): void {
-		erankly_process_import_job( 'no-such-job' );
+		$this->process_import( 'no-such-job' );
 
 		$this->assertFalse( get_option( ERANKLY_IMPORT_ACTIVE_JOB_OPTION, false ) );
 		$this->assertFalse( get_option( ERANKLY_IMPORT_LAST_RESULT_OPTION, false ) );
@@ -105,7 +108,7 @@ final class ERankly_Lifecycle_Cron_Test extends WP_UnitTestCase {
 	public function test_process_import_job_ignores_a_mismatched_job_id(): void {
 		update_option( ERANKLY_IMPORT_ACTIVE_JOB_OPTION, array( 'id' => 'imp-owner' ), false );
 
-		erankly_process_import_job( 'imp-other' );
+		$this->process_import( 'imp-other' );
 
 		$this->assertSame( 'imp-owner', get_option( ERANKLY_IMPORT_ACTIVE_JOB_OPTION, array() )['id'] );
 	}
@@ -115,17 +118,14 @@ final class ERankly_Lifecycle_Cron_Test extends WP_UnitTestCase {
 			ERANKLY_IMPORT_ACTIVE_JOB_OPTION,
 			array(
 				'id'          => 'imp-missing-source',
-				'path'        => '',
-				'spool_size'  => 0,
-				'spool_mtime' => 0,
-				'stage'       => 'settings',
-				'counts'      => array(),
-				'batches'     => 0,
+				'path'   => '',
+				'stage'  => 'settings',
+				'counts' => array(),
 			),
 			false
 		);
 
-		erankly_process_import_job( 'imp-missing-source' );
+		$this->process_import( 'imp-missing-source' );
 
 		// The active checkpoint is cleared and the terminal result archived for the admin screen.
 		$this->assertFalse( get_option( ERANKLY_IMPORT_ACTIVE_JOB_OPTION, false ) );

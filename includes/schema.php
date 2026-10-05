@@ -36,13 +36,10 @@ function erankly_render_schema(): void {
 		| JSON_HEX_QUOT
 	);
 	echo '</script>' . "\n";
-	erankly_render_schema_merge_warning_comment();
 }
 
 /** @return array<int,array<string,mixed>> */
 function erankly_get_schema_graph(): array {
-	erankly_clear_schema_merge_warnings();
-
 	$post_id     = is_singular() ? get_queried_object_id() : 0;
 	$schema_mode = $post_id > 0 ? erankly_get_post_meta_string( $post_id, 'schema_mode' ) : 'default';
 	$schema_mode = in_array( $schema_mode, array( 'default', 'merge', 'replace', 'disabled' ), true ) ? $schema_mode : 'default';
@@ -51,7 +48,7 @@ function erankly_get_schema_graph(): array {
 		return array();
 	}
 
-	// Automatic graph is skipped in "custom only" so FAQ/HowTo/video parsing is
+	// Automatic graph is skipped in "custom only" so video parsing is
 	// not wasted. Global blocks are also excluded there: "only" means per-post.
 	$automatic = 'replace' === $schema_mode ? array() : erankly_automatic_schema_graph( $post_id );
 	$global    = 'replace' === $schema_mode ? array() : erankly_get_global_schema_graph();
@@ -75,19 +72,8 @@ function erankly_get_schema_graph(): array {
 
 	// Merge order encodes precedence: automatic < global < per-post custom.
 	$graph = apply_filters( 'erankly_schema', array_filter( array_merge( $automatic, $global, $custom ) ) );
-	$graph = is_array( $graph ) ? erankly_dedupe_schema_graph( $graph ) : array();
 
-	if ( function_exists( 'erankly_maybe_log_schema_merge_warnings' ) ) {
-		erankly_maybe_log_schema_merge_warnings();
-	}
-
-	$warnings = function_exists( 'erankly_get_schema_merge_warnings' ) ? erankly_get_schema_merge_warnings() : array();
-
-	if ( array() !== $warnings ) {
-		do_action( 'erankly_schema_merge_warnings', $warnings );
-	}
-
-	return $graph;
+	return is_array( $graph ) ? erankly_dedupe_schema_graph( $graph ) : array();
 }
 
 /**
@@ -129,12 +115,6 @@ function erankly_automatic_schema_graph( int $post_id ): array {
 		$graph[] = erankly_schema_article( $post_id );
 	}
 
-	$faq = erankly_schema_faq( $post_id );
-
-	if ( ! empty( $faq ) ) {
-		$graph[] = $faq;
-	}
-
 	$local_business = erankly_schema_local_business_for_page( $post_id );
 
 	if ( ! empty( $local_business ) ) {
@@ -146,12 +126,6 @@ function erankly_automatic_schema_graph( int $post_id ): array {
 		}
 
 		$graph[] = $local_business;
-	}
-
-	$howto = erankly_schema_howto( $post_id );
-
-	if ( ! empty( $howto ) ) {
-		$graph[] = $howto;
 	}
 
 	$event = erankly_schema_event( $post_id );
@@ -561,10 +535,6 @@ function erankly_schema_website(): array {
 		),
 	);
 
-	if ( erankly_get_setting( 'enable_website_search_action', 0 ) ) {
-		$schema['potentialAction'] = erankly_schema_website_search_action();
-	}
-
 	$description = erankly_get_website_description();
 
 	if ( '' !== $description ) {
@@ -572,18 +542,6 @@ function erankly_schema_website(): array {
 	}
 
 	return apply_filters( 'erankly_schema_website', erankly_filter_empty_schema_values( $schema ) );
-}
-
-/** @return array<string,mixed> */
-function erankly_schema_website_search_action(): array {
-	return array(
-		'@type'       => 'SearchAction',
-		'target'      => array(
-			'@type'       => 'EntryPoint',
-			'urlTemplate' => home_url( '/?s={search_term_string}' ),
-		),
-		'query-input' => 'required name=search_term_string',
-	);
 }
 
 /**
@@ -717,58 +675,6 @@ function erankly_schema_article_author( int $author_id ): array {
 	return array_filter( $author );
 }
 
-/**
- * Legacy BlogPosting alias. New code should call erankly_schema_article() and set @type explicitly.
- *
- * @return array<string,mixed>
- */
-function erankly_schema_blogposting( int $post_id = 0 ): array {
-	$schema          = erankly_schema_article( $post_id );
-	$schema['@type'] = 'BlogPosting';
-
-	return apply_filters( 'erankly_schema_blogposting', $schema, $post_id );
-}
-
-/** @return array<string,mixed> */
-function erankly_schema_faq( int $post_id = 0 ): array {
-	$schema = array();
-
-	/** Filters FAQ items for a post. Expected item shape: array( 'question' => '...', 'answer' => '...' ). */
-	$items = apply_filters( 'erankly_faq_items', array(), $post_id );
-
-	if ( is_array( $items ) && ! empty( $items ) ) {
-		$entities = array();
-
-		foreach ( $items as $item ) {
-			$question = isset( $item['question'] ) ? trim( (string) $item['question'] ) : '';
-			$answer   = isset( $item['answer'] ) ? trim( (string) $item['answer'] ) : '';
-
-			if ( '' === $question || '' === $answer ) {
-				continue;
-			}
-
-			$entities[] = array(
-				'@type'          => 'Question',
-				'name'           => $question,
-				'acceptedAnswer' => array(
-					'@type' => 'Answer',
-					'text'  => $answer,
-				),
-			);
-		}
-
-		if ( ! empty( $entities ) ) {
-			$schema = array(
-				'@type'      => 'FAQPage',
-				'@id'        => erankly_get_canonical() . '#faqpage',
-				'mainEntity' => $entities,
-			);
-		}
-	}
-
-	return apply_filters( 'erankly_schema_faq', $schema, $post_id );
-}
-
 /** @return array<string,mixed> */
 function erankly_schema_service( array $args = array() ): array {
 	$schema = wp_parse_args(
@@ -811,7 +717,7 @@ function erankly_schema_local_business_for_page( int $post_id ): array {
 		return array();
 	}
 
-	$page_id = erankly_get_local_business_page_id( $post_id );
+	$page_id = erankly_get_local_business_page_id();
 
 	if ( $page_id <= 0 || $page_id !== $post_id ) {
 		return array();
@@ -988,7 +894,7 @@ function erankly_get_global_schema_graph(): array {
 			continue;
 		}
 
-		if ( ! erankly_global_schema_block_matches_request( $block ) ) {
+		if ( ! erankly_targeted_block_matches_request( $block ) ) {
 			continue;
 		}
 
@@ -1002,22 +908,6 @@ function erankly_get_global_schema_graph(): array {
 	}
 
 	return $graph;
-}
-
-function erankly_global_schema_block_matches_request( array $block ): bool {
-	return erankly_targeted_block_matches_request( $block );
-}
-
-function erankly_global_schema_matches_post_type_archive( array $block ): bool {
-	return erankly_targeted_block_matches_post_type_archive( $block );
-}
-
-function erankly_global_schema_matches_singular( array $block ): bool {
-	return erankly_targeted_block_matches_singular( $block );
-}
-
-function erankly_schema_target_list_contains_post( string $value, int $post_id ): bool {
-	return erankly_target_list_contains_item( $value, 'post', $post_id );
 }
 
 /** @return array<int,array<string,mixed>> */

@@ -109,16 +109,22 @@ final class ERankly_Migration_Adapter_Yoast extends ERankly_Migration_Adapter {
 			return array();
 		}
 
-		$convert  = static fn( mixed $value ): string => erankly_import_convert_variables( is_scalar( $value ) ? (string) $value : '', 'yoast' );
-		$first_scalar = static function ( array $values, string $default = '' ): string {
-			foreach ( $values as $value ) {
-				if ( is_scalar( $value ) && '' !== trim( (string) $value ) ) {
-					return (string) $value;
-				}
-			}
+		return array_merge(
+			$this->post_type_settings( $titles ),
+			$this->taxonomy_settings( $titles ),
+			$this->special_page_settings( $titles, $social ),
+			$this->identity_settings( $titles ),
+			$this->social_settings( $social ),
+			$this->feature_settings( $main, $titles )
+		);
+	}
 
-			return $default;
-		};
+	/**
+	 * Maps the per post type titles, descriptions, noindex flags and schema types.
+	 *
+	 * @return array<string,mixed>
+	 */
+	private function post_type_settings( array $titles ): array {
 		$settings = array();
 		$post_map = array();
 		foreach ( array_keys( erankly_get_public_post_types() ) as $post_type ) {
@@ -137,8 +143,8 @@ final class ERankly_Migration_Adapter_Yoast extends ERankly_Migration_Adapter {
 			$page_type    = 'none' === strtolower( $page_type ) ? 'none' : $page_type;
 			$article_type = 'none' === strtolower( $article_type ) ? 'none' : $article_type;
 			$post_map[ $post_type ] = $this->global_meta_row(
-				$convert( $titles[ $title_key ] ?? '' ),
-				$convert( $titles[ $description_key ] ?? '' ),
+				$this->convert_template( $titles[ $title_key ] ?? '' ),
+				$this->convert_template( $titles[ $description_key ] ?? '' ),
 				$has_noindex ? array( 'noindex' => $noindex ) : null,
 				$noindex ? false : null,
 				$page_type,
@@ -156,6 +162,16 @@ final class ERankly_Migration_Adapter_Yoast extends ERankly_Migration_Adapter {
 			}
 		}
 
+		return $settings;
+	}
+
+	/**
+	 * Maps the per taxonomy titles, descriptions and noindex flags.
+	 *
+	 * @return array<string,mixed>
+	 */
+	private function taxonomy_settings( array $titles ): array {
+		$settings = array();
 		$taxonomy_map = array();
 		foreach ( array_keys( erankly_get_public_taxonomies() ) as $taxonomy ) {
 			$title_key       = 'title-tax-' . $taxonomy;
@@ -166,13 +182,23 @@ final class ERankly_Migration_Adapter_Yoast extends ERankly_Migration_Adapter {
 			}
 			$has_noindex = array_key_exists( $noindex_key, $titles );
 			$noindex     = $has_noindex && $this->enabled( $titles[ $noindex_key ] );
-			$taxonomy_map[ $taxonomy ] = $this->global_meta_row( $convert( $titles[ $title_key ] ?? '' ), $convert( $titles[ $description_key ] ?? '' ), $has_noindex ? array( 'noindex' => $noindex ) : null, $noindex ? false : null );
+			$taxonomy_map[ $taxonomy ] = $this->global_meta_row( $this->convert_template( $titles[ $title_key ] ?? '' ), $this->convert_template( $titles[ $description_key ] ?? '' ), $has_noindex ? array( 'noindex' => $noindex ) : null, $noindex ? false : null );
 		}
 		if ( $taxonomy_map ) {
 			$settings['global_taxonomy_meta']        = $taxonomy_map;
 			$settings['global_taxonomy_meta_linked'] = 0;
 		}
 
+		return $settings;
+	}
+
+	/**
+	 * Maps the homepage, archive, search and 404 defaults, including their social overrides.
+	 *
+	 * @return array<string,mixed>
+	 */
+	private function special_page_settings( array $titles, array $social ): array {
+		$settings = array();
 		$special = array();
 		$sources = array(
 			'homepage' => array( array( 'title-home-wpseo', 'title-home' ), array( 'metadesc-home-wpseo', 'metadesc-home' ), array() ),
@@ -217,14 +243,14 @@ final class ERankly_Migration_Adapter_Yoast extends ERankly_Migration_Adapter {
 			$special['homepage'] = $this->global_meta_row( '', '' );
 		}
 		if ( isset( $special['homepage'] ) ) {
-			$special['homepage']['og_title'] = $convert(
-				$first_scalar( array( $social['og_frontpage_title'] ?? '', $titles['open_graph_frontpage_title'] ?? '' ) )
+			$special['homepage']['og_title'] = $this->convert_template(
+				$this->first_scalar( array( $social['og_frontpage_title'] ?? '', $titles['open_graph_frontpage_title'] ?? '' ) )
 			);
-			$special['homepage']['og_description'] = $convert(
-				$first_scalar( array( $social['og_frontpage_desc'] ?? '', $titles['open_graph_frontpage_desc'] ?? '' ) )
+			$special['homepage']['og_description'] = $this->convert_template(
+				$this->first_scalar( array( $social['og_frontpage_desc'] ?? '', $titles['open_graph_frontpage_desc'] ?? '' ) )
 			);
 			$special['homepage']['social_image_url'] = esc_url_raw(
-				$first_scalar( array( $social['og_frontpage_image'] ?? '', $titles['open_graph_frontpage_image'] ?? '' ) )
+				$this->first_scalar( array( $social['og_frontpage_image'] ?? '', $titles['open_graph_frontpage_image'] ?? '' ) )
 			);
 			$special['homepage']['og_image_id'] = absint( $social['og_frontpage_image_id'] ?? $titles['open_graph_frontpage_image_id'] ?? 0 );
 		}
@@ -246,6 +272,16 @@ final class ERankly_Migration_Adapter_Yoast extends ERankly_Migration_Adapter {
 			$settings['global_special_meta'] = $special;
 		}
 
+		return $settings;
+	}
+
+	/**
+	 * Maps the Organization or Person identity with its logo and legal details.
+	 *
+	 * @return array<string,mixed>
+	 */
+	private function identity_settings( array $titles ): array {
+		$settings = array();
 		$identity = strtolower( (string) ( $titles['company_or_person'] ?? '' ) );
 		if ( in_array( $identity, array( 'person', 'company', 'organization' ), true ) ) {
 			$settings['schema_identity'] = 'person' === $identity ? 'person' : 'organization';
@@ -279,6 +315,16 @@ final class ERankly_Migration_Adapter_Yoast extends ERankly_Migration_Adapter {
 			}
 		}
 
+		return $settings;
+	}
+
+	/**
+	 * Maps social profiles, the X handle and the default social image.
+	 *
+	 * @return array<string,mixed>
+	 */
+	private function social_settings( array $social ): array {
+		$settings = array();
 		$profiles = $this->social_profile_list(
 			array(
 				$social['facebook_site'] ?? '',
@@ -306,6 +352,16 @@ final class ERankly_Migration_Adapter_Yoast extends ERankly_Migration_Adapter {
 			$settings['default_og_image'] = absint( $social['og_default_image_id'] );
 		}
 
+		return $settings;
+	}
+
+	/**
+	 * Maps breadcrumb, sitemap, attachment, pagination and redirect options.
+	 *
+	 * @return array<string,mixed>
+	 */
+	private function feature_settings( array $main, array $titles ): array {
+		$settings = array();
 		if ( array_key_exists( 'breadcrumbs-enable', $titles ) ) {
 			$settings['enable_breadcrumbs'] = $this->enabled( $titles['breadcrumbs-enable'] ) ? 1 : 0;
 		}
@@ -509,17 +565,10 @@ final class ERankly_Migration_Adapter_Yoast extends ERankly_Migration_Adapter {
 		$base = get_option( 'wpseo-premium-redirects-base' );
 		if ( is_array( $base ) ) {
 			foreach ( $base as $index => $entry ) {
-				if ( ! is_array( $entry ) || empty( $entry['origin'] ) ) {
-					continue;
+				$redirect = $this->map_redirect_option_entry( 'premium_base', $index, $entry );
+				if ( is_array( $redirect ) ) {
+					yield $redirect;
 				}
-
-				yield $this->redirect_from_values(
-					(string) $entry['origin'],
-					(string) ( $entry['url'] ?? '' ),
-					(int) ( $entry['type'] ?? 301 ),
-					'regex' === (string) ( $entry['format'] ?? '' ),
-					'premium-base:' . sanitize_text_field( (string) $index )
-				);
 			}
 		}
 
@@ -533,20 +582,10 @@ final class ERankly_Migration_Adapter_Yoast extends ERankly_Migration_Adapter {
 			}
 
 			foreach ( $legacy as $origin => $target ) {
-				if ( is_array( $target ) ) {
-					$origin = $target['origin'] ?? $origin;
-					$url    = $target['url'] ?? $target['target'] ?? '';
-					$type   = (int) ( $target['type'] ?? 301 );
-				} else {
-					$url  = $target;
-					$type = 301;
+				$redirect = $this->map_redirect_option_entry( $is_regex ? 'legacy_regex' : 'legacy_plain', $origin, $target );
+				if ( is_array( $redirect ) ) {
+					yield $redirect;
 				}
-
-				if ( ! is_scalar( $origin ) || ! is_scalar( $url ) ) {
-					continue;
-				}
-
-				yield $this->redirect_from_values( (string) $origin, (string) $url, $type, $is_regex, 'premium-' . $kind . ':' . md5( (string) $origin ) );
 			}
 		}
 
@@ -708,31 +747,9 @@ final class ERankly_Migration_Adapter_Yoast extends ERankly_Migration_Adapter {
 			}
 			++$scanned;
 
-			if ( 'premium_base' === $stage ) {
-				if ( ! is_array( $entry ) || empty( $entry['origin'] ) ) {
-					continue;
-				}
-				$records[] = $this->redirect_from_values(
-					(string) $entry['origin'],
-					(string) ( $entry['url'] ?? '' ),
-					(int) ( $entry['type'] ?? 301 ),
-					'regex' === (string) ( $entry['format'] ?? '' ),
-					'premium-base:' . sanitize_text_field( (string) $origin )
-				);
-				continue;
-			}
-
-			if ( is_array( $entry ) ) {
-				$origin = $entry['origin'] ?? $origin;
-				$url    = $entry['url'] ?? $entry['target'] ?? '';
-				$type   = (int) ( $entry['type'] ?? 301 );
-			} else {
-				$url  = $entry;
-				$type = 301;
-			}
-			if ( is_scalar( $origin ) && is_scalar( $url ) ) {
-				$kind      = 'legacy_regex' === $stage ? 'regex' : 'plain';
-				$records[] = $this->redirect_from_values( (string) $origin, (string) $url, $type, 'regex' === $kind, 'premium-' . $kind . ':' . md5( (string) $origin ) );
+			$redirect = $this->map_redirect_option_entry( $stage, $origin, $entry );
+			if ( is_array( $redirect ) ) {
+				$records[] = $redirect;
 			}
 		}
 
@@ -741,6 +758,40 @@ final class ERankly_Migration_Adapter_Yoast extends ERankly_Migration_Adapter {
 			'offset'  => $offset + $scanned,
 			'done'    => true,
 		);
+	}
+
+	/** @return array<string,mixed>|null */
+	private function map_redirect_option_entry( string $stage, int|string $origin, mixed $entry ): ?array {
+		if ( 'premium_base' === $stage ) {
+			if ( ! is_array( $entry ) || empty( $entry['origin'] ) ) {
+				return null;
+			}
+
+			return $this->redirect_from_values(
+				(string) $entry['origin'],
+				(string) ( $entry['url'] ?? '' ),
+				(int) ( $entry['type'] ?? 301 ),
+				'regex' === (string) ( $entry['format'] ?? '' ),
+				'premium-base:' . sanitize_text_field( (string) $origin )
+			);
+		}
+
+		if ( is_array( $entry ) ) {
+			$origin = $entry['origin'] ?? $origin;
+			$url    = $entry['url'] ?? $entry['target'] ?? '';
+			$type   = (int) ( $entry['type'] ?? 301 );
+		} else {
+			$url  = $entry;
+			$type = 301;
+		}
+
+		if ( ! is_scalar( $origin ) || ! is_scalar( $url ) ) {
+			return null;
+		}
+
+		$kind = 'legacy_regex' === $stage ? 'regex' : 'plain';
+
+		return $this->redirect_from_values( (string) $origin, (string) $url, $type, 'regex' === $kind, 'premium-' . $kind . ':' . md5( (string) $origin ) );
 	}
 
 	/**

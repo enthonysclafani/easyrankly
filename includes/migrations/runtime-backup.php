@@ -156,34 +156,6 @@ function erankly_migration_backup_state( array $report ): array {
 }
 
 /**
- * Lists retained backup paths which are still inside the restore window.
- *
- * This remains useful to integrations that display available recovery artefacts. The upload store applies
- * the same bounded lifetime independently, so an old report can never extend a backup's retention period.
- *
- * @return array<int,string>
- */
-function erankly_migration_referenced_backups(): array {
-	$reports = get_option( 'erankly_migration_reports_v1', array() );
-	if ( ! is_array( $reports ) ) {
-		return array();
-	}
-
-	$paths  = array();
-	$cutoff = time() - ERankly_Migration_Upload_Store::backup_ttl();
-	foreach ( $reports as $report ) {
-		$backup  = is_array( $report ) && is_array( $report['backup'] ?? null ) ? $report['backup'] : array();
-		$created = strtotime( (string) ( $backup['created_at'] ?? '' ) );
-		$path    = (string) ( $backup['path'] ?? '' );
-		if ( '' !== $path && false !== $created && $created > $cutoff ) {
-			$paths[] = wp_normalize_path( $path );
-		}
-	}
-
-	return $paths;
-}
-
-/**
  * Restores the pre-import backup of one migration report.
  *
  * @return array{ok:bool,error?:string,job?:array<string,mixed>}

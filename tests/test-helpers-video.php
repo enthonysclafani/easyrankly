@@ -104,15 +104,6 @@ final class ERankly_Helpers_Video_Test extends WP_UnitTestCase {
 		$this->assertSame( array(), erankly_extract_video_urls( 'Just a paragraph with a https://example.org link.' ) );
 	}
 
-	public function test_sitemap_alias_delegates_to_extract_video_urls(): void {
-		$content = 'https://youtu.be/aBcDeFgHiJk';
-
-		$this->assertSame(
-			erankly_extract_video_urls( $content ),
-			erankly_extract_sitemap_video_urls( $content )
-		);
-	}
-
 	public function test_get_video_embed_url_maps_every_supported_form(): void {
 		$this->assertSame( 'https://www.youtube.com/embed/dQw4w9WgXcQ', erankly_get_video_embed_url( 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' ) );
 		$this->assertSame( 'https://www.youtube.com/embed/dQw4w9WgXcQ', erankly_get_video_embed_url( 'https://youtu.be/dQw4w9WgXcQ' ) );
@@ -127,12 +118,6 @@ final class ERankly_Helpers_Video_Test extends WP_UnitTestCase {
 		$this->assertSame( '', erankly_get_video_embed_url( '' ) );
 	}
 
-	public function test_sitemap_alias_delegates_to_get_video_embed_url(): void {
-		$url = 'https://youtu.be/dQw4w9WgXcQ';
-
-		$this->assertSame( erankly_get_video_embed_url( $url ), erankly_get_sitemap_video_embed_url( $url ) );
-	}
-
 	public function test_get_video_content_url_accepts_self_hosted_extensions(): void {
 		$this->assertSame( 'https://cdn.example.org/a.mp4', erankly_get_video_content_url( 'https://cdn.example.org/a.mp4' ) );
 		$this->assertSame( 'https://cdn.example.org/a.webm', erankly_get_video_content_url( 'https://cdn.example.org/a.webm' ) );
@@ -144,12 +129,6 @@ final class ERankly_Helpers_Video_Test extends WP_UnitTestCase {
 	public function test_get_video_content_url_rejects_page_urls_and_case_variants_are_accepted(): void {
 		$this->assertSame( '', erankly_get_video_content_url( 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' ) );
 		$this->assertSame( 'https://cdn.example.org/A.MP4', erankly_get_video_content_url( 'https://cdn.example.org/A.MP4' ) );
-	}
-
-	public function test_sitemap_alias_delegates_to_get_video_content_url(): void {
-		$url = 'https://cdn.example.org/a.mp4';
-
-		$this->assertSame( erankly_get_video_content_url( $url ), erankly_get_sitemap_video_content_url( $url ) );
 	}
 
 	public function test_get_video_thumbnail_url_prefers_the_featured_image(): void {
@@ -202,15 +181,5 @@ final class ERankly_Helpers_Video_Test extends WP_UnitTestCase {
 
 		$this->assertSame( '', erankly_get_video_thumbnail_url( $post_id, 'https://vimeo.com/123456789' ) );
 		$this->assertSame( '', erankly_get_video_thumbnail_url( 0, 'https://vimeo.com/123456789' ) );
-	}
-
-	public function test_sitemap_alias_delegates_to_get_video_thumbnail_url(): void {
-		$post_id = self::factory()->post->create();
-		$url     = 'https://youtu.be/aBcDeFgHiJk';
-
-		$this->assertSame(
-			erankly_get_video_thumbnail_url( $post_id, $url ),
-			erankly_get_sitemap_video_thumbnail_url( $post_id, $url )
-		);
 	}
 }

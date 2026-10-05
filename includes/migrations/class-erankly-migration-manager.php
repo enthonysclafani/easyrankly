@@ -241,7 +241,6 @@ final class ERankly_Migration_Manager {
 
 		$next_actions = array();
 		if ( 'blocked' === $state ) {
-			$next_actions[] = 'keep_source_active';
 			$next_actions[] = 'resolve_blockers';
 		} elseif ( 'preview' === $mode ) {
 			if ( 'review' === $state ) {
@@ -251,9 +250,7 @@ final class ERankly_Migration_Manager {
 		} else {
 			if ( 'review' === $state ) {
 				$next_actions[] = 'review_diagnostics';
-				$next_actions[] = 'keep_source_active';
 			}
-			$next_actions[] = 'controlled_deactivation';
 			$next_actions[] = 'purge_caches';
 			$next_actions[] = 'verify_frontend';
 			$next_actions[] = 'retain_source_backup';
@@ -288,20 +285,5 @@ final class ERankly_Migration_Manager {
 			return array();
 		}
 		return array_values( array_filter( array_reverse( array_values( $reports ) ), 'is_array' ) );
-	}
-
-	/**
-	 * Replaces one existing report. Kept as a compatibility shim for integrations that still call it after
-	 * verification or rollback UI was retired from core.
-	 */
-	public function update_report( array $report ): bool {
-		$report_id = sanitize_text_field( (string) ( $report['id'] ?? '' ) );
-		$reports   = get_option( self::REPORTS_OPTION, array() );
-		if ( '' === $report_id || ! is_array( $reports ) || ! isset( $reports[ $report_id ] ) ) {
-			return false;
-		}
-		$reports[ $report_id ] = $report;
-
-		return update_option( self::REPORTS_OPTION, $reports, false );
 	}
 }

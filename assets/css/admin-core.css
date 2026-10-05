@@ -76,19 +76,19 @@
 }
 
 .erankly-settings-sidebar-toggle::after {
-	border-bottom: 2px solid;
-	border-right: 2px solid;
+	background-color: currentColor;
 	content: "";
 	flex-shrink: 0;
-	height: 7px;
+	height: 20px;
 	margin-left: var(--erankly-space-3);
-	transform: rotate(45deg);
+	mask: url("../icons/hugeicons/arrow-down-01.svg") center / contain no-repeat;
+	-webkit-mask: url("../icons/hugeicons/arrow-down-01.svg") center / contain no-repeat;
 	transition: transform 0.15s;
-	width: 7px;
+	width: 20px;
 }
 
 .erankly-settings-sidebar-nav.is-expanded .erankly-settings-sidebar-toggle::after {
-	transform: rotate(-135deg);
+	transform: rotate(180deg);
 }
 
 .erankly-settings-nav-item {
@@ -99,7 +99,6 @@
 	border-radius: var(--erankly-radius-control);
 	box-sizing: border-box;
 	color: var(--erankly-color-text);
-	column-gap: var(--erankly-space-3);
 	cursor: pointer;
 	display: flex;
 	font-size: 14px;
@@ -109,18 +108,6 @@
 	text-decoration: none;
 	width: 100%;
 	overflow-wrap: anywhere;
-}
-
-/* The display above beats the UA stylesheet's [hidden] { display: none }: the Advanced tab is hidden with that attribute while Simplified mode is on. */
-.erankly-settings-nav-item[hidden] {
-	display: none;
-}
-
-.erankly-settings-nav-item .erankly-nav-icon {
-	flex-shrink: 0;
-	height: 18px;
-	margin-top: -1px;
-	width: 18px;
 }
 
 .erankly-settings-nav-item .erankly-settings-nav-label {
@@ -177,6 +164,16 @@
 	margin-top: var(--erankly-space-section);
 	padding: var(--erankly-space-4) 0;
 	position: sticky;
+}
+
+.erankly-forms-status {
+	color: var(--erankly-color-text-muted);
+	margin: 0;
+}
+
+/* The live region is empty until the first save, so it must not hold a line. */
+.erankly-forms-status:empty {
+	display: none;
 }
 
 .erankly-autosave-status {
@@ -262,9 +259,8 @@
 }
 
 /*
- * Danger button: shared destructive-action style (site reset, schema and
- * custom-code block deletion). Lives here, not in reset.css, so every
- * surface that renders buttons can reuse it.
+ * Danger button: shared destructive-action style (schema and custom-code
+ * block deletion).
  */
 .erankly-btn-danger.button {
 	background: var(--erankly-color-danger);
@@ -310,11 +306,7 @@
 	min-width: 0;
 }
 
-/*
- * The author display above beats the UA stylesheet's [hidden] { display: none },
- * so a field the markup or the JS hides needs its own rule. Same reason as
- * .erankly-card[hidden] below. The list mirrors the one above: keep them in sync.
- */
+/* Author display rules override the UA [hidden] style; keep hidden fields and containers out of flow. */
 .erankly-field[hidden],
 .erankly-schema-field[hidden],
 .erankly-code-field[hidden],
@@ -323,11 +315,15 @@
 .erankly-schema-targeting-group[hidden],
 .erankly-code-targeting[hidden],
 .erankly-code-targeting-group[hidden],
-.erankly-post-type-schema-row[hidden] {
+.erankly-post-type-schema-row[hidden],
+.erankly-card[hidden],
+.erankly-stack[hidden],
+.erankly-settings-panel[hidden],
+.erankly-settings-section[hidden] {
 	display: none;
 }
 
-/* stylelint-disable declaration-no-important -- Field children carry vertical margins elsewhere: wp-admin gives every <p> 1em, and that stylesheet loads after this one. The card below uses the same reset for the same reason. */
+/* stylelint-disable declaration-no-important -- Fields and containers own their gaps; override child margins from wp-admin and notices. */
 .erankly-field > *,
 .erankly-schema-field > *,
 .erankly-code-field > *,
@@ -336,7 +332,11 @@
 .erankly-schema-targeting-group > *,
 .erankly-code-targeting > *,
 .erankly-code-targeting-group > *,
-.erankly-post-type-schema-row > * {
+.erankly-post-type-schema-row > *,
+.erankly-card > *,
+.erankly-stack > *,
+.erankly-settings-panel > *,
+.erankly-settings-panel > form > * {
 	margin-bottom: 0 !important;
 	margin-top: 0 !important;
 }
@@ -398,34 +398,39 @@
  * own (not even the 1em wp-admin gives every <p>). Change the rhythm here,
  * once, instead of on the individual children.
  */
+.erankly-card,
+.erankly-stack,
+.erankly-settings-panel,
+.erankly-settings-panel > form {
+	display: flex;
+	flex-direction: column;
+}
+
 .erankly-card {
 	background: var(--erankly-color-surface);
 	border: 1px solid var(--erankly-color-border);
 	border-radius: var(--erankly-radius-surface);
 	box-sizing: border-box;
-	display: flex;
-	flex-direction: column;
 	gap: var(--erankly-space-field);
 	margin: 0 0 var(--erankly-space-section);
 	padding: var(--erankly-space-section);
 }
 
 /*
- * The card owns the vertical rhythm: no child margin may add to its gap.
- * See the stylelint note below for why this reset has to be final.
+ * Stack: the rhythm container for the wrappers that group fields without
+ * adding surface of their own (the collapsible sections, the conditional
+ * identity groups, the Local Business block). Same contract as .erankly-card
+ * — one gap owns the vertical rhythm, the children carry no vertical margin —
+ * minus the border, background and padding, so a nested group spaces its
+ * fields exactly like the card around it.
+ *
+ * Use it instead of nesting fields in a bare <div>: a plain wrapper lets the
+ * children's own margins do the spacing, which adds up to the card's gap where
+ * two rules overlap and leaves a dead margin band wherever the last child is
+ * hidden. The gap has no such edge case.
  */
-/* stylelint-disable declaration-no-important -- Card children carry vertical margins elsewhere: wp-admin gives every <p> 1em and the .notice rule in admin-settings.css gives 16px, so only an important reset keeps the card's gap authoritative. */
-.erankly-card > * {
-	margin-bottom: 0 !important;
-	margin-top: 0 !important;
-}
-/* stylelint-enable declaration-no-important */
-
-/* display: flex beats the UA stylesheet's [hidden] { display: none }. */
-.erankly-card[hidden],
-.erankly-settings-panel[hidden],
-.erankly-settings-section[hidden] {
-	display: none;
+.erankly-stack {
+	gap: var(--erankly-space-field);
 }
 
 /* Section: heading row above the card, one 8px gap between the two. */
@@ -443,23 +448,22 @@
 
 /*
  * Panel: like the card, the panel owns the vertical rhythm of its children with
- * one 24px gap. The sections drop their own bottom margin, so the last visible
- * one never trails a margin below the panel — a section can be hidden by
- * simplified mode, which makes ":last-child" the wrong tool for it.
+ * one 24px gap. The sections drop their own bottom margin, so the last one
+ * never trails a margin below the panel.
  */
 .erankly-settings-panel {
-	display: flex;
-	flex-direction: column;
 	gap: var(--erankly-space-section);
 }
 
-/* stylelint-disable declaration-no-important -- Panel children carry vertical margins elsewhere: wp-admin gives every <p> 1em and the .notice rule in admin-settings.css gives 16px, so only an important reset keeps the panel's gap authoritative — exactly as with .erankly-card > * above. */
-.erankly-settings-panel > *,
-.erankly-settings-panel > form > * {
-	margin-bottom: 0 !important;
-	margin-top: 0 !important;
+/*
+ * A panel that wraps its own sections in a form (the modules saving through
+ * their own endpoint, e.g. Contact forms) gets the same treatment: the form
+ * takes over the panel's rhythm, so its sections keep the 24px gap instead of
+ * falling into the margin reset above with no spacing at all.
+ */
+.erankly-settings-panel > form {
+	gap: var(--erankly-space-section);
 }
-/* stylelint-enable declaration-no-important */
 
 /* Row of actions closing a card: one button on its own or a pair. */
 .erankly-card-actions {

@@ -4,23 +4,6 @@
  * special-page panels for block themes on WP 6.6+ (erankly_site_editor_special_page_panels_supported()).
  */
 defined( 'ABSPATH' ) || exit;
-function erankly_enqueue_accordion_faq_schema_assets(): void {
-	wp_enqueue_script(
-		'erankly-accordion-faq-schema',
-		ERANKLY_URL . 'assets/js/accordion-faq-schema.js',
-		array(
-			'wp-block-editor',
-			'wp-components',
-			'wp-compose',
-			'wp-element',
-			'wp-hooks',
-			'wp-i18n',
-		),
-		ERANKLY_VERSION,
-		true
-	);
-	wp_set_script_translations( 'erankly-accordion-faq-schema', 'easyrankly', ERANKLY_PATH . 'languages' );
-}
 function erankly_admin_enqueue_block_editor_assets(): void {
 	$post = get_post();
 	if ( ! $post instanceof WP_Post || ! current_user_can( 'edit_post', $post->ID ) ) {
@@ -28,7 +11,6 @@ function erankly_admin_enqueue_block_editor_assets(): void {
 	}
 	require_once ERANKLY_PATH . 'admin/meta-box.php';
 	erankly_enqueue_editor_shared_assets();
-	erankly_enqueue_accordion_faq_schema_assets();
 	wp_enqueue_script(
 		'erankly-schema-jsonld',
 		ERANKLY_URL . 'assets/js/schema-jsonld.js',
@@ -44,6 +26,7 @@ function erankly_admin_enqueue_block_editor_assets(): void {
 		'wp-block-editor',
 		'wp-components',
 		'wp-data',
+		'wp-date',
 		'wp-edit-post',
 		'wp-editor',
 		'wp-element',
@@ -59,31 +42,20 @@ function erankly_admin_enqueue_block_editor_assets(): void {
 		true
 	);
 	wp_set_script_translations( 'erankly-editor', 'easyrankly', ERANKLY_PATH . 'languages' );
-	require_once ERANKLY_PATH . 'admin/settings/section-links.php';
-	$doc_urls = erankly_section_doc_links();
 	wp_localize_script(
 		'erankly-editor',
 		'eranklyEditor',
 		array(
-			'breadcrumbsEnabled'            => (bool) erankly_get_setting( 'enable_breadcrumbs', 1 ),
-			'newsSitemapEnabled'            => (bool) erankly_get_setting( 'enable_news_sitemap', 0 ),
-			'resolvePlaceholders'           => (bool) erankly_get_setting( 'resolve_placeholders', 1 ),
-			'simplifiedMode'                => (bool) erankly_get_setting( 'simplified_mode', 1 ),
-			'siteDescription'               => get_bloginfo( 'description' ),
-			'siteName'                      => get_bloginfo( 'name' ),
-			'titlePlaceholder'              => erankly_get_post_global_meta_placeholder( $post, 'title', 70 ),
-			'descriptionPlaceholder'        => erankly_get_post_global_meta_placeholder( $post, 'description', 160 ),
-			'ogTitlePlaceholder'            => erankly_get_post_global_social_placeholder( $post->ID, 'default_og_title', 60 ),
-			'ogDescriptionPlaceholder'      => erankly_get_post_global_social_placeholder( $post->ID, 'default_og_description', 200 ),
-			'twitterTitlePlaceholder'       => erankly_get_post_global_social_placeholder( $post->ID, 'default_twitter_title', 70 ),
-			'twitterDescriptionPlaceholder' => erankly_get_post_global_social_placeholder( $post->ID, 'default_twitter_description', 200 ),
-			'socialImagePlaceholder'        => erankly_get_post_global_social_placeholder( $post->ID, 'default_social_image_url', 2048 ),
-			'variableExamples'              => erankly_get_admin_variable_examples( $post ),
-			'variables'                     => erankly_get_variable_groups(),
-			'schemaTypeSuggestions'         => function_exists( 'erankly_get_schema_type_suggestions_for_post' )
+			'breadcrumbsEnabled'    => (bool) erankly_get_setting( 'enable_breadcrumbs', 1 ),
+			'newsSitemapEnabled'    => (bool) erankly_get_setting( 'enable_news_sitemap', 0 ),
+			'siteDescription'       => get_bloginfo( 'description' ),
+			'siteName'              => get_bloginfo( 'name' ),
+			'variableExamples'      => erankly_get_admin_variable_examples( $post ),
+			'variables'             => erankly_get_variable_groups(),
+			'schemaTypeSuggestions' => function_exists( 'erankly_get_schema_type_suggestions_for_post' )
 				? erankly_get_schema_type_suggestions_for_post( (int) $post->ID )
 				: array(),
-			'schemaDocUrl'                  => (string) ( $doc_urls['editor-schema'] ?? '' ),
+			'serp'                  => erankly_get_editor_serp_context( $post ),
 		)
 	);
 	do_action(
@@ -100,8 +72,52 @@ function erankly_admin_enqueue_block_editor_assets(): void {
 		)
 	);
 }
-function erankly_enqueue_editor_shared_assets(): void {
-	require_once ERANKLY_PATH . 'admin/settings/section-links.php';
+/**
+ * Data the editor's SERP preview needs to mirror erankly_get_title() / erankly_get_description() for this post:
+ * which context the front end will treat it as, and the fallback templates that context reads.
+ *
+ * The static front page and the posts page ignore the post's own fields and use the Homepage / Blog special-page
+ * templates instead, exactly like the front end does.
+ *
+ * @return array<string,mixed>
+ */
+function erankly_get_editor_serp_context( WP_Post $post ): array {
+	$context = 'singular';
+
+	if ( 'page' === get_option( 'show_on_front' ) ) {
+		if ( (int) get_option( 'page_on_front' ) === $post->ID ) {
+			$context = 'front';
+		} elseif ( (int) get_option( 'page_for_posts' ) === $post->ID ) {
+			$context = 'blog';
+		}
+	}
+
+	if ( 'singular' === $context ) {
+		$title_template       = erankly_get_global_post_type_meta( $post->post_type, 'title' );
+		$description_template = erankly_get_global_post_type_meta( $post->post_type, 'description' );
+	} else {
+		$special_key          = 'front' === $context ? 'homepage' : 'blog';
+		$title_template       = erankly_get_global_entity_meta( 'global_special_meta', $special_key, 'title' );
+		$description_template = erankly_get_global_entity_meta( 'global_special_meta', $special_key, 'description' );
+	}
+
+	return array(
+		'context'             => $context,
+		'descriptionTemplate' => $description_template,
+		'showDate'            => 'post' === $post->post_type,
+		'siteIcon'            => get_site_icon_url( 32 ),
+		'titleTemplate'       => $title_template,
+	);
+}
+/**
+ * Enqueues the stylesheets of the block editor surfaces: the shared tokens plus editor.css.
+ *
+ * Split from erankly_enqueue_editor_shared_assets() so a screen that only borrows the plugin's editor
+ * look — the Contact form settings panel, which is built from the same @wordpress/components controls —
+ * does not have to pull editor-shared.js in as well. That script does nothing until a panel module
+ * calls usePanelsAfterDefaults(), and the forms panel has no variables and no sibling panels.
+ */
+function erankly_enqueue_editor_styles(): void {
 	erankly_enqueue_shared_styles();
 	wp_enqueue_style(
 		'erankly-editor',
@@ -109,6 +125,10 @@ function erankly_enqueue_editor_shared_assets(): void {
 		array( 'erankly-shared', 'wp-components' ),
 		ERANKLY_VERSION
 	);
+}
+function erankly_enqueue_editor_shared_assets(): void {
+	require_once ERANKLY_PATH . 'admin/settings/section-links.php';
+	erankly_enqueue_editor_styles();
 	wp_enqueue_script(
 		'erankly-editor-shared',
 		ERANKLY_URL . 'assets/js/editor-shared.js',
@@ -153,7 +173,6 @@ function erankly_admin_enqueue_site_editor_assets(): void {
 	}
 	require_once ERANKLY_PATH . 'admin/field-renderers.php';
 	erankly_enqueue_editor_shared_assets();
-	erankly_enqueue_accordion_faq_schema_assets();
 	wp_enqueue_script(
 		'erankly-site-editor',
 		ERANKLY_URL . 'assets/js/site-editor.js',
@@ -178,21 +197,12 @@ function erankly_admin_enqueue_site_editor_assets(): void {
 		'erankly-site-editor',
 		'eranklySiteEditor',
 		array(
-			'contextLabels'                  => erankly_special_page_keys(),
-			'descriptionPlaceholder'         => '',
-			'ogDescriptionPlaceholder'       => (string) erankly_get_setting( 'default_og_description', '' ),
-			'ogTitlePlaceholder'             => (string) erankly_get_setting( 'default_og_title', '' ),
-			'resolvePlaceholders'            => (bool) erankly_get_setting( 'resolve_placeholders', 1 ),
-			'simplifiedMode'                 => (bool) erankly_get_setting( 'simplified_mode', 1 ),
-			'siteDescription'                => get_bloginfo( 'description' ),
-			'siteName'                       => get_bloginfo( 'name' ),
-			'socialImagePlaceholder'         => (string) erankly_get_setting( 'default_social_image_url', '' ),
-			'specialMetaSetting'             => ERANKLY_SPECIAL_META_OPTION,
-			'titlePlaceholder'               => '',
-			'twitterDescriptionPlaceholder'  => (string) erankly_get_setting( 'default_twitter_description', '' ),
-			'twitterTitlePlaceholder'        => (string) erankly_get_setting( 'default_twitter_title', '' ),
-			'variableExamples'               => erankly_get_admin_variable_examples(),
-			'variables'                      => erankly_get_variable_groups(),
+			'contextLabels'      => erankly_special_page_keys(),
+			'siteDescription'    => get_bloginfo( 'description' ),
+			'siteName'           => get_bloginfo( 'name' ),
+			'specialMetaSetting' => ERANKLY_SPECIAL_META_OPTION,
+			'variableExamples'   => erankly_get_admin_variable_examples(),
+			'variables'          => erankly_get_variable_groups(),
 		)
 	);
 	do_action(

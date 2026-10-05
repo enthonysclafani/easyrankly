@@ -1,14 +1,13 @@
 <?php
-/** Plugin lifecycle: runtime state, activation/deactivation, rewrite signatures and settings maintenance. */
+/** Plugin lifecycle: activation/deactivation, rewrite signatures and settings maintenance. */
 
 /**
  * Exercises the lifecycle half of easyrankly.php.
  *
  * Two environment notes matter here:
  *
- *  - `$erankly_runtime_state_cache` (global) and the sitemap/redirect cache flushers (function statics) survive the
- *    per-test rollback, so each test resets the globals it can and picks a unique `$GLOBALS['blog_id']` when it
- *    needs a fresh `erankly_flush_sitemap_cache()` slot.
+ *  - The sitemap/redirect cache flushers (function statics) survive the per-test rollback, so each test picks a
+ *    unique `$GLOBALS['blog_id']` when it needs a fresh `erankly_flush_sitemap_cache()` slot.
  *  - `erankly_get_network_site_ids_batch()`, `erankly_get_current_network_site_count()` and
  *    `erankly_network_lifecycle_requires_cli()` query `$wpdb->blogs`, which is null outside Multisite. Those tests
  *    build the Multisite table inside the test transaction and point `$wpdb->blogs` at it, so the real keyset query
@@ -69,7 +68,6 @@ final class ERankly_Lifecycle_Test extends WP_UnitTestCase {
 		parent::set_up();
 
 		// Process-wide caches that outlive the per-test SQLite rollback.
-		unset( $GLOBALS['erankly_runtime_state_cache'], $GLOBALS['erankly_settings_write_context'] );
 		erankly_clear_settings_cache();
 
 		// get_current_blog_id() reads $GLOBALS['blog_id'] on Multisite, so a test that
@@ -83,10 +81,6 @@ final class ERankly_Lifecycle_Test extends WP_UnitTestCase {
 	public function tear_down(): void {
 		global $wpdb;
 
-		unset(
-			$GLOBALS['erankly_runtime_state_cache'],
-			$GLOBALS['erankly_settings_write_context']
-		);
 		erankly_clear_settings_cache();
 
 		$wpdb->blogs = $this->original_blogs_table;
@@ -98,8 +92,6 @@ final class ERankly_Lifecycle_Test extends WP_UnitTestCase {
 		}
 
 		wp_clear_scheduled_hook( ERANKLY_MIGRATION_CRON_HOOK );
-		wp_clear_scheduled_hook( ERANKLY_IMPORT_CRON_HOOK );
-		wp_clear_scheduled_hook( ERANKLY_NETWORK_RESET_CRON_HOOK );
 
 		parent::tear_down();
 	}
@@ -114,15 +106,6 @@ final class ERankly_Lifecycle_Test extends WP_UnitTestCase {
 		global $wpdb;
 
 		$wpdb->blogs = self::$blogs_fixture_table;
-	}
-
-	private function clear_local_business_migration_state(): void {
-		$checkpoint = erankly_local_business_pages_migration_checkpoint_option();
-
-		delete_option( 'erankly_migrated_local_business_pages_v1' );
-		delete_option( $checkpoint );
-		delete_site_option( 'erankly_migrated_local_business_pages_v1' );
-		delete_site_option( $checkpoint );
 	}
 
 	private function insert_network_site( int $blog_id, int $site_id = 1, array $status = array() ): void {
@@ -140,85 +123,6 @@ final class ERankly_Lifecycle_Test extends WP_UnitTestCase {
 				'archived' => (int) ( $status['archived'] ?? 0 ),
 			)
 		);
-	}
-
-	/**
-	 * Creates the tables the retired migration subsystem left behind so the upgrade purge can actually drop them.
-	 *
-	 * `DROP TABLE IF EXISTS <missing>` cannot complete under the SQLite test drop-in (the existing migration test
-	 * documents the same limitation), but a site that predates this release genuinely has these tables, so the
-	 * upgrade path needs them present to reach the version write.
-	 */
-	private function create_retired_migration_tables(): void {
-		global $wpdb;
-
-		foreach ( array( 'erankly_migration_queue', 'erankly_migration_changes', 'erankly_migration_exceptions' ) as $suffix ) {
-			$wpdb->query( // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Test harness DDL.
-				'CREATE TABLE ' . $wpdb->prefix . $suffix . ' ( id INT )'
-			);
-		}
-	}
-
-	/* ----------------------------------------------------------------------
-	 * Runtime state
-	 * -------------------------------------------------------------------- */
-
-	public function test_get_runtime_state_seeds_the_compact_state_from_the_legacy_options(): void {
-		update_option( ERANKLY_VERSION_OPTION, '9.9.9' );
-		update_option( ERANKLY_REWRITE_GENERATION_OPTION, 'gen-legacy' );
-		delete_option( 'erankly_migrated_post_type_schema_v1' );
-		delete_option( 'erankly_migrated_title_defaults_v1' );
-		delete_option( 'erankly_migrated_local_business_pages_v1' );
-		delete_option( ERANKLY_RUNTIME_STATE_OPTION );
-		unset( $GLOBALS['erankly_runtime_state_cache'] );
-
-		$state = erankly_get_runtime_state();
-
-		$this->assertSame(
-			array(
-				'version'            => '9.9.9',
-				'rewrite_generation' => 'gen-legacy',
-			),
-			$state
-		);
-
-		// The lazily built state is persisted for the next request.
-		$this->assertSame( $state, get_option( ERANKLY_RUNTIME_STATE_OPTION ) );
-	}
-
-	public function test_get_runtime_state_returns_the_stored_state_array(): void {
-		update_option( ERANKLY_RUNTIME_STATE_OPTION, array( 'version' => '5.5.5' ), true );
-		unset( $GLOBALS['erankly_runtime_state_cache'] );
-
-		$this->assertSame( array( 'version' => '5.5.5' ), erankly_get_runtime_state() );
-	}
-
-	public function test_get_runtime_state_memoises_for_the_rest_of_the_request(): void {
-		$first = erankly_get_runtime_state();
-
-		update_option( ERANKLY_RUNTIME_STATE_OPTION, array( 'version' => 'changed-mid-request' ), true );
-
-		// A second read in the same request must not re-query the option.
-		$this->assertSame( $first, erankly_get_runtime_state() );
-	}
-
-	public function test_update_runtime_state_mirrors_the_compact_key_and_the_legacy_option(): void {
-		erankly_update_runtime_state( ERANKLY_REWRITE_GENERATION_OPTION, 'gen-42' );
-
-		$this->assertSame( 'gen-42', get_option( ERANKLY_REWRITE_GENERATION_OPTION ) );
-		$this->assertSame( 'gen-42', get_option( ERANKLY_RUNTIME_STATE_OPTION )['rewrite_generation'] );
-
-		erankly_update_runtime_state( ERANKLY_VERSION_OPTION, '3.3.3' );
-
-		$this->assertSame( '3.3.3', get_option( ERANKLY_VERSION_OPTION ) );
-		$this->assertSame( '3.3.3', erankly_get_runtime_state()['version'] );
-	}
-
-	public function test_runtime_state_key_maps_only_the_hot_bootstrap_options(): void {
-		$this->assertSame( 'version', erankly_runtime_state_key( ERANKLY_VERSION_OPTION ) );
-		$this->assertSame( 'rewrite_generation', erankly_runtime_state_key( ERANKLY_REWRITE_GENERATION_OPTION ) );
-		$this->assertSame( '', erankly_runtime_state_key( 'erankly_migrated_title_defaults_v1' ) );
-		$this->assertSame( '', erankly_runtime_state_key( ERANKLY_OPTION ) );
 	}
 
 	/* ----------------------------------------------------------------------
@@ -239,12 +143,10 @@ final class ERankly_Lifecycle_Test extends WP_UnitTestCase {
 		$this->assertNotSame( 'gen-before', $generation );
 
 		if ( is_multisite() ) {
-			// The generation is stored as a network option on Multisite; erankly_rotate_rewrite_generation()
-			// does not mirror it to the per-site option or to the compact runtime state.
+			// The generation is stored as a network option on Multisite.
 			$this->assertSame( $generation, get_site_option( ERANKLY_REWRITE_GENERATION_OPTION ) );
 		} else {
 			$this->assertSame( $generation, get_option( ERANKLY_REWRITE_GENERATION_OPTION ) );
-			$this->assertSame( $generation, erankly_get_runtime_state()['rewrite_generation'] );
 		}
 	}
 
@@ -256,7 +158,7 @@ final class ERankly_Lifecycle_Test extends WP_UnitTestCase {
 
 		$settings                = erankly_get_settings();
 		$settings['enable_sitemap'] = 1;
-		erankly_update_plugin_settings( $settings, '', true );
+		erankly_update_plugin_settings( $settings, true );
 		erankly_clear_settings_cache();
 
 		// Enabling the sitemap module changes the signature so every site rebuilds its rules.
@@ -300,353 +202,6 @@ final class ERankly_Lifecycle_Test extends WP_UnitTestCase {
 		$this->assertSame( array( 9 ), erankly_get_network_site_ids_batch( 5, 100, true ) );
 	}
 
-	public function test_advance_local_business_pages_migration_completes_across_two_batches(): void {
-		if ( is_multisite() ) {
-			$this->markTestSkipped( 'The lifecycle blogs fixture is not a live switch_to_blog target.' );
-		}
-
-		$this->use_network_blogs_table();
-		$this->insert_network_site( 5 );
-		$this->insert_network_site( 9 );
-
-		erankly_load_default_helpers();
-		erankly_tests_load_settings_sanitizer();
-
-		$page_id = self::factory()->post->create(
-			array(
-				'post_type'   => 'page',
-				'post_status' => 'publish',
-				'post_name'   => 'contact',
-			)
-		);
-
-		$stored                             = erankly_get_settings();
-		$stored['local_business_page_path'] = '/contact/';
-		$stored['local_business_pages']     = array();
-		erankly_update_plugin_settings( $stored, '', true );
-		erankly_clear_settings_cache();
-
-		$this->clear_local_business_migration_state();
-
-		erankly_advance_local_business_pages_migration( '/contact/', 1 );
-
-		$checkpoint = erankly_get_plugin_option( erankly_local_business_pages_migration_checkpoint_option(), array() );
-		$this->assertIsArray( $checkpoint );
-		$this->assertSame( 5, (int) $checkpoint['last_site_id'] );
-		$this->assertSame( $page_id, (int) $checkpoint['map'][5] );
-		$this->assertSame( erankly_local_business_pages_migration_input_id( '/contact/' ), (string) $checkpoint['input'] );
-		$this->assertEmpty( erankly_get_plugin_option( 'erankly_migrated_local_business_pages_v1', false ) );
-		$this->assertSame( array(), erankly_get_stored_settings()['local_business_pages'] );
-
-		erankly_advance_local_business_pages_migration( '/contact/', 1 );
-
-		$this->assertNotEmpty( erankly_get_plugin_option( 'erankly_migrated_local_business_pages_v1', false ) );
-		$this->assertEmpty( erankly_get_plugin_option( erankly_local_business_pages_migration_checkpoint_option(), array() ) );
-
-		$pages = erankly_get_stored_settings()['local_business_pages'];
-		$this->assertSame( $page_id, (int) $pages[5] );
-		$this->assertSame( $page_id, (int) $pages[9] );
-	}
-
-	public function test_advance_local_business_pages_migration_restarts_when_the_path_changes(): void {
-		if ( is_multisite() ) {
-			$this->markTestSkipped( 'The lifecycle blogs fixture is not a live switch_to_blog target.' );
-		}
-
-		$this->use_network_blogs_table();
-		$this->insert_network_site( 5 );
-		$this->insert_network_site( 9 );
-
-		erankly_load_default_helpers();
-		erankly_tests_load_settings_sanitizer();
-
-		$old_id = self::factory()->post->create(
-			array(
-				'post_type'   => 'page',
-				'post_status' => 'publish',
-				'post_name'   => 'old-path',
-			)
-		);
-		$new_id = self::factory()->post->create(
-			array(
-				'post_type'   => 'page',
-				'post_status' => 'publish',
-				'post_name'   => 'new-path',
-			)
-		);
-
-		$stored                             = erankly_get_settings();
-		$stored['local_business_page_path'] = '/old-path/';
-		$stored['local_business_pages']     = array();
-		erankly_update_plugin_settings( $stored, '', true );
-		erankly_clear_settings_cache();
-
-		$this->clear_local_business_migration_state();
-
-		erankly_advance_local_business_pages_migration( '/old-path/', 1 );
-
-		$stored                             = erankly_get_stored_settings();
-		$stored['local_business_page_path'] = '/new-path/';
-		erankly_update_plugin_settings( $stored, '', true );
-		erankly_clear_settings_cache();
-
-		erankly_advance_local_business_pages_migration( '/old-path/', 100 );
-
-		$this->assertNotEmpty( erankly_get_plugin_option( 'erankly_migrated_local_business_pages_v1', false ) );
-		$pages = erankly_get_stored_settings()['local_business_pages'];
-		$this->assertSame( $new_id, (int) $pages[5] );
-		$this->assertSame( $new_id, (int) $pages[9] );
-		$this->assertNotSame( $old_id, (int) $pages[5] );
-	}
-
-	public function test_advance_local_business_pages_migration_ignores_a_stale_path_argument_after_lock(): void {
-		if ( is_multisite() ) {
-			$this->markTestSkipped( 'The lifecycle blogs fixture is not a live switch_to_blog target.' );
-		}
-
-		$this->use_network_blogs_table();
-		$this->insert_network_site( 5 );
-		$this->insert_network_site( 9 );
-
-		erankly_load_default_helpers();
-		erankly_tests_load_settings_sanitizer();
-
-		$old_id = self::factory()->post->create(
-			array(
-				'post_type'   => 'page',
-				'post_status' => 'publish',
-				'post_name'   => 'old-path',
-			)
-		);
-		$new_id = self::factory()->post->create(
-			array(
-				'post_type'   => 'page',
-				'post_status' => 'publish',
-				'post_name'   => 'new-path',
-			)
-		);
-
-		$stored                             = erankly_get_settings();
-		$stored['local_business_page_path'] = '/new-path/';
-		$stored['local_business_pages']     = array();
-		erankly_update_plugin_settings( $stored, '', true );
-		erankly_clear_settings_cache();
-
-		$this->clear_local_business_migration_state();
-
-		erankly_advance_local_business_pages_migration( '/old-path/', 100 );
-
-		$this->assertNotEmpty( erankly_get_plugin_option( 'erankly_migrated_local_business_pages_v1', false ) );
-		$pages = erankly_get_stored_settings()['local_business_pages'];
-		$this->assertSame( $new_id, (int) $pages[5] );
-		$this->assertNotSame( $old_id, (int) $pages[5] );
-	}
-
-	public function test_complete_local_business_pages_migration_rejects_a_foreign_input_id(): void {
-		erankly_load_default_helpers();
-		erankly_tests_load_settings_sanitizer();
-
-		$stored                             = erankly_get_settings();
-		$stored['local_business_page_path'] = '/new-path/';
-		$stored['local_business_pages']     = array();
-		erankly_update_plugin_settings( $stored, '', true );
-		erankly_clear_settings_cache();
-		$this->clear_local_business_migration_state();
-
-		$token = erankly_acquire_settings_lock();
-		$this->assertIsString( $token );
-
-		try {
-			$this->assertFalse(
-				erankly_complete_local_business_pages_migration(
-					array( 5 => 105 ),
-					$token,
-					erankly_local_business_pages_migration_input_id( '/old-path/' )
-				)
-			);
-			$this->assertEmpty( erankly_get_plugin_option( 'erankly_migrated_local_business_pages_v1', false ) );
-			$this->assertSame( array(), erankly_get_stored_settings()['local_business_pages'] );
-		} finally {
-			erankly_release_settings_lock( $token );
-		}
-	}
-
-	public function test_complete_local_business_pages_migration_requires_a_live_lease_when_the_map_is_unchanged(): void {
-		erankly_load_default_helpers();
-		erankly_tests_load_settings_sanitizer();
-		$this->clear_local_business_migration_state();
-
-		erankly_save_local_business_pages_checkpoint(
-			array(
-				'input'        => erankly_local_business_pages_migration_input_id( '/contact/' ),
-				'network_id'   => 0,
-				'path'         => '/contact/',
-				'last_site_id' => 5,
-				'map'          => array(),
-			)
-		);
-
-		$this->assertFalse( erankly_complete_local_business_pages_migration( array(), 'expired-worker' ) );
-		$this->assertEmpty( erankly_get_plugin_option( 'erankly_migrated_local_business_pages_v1', false ) );
-		$this->assertSame( 5, (int) erankly_get_local_business_pages_checkpoint()['last_site_id'] );
-	}
-
-	public function test_expired_local_business_worker_cannot_rewind_a_successor_checkpoint(): void {
-		if ( is_multisite() ) {
-			$this->markTestSkipped( 'The lifecycle blogs fixture is not a live switch_to_blog target.' );
-		}
-
-		erankly_load_default_helpers();
-		erankly_tests_load_settings_sanitizer();
-		$this->clear_local_business_migration_state();
-
-		$token_a = erankly_acquire_settings_lock();
-		$this->assertIsString( $token_a );
-
-		$old_checkpoint = array(
-			'input'        => erankly_local_business_pages_migration_input_id( '/contact/' ),
-			'network_id'   => 0,
-			'path'         => '/contact/',
-			'last_site_id' => 5,
-			'map'          => array( 5 => 105 ),
-		);
-		$this->assertTrue( erankly_save_local_business_pages_checkpoint( $old_checkpoint, $token_a ) );
-
-		$current = erankly_get_settings_lock();
-		$this->assertIsArray( $current );
-		$current['expires_at'] = time() - 1;
-		update_option( ERANKLY_SETTINGS_LOCK_OPTION, $current, false );
-
-		$token_b = erankly_acquire_settings_lock();
-		$this->assertIsString( $token_b );
-
-		try {
-			$successor = array(
-				'input'        => erankly_local_business_pages_migration_input_id( '/contact/' ),
-				'network_id'   => 0,
-				'path'         => '/contact/',
-				'last_site_id' => 9,
-				'map'          => array(
-					5 => 105,
-					9 => 109,
-				),
-			);
-			$this->assertTrue( erankly_save_local_business_pages_checkpoint( $successor, $token_b ) );
-			$this->assertFalse( erankly_save_local_business_pages_checkpoint( $old_checkpoint, $token_a ) );
-			$this->assertSame( 9, (int) erankly_get_local_business_pages_checkpoint()['last_site_id'] );
-			$this->assertFalse(
-				erankly_complete_local_business_pages_migration(
-					array( 5 => 105 ),
-					$token_a,
-					erankly_local_business_pages_migration_input_id( '/contact/' )
-				)
-			);
-			$this->assertEmpty( erankly_get_plugin_option( 'erankly_migrated_local_business_pages_v1', false ) );
-			$this->assertSame( 9, (int) erankly_get_local_business_pages_checkpoint()['last_site_id'] );
-		} finally {
-			erankly_release_settings_lock( $token_b );
-		}
-	}
-
-	public function test_renew_settings_lock_fails_after_expiry(): void {
-		$token = erankly_acquire_settings_lock();
-		$this->assertIsString( $token );
-		$this->assertTrue( erankly_renew_settings_lock( $token ) );
-
-		$current = erankly_get_settings_lock();
-		$this->assertIsArray( $current );
-		$current['expires_at'] = time() - 1;
-		if ( is_multisite() ) {
-			update_network_option( get_current_network_id(), ERANKLY_SETTINGS_LOCK_OPTION, $current );
-		} else {
-			update_option( ERANKLY_SETTINGS_LOCK_OPTION, $current, false );
-		}
-
-		$this->assertFalse( erankly_renew_settings_lock( $token ) );
-		$this->assertFalse( erankly_settings_lock_is_valid( $token ) );
-	}
-
-	public function test_advance_local_business_pages_migration_is_a_noop_while_the_settings_lock_is_held(): void {
-		if ( is_multisite() ) {
-			$this->markTestSkipped( 'The lifecycle blogs fixture is not a live switch_to_blog target.' );
-		}
-
-		$this->use_network_blogs_table();
-		$this->insert_network_site( 5 );
-
-		erankly_load_default_helpers();
-		$this->clear_local_business_migration_state();
-		$token = erankly_acquire_settings_lock();
-		$this->assertIsString( $token );
-
-		try {
-			erankly_advance_local_business_pages_migration( '/contact/', 1 );
-			$this->assertEmpty( erankly_get_plugin_option( erankly_local_business_pages_migration_checkpoint_option(), array() ) );
-			$this->assertEmpty( erankly_get_plugin_option( 'erankly_migrated_local_business_pages_v1', false ) );
-		} finally {
-			erankly_release_settings_lock( $token );
-		}
-	}
-
-	public function test_complete_local_business_pages_migration_keeps_the_checkpoint_when_the_writer_is_locked(): void {
-		erankly_load_default_helpers();
-		erankly_tests_load_settings_sanitizer();
-
-		$stored                         = erankly_get_settings();
-		$stored['local_business_pages'] = array();
-		erankly_update_plugin_settings( $stored, '', true );
-		erankly_clear_settings_cache();
-
-		$this->clear_local_business_migration_state();
-		erankly_save_local_business_pages_checkpoint(
-			array(
-				'input'        => erankly_local_business_pages_migration_input_id( '/contact/' ),
-				'network_id'   => 0,
-				'path'         => '/contact/',
-				'last_site_id' => 5,
-				'map'          => array( 5 => 105 ),
-			)
-		);
-
-		$token = erankly_acquire_settings_lock();
-		$this->assertIsString( $token );
-
-		try {
-			$this->assertFalse( erankly_complete_local_business_pages_migration( array( 5 => 105 ) ) );
-			$this->assertEmpty( erankly_get_plugin_option( 'erankly_migrated_local_business_pages_v1', false ) );
-			$this->assertSame( array(), erankly_get_stored_settings()['local_business_pages'] );
-			$checkpoint = erankly_get_local_business_pages_checkpoint();
-			$this->assertSame( 5, (int) $checkpoint['last_site_id'] );
-		} finally {
-			erankly_release_settings_lock( $token );
-		}
-	}
-
-	public function test_complete_local_business_pages_migration_preserves_unrelated_settings(): void {
-		erankly_load_default_helpers();
-		erankly_tests_load_settings_sanitizer();
-
-		$stored                         = erankly_get_settings();
-		$stored['organization_name']    = 'Keep me';
-		$stored['local_business_pages'] = array();
-		erankly_update_plugin_settings( $stored, '', true );
-		erankly_clear_settings_cache();
-
-		$page_id = self::factory()->post->create(
-			array(
-				'post_type'   => 'page',
-				'post_status' => 'publish',
-			)
-		);
-
-		$this->assertTrue( erankly_complete_local_business_pages_migration( array( get_current_blog_id() => $page_id ) ) );
-		erankly_clear_settings_cache();
-		$this->assertSame( 'Keep me', erankly_get_stored_settings()['organization_name'] );
-		$this->assertSame( $page_id, (int) erankly_get_stored_settings()['local_business_pages'][ get_current_blog_id() ] );
-
-		$this->clear_local_business_migration_state();
-	}
-
 	public function test_get_current_network_site_count_counts_only_the_current_network(): void {
 		$this->use_network_blogs_table();
 		$this->insert_network_site( 5 );
@@ -682,13 +237,10 @@ final class ERankly_Lifecycle_Test extends WP_UnitTestCase {
 		erankly_bootstrap();
 
 		$this->assertSame( 10, has_action( ERANKLY_MIGRATION_CRON_HOOK, 'erankly_process_migration_job' ) );
-		$this->assertSame( 10, has_action( ERANKLY_IMPORT_CRON_HOOK, 'erankly_process_import_job' ) );
 		$this->assertSame( 11, has_action( 'init', 'erankly_register_breadcrumb_integrations' ) );
 		$this->assertSame( 10, has_action( 'wp_loaded', 'erankly_sync_legacy_breadcrumbs_availability' ) );
+		$this->assertSame( 0, has_action( 'enqueue_block_editor_assets', 'erankly_register_breadcrumbs_block_script' ) );
 		$this->assertSame( 1, has_action( 'enqueue_block_editor_assets', 'erankly_sync_legacy_breadcrumbs_availability' ) );
-		$this->assertSame( 15, has_action( 'init', 'erankly_maybe_migrate_settings' ) );
-		$this->assertSame( 16, has_action( 'init', 'erankly_maybe_migrate_post_type_schema' ) );
-		$this->assertSame( 17, has_action( 'init', 'erankly_maybe_migrate_local_business_pages' ) );
 		$this->assertSame( 20, has_action( 'init', 'erankly_maybe_flush_after_upgrade' ) );
 		$this->assertSame( 30, has_action( 'init', 'erankly_maybe_flush_rewrite_rules' ) );
 		$this->assertSame(
@@ -712,10 +264,8 @@ final class ERankly_Lifecycle_Test extends WP_UnitTestCase {
 			delete_option( ERANKLY_VERSION_OPTION );
 		}
 
-		delete_option( ERANKLY_RUNTIME_STATE_OPTION );
 		delete_option( ERANKLY_REWRITE_SIGNATURE_OPTION );
 		erankly_clear_settings_cache();
-		unset( $GLOBALS['erankly_runtime_state_cache'] );
 
 		erankly_activate();
 
@@ -738,7 +288,7 @@ final class ERankly_Lifecycle_Test extends WP_UnitTestCase {
 	}
 
 	public function test_activate_on_an_existing_install_keeps_settings_and_rotates_the_generation(): void {
-		erankly_update_plugin_settings( erankly_get_settings(), '', true );
+		erankly_update_plugin_settings( erankly_get_settings(), true );
 		erankly_clear_settings_cache();
 
 		$stored_before = erankly_get_plugin_option( ERANKLY_OPTION, array() );
@@ -759,76 +309,24 @@ final class ERankly_Lifecycle_Test extends WP_UnitTestCase {
 	}
 
 	/* ----------------------------------------------------------------------
-	 * Retired settings and version upgrade
+	 * Version upgrade
 	 * -------------------------------------------------------------------- */
 
-	public function test_remove_retired_setting_keys_prunes_only_the_listed_keys(): void {
-		$settings                                  = erankly_get_settings();
-		$settings['robots_noodp']                  = 1;
-		$settings['robots_max_image_preview_large'] = 1;
-		$settings['keep_me']                       = 'yes';
-
-		erankly_update_plugin_settings( $settings, '', true );
-		erankly_clear_settings_cache();
-
-		$this->assertTrue(
-			erankly_remove_retired_setting_keys(
-				array( 'robots_noodp', 'robots_max_image_preview_large' )
-			)
-		);
-
-		$stored = erankly_get_plugin_option( ERANKLY_OPTION, array() );
-
-		$this->assertArrayNotHasKey( 'robots_noodp', $stored );
-		$this->assertArrayNotHasKey( 'robots_max_image_preview_large', $stored );
-		$this->assertSame( 'yes', $stored['keep_me'] );
-	}
-
-	public function test_remove_retired_setting_keys_is_a_noop_when_nothing_matches(): void {
-		erankly_update_plugin_settings( erankly_get_settings(), '', true );
-		erankly_clear_settings_cache();
-
-		$before = erankly_get_plugin_option( ERANKLY_OPTION, array() );
-
-		$this->assertTrue( erankly_remove_retired_setting_keys( array( 'definitely_not_present' ) ) );
-		$this->assertSame( $before, erankly_get_plugin_option( ERANKLY_OPTION, array() ) );
-	}
-
-	public function test_maybe_flush_after_upgrade_records_the_version_and_prunes_retired_keys(): void {
-		$this->create_retired_migration_tables();
+	public function test_maybe_flush_after_upgrade_records_the_version(): void {
 		erankly_update_plugin_option( ERANKLY_VERSION_OPTION, '1.0.0' );
 
-		$settings                 = erankly_get_settings();
-		$settings['robots_noodp'] = 1;
-		erankly_update_plugin_settings( $settings, '', true );
-		erankly_clear_settings_cache();
-
 		erankly_maybe_flush_after_upgrade();
 
-		if ( is_multisite() ) {
-			$this->assertSame( ERANKLY_VERSION, get_site_option( ERANKLY_VERSION_OPTION, '' ) );
-		} else {
-			$this->assertSame( ERANKLY_VERSION, get_option( ERANKLY_VERSION_OPTION, '' ) );
-		}
 		$this->assertSame( ERANKLY_VERSION, erankly_get_plugin_option( ERANKLY_VERSION_OPTION, '' ) );
-		$this->assertArrayNotHasKey( 'robots_noodp', erankly_get_plugin_option( ERANKLY_OPTION, array() ) );
 	}
 
-	public function test_maybe_flush_after_upgrade_is_a_noop_when_the_version_matches(): void {
-		$settings                 = erankly_get_settings();
-		$settings['robots_noodp'] = 1;
-		erankly_update_plugin_settings( $settings, '', true );
-		erankly_clear_settings_cache();
-
-		erankly_update_plugin_option( ERANKLY_VERSION_OPTION, ERANKLY_VERSION );
+	public function test_maybe_flush_after_upgrade_creates_a_missing_rewrite_generation(): void {
+		erankly_update_plugin_option( ERANKLY_VERSION_OPTION, '1.0.0' );
+		is_multisite() ? delete_site_option( ERANKLY_REWRITE_GENERATION_OPTION ) : delete_option( ERANKLY_REWRITE_GENERATION_OPTION );
 
 		erankly_maybe_flush_after_upgrade();
 
-		// The early return must leave the retired key in place (only the upgrade path prunes it).
-		$stored = erankly_get_plugin_option( ERANKLY_OPTION, array() );
-
-		$this->assertIsArray( $stored );
-		$this->assertSame( 1, $stored['robots_noodp'] );
+		$this->assertNotSame( '', (string) erankly_get_plugin_option( ERANKLY_REWRITE_GENERATION_OPTION, '' ) );
 	}
 
 	/* ----------------------------------------------------------------------
@@ -836,7 +334,7 @@ final class ERankly_Lifecycle_Test extends WP_UnitTestCase {
 	 * -------------------------------------------------------------------- */
 
 	public function test_maybe_flush_rewrite_rules_applies_the_signature_and_clears_flags(): void {
-		erankly_update_plugin_settings( erankly_get_settings(), '', true );
+		erankly_update_plugin_settings( erankly_get_settings(), true );
 		erankly_clear_settings_cache();
 
 		$signature = erankly_get_rewrite_signature();
@@ -918,13 +416,11 @@ final class ERankly_Lifecycle_Test extends WP_UnitTestCase {
 	}
 
 	/* ----------------------------------------------------------------------
-	 * Deactivation and network reset cancellation
+	 * Deactivation
 	 * -------------------------------------------------------------------- */
 
-	public function test_deactivate_current_site_clears_cron_hooks_and_rewrite_state(): void {
+	public function test_deactivate_current_site_clears_cron_hook_and_rewrite_state(): void {
 		wp_schedule_single_event( time() + 300, ERANKLY_MIGRATION_CRON_HOOK );
-		wp_schedule_single_event( time() + 301, ERANKLY_IMPORT_CRON_HOOK );
-		wp_schedule_single_event( time() + 302, ERANKLY_NETWORK_RESET_CRON_HOOK );
 
 		update_option( ERANKLY_REWRITE_FLUSH_OPTION, '1' );
 		update_option( ERANKLY_REWRITE_SIGNATURE_OPTION, 'sig' );
@@ -935,8 +431,6 @@ final class ERankly_Lifecycle_Test extends WP_UnitTestCase {
 		erankly_deactivate_current_site();
 
 		$this->assertFalse( wp_next_scheduled( ERANKLY_MIGRATION_CRON_HOOK ) );
-		$this->assertFalse( wp_next_scheduled( ERANKLY_IMPORT_CRON_HOOK ) );
-		$this->assertFalse( wp_next_scheduled( ERANKLY_NETWORK_RESET_CRON_HOOK ) );
 		$this->assertFalse( get_option( ERANKLY_REWRITE_FLUSH_OPTION, false ) );
 		$this->assertFalse( get_option( ERANKLY_REWRITE_SIGNATURE_OPTION, false ) );
 		$this->assertFalse( get_option( 'rewrite_rules', false ) );
@@ -959,156 +453,6 @@ final class ERankly_Lifecycle_Test extends WP_UnitTestCase {
 
 		$this->assertFalse( wp_next_scheduled( ERANKLY_MIGRATION_CRON_HOOK ) );
 		$this->assertFalse( get_option( ERANKLY_REWRITE_SIGNATURE_OPTION, false ) );
-	}
-
-	public function test_cancel_network_reset_job_removes_the_stored_job(): void {
-		// erankly_cancel_network_reset_job() cancels the job in the store the runtime uses:
-		// a network option on Multisite, the single-site option otherwise. Seed the same store.
-		if ( is_multisite() ) {
-			update_site_option( ERANKLY_NETWORK_RESET_JOB_OPTION, array( 'token' => 'tok-cancel' ) );
-		} else {
-			update_option( ERANKLY_NETWORK_RESET_JOB_OPTION, array( 'token' => 'tok-cancel' ) );
-		}
-
-		erankly_cancel_network_reset_job();
-
-		$this->assertSame( 'gone', $this->read_network_reset_job_option( 'gone' ) );
-
-		// Cancelling again is safe and idempotent.
-		erankly_cancel_network_reset_job();
-
-		$this->assertSame( 'gone', $this->read_network_reset_job_option( 'gone' ) );
-	}
-
-	/** Reads the network reset job from the store the runtime uses on this install. */
-	private function read_network_reset_job_option( mixed $default ): mixed {
-		return is_multisite()
-			? get_site_option( ERANKLY_NETWORK_RESET_JOB_OPTION, $default )
-			: get_option( ERANKLY_NETWORK_RESET_JOB_OPTION, $default );
-	}
-
-	/**
-	 * @group ms-required
-	 */
-	public function test_local_business_migration_uses_per_site_page_ids_on_multisite(): void {
-		if ( ! is_multisite() ) {
-			$this->markTestSkipped( 'Requires a live Multisite install.' );
-		}
-
-		erankly_load_default_helpers();
-		erankly_tests_load_settings_sanitizer();
-
-		$primary_id = self::factory()->post->create(
-			array(
-				'post_type'   => 'page',
-				'post_status' => 'publish',
-				'post_name'   => 'contact',
-			)
-		);
-
-		$secondary = self::factory()->blog->create();
-		switch_to_blog( $secondary );
-		$secondary_id = self::factory()->post->create(
-			array(
-				'post_type'   => 'page',
-				'post_status' => 'publish',
-				'post_name'   => 'contact',
-			)
-		);
-		restore_current_blog();
-
-		$foreign_network = self::factory()->network->create();
-		$foreign_blog    = self::factory()->blog->create( array( 'site_id' => $foreign_network ) );
-		switch_to_blog( $foreign_blog );
-		self::factory()->post->create(
-			array(
-				'post_type'   => 'page',
-				'post_status' => 'publish',
-				'post_name'   => 'contact',
-			)
-		);
-		restore_current_blog();
-
-		$stored                             = erankly_get_settings();
-		$stored['local_business_page_path'] = '/contact/';
-		$stored['local_business_pages']     = array();
-		erankly_update_plugin_settings( $stored, '', true );
-		erankly_clear_settings_cache();
-
-		$this->clear_local_business_migration_state();
-
-		erankly_advance_local_business_pages_migration( '/contact/', 100 );
-
-		$this->assertNotEmpty( erankly_get_plugin_option( 'erankly_migrated_local_business_pages_v1', false ) );
-		$pages = erankly_normalize_local_business_page_map( erankly_get_stored_settings()['local_business_pages'] ?? array() );
-		$this->assertSame( $primary_id, (int) $pages[ get_current_blog_id() ] );
-		$this->assertSame( $secondary_id, (int) $pages[ (int) $secondary ] );
-		$this->assertArrayNotHasKey( (int) $foreign_blog, $pages );
-		$this->assertNotSame( $primary_id, $secondary_id );
-	}
-
-	/**
-	 * @group ms-required
-	 */
-	public function test_local_business_migration_completes_across_live_multisite_batches(): void {
-		if ( ! is_multisite() ) {
-			$this->markTestSkipped( 'Requires a live Multisite install.' );
-		}
-
-		erankly_load_default_helpers();
-		erankly_tests_load_settings_sanitizer();
-
-		$primary_id = self::factory()->post->create(
-			array(
-				'post_type'   => 'page',
-				'post_status' => 'publish',
-				'post_name'   => 'contact',
-			)
-		);
-
-		$secondary = self::factory()->blog->create();
-		switch_to_blog( $secondary );
-		$secondary_id = self::factory()->post->create(
-			array(
-				'post_type'   => 'page',
-				'post_status' => 'publish',
-				'post_name'   => 'contact',
-			)
-		);
-		restore_current_blog();
-
-		$foreign_network = self::factory()->network->create();
-		$foreign_blog    = self::factory()->blog->create( array( 'site_id' => $foreign_network ) );
-		switch_to_blog( $foreign_blog );
-		self::factory()->post->create(
-			array(
-				'post_type'   => 'page',
-				'post_status' => 'publish',
-				'post_name'   => 'contact',
-			)
-		);
-		restore_current_blog();
-
-		$stored                             = erankly_get_settings();
-		$stored['local_business_page_path'] = '/contact/';
-		$stored['local_business_pages']     = array();
-		erankly_update_plugin_settings( $stored, '', true );
-		erankly_clear_settings_cache();
-		$this->clear_local_business_migration_state();
-
-		erankly_advance_local_business_pages_migration( '/contact/', 1 );
-		$this->assertEmpty( erankly_get_plugin_option( 'erankly_migrated_local_business_pages_v1', false ) );
-
-		for ( $attempt = 0; $attempt < 50 && ! erankly_get_plugin_option( 'erankly_migrated_local_business_pages_v1', false ); $attempt++ ) {
-			erankly_advance_local_business_pages_migration( '/contact/', 1 );
-		}
-
-		$this->assertNotEmpty( erankly_get_plugin_option( 'erankly_migrated_local_business_pages_v1', false ) );
-		$pages = erankly_normalize_local_business_page_map( erankly_get_stored_settings()['local_business_pages'] ?? array() );
-		$this->assertSame( $primary_id, (int) $pages[ get_current_blog_id() ] );
-		$this->assertSame( $secondary_id, (int) $pages[ (int) $secondary ] );
-		$this->assertArrayNotHasKey( (int) $foreign_blog, $pages );
-		$this->assertNotSame( $primary_id, $secondary_id );
 	}
 
 	/**

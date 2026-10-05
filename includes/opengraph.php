@@ -5,36 +5,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/** Returns the automatic social title used for singular content in simplified mode. */
-function erankly_get_simplified_social_title( int $post_id ): string {
-	$title = erankly_get_post_meta_string( $post_id, 'title' );
-
-	if ( '' !== $title ) {
-		$title = erankly_replace_variables( $title, $post_id, array( 'seo_title' ) );
-	} else {
-		$title = get_the_title( $post_id );
-	}
-
-	return erankly_normalize_seo_text( $title );
-}
-
-/** Returns the automatic social description used for singular content in simplified mode. */
-function erankly_get_simplified_social_description( int $post_id ): string {
-	$description = erankly_get_post_meta_string( $post_id, 'description' );
-
-	if ( '' !== $description ) {
-		$description = erankly_replace_variables( $description, $post_id, array( 'meta_description' ) );
-	} else {
-		$post = get_post( $post_id );
-
-		if ( $post instanceof WP_Post ) {
-			$description = has_excerpt( $post ) ? get_the_excerpt( $post ) : excerpt_remove_blocks( $post->post_content );
-		}
-	}
-
-	return erankly_normalize_seo_text( $description );
-}
-
 function erankly_render_opengraph_tags(): void {
 	$title         = erankly_get_og_title();
 	$description   = erankly_get_og_description();
@@ -93,13 +63,11 @@ function erankly_render_opengraph_tags(): void {
 
 /**
  * Resolves a social title or description through the shared fallback chain. Order: explicit per-content meta,
- * simplified-mode automatic value, special-page template, global default template, then the caller-provided
- * fallback.
+ * special-page template, then the computed SEO text (including the relevant post type defaults).
  *
  * @param string $meta_key    Per-content meta key (without plugin prefix).
- * @param string $setting_key Global default setting key.
  */
-function erankly_resolve_social_text( string $meta_key, string $setting_key, string $fallback, int $limit ): string {
+function erankly_resolve_social_text( string $meta_key, string $fallback, int $limit ): string {
 	$is_title = str_contains( $meta_key, 'title' );
 	$value    = '';
 
@@ -109,12 +77,6 @@ function erankly_resolve_social_text( string $meta_key, string $setting_key, str
 
 		if ( '' !== $value ) {
 			$value = erankly_replace_variables( $value, $post_id );
-		}
-
-		if ( '' === $value && (bool) erankly_get_setting( 'simplified_mode', 1 ) ) {
-			$value = $is_title
-				? erankly_get_simplified_social_title( $post_id )
-				: erankly_get_simplified_social_description( $post_id );
 		}
 	} elseif ( is_category() || is_tag() || is_tax() ) {
 		$term = get_queried_object();
@@ -154,14 +116,6 @@ function erankly_resolve_social_text( string $meta_key, string $setting_key, str
 	}
 
 	if ( '' === $value ) {
-		$value = (string) erankly_get_setting( $setting_key, '' );
-
-		if ( '' !== $value ) {
-			$value = erankly_replace_variables( $value );
-		}
-	}
-
-	if ( '' === $value ) {
 		$value = $fallback;
 	}
 
@@ -169,27 +123,27 @@ function erankly_resolve_social_text( string $meta_key, string $setting_key, str
 }
 
 function erankly_get_og_title(): string {
-	$title = erankly_resolve_social_text( 'og_title', 'default_og_title', erankly_get_title(), 60 );
+	$title = erankly_resolve_social_text( 'og_title', erankly_get_title(), 60 );
 
 	/** @param string $title Computed Open Graph title. */
 	return (string) apply_filters( 'erankly_og_title', $title );
 }
 
 function erankly_get_og_description(): string {
-	$description = erankly_resolve_social_text( 'og_description', 'default_og_description', erankly_get_description(), 200 );
+	$description = erankly_resolve_social_text( 'og_description', erankly_get_description(), 200 );
 
 	/** @param string $description Computed Open Graph description. */
 	return (string) apply_filters( 'erankly_og_description', $description );
 }
 
 function erankly_get_twitter_title( string $fallback = '' ): string {
-	$title = erankly_resolve_social_text( 'twitter_title', 'default_twitter_title', $fallback, 70 );
+	$title = erankly_resolve_social_text( 'twitter_title', '' !== $fallback ? $fallback : erankly_get_og_title(), 70 );
 
 	return (string) apply_filters( 'erankly_twitter_title', $title );
 }
 
 function erankly_get_twitter_description( string $fallback = '' ): string {
-	$description = erankly_resolve_social_text( 'twitter_description', 'default_twitter_description', $fallback, 200 );
+	$description = erankly_resolve_social_text( 'twitter_description', '' !== $fallback ? $fallback : erankly_get_og_description(), 200 );
 
 	return (string) apply_filters( 'erankly_twitter_description', $description );
 }
@@ -244,7 +198,6 @@ function erankly_get_twitter_image( string $fallback = '' ): string {
 
 	if ( is_singular() && ! is_front_page() ) {
 		$post_id   = get_queried_object_id();
-		erankly_migrate_legacy_social_image_for_object( 'post', $post_id );
 		$image     = erankly_get_post_meta_string( $post_id, 'twitter_image_url' );
 		$custom_id = absint( get_post_meta( $post_id, '_erankly_twitter_image_id', true ) );
 
@@ -259,7 +212,6 @@ function erankly_get_twitter_image( string $fallback = '' ): string {
 		$term = get_queried_object();
 
 		if ( $term instanceof WP_Term ) {
-			erankly_migrate_legacy_social_image_for_object( 'term', $term->term_id );
 			$image = erankly_get_term_meta_string( $term->term_id, 'twitter_image_url' );
 
 			if ( '' !== $image ) {
@@ -336,7 +288,6 @@ function erankly_get_og_image(): string {
 
 	if ( is_singular() && ! is_front_page() ) {
 		$post_id     = get_queried_object_id();
-		erankly_migrate_legacy_social_image_for_object( 'post', $post_id );
 		$custom_id   = absint( get_post_meta( $post_id, '_erankly_og_image_id', true ) );
 		$featured_id = get_post_thumbnail_id( $post_id );
 		$image       = erankly_get_post_meta_string( $post_id, 'og_image_url' );
@@ -361,7 +312,6 @@ function erankly_get_og_image(): string {
 		$term = get_queried_object();
 
 		if ( $term instanceof WP_Term ) {
-			erankly_migrate_legacy_social_image_for_object( 'term', $term->term_id );
 			$image = erankly_get_term_meta_string( $term->term_id, 'og_image_url' );
 
 			if ( '' !== $image ) {
@@ -400,7 +350,7 @@ function erankly_get_social_image_attachment_id( string $image ): int {
 	static $ids = array();
 
 	$image = trim( $image );
-	if ( '' === $image || str_contains( $image, '{{' ) || ! function_exists( 'attachment_url_to_postid' ) ) {
+	if ( '' === $image || str_contains( $image, '{{' ) ) {
 		return 0;
 	}
 

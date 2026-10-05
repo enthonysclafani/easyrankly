@@ -720,15 +720,6 @@ final class ERankly_Redirects_Runtime_Test extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'notice-success', $success_markup );
 		$this->assertStringContainsString( 'Redirect created.', $success_markup );
 		unset( $_GET['erankly_redirects_notice'] );
-
-		update_option( 'erankly_redirects_v3_migration_report', array( 'transformed' => array( 1 ), 'disabled' => array() ), false );
-		$migration_markup = $this->capture(
-			function () use ( $admin ): void {
-				$this->invoke( $admin, 'render_notices' );
-			}
-		);
-		$this->assertStringContainsString( 'Redirect upgrade completed', $migration_markup );
-		delete_option( 'erankly_redirects_v3_migration_report' );
 	}
 
 	public function test_render_sortable_column_header_marks_active_column(): void {

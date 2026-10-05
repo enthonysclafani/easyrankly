@@ -1,7 +1,7 @@
 <?php
 /**
  * Admin bootstrap: settings menus for both single-site and Network Admin, the shared asset registry, and the
- * lazy require of each admin module (import/export, reset, meta boxes) only for the requests that need it.
+ * lazy require of each admin module (import/export, meta boxes) only for the requests that need it.
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -30,6 +30,8 @@ function erankly_use_site_editor_special_page_panels(): bool {
 	return wp_is_block_theme() && erankly_site_editor_special_page_panels_supported();
 }
 
+require_once ERANKLY_PATH . 'admin/settings/registry.php';
+
 function erankly_admin_bootstrap(): void {
 	if ( is_multisite() ) {
 		add_action( 'network_admin_menu', 'erankly_admin_register_network_settings_page' );
@@ -38,25 +40,28 @@ function erankly_admin_bootstrap(): void {
 		add_action( 'admin_menu', 'erankly_admin_register_site_settings_page' );
 		// Per-site special-page metadata falls back to the subsite settings
 		// page unless the Site Editor panels are available.
-		add_action( 'admin_post_erankly_save_site_special_meta', 'erankly_admin_save_site_special_meta' );
+		if ( erankly_seo_enabled() ) {
+			add_action( 'admin_post_erankly_save_site_special_meta', 'erankly_admin_save_site_special_meta' );
+		}
 	} else {
 		add_action( 'admin_menu', 'erankly_admin_register_settings_page' );
 		add_action( 'admin_init', 'erankly_admin_maybe_register_settings' );
 		add_filter( 'plugin_action_links_' . plugin_basename( ERANKLY_FILE ), 'erankly_plugin_action_links' );
 	}
 
-	add_action( 'add_meta_boxes', 'erankly_admin_register_meta_boxes' );
-	add_action( 'admin_init', 'erankly_admin_maybe_register_taxonomy_fields' );
+	if ( erankly_seo_enabled() ) {
+		add_action( 'add_meta_boxes', 'erankly_admin_register_meta_boxes' );
+		add_action( 'admin_init', 'erankly_admin_maybe_register_taxonomy_fields' );
+		add_action( 'save_post', 'erankly_admin_save_meta_box', 10, 2 );
+	}
 	add_action( 'admin_init', 'erankly_admin_maybe_handle_import_export' );
-	add_action( 'admin_init', 'erankly_admin_maybe_handle_reset' );
-	add_action( 'save_post', 'erankly_admin_save_meta_box', 10, 2 );
+	add_action( 'wp_ajax_erankly_import_batch', 'erankly_admin_import_batch_ajax' );
 	add_action( 'admin_enqueue_scripts', 'erankly_admin_enqueue_assets' );
 }
 
 function erankly_admin_load_settings_modules(): void {
 	erankly_load_content_helpers();
 	require_once ERANKLY_PATH . 'admin/settings-page.php';
-	require_once ERANKLY_PATH . 'admin/settings/nav-icons.php';
 	require_once ERANKLY_PATH . 'admin/settings/section-links.php';
 	require_once ERANKLY_PATH . 'admin/settings/panels.php';
 	require_once ERANKLY_PATH . 'admin/settings/page-renderer.php';
@@ -67,8 +72,33 @@ function erankly_admin_load_import_export_module(): void {
 	require_once ERANKLY_PATH . 'includes/import-export.php';
 }
 
-function erankly_admin_load_reset_module(): void {
-	require_once ERANKLY_PATH . 'includes/reset.php';
+/** Loads the settings sanitizer and the import module for one AJAX import batch. */
+function erankly_admin_import_batch_ajax(): void {
+	erankly_admin_load_settings_modules();
+	erankly_admin_load_import_export_module();
+	erankly_import_export_ajax_batch();
+}
+
+/** Loads database maintenance only on its own screen or authenticated AJAX requests. */
+function erankly_admin_load_tools_module(): void {
+	if ( ! erankly_tools_enabled() ) {
+		return;
+	}
+	require_once ERANKLY_PATH . 'includes/class-erankly-database-tools.php';
+	require_once ERANKLY_PATH . 'admin/settings/tools.php';
+}
+
+function erankly_admin_database_tools_ajax(): void {
+	if ( ! erankly_tools_enabled() ) {
+		wp_send_json_error( array( 'message' => __( 'The Tools module is disabled.', 'easyrankly' ) ), 403 );
+	}
+	require_once ERANKLY_PATH . 'includes/class-erankly-database-tools.php';
+	$result = ERankly_Database_Tools::dispatch( wp_unslash( $_POST ), $_SERVER['REQUEST_METHOD'] ?? '' );
+	if ( is_wp_error( $result ) ) {
+		$data = $result->get_error_data();
+		wp_send_json_error( array( 'message' => $result->get_error_message() ), is_array( $data ) ? ( $data['status'] ?? 400 ) : 400 );
+	}
+	wp_send_json_success( $result );
 }
 
 /**
@@ -79,7 +109,7 @@ function erankly_admin_requested_settings_tab(): string {
 	// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only admin routing.
 	return isset( $_GET['erankly_tab'] )
 		? sanitize_key( wp_unslash( $_GET['erankly_tab'] ) )
-		: 'general';
+		: 'features';
 	// phpcs:enable WordPress.Security.NonceVerification.Recommended
 }
 
@@ -89,15 +119,25 @@ function erankly_admin_requested_settings_tab(): string {
  */
 function erankly_admin_resolve_settings_tab( string $requested_tab ): string {
 	$is_site_admin_on_network = is_multisite() && ! is_network_admin();
+	// Keep bookmarked URLs for the former SEO tabs working.
+	if ( in_array( $requested_tab, array( 'general', 'social', 'schema', 'advanced' ), true ) ) {
+		$requested_tab = 'seo';
+	}
+	if ( $is_site_admin_on_network && 'seo' === $requested_tab ) {
+		$requested_tab = 'special-pages';
+	}
 
 	if ( $is_site_admin_on_network ) {
-		$site_tabs = array();
+		$site_tabs = array( 'features' );
 
-		if ( ! erankly_use_site_editor_special_page_panels() ) {
+		if ( erankly_seo_enabled() && ! erankly_use_site_editor_special_page_panels() ) {
 			$site_tabs[] = 'special-pages';
 		}
 		if ( erankly_redirects_enabled() ) {
 			$site_tabs[] = 'redirects';
+		}
+		if ( erankly_tools_enabled() ) {
+			$site_tabs[] = 'tools';
 		}
 
 		/** Filters the per-site settings tabs available on Multisite. */
@@ -109,15 +149,13 @@ function erankly_admin_resolve_settings_tab( string $requested_tab ): string {
 			: ( $site_tabs[0] ?? '' );
 	}
 
-	if ( 'advanced' === $requested_tab && (bool) erankly_get_setting( 'simplified_mode', 1 ) ) {
-		return 'settings';
-	}
-
 	$unavailable = (
-		( 'sitemap' === $requested_tab && ! erankly_sitemap_enabled() )
+		( 'seo' === $requested_tab && ! erankly_seo_enabled() )
+		|| ( 'sitemap' === $requested_tab && ! erankly_sitemap_enabled() )
 		|| ( 'redirects' === $requested_tab && ( is_network_admin() || ! erankly_redirects_enabled() ) )
 		|| ( 'custom-code' === $requested_tab && ! erankly_custom_code_enabled() )
 		|| ( 'special-pages' === $requested_tab )
+		|| ( 'tools' === $requested_tab && ( is_network_admin() || ! erankly_tools_enabled() ) )
 	);
 
 	return $unavailable ? 'features' : $requested_tab;
@@ -152,7 +190,7 @@ function erankly_admin_hook_settings_tab_canonicalization( $hook ): void {
  * Sends the browser to the tab that will actually render.
  *
  * The resolver silently substitutes a tab that is not available here (a disabled module, Redirects in Network
- * Admin, or Advanced while Simplified mode is on). Without this the address bar kept naming the requested tab
+ * Admin). Without this the address bar kept naming the requested tab
  * while a different panel was on screen, so bookmarks and copied links pointed at a page that never renders.
  */
 function erankly_admin_canonicalize_settings_tab(): void {
@@ -188,20 +226,10 @@ function erankly_admin_register_network_settings_page(): void {
 }
 
 /**
- * Registers the per-site settings menu on Multisite. Classic themes and block themes before WordPress 6.6 expose
- * the special-page fallback. Block themes on WordPress 6.6+ register this page only when a per-site module such
- * as Redirects is enabled, or an add-on reports one via `erankly_admin_site_settings_modules_enabled`.
- * Import/Export stays network-admin-only on Multisite.
+ * Registers per-site settings on Multisite. The manager remains available with every module disabled;
+ * module switches and Import/Export stay network-admin-only.
  */
 function erankly_admin_register_site_settings_page(): void {
-	if (
-		erankly_use_site_editor_special_page_panels()
-		&& ! erankly_redirects_enabled()
-		&& ! apply_filters( 'erankly_admin_site_settings_modules_enabled', false )
-	) {
-		return;
-	}
-
 	erankly_admin_register_settings_page();
 }
 
@@ -212,13 +240,12 @@ function erankly_admin_render_settings_page(): void {
 	$resolved_tab = erankly_admin_resolve_settings_tab( $tab );
 
 	// Load against the *resolved* tab: assets already do. Keying off the raw
-	// query value meant a bookmark to a tab that resolves elsewhere (Advanced
-	// with Simplified mode on resolves to Settings) rendered the Settings panel
-	// without its Reset module, while the Reset scripts were enqueued anyway.
+	// query value meant a bookmark to a tab that resolves elsewhere rendered
+	// the panel without its module, while the module scripts were enqueued anyway.
 	if ( 'import-export' === $resolved_tab ) {
 		erankly_admin_load_import_export_module();
-	} elseif ( 'settings' === $resolved_tab ) {
-		erankly_admin_load_reset_module();
+	} elseif ( 'tools' === $resolved_tab ) {
+		erankly_admin_load_tools_module();
 	}
 
 	erankly_render_settings_page();
@@ -299,27 +326,6 @@ function erankly_admin_maybe_handle_import_export(): void {
 	erankly_import_export_handle_actions();
 }
 
-/** Loads reset code only for its settings request. */
-function erankly_admin_maybe_handle_reset(): void {
-	$page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin routing.
-
-	if ( 'erankly' !== $page || ! isset( $_POST['erankly_reset_action'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing -- The module verifies the action-specific nonce before mutation.
-		return;
-	}
-	$required_cap = is_multisite() ? 'manage_network_options' : 'manage_options';
-	if ( ! current_user_can( $required_cap ) ) {
-		return;
-	}
-
-	// Load the full settings modules: erankly_default_settings() lives in
-	// includes/helpers/defaults.php, which is pulled in transitively by
-	// settings-page.php, and a reset must restore the same defaults a fresh
-	// install would register.
-	erankly_admin_load_settings_modules();
-	erankly_admin_load_reset_module();
-	erankly_reset_handle_actions();
-}
-
 /** @return array<int,string> */
 function erankly_plugin_action_links( array $links ): array {
 	return erankly_add_plugin_action_links( $links, admin_url( 'options-general.php?page=erankly' ) );
@@ -359,18 +365,8 @@ function erankly_add_plugin_action_links( array $links, string $settings_url ): 
 function erankly_admin_render_panel_expand_toggle( string $target_id ): void {
 	?>
 	<button type="button" class="button erankly-panel-expand-toggle" data-erankly-expand-toggle aria-pressed="false" aria-controls="<?php echo esc_attr( $target_id ); ?>" title="<?php esc_attr_e( 'Expand table', 'easyrankly' ); ?>">
-		<svg class="erankly-panel-expand-icon-expand" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-			<path d="M8 3H5a2 2 0 0 0-2 2v3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-			<path d="M21 8V5a2 2 0 0 0-2-2h-3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-			<path d="M3 16v3a2 2 0 0 0 2 2h3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-			<path d="M16 21h3a2 2 0 0 0 2-2v-3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-		</svg>
-		<svg class="erankly-panel-expand-icon-collapse" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-			<path d="M8 3v3a2 2 0 0 1-2 2H3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-			<path d="M21 8h-3a2 2 0 0 1-2-2V3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-			<path d="M3 16h3a2 2 0 0 1 2 2v3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-			<path d="M16 21v-3a2 2 0 0 1 2-2h3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-		</svg>
+		<svg class="erankly-panel-expand-icon-expand" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M15.5 21C16.8956 21 17.5933 21 18.1611 20.8278C19.4395 20.44 20.44 19.4395 20.8278 18.1611C21 17.5933 21 16.8956 21 15.5M21 8.5C21 7.10444 21 6.40666 20.8278 5.83886C20.44 4.56046 19.4395 3.56004 18.1611 3.17224C17.5933 3 16.8956 3 15.5 3M8.5 21C7.10444 21 6.40666 21 5.83886 20.8278C4.56046 20.44 3.56004 19.4395 3.17224 18.1611C3 17.5933 3 16.8956 3 15.5M3 8.5C3 7.10444 3 6.40666 3.17224 5.83886C3.56004 4.56046 4.56046 3.56004 5.83886 3.17224C6.40666 3 7.10444 3 8.5 3" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"/></svg>
+		<svg class="erankly-panel-expand-icon-collapse" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M11.4333 16.0659L8.6912 15.9658C8.28365 15.951 7.96094 15.6163 7.96094 15.2084L7.96094 12.5936M13.4609 10.5659L8.41716 15.5843" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"/><path d="M22 7C22 8.8856 22 9.8284 21.4142 10.4142C20.8284 11 19.8856 11 18 11H17C15.1144 11 14.1716 11 13.5858 10.4142C13 9.8284 13 8.8856 13 7L13 6C13 4.1144 13 3.1716 13.5858 2.5858C14.1716 2 15.1144 2 17 2L18 2C19.8856 2 20.8284 2 21.4142 2.5858C22 3.1716 22 4.1144 22 6V7Z" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"/><path d="M22 15.5V13.5M10 22H14M2 10L2 14M10.5 2L8.5 2M21.9401 18.5C21.7861 19.5656 21.4865 20.321 20.9037 20.9038C20.321 21.4865 19.5656 21.7861 18.5 21.9401M5.5 21.9401C4.4344 21.7861 3.679 21.4865 3.0963 20.9037C2.5135 20.321 2.2139 19.5656 2.0599 18.5M2.0599 5.5C2.2139 4.4344 2.5135 3.679 3.0963 3.0963C3.679 2.5135 4.4344 2.2139 5.5 2.0599" stroke="currentColor" stroke-linecap="round" stroke-width="1.5"/></svg>
 		<span class="screen-reader-text"><?php esc_html_e( 'Expand table', 'easyrankly' ); ?></span>
 	</button>
 	<?php
@@ -397,11 +393,16 @@ function erankly_admin_enqueue_scripts( array $requested_modules ): string {
 		'fields'    => array( 'erankly-admin-fields', 'admin-fields.js' ),
 		'variables' => array( 'erankly-admin-variables', 'admin-variables.js' ),
 		'schema'    => array( 'erankly-admin-schema', 'admin-schema.js' ),
+		'schema-builder' => array( 'erankly-admin-schema', 'admin-schema.js' ),
+		'code-builder' => array( 'erankly-admin-schema', 'admin-schema.js' ),
 		'blocks'    => array( 'erankly-admin-schema', 'admin-schema.js' ),
 		'widgets'   => array( 'erankly-admin-widgets', 'admin-widgets.js' ),
+		'identity'  => array( 'erankly-admin-identity', 'admin-identity.js' ),
+		'user-search' => array( 'erankly-admin-user-search', 'admin-user-search.js' ),
+		'local-business' => array( 'erankly-admin-widgets', 'admin-widgets.js' ),
 		'settings'  => array( 'erankly-admin-settings', 'admin-settings.js' ),
 		'panels'    => array( 'erankly-admin-panels', 'admin-panels.js' ),
-		'reset'     => array( 'erankly-admin-reset', 'admin-reset.js' ),
+		'tools'     => array( 'erankly-admin-tools', 'admin-tools.js' ),
 	);
 	$deps     = array();
 	$selected = array_values( array_unique( $requested_modules ) );
@@ -414,7 +415,12 @@ function erankly_admin_enqueue_scripts( array $requested_modules ): string {
 		list( $handle, $file ) = $registry[ $module ];
 		$module_deps = array();
 
-		if ( 'schema' === $module || 'blocks' === $module ) {
+		// Preserve complete legacy modules for editor and extension callers.
+		if ( in_array( $module, array( 'schema', 'blocks', 'widgets' ), true ) ) {
+			$module_deps[] = erankly_admin_enqueue_module_dependency( 'schema' === $module || 'blocks' === $module ? 'identity' : 'user-search' );
+		}
+
+		if ( in_array( $module, array( 'schema', 'blocks', 'schema-builder' ), true ) ) {
 			wp_enqueue_script(
 				'erankly-schema-jsonld',
 				ERANKLY_URL . 'assets/js/schema-jsonld.js',
@@ -451,28 +457,23 @@ function erankly_admin_enqueue_scripts( array $requested_modules ): string {
 	return 'erankly-admin';
 }
 
+/** Enqueues the extracted part of a legacy module, retaining its public helpers. */
+function erankly_admin_enqueue_module_dependency( string $module ): string {
+	$handle = 'erankly-admin-' . $module;
+	wp_enqueue_script( $handle, ERANKLY_URL . 'assets/js/admin-' . $module . '.js', array(), ERANKLY_VERSION, true );
+	return $handle;
+}
+
 /** @return array<int,string> */
 function erankly_admin_asset_modules( string $surface ): array {
-	$settings_modules = array(
-		'general'       => array( 'tabs', 'variables', 'blocks', 'widgets', 'settings' ),
-		'features'      => array( 'tabs', 'settings' ),
-		'social'        => array( 'tabs', 'media', 'variables', 'settings' ),
-		'schema'        => array( 'tabs', 'variables', 'schema', 'widgets', 'settings' ),
-		'sitemap'       => array( 'tabs', 'settings' ),
-		'custom-code'   => array( 'tabs', 'blocks', 'settings' ),
-		'settings'      => array( 'tabs', 'settings', 'reset' ),
-		'advanced'      => array( 'tabs', 'variables', 'settings' ),
-		'import-export' => array( 'tabs', 'fields' ),
-		'redirects'     => array( 'tabs', 'panels' ),
-		'special-pages' => array( 'tabs', 'media', 'variables', 'settings' ),
-	);
+	$settings_panels = erankly_admin_settings_registry();
 
 	if ( str_starts_with( $surface, 'settings:' ) ) {
 		$tab = substr( $surface, strlen( 'settings:' ) );
 
 		// Add-on tabs historically received the complete bundle. Keep that public
 		// compatibility surface while core tabs use the strict manifest above.
-		$modules = $settings_modules[ $tab ] ?? array_keys(
+		$modules = $settings_panels[ $tab ]['modules'] ?? array_keys(
 			array(
 				'media'     => true,
 				'tabs'      => true,

@@ -102,6 +102,7 @@
   function bindJsonLdValidation(block) {
     var input = block.querySelector("[data-erankly-json-ld-input]");
     var error = block.querySelector("[data-erankly-json-ld-error]");
+    var notice = block.querySelector("[data-erankly-json-ld-notice]");
 
     if (!input || !error) {
       return;
@@ -114,6 +115,10 @@
       error.hidden = !invalid;
       if (result.message) {
         error.textContent = result.message;
+      }
+      if (notice) {
+        notice.hidden = invalid || !result.notice;
+        notice.textContent = result.notice || "";
       }
       input.classList.toggle("erankly-is-invalid", invalid);
       input.setAttribute("aria-invalid", invalid ? "true" : "false");
@@ -149,10 +154,7 @@
           (window.wp && window.wp.i18n && typeof window.wp.i18n.__ === "function"
             ? window.wp.i18n.__("Code snippet", "easyrankly")
             : "Code snippet");
-        title.textContent =
-          String(nameInput.value || "").trim() ||
-          nameInput.getAttribute("placeholder") ||
-          fallbackTitle;
+        title.textContent = String(nameInput.value || "").trim() || fallbackTitle;
       };
       nameInput.addEventListener("input", updateTitle);
       updateTitle();
@@ -363,83 +365,12 @@
     update();
   }
 
-  function bindSchemaIdentityField(field) {
-    var container = field.closest(".erankly-settings");
-    var personField = container
-      ? container.querySelector("[data-erankly-person-reference-field]")
-      : null;
-
-    if (!personField) {
-      return;
-    }
-
-    function updatePersonField() {
-      personField.hidden = field.value !== "person";
-      syncOrganizationFieldsVisibility(container);
-    }
-
-    field.addEventListener("change", updatePersonField);
-    updatePersonField();
-  }
-
-  function localBusinessIsEnabled(container) {
-    if (!container) {
-      return false;
-    }
-
-    var toggle = container.querySelector("[data-erankly-local-business-toggle]");
-    if (toggle) {
-      return !!toggle.checked;
-    }
-
-    return container.getAttribute("data-erankly-local-business-enabled") === "1";
-  }
-
-  function syncIdentityLabels(container, isPerson) {
-    container.querySelectorAll("[data-erankly-identity-label]").forEach(function (node) {
-      var label = isPerson
-        ? node.getAttribute("data-erankly-label-person")
-        : node.getAttribute("data-erankly-label-organization");
-      if (label) {
-        node.textContent = label;
-      }
-    });
-  }
-
-  function syncOrganizationFieldsVisibility(container) {
-    var identity = container
-      ? container.querySelector("[data-erankly-schema-identity]")
-      : null;
-    var isPerson = !!(identity && identity.value === "person");
-    var showOrganizationFields = identity && !isPerson;
-    var showLocationFields =
-      identity && (!isPerson || localBusinessIsEnabled(container));
-
-    if (!identity) {
-      return;
-    }
-
-    container
-      .querySelectorAll("[data-erankly-organization-only]")
-      .forEach(function (fields) {
-        fields.hidden = !showOrganizationFields;
-      });
-    container
-      .querySelectorAll("[data-erankly-location-fields]")
-      .forEach(function (fields) {
-        fields.hidden = !showLocationFields;
-      });
-    syncIdentityLabels(container, isPerson);
-  }
-
   ER.isValidJsonLd = isValidJsonLd;
   ER.setSchemaBlockExpanded = setSchemaBlockExpanded;
   ER.updateSchemaBuilderState = updateSchemaBuilderState;
   ER.bindSchemaBlock = bindSchemaBlock;
   ER.bindSchemaBuilder = bindSchemaBuilder;
-  ER.bindSchemaIdentityField = bindSchemaIdentityField;
   ER.bindPostSchemaPanel = bindPostSchemaPanel;
-  ER.syncOrganizationFieldsVisibility = syncOrganizationFieldsVisibility;
   ER.focusInvalidJsonLd = focusInvalidJsonLd;
 
   document.addEventListener("DOMContentLoaded", function () {

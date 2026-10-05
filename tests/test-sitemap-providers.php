@@ -258,12 +258,12 @@ final class ERankly_Sitemap_Providers_Test extends WP_UnitTestCase {
 		$filtered = erankly_filter_core_sitemap_terms_query_args( array( 'orderby' => 'name' ), 'category' );
 
 		$this->assertSame( 'name', $filtered['orderby'] );
-		$this->assertSame( erankly_get_sitemap_term_exclusion_meta_query( false ), $filtered['meta_query'] );
+		$this->assertSame( erankly_get_sitemap_exclusion_meta_query( false ), $filtered['meta_query'] );
 
 		$this->entity_maps['global_taxonomy_meta'] = array( 'category' => array( 'noindex' => 1 ) );
 		$noindexed = erankly_filter_core_sitemap_terms_query_args( array(), 'category' );
 
-		$this->assertSame( erankly_get_sitemap_term_exclusion_meta_query( true ), $noindexed['meta_query'] );
+		$this->assertSame( erankly_get_sitemap_exclusion_meta_query( true ), $noindexed['meta_query'] );
 	}
 
 	public function test_filter_core_sitemap_taxonomies_removes_disabled_entries(): void {
@@ -374,19 +374,19 @@ final class ERankly_Sitemap_Providers_Test extends WP_UnitTestCase {
 
 	// Term exclusion meta query ---------------------------------------------
 
-	public function test_get_sitemap_term_exclusion_meta_query_shape(): void {
-		$explicit = erankly_get_sitemap_term_exclusion_meta_query( true );
+	public function test_get_sitemap_exclusion_meta_query_shape(): void {
+		$explicit = erankly_get_sitemap_exclusion_meta_query( true );
 
 		$this->assertSame( 'AND', $explicit['relation'] );
 		$this->assertSame( '_erankly_index_directive', $explicit[0]['key'] );
 		$this->assertSame( 'index', $explicit[0]['value'] );
-		$this->assertSame( '_erankly_disable_sitemap', $explicit[2][0]['key'] );
+		$this->assertSame( '_erankly_disable_sitemap', $explicit[1][0]['key'] );
 
-		$inherited = erankly_get_sitemap_term_exclusion_meta_query( false );
+		$inherited = erankly_get_sitemap_exclusion_meta_query( false );
 
 		$this->assertSame( 'AND', $inherited['relation'] );
 		$this->assertSame( 'OR', $inherited[0]['relation'] );
-		$this->assertSame( '_erankly_disable_sitemap', $inherited[2][0]['key'] );
+		$this->assertSame( '_erankly_disable_sitemap', $inherited[1][0]['key'] );
 	}
 
 	// GMT date formatting ----------------------------------------------------

@@ -29,29 +29,23 @@ final class ERankly_Specialist_Sitemaps_Provider extends WP_Sitemaps_Provider {
 
 		if ( (bool) erankly_get_setting( 'enable_image_sitemap', 0 ) ) {
 			$image_count = erankly_count_image_sitemap_items();
+			$pages       = (int) ceil( $image_count / ERANKLY_SITEMAP_PER_PAGE );
 
-			if ( $image_count > 0 ) {
-				$pages = (int) ceil( $image_count / ERANKLY_SITEMAP_PER_PAGE );
-
-				for ( $page = 1; $page <= $pages; $page++ ) {
-					$entries[] = array(
-						'loc' => $this->get_specialist_sitemap_url( 'image', $page ),
-					);
-				}
+			for ( $page = 1; $page <= $pages; $page++ ) {
+				$entries[] = array(
+					'loc' => $this->get_specialist_sitemap_url( 'image', $page ),
+				);
 			}
 		}
 
 		if ( (bool) erankly_get_setting( 'enable_video_sitemap', 0 ) ) {
 			$video_count = erankly_count_video_sitemap_posts();
+			$pages       = (int) ceil( $video_count / ERANKLY_SITEMAP_PER_PAGE );
 
-			if ( $video_count > 0 ) {
-				$pages = (int) ceil( $video_count / ERANKLY_SITEMAP_PER_PAGE );
-
-				for ( $page = 1; $page <= $pages; $page++ ) {
-					$entries[] = array(
-						'loc' => $this->get_specialist_sitemap_url( 'video', $page ),
-					);
-				}
+			for ( $page = 1; $page <= $pages; $page++ ) {
+				$entries[] = array(
+					'loc' => $this->get_specialist_sitemap_url( 'video', $page ),
+				);
 			}
 		}
 

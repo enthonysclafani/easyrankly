@@ -12,6 +12,8 @@ final class ERankly_Lifecycle_Rest_Test extends WP_UnitTestCase {
 
 	public function set_up(): void {
 		parent::set_up();
+		// The route loads these helpers on rest_api_init; the callback is invoked directly here.
+		erankly_load_default_helpers();
 		erankly_clear_settings_cache();
 	}
 
@@ -300,7 +302,9 @@ final class ERankly_Lifecycle_Rest_Test extends WP_UnitTestCase {
 
 		$row = $schema['properties']['search']['properties'];
 
-		foreach ( erankly_special_meta_advanced_robot_keys() as $key ) {
+		$advanced_keys = array( 'index_directive', 'follow_directive', 'archive_directive', 'snippet_directive', 'image_directive', 'notranslate', 'indexifembedded', 'max_snippet', 'max_video_preview', 'max_image_preview' );
+
+		foreach ( $advanced_keys as $key ) {
 			$this->assertArrayHasKey( $key, $row, $key . ' must be in the REST schema so Core Data can round-trip it' );
 		}
 

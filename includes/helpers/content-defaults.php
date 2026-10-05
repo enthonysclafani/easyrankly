@@ -5,10 +5,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-function erankly_default_social_image_placeholder(): string {
-	return 'https://example.com/social-image.jpg';
-}
-
 function erankly_default_organization_name_template(): string {
 	return '{{site_name}}';
 }
@@ -21,19 +17,11 @@ function erankly_default_website_description_template(): string {
 	return '{{site_description}}';
 }
 
-function erankly_default_organization_logo_placeholder(): string {
-	return 'https://example.com/logo.png';
-}
-
 function erankly_default_organization_logo_url_template(): string {
 	return '{{site_icon_url}}';
 }
 
 function erankly_get_site_icon_url(): string {
-	if ( ! function_exists( 'get_site_icon_url' ) ) {
-		return '';
-	}
-
 	return esc_url_raw( (string) get_site_icon_url( 512 ) );
 }
 

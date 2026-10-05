@@ -207,7 +207,7 @@ final class ERankly_Helpers_Cache_Test extends WP_UnitTestCase {
 		$this->assertArrayHasKey( 'post', $captured );
 		$this->assertArrayHasKey( 'user', $captured );
 
-		$this->assertContains( '_erankly_noindex', $captured['term'] );
+		$this->assertContains( '_erankly_index_directive', $captured['term'] );
 		$this->assertContains( '_erankly_canonical', $captured['term'] );
 
 		$this->assertContains( '_erankly_disable_sitemap', $captured['post'] );

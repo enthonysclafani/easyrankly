@@ -306,21 +306,6 @@ final class ERankly_Migrations_Runtime_Test extends WP_UnitTestCase {
 		ERankly_Migration_Upload_Store::delete( $backup['path'] );
 	}
 
-	public function test_referenced_backups_respects_retention_window(): void {
-		$recent = wp_normalize_path( trailingslashit( get_temp_dir() ) . 'erankly-backup-' . str_repeat( 'b', 32 ) . '.json' );
-		$stale  = wp_normalize_path( trailingslashit( get_temp_dir() ) . 'erankly-backup-' . str_repeat( 'c', 32 ) . '.json' );
-
-		update_option(
-			'erankly_migration_reports_v1',
-			array(
-				'recent' => array( 'backup' => array( 'path' => $recent, 'created_at' => gmdate( 'c' ) ) ),
-				'stale'  => array( 'backup' => array( 'path' => $stale, 'created_at' => gmdate( 'c', time() - 2 * WEEK_IN_SECONDS ) ) ),
-			)
-		);
-
-		$this->assertSame( array( $recent ), erankly_migration_referenced_backups() );
-	}
-
 	public function test_restore_backup_reports_unavailable_for_unknown_report(): void {
 		$result = erankly_migration_restore_backup( 'no-such-report' );
 

@@ -21,14 +21,6 @@ function erankly_default_taxonomy_meta_template(): array {
 	);
 }
 
-/** @return array<string,string> */
-function erankly_default_social_meta_template(): array {
-	return array(
-		'title'       => '{{post_title}}',
-		'description' => '{{post_excerpt}}',
-	);
-}
-
 /** @return array<string,array<string,string>> */
 function erankly_build_global_entity_meta_defaults( array $keys, array $template ): array {
 	$defaults = array();
@@ -113,9 +105,8 @@ function erankly_default_global_taxonomy_meta(): array {
 
 /**
  * Returns default global metadata for the special page entities. Titles and descriptions start empty. Search
- * results and the 404 page default to hidden; author and date archives default to visible. "Hidden" sets noindex
- * and disable_sitemap (nofollow and noarchive stay off, as advanced-only opt-ins) so the simplified "Hide from
- * search results" control round-trips correctly.
+ * results and the 404 page default to hidden (noindex and disable_sitemap); author and date archives default
+ * to visible.
  *
  * @return array<string,array<string,string|int>>
  */
@@ -281,13 +272,11 @@ function erankly_sanitize_schema_type_name( mixed $value ): string {
  * @return array<string,int|string>
  */
 function erankly_sanitize_global_entity_directives( array $fields ): array {
-	$hide = ! empty( $fields['hide_from_search_results'] );
-
 	$directives = array(
-		'noindex'         => ( $hide || ! empty( $fields['noindex'] ) ) ? 1 : 0,
+		'noindex'         => ! empty( $fields['noindex'] ) ? 1 : 0,
 		'nofollow'        => ! empty( $fields['nofollow'] ) ? 1 : 0,
 		'noarchive'       => ! empty( $fields['noarchive'] ) ? 1 : 0,
-		'disable_sitemap' => ( $hide || ! empty( $fields['disable_sitemap'] ) ) ? 1 : 0,
+		'disable_sitemap' => ! empty( $fields['disable_sitemap'] ) ? 1 : 0,
 	);
 
 	// noodp was retired: DMOZ shut down in 2017 and no engine reads the directive.
@@ -361,8 +350,6 @@ function erankly_global_entity_social_is_empty( array $social ): bool {
 
 /** @return array<string,mixed> */
 function erankly_default_settings(): array {
-	$social_template = erankly_default_social_meta_template();
-
 	return array(
 		'organization_name'              => erankly_default_organization_name_template(),
 		'website_name'                   => erankly_default_website_name_template(),
@@ -383,11 +370,6 @@ function erankly_default_settings(): array {
 		'social_profiles'                => '',
 		'default_og_image'               => 0,
 		'default_social_image_url'       => '',
-		'default_og_title'               => $social_template['title'],
-		'default_og_description'         => $social_template['description'],
-		'default_twitter_title'          => $social_template['title'],
-		'default_twitter_description'    => $social_template['description'],
-		'social_defaults_linked'         => 1,
 		'twitter_site'                   => '',
 		'global_post_type_meta'          => erankly_default_global_post_type_meta(),
 		'global_post_type_meta_linked'   => 1,
@@ -399,7 +381,6 @@ function erankly_default_settings(): array {
 		'schema_person_user_id'          => 0,
 		'enable_local_business'          => 0,
 		'local_business_type'            => 'LocalBusiness',
-		'local_business_page_path'       => '',
 		'local_business_pages'           => array(),
 		'local_business_price_range'     => '',
 		'local_business_latitude'        => '',
@@ -408,9 +389,6 @@ function erankly_default_settings(): array {
 		'local_business_cuisine'         => '',
 		'local_business_hours'           => erankly_default_opening_hours(),
 		'global_schema_blocks'           => array(),
-		'enable_website_search_action'   => 0,
-		'simplified_mode'                => 1,
-		'resolve_placeholders'           => 1,
 		'enable_sitemap'                 => 0,
 		'enable_news_sitemap'            => 0,
 		'news_sitemap_post_types'        => array( 'post' ),
@@ -433,16 +411,15 @@ function erankly_default_settings(): array {
 		'robots_noimageindex'            => 0,
 		'robots_notranslate'             => 0,
 		'robots_indexifembedded'         => 0,
+		'enable_seo'                     => 1,
+		'enable_tools'                   => 1,
 		'enable_redirects'               => 0,
+		'enable_forms'                   => 0,
+		'enable_multilingual'            => 0,
 		'enable_custom_code'             => 0,
 		// Repeatable, location-targeted snippets (see erankly_sanitize_custom_code_blocks).
 		'head_code_blocks'               => array(),
 		'body_open_code_blocks'          => array(),
 		'body_close_code_blocks'         => array(),
-		// Legacy single-snippet storage (pre-block UI). Kept as a frontend
-		// fallback and auto-migrated to blocks on next privileged save.
-		'head_code'                      => '',
-		'body_open_code'                 => '',
-		'body_close_code'                => '',
 	);
 }

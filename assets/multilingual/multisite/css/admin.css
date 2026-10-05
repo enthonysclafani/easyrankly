@@ -1,0 +1,45 @@
+/**
+ * EasyRankly Multilingual for Multisite -- admin styling.
+ *
+ * Loaded on top of the host plugin's admin stylesheets, which already own the shared field, card, panel-table
+ * and toggle anatomy. Everything here is the add-on's own surface: the settings tab's table columns, the
+ * "Linked translations" meta box and the term edit fields. Colours come from the WordPress admin palette
+ * variables the host plugin also targets, so the add-on follows an admin colour scheme change.
+ */
+
+/* --- Multilingual settings tab ------------------------------------------------------------------------- */
+
+/* Column widths for the sites table. Percentages keep the site name column elastic. */
+.erankly-mlms-col-participates {
+	width: 12%;
+}
+
+.erankly-mlms-col-language {
+	width: 40%;
+}
+
+.erankly-mlms-col-hreflang {
+	width: 12%;
+}
+
+/* Duplicate-hreflang warning, sitting inside an .erankly-card below the table. */
+.erankly-mlms-panel-notice {
+	margin: 12px 0 0;
+}
+
+/* --- "Linked translations" meta box (classic editor) --------------------------------------------------- */
+
+/* Informational note on the static front page, which is cross-linked automatically. */
+.erankly-mlms-notice {
+	color: #2271b1;
+}
+
+/* --- Term edit screen fields --------------------------------------------------------------------------- */
+
+.erankly-mlms-term-field {
+	margin: 10px 0 4px;
+}
+
+.erankly-mlms-term-select {
+	max-width: 420px;
+}

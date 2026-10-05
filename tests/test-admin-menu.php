@@ -15,7 +15,6 @@ final class ERankly_Admin_Menu_Test extends WP_UnitTestCase {
 		require_once ERANKLY_PATH . 'includes/admin.php';
 		require_once ERANKLY_PATH . 'admin/field-renderers.php';
 		require_once ERANKLY_PATH . 'admin/settings/section-links.php';
-		require_once ERANKLY_PATH . 'admin/settings/nav-icons.php';
 		require_once ERANKLY_PATH . 'admin/settings/renderers.php';
 		require_once ERANKLY_PATH . 'admin/settings/panels.php';
 		require_once ERANKLY_PATH . 'admin/settings-page.php';
@@ -47,7 +46,7 @@ final class ERankly_Admin_Menu_Test extends WP_UnitTestCase {
 		return (string) ob_get_clean();
 	}
 
-	/** Import/export and reset panels require the network capability on Multisite. */
+	/** The import/export panel requires the network capability on Multisite. */
 	private function grant_network_cap_if_needed(): void {
 		if ( ! is_multisite() ) {
 			return;
@@ -119,7 +118,6 @@ final class ERankly_Admin_Menu_Test extends WP_UnitTestCase {
 		// Hooks shared by both contexts.
 		$this->assertNotFalse( has_action( 'admin_init', 'erankly_admin_maybe_register_taxonomy_fields' ) );
 		$this->assertNotFalse( has_action( 'admin_init', 'erankly_admin_maybe_handle_import_export' ) );
-		$this->assertNotFalse( has_action( 'admin_init', 'erankly_admin_maybe_handle_reset' ) );
 		$this->assertNotFalse( has_action( 'add_meta_boxes', 'erankly_admin_register_meta_boxes' ) );
 		$this->assertNotFalse( has_action( 'save_post', 'erankly_admin_save_meta_box' ) );
 		$this->assertNotFalse( has_action( 'admin_enqueue_scripts', 'erankly_admin_enqueue_assets' ) );
@@ -146,62 +144,59 @@ final class ERankly_Admin_Menu_Test extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'data-erankly-settings-panel="settings-general"', $panel );
 	}
 
-	public function test_admin_load_import_export_and_reset_modules(): void {
+	public function test_admin_load_import_export_module(): void {
 		$this->grant_network_cap_if_needed();
 
 		erankly_admin_load_import_export_module();
 		$export = $this->capture( static function (): void { erankly_import_export_render_panel(); } );
 		$this->assertStringContainsString( 'Export data', $export );
 		$this->assertStringContainsString( 'erankly_io_action=export', $export );
-
-		erankly_admin_load_reset_module();
-		$reset = $this->capture( static function (): void { erankly_reset_render_panel(); } );
-		$this->assertStringContainsString( 'data-erankly-reset-action="reset_local"', $reset );
 	}
 
 	public function test_requested_settings_tab_defaults_and_sanitizes(): void {
-		$this->assertSame( 'general', erankly_admin_requested_settings_tab() );
+		$this->assertSame( 'features', erankly_admin_requested_settings_tab() );
 
 		$_GET['erankly_tab'] = 'Schema Tab!';
 		$this->assertSame( 'schematab', erankly_admin_requested_settings_tab() );
 	}
 
-	public function test_resolve_settings_tab_substitutes_unavailable_tabs(): void {
-		$this->store_settings( array( 'simplified_mode' => 1 ) );
+	public function test_disabled_module_urls_return_to_the_manager_even_with_a_seo_subtab(): void {
+		$this->store_settings( array_fill_keys( array_column( erankly_feature_modules(), 'setting' ), 0 ) );
+		set_current_screen( is_multisite() ? 'settings_page_erankly-network' : 'settings_page_erankly' );
+		foreach ( array( 'seo', 'general', 'social', 'schema', 'advanced', 'tools' ) as $tab ) {
+			$this->assertSame( 'features', erankly_admin_resolve_settings_tab( $tab ) );
+			$_GET['erankly_tab'] = $tab;
+			$_GET['erankly_subtab'] = 'post-type-post';
+			$state = erankly_resolve_settings_page_state( erankly_get_settings() );
+			$this->assertSame( 'settings-features', $state['active_panel'] );
+			$this->assertFalse( $state['show_seo_tab'] );
+			$this->assertFalse( $state['show_tools_tab'] );
+		}
+	}
 
+	public function test_resolve_settings_tab_substitutes_unavailable_tabs(): void {
 		if ( is_multisite() ) {
-			// The per-site screen on Multisite exposes only the site-scoped tabs. With the
-			// classic theme that is "special-pages" alone, so every other slug collapses onto it.
+			// Legacy SEO slugs map to the per-site fallback; unavailable modules return to the manager.
 			$this->assertSame( 'special-pages', erankly_admin_resolve_settings_tab( 'advanced' ) );
-			$this->assertSame( 'special-pages', erankly_admin_resolve_settings_tab( 'sitemap' ) );
+			$this->assertSame( 'features', erankly_admin_resolve_settings_tab( 'sitemap' ) );
 			$this->assertSame( 'special-pages', erankly_admin_resolve_settings_tab( 'special-pages' ) );
-			$this->assertSame( 'special-pages', erankly_admin_resolve_settings_tab( 'my-addon' ) );
+			$this->assertSame( 'features', erankly_admin_resolve_settings_tab( 'my-addon' ) );
 			$this->assertSame( 'special-pages', erankly_admin_resolve_settings_tab( 'general' ) );
 			return;
 		}
 
-		// Advanced collapses to Settings while Simplified mode is on.
-		$this->assertSame( 'settings', erankly_admin_resolve_settings_tab( 'advanced' ) );
+		foreach ( array( 'seo', 'general', 'social', 'schema', 'advanced' ) as $slug ) {
+			$this->assertSame( 'seo', erankly_admin_resolve_settings_tab( $slug ) );
+		}
 		// Sitemap is disabled by default.
 		$this->assertSame( 'features', erankly_admin_resolve_settings_tab( 'sitemap' ) );
 		// Special-pages has no top-level tab on single site.
 		$this->assertSame( 'features', erankly_admin_resolve_settings_tab( 'special-pages' ) );
 		// Unknown extension slugs are preserved.
 		$this->assertSame( 'my-addon', erankly_admin_resolve_settings_tab( 'my-addon' ) );
-		$this->assertSame( 'general', erankly_admin_resolve_settings_tab( 'general' ) );
+		$this->assertSame( 'seo', erankly_admin_resolve_settings_tab( 'general' ) );
 	}
 
-	public function test_resolve_settings_tab_keeps_advanced_when_simplified_mode_is_off(): void {
-		$this->store_settings( array( 'simplified_mode' => 0 ) );
-
-		if ( is_multisite() ) {
-			// The per-site screen has no Advanced tab, so it collapses onto the first site tab.
-			$this->assertSame( 'special-pages', erankly_admin_resolve_settings_tab( 'advanced' ) );
-			return;
-		}
-
-		$this->assertSame( 'advanced', erankly_admin_resolve_settings_tab( 'advanced' ) );
-	}
 
 	public function test_register_settings_page_adds_the_canonicalization_hook(): void {
 		erankly_admin_register_settings_page();
@@ -250,11 +245,8 @@ final class ERankly_Admin_Menu_Test extends WP_UnitTestCase {
 		};
 		add_filter( 'wp_redirect', $spy );
 
-		// The canonical (default) tab differs per install: single site defaults to "general",
-		// while the Multisite per-site screen's only tab is "special-pages". On Multisite a bare
-		// request defaults to "general", which is NOT canonical there, so it legitimately redirects
-		// (and wp_safe_redirect() would raise "headers already sent" in the test bootstrap).
-		$canonical = is_multisite() ? 'special-pages' : 'general';
+		// The package manager is always available, including with every module off.
+		$canonical = 'features';
 
 		try {
 			$_GET['erankly_tab'] = $canonical;
@@ -278,15 +270,7 @@ final class ERankly_Admin_Menu_Test extends WP_UnitTestCase {
 
 		$this->assertStringContainsString( 'class="wrap erankly-settings"', $html );
 
-		if ( is_multisite() ) {
-			// The per-site screen only holds the special-pages panel and points global SEO
-			// settings at Network Admin instead of rendering the single-site General panel.
-			$this->assertStringContainsString( 'id="erankly-settings-panel-special-pages"', $html );
-			$this->assertStringContainsString( 'data-erankly-settings-panel="settings-special-pages"', $html );
-			return;
-		}
-
-		$this->assertStringContainsString( 'id="erankly-settings-panel-general"', $html );
+		$this->assertStringContainsString( 'id="erankly-settings-panel-features"', $html );
 	}
 
 	public function test_admin_save_wrappers_delegate_to_the_guarded_savers(): void {
@@ -375,50 +359,6 @@ final class ERankly_Admin_Menu_Test extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'erankly_io_action=export', $export );
 	}
 
-	public function test_maybe_handle_reset_dispatches_the_authenticated_action(): void {
-		$seen = array();
-		$spy  = static function ( $action ) use ( &$seen ): void {
-			$seen[] = $action;
-		};
-		add_action( 'erankly_reset_action', $spy );
-
-		// The reset submission gate requires manage_network_options on Multisite, which a
-		// single-site administrator never holds; grant it so the dispatcher is actually reached.
-		$grant = null;
-
-		if ( is_multisite() ) {
-			$grant = static function ( array $allcaps ): array {
-				$allcaps['manage_network_options'] = true;
-				return $allcaps;
-			};
-			add_filter( 'user_has_cap', $grant );
-		}
-
-		try {
-			$_GET['page']                   = 'erankly';
-			$_POST['erankly_reset_action']  = 'noop_probe';
-			$nonce                          = wp_create_nonce( 'erankly_noop_probe' );
-			$_POST['_wpnonce']              = $nonce;
-			$_REQUEST['_wpnonce']           = $nonce;
-
-			erankly_admin_maybe_handle_reset();
-
-			$this->assertSame( array( 'noop_probe' ), $seen );
-
-			// A non-reset page must short-circuit before the dispatcher runs.
-			$seen             = array();
-			$_GET['page']     = 'dashboard';
-			erankly_admin_maybe_handle_reset();
-			$this->assertSame( array(), $seen );
-		} finally {
-			remove_action( 'erankly_reset_action', $spy );
-
-			if ( null !== $grant ) {
-				remove_filter( 'user_has_cap', $grant );
-			}
-		}
-	}
-
 	public function test_plugin_action_links_prepend_a_settings_link(): void {
 		$links = erankly_plugin_action_links( array( 'deactivate' => '<a>Deactivate</a>' ) );
 
@@ -467,11 +407,46 @@ final class ERankly_Admin_Menu_Test extends WP_UnitTestCase {
 
 	public function test_admin_asset_modules_resolves_surfaces(): void {
 		$this->assertSame( array( 'tabs', 'fields' ), erankly_admin_asset_modules( 'settings:import-export' ) );
-		$this->assertContains( 'variables', erankly_admin_asset_modules( 'settings:general' ) );
+		$this->assertContains( 'variables', erankly_admin_asset_modules( 'settings:seo' ) );
 		$this->assertSame( array( 'media', 'fields', 'variables', 'schema', 'panels' ), erankly_admin_asset_modules( 'classic-editor' ) );
 		$this->assertSame( array(), erankly_admin_asset_modules( 'no-such-surface' ) );
 		// Unknown extension tabs keep receiving the complete bundle.
 		$this->assertContains( 'panels', erankly_admin_asset_modules( 'settings:brand-new-addon' ) );
+	}
+
+	public function test_core_settings_assets_are_specific_and_legacy_modules_remain_complete(): void {
+		$previous_scripts = $GLOBALS['wp_scripts'];
+		$GLOBALS['wp_scripts'] = new WP_Scripts();
+		try {
+			erankly_admin_enqueue_scripts( erankly_admin_asset_modules( 'settings:seo' ) );
+			$this->assertTrue( wp_script_is( 'erankly-admin-identity', 'enqueued' ) );
+			$this->assertTrue( wp_script_is( 'erankly-admin-user-search', 'enqueued' ) );
+			$this->assertTrue( wp_script_is( 'erankly-admin-schema', 'enqueued' ) );
+			$this->assertTrue( wp_script_is( 'erankly-schema-jsonld', 'enqueued' ) );
+			$this->assertTrue( wp_script_is( 'erankly-admin-widgets', 'enqueued' ) );
+			$GLOBALS['wp_scripts'] = new WP_Scripts();
+			erankly_admin_enqueue_scripts( array( 'schema', 'widgets' ) );
+			$this->assertContains( 'erankly-admin-identity', wp_scripts()->registered['erankly-admin-schema']->deps );
+			$this->assertContains( 'erankly-admin-user-search', wp_scripts()->registered['erankly-admin-widgets']->deps );
+		} finally {
+			$GLOBALS['wp_scripts'] = $previous_scripts;
+		}
+	}
+
+	public function test_core_registry_preserves_autosave_routes_and_refresh_behavior(): void {
+		$panels = erankly_admin_settings_autosave_config()['panels'];
+		foreach ( array( 'seo', 'sitemap', 'features', 'custom-code', 'special-pages' ) as $slug ) {
+			$this->assertSame( esc_url_raw( rest_url( 'erankly/v1/settings/' . $slug ) ), $panels[ $slug ]['restUrl'] );
+		}
+		$this->assertTrue( $panels['seo']['reloadOnSave'] );
+		$this->assertContains( 'robots_txt_extra', $panels['seo']['refreshKeys'] );
+		$this->assertTrue( $panels['features']['reloadOnSave'] );
+		$this->assertContains( 'enable_forms', $panels['features']['refreshKeys'] );
+		$this->assertArrayNotHasKey( 'general', $panels );
+		$this->assertArrayNotHasKey( 'social', $panels );
+		$this->assertArrayNotHasKey( 'schema', $panels );
+		$this->assertArrayNotHasKey( 'advanced', $panels );
+		$this->assertArrayNotHasKey( 'tools', $panels );
 	}
 
 	public function test_admin_asset_modules_is_filterable(): void {
@@ -489,7 +464,7 @@ final class ERankly_Admin_Menu_Test extends WP_UnitTestCase {
 		}
 	}
 
-	public function test_admin_enqueue_assets_enqueues_the_general_settings_bundle(): void {
+	public function test_admin_enqueue_assets_enqueues_the_seo_settings_bundle(): void {
 		set_current_screen( 'settings_page_erankly' );
 		$_GET['erankly_tab'] = 'general';
 
@@ -500,7 +475,7 @@ final class ERankly_Admin_Menu_Test extends WP_UnitTestCase {
 
 		if ( is_multisite() ) {
 			// The per-site screen has no General tab, so 'general' resolves to special-pages and
-			// the General-only user-search localization is (correctly) not emitted.
+			// the SEO user-search localization is (correctly) not emitted.
 			$this->assertStringNotContainsString( 'eranklyUserSearch', (string) wp_scripts()->get_data( 'erankly-admin', 'data' ) );
 			return;
 		}
@@ -508,21 +483,16 @@ final class ERankly_Admin_Menu_Test extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'eranklyUserSearch', (string) wp_scripts()->get_data( 'erankly-admin', 'data' ) );
 	}
 
-	public function test_admin_enqueue_assets_handles_import_export_and_settings_tabs(): void {
+	public function test_admin_enqueue_assets_handles_import_export_tab(): void {
 		set_current_screen( 'settings_page_erankly' );
 
 		if ( is_multisite() ) {
-			// Import / Export and Settings are Network-Admin-only surfaces on Multisite; a per-site
-			// request for either collapses onto the special-pages bundle, so neither the migration
-			// nor the reset stylesheet is enqueued here.
+			// Import / Export is a Network-Admin-only surface on Multisite; a per-site request
+			// collapses onto the special-pages bundle, so the migration stylesheet is not enqueued.
 			$_GET['erankly_tab'] = 'import-export';
 			erankly_admin_enqueue_assets( 'settings_page_erankly' );
 			$this->assertFalse( wp_style_is( 'erankly-migration', 'enqueued' ) );
 			$this->assertFalse( wp_script_is( 'erankly-admin-import-export', 'enqueued' ) );
-
-			$_GET['erankly_tab'] = 'settings';
-			erankly_admin_enqueue_assets( 'settings_page_erankly' );
-			$this->assertFalse( wp_style_is( 'erankly-reset', 'enqueued' ) );
 			return;
 		}
 
@@ -530,16 +500,6 @@ final class ERankly_Admin_Menu_Test extends WP_UnitTestCase {
 		erankly_admin_enqueue_assets( 'settings_page_erankly' );
 		$this->assertTrue( wp_style_is( 'erankly-migration', 'enqueued' ) );
 		$this->assertTrue( wp_script_is( 'erankly-admin-import-export', 'enqueued' ) );
-
-		$_GET['erankly_tab'] = 'settings';
-		erankly_admin_enqueue_assets( 'settings_page_erankly' );
-		$this->assertTrue( wp_style_is( 'erankly-reset', 'enqueued' ) );
-	}
-
-	public function test_enqueue_accordion_faq_schema_assets_registers_the_editor_bundle(): void {
-		erankly_enqueue_accordion_faq_schema_assets();
-
-		$this->assertTrue( wp_script_is( 'erankly-accordion-faq-schema', 'enqueued' ) );
 	}
 
 	public function test_enqueue_editor_shared_assets_registers_style_and_script(): void {

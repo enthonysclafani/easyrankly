@@ -7,7 +7,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * Returns whether singular content or comments are on a paginated request. This is intentionally separate from
- * is_paged(), which represents archive pagination. AIOSEO applies its global pagination policy to both scopes.
+ * is_paged(), which represents archive pagination.
  */
 function erankly_is_paginated_content_request(): bool {
 	$page  = (int) get_query_var( 'page', 0 );
@@ -22,147 +22,17 @@ function erankly_is_paginated_content_request(): bool {
 }
 
 /**
- * Filters native WordPress robots meta output.
+ * Filters native WordPress robots meta output. Order: global settings flags for the current context, site-wide
+ * robots settings, global advanced directives, per-object overrides, then the site visibility guard.
  *
  * @return array<string,bool|string>
  */
 function erankly_filter_wp_robots( array $robots ): array {
-	if ( is_singular() && ! is_front_page() ) {
-		$post_id   = get_queried_object_id();
-		$post_type = get_post_type( $post_id );
-		$post_type = is_string( $post_type ) ? $post_type : '';
-
-		if ( erankly_get_post_meta_bool( $post_id, 'noindex' ) || ( '' !== $post_type && erankly_get_global_post_type_directive( $post_type, 'noindex' ) ) ) {
-			$robots['noindex'] = true;
-			unset( $robots['index'] );
-		}
-
-		if ( erankly_get_post_meta_bool( $post_id, 'nofollow' ) || ( '' !== $post_type && erankly_get_global_post_type_directive( $post_type, 'nofollow' ) ) ) {
-			$robots['nofollow'] = true;
-			unset( $robots['follow'] );
-		}
-
-		if ( erankly_get_post_meta_bool( $post_id, 'noarchive' ) || ( '' !== $post_type && erankly_get_global_post_type_directive( $post_type, 'noarchive' ) ) ) {
-			$robots['noarchive'] = true;
-		}
-	} elseif ( is_category() || is_tag() || is_tax() ) {
-		$term = get_queried_object();
-
-		if ( $term instanceof WP_Term ) {
-			if ( erankly_get_term_meta_bool( $term->term_id, 'noindex' ) || erankly_get_global_taxonomy_directive( $term->taxonomy, 'noindex' ) ) {
-				$robots['noindex'] = true;
-				unset( $robots['index'] );
-			}
-
-			if ( erankly_get_term_meta_bool( $term->term_id, 'nofollow' ) || erankly_get_global_taxonomy_directive( $term->taxonomy, 'nofollow' ) ) {
-				$robots['nofollow'] = true;
-				unset( $robots['follow'] );
-			}
-
-			if ( erankly_get_term_meta_bool( $term->term_id, 'noarchive' ) || erankly_get_global_taxonomy_directive( $term->taxonomy, 'noarchive' ) ) {
-				$robots['noarchive'] = true;
-			}
-		}
-	} elseif ( is_post_type_archive() ) {
-		$post_type = get_query_var( 'post_type' );
-		$post_type = is_array( $post_type ) ? reset( $post_type ) : $post_type;
-		$post_type = is_string( $post_type ) ? $post_type : '';
-
-		if ( '' !== $post_type && erankly_get_global_post_type_directive( $post_type, 'noindex' ) ) {
-			$robots['noindex'] = true;
-			unset( $robots['index'] );
-		}
-
-		if ( '' !== $post_type && erankly_get_global_post_type_directive( $post_type, 'nofollow' ) ) {
-			$robots['nofollow'] = true;
-			unset( $robots['follow'] );
-		}
-
-		if ( '' !== $post_type && erankly_get_global_post_type_directive( $post_type, 'noarchive' ) ) {
-			$robots['noarchive'] = true;
-		}
+	foreach ( erankly_current_global_entity_contexts() as list( $setting_key, $entity ) ) {
+		$robots = erankly_apply_global_entity_flags( $robots, $setting_key, $entity );
 	}
 
-	// Special pages (search, 404, author/date archives, homepage, blog page) read their
-	// directives from global_special_meta, configurable under General → Special pages.
-	$special_key = erankly_current_special_page_key();
-
-	if ( '' !== $special_key ) {
-		if ( erankly_get_global_entity_directive( 'global_special_meta', $special_key, 'noindex' ) ) {
-			$robots['noindex'] = true;
-			unset( $robots['index'] );
-		}
-
-		if ( erankly_get_global_entity_directive( 'global_special_meta', $special_key, 'nofollow' ) ) {
-			$robots['nofollow'] = true;
-			unset( $robots['follow'] );
-		}
-
-		if ( erankly_get_global_entity_directive( 'global_special_meta', $special_key, 'noarchive' ) ) {
-			$robots['noarchive'] = true;
-		}
-	}
-
-	$is_archive_paged = is_paged();
-	$is_content_paged = erankly_is_paginated_content_request();
-
-	// Providers expose archive and content/comment pagination as distinct scopes.
-	if ( $is_archive_paged && (bool) erankly_get_setting( 'noindex_paginated', 0 ) ) {
-		$robots['noindex'] = true;
-		unset( $robots['index'] );
-	}
-	if ( $is_content_paged && (bool) erankly_get_setting( 'noindex_paginated_content', 0 ) ) {
-		$robots['noindex'] = true;
-		unset( $robots['index'] );
-	}
-	if ( ( $is_archive_paged || $is_content_paged ) && (bool) erankly_get_setting( 'nofollow_paginated', 0 ) ) {
-		$robots['nofollow'] = true;
-		unset( $robots['follow'] );
-	}
-
-	if ( empty( $robots['noindex'] ) ) {
-		$robots['index'] = true;
-	}
-
-	if ( empty( $robots['nofollow'] ) ) {
-		$robots['follow'] = true;
-	}
-
-	// Only an explicitly stored value emits the directive. With no stored value, WordPress
-	// core adds its own max-image-preview:large on public sites (wp_robots_max_image_preview_large()).
-	$max_image_preview = sanitize_key( (string) erankly_get_setting( 'robots_max_image_preview', '' ) );
-	if ( in_array( $max_image_preview, array( 'none', 'standard', 'large' ), true ) ) {
-		$robots['max-image-preview'] = $max_image_preview;
-	}
-
-	$max_snippet = trim( (string) erankly_get_setting( 'robots_max_snippet', '' ) );
-
-	if ( '' !== $max_snippet ) {
-		$robots['max-snippet'] = $max_snippet;
-	}
-
-	$max_video_preview = trim( (string) erankly_get_setting( 'robots_max_video_preview', '' ) );
-
-	if ( '' !== $max_video_preview ) {
-		$robots['max-video-preview'] = $max_video_preview;
-	}
-
-	if ( (bool) erankly_get_setting( 'robots_nosnippet', 0 ) ) {
-		$robots['nosnippet'] = true;
-	}
-	if ( (bool) erankly_get_setting( 'robots_noimageindex', 0 ) ) {
-		$robots['noimageindex'] = true;
-	}
-	if ( (bool) erankly_get_setting( 'robots_notranslate', 0 ) ) {
-		$robots['notranslate'] = true;
-	}
-
-	// Google only honors indexifembedded with noindex. It lets an embedded copy
-	// be indexed while the standalone URL remains excluded from results.
-	if ( ! empty( $robots['noindex'] ) && (bool) erankly_get_setting( 'robots_indexifembedded', 0 ) ) {
-		$robots['indexifembedded'] = true;
-	}
-
+	$robots = erankly_apply_sitewide_robots_settings( $robots );
 	$robots = erankly_apply_current_global_entity_robots( $robots );
 	$robots = erankly_apply_current_object_robots_overrides( $robots );
 
@@ -195,27 +65,13 @@ function erankly_filter_wp_robots( array $robots ): array {
 	return apply_filters( 'erankly_robots', $robots );
 }
 
-/** Returns the feed-level robots tag, or an empty string when it must not be sent. */
-function erankly_feed_robots_tag(): string {
-	if ( ! is_feed() || ! (bool) erankly_get_setting( 'noindex_feeds', 0 ) ) {
-		return '';
-	}
-
-	return 'noindex, follow';
-}
-
-/** Sends the feed-level robots policy through the HTTP header used by AIOSEO. */
-function erankly_send_feed_robots_header(): void {
-	$tag = erankly_feed_robots_tag();
-	if ( '' === $tag || headers_sent() ) {
-		return;
-	}
-
-	header( 'X-Robots-Tag: ' . $tag, true );
-}
-
-/** @return array<string,bool|string> */
-function erankly_apply_current_global_entity_robots( array $robots ): array {
+/**
+ * Returns the global settings rows that apply to the current request, as [ setting key, entity ] pairs: the
+ * post type, taxonomy or post type archive, then the special page (search, 404, archives, homepage, blog page).
+ *
+ * @return array<int,array{0:string,1:string}>
+ */
+function erankly_current_global_entity_contexts(): array {
 	$contexts = array();
 
 	if ( is_singular() && ! is_front_page() ) {
@@ -241,9 +97,103 @@ function erankly_apply_current_global_entity_robots( array $robots ): array {
 		$contexts[] = array( 'global_special_meta', $special_key );
 	}
 
-	foreach ( $contexts as $context ) {
-		$row    = erankly_get_global_entity_meta_row( $context[0], $context[1] );
-		$robots = erankly_apply_global_entity_robot_row( $robots, $row );
+	return $contexts;
+}
+
+/**
+ * Applies the noindex, nofollow and noarchive checkboxes of one global settings row.
+ *
+ * @return array<string,bool|string>
+ */
+function erankly_apply_global_entity_flags( array $robots, string $setting_key, string $entity ): array {
+	if ( erankly_get_global_entity_directive( $setting_key, $entity, 'noindex' ) ) {
+		$robots['noindex'] = true;
+		unset( $robots['index'] );
+	}
+
+	if ( erankly_get_global_entity_directive( $setting_key, $entity, 'nofollow' ) ) {
+		$robots['nofollow'] = true;
+		unset( $robots['follow'] );
+	}
+
+	if ( erankly_get_global_entity_directive( $setting_key, $entity, 'noarchive' ) ) {
+		$robots['noarchive'] = true;
+	}
+
+	return $robots;
+}
+
+/**
+ * Applies the site-wide robots settings: pagination, preview limits and the global directive toggles.
+ *
+ * @return array<string,bool|string>
+ */
+function erankly_apply_sitewide_robots_settings( array $robots ): array {
+	$is_archive_paged = is_paged();
+	$is_content_paged = erankly_is_paginated_content_request();
+
+	// Providers expose archive and content/comment pagination as distinct scopes.
+	if ( ( $is_archive_paged && (bool) erankly_get_setting( 'noindex_paginated', 0 ) ) || ( $is_content_paged && (bool) erankly_get_setting( 'noindex_paginated_content', 0 ) ) ) {
+		$robots['noindex'] = true;
+		unset( $robots['index'] );
+	}
+	if ( ( $is_archive_paged || $is_content_paged ) && (bool) erankly_get_setting( 'nofollow_paginated', 0 ) ) {
+		$robots['nofollow'] = true;
+		unset( $robots['follow'] );
+	}
+
+	// Only an explicitly stored value emits the directive. With no stored value, WordPress
+	// core adds its own max-image-preview:large on public sites (wp_robots_max_image_preview_large()).
+	$max_image_preview = sanitize_key( (string) erankly_get_setting( 'robots_max_image_preview', '' ) );
+	if ( in_array( $max_image_preview, array( 'none', 'standard', 'large' ), true ) ) {
+		$robots['max-image-preview'] = $max_image_preview;
+	}
+
+	foreach ( array( 'robots_max_snippet' => 'max-snippet', 'robots_max_video_preview' => 'max-video-preview' ) as $setting => $directive ) {
+		$value = trim( (string) erankly_get_setting( $setting, '' ) );
+		if ( '' !== $value ) {
+			$robots[ $directive ] = $value;
+		}
+	}
+
+	foreach ( array( 'robots_nosnippet' => 'nosnippet', 'robots_noimageindex' => 'noimageindex', 'robots_notranslate' => 'notranslate' ) as $setting => $directive ) {
+		if ( (bool) erankly_get_setting( $setting, 0 ) ) {
+			$robots[ $directive ] = true;
+		}
+	}
+
+	// Google only honors indexifembedded with noindex. It lets an embedded copy
+	// be indexed while the standalone URL remains excluded from results.
+	if ( ! empty( $robots['noindex'] ) && (bool) erankly_get_setting( 'robots_indexifembedded', 0 ) ) {
+		$robots['indexifembedded'] = true;
+	}
+
+	return $robots;
+}
+
+/** Returns the feed-level robots tag, or an empty string when it must not be sent. */
+function erankly_feed_robots_tag(): string {
+	if ( ! is_feed() || ! (bool) erankly_get_setting( 'noindex_feeds', 0 ) ) {
+		return '';
+	}
+
+	return 'noindex, follow';
+}
+
+/** Sends the feed-level robots policy through the X-Robots-Tag HTTP header. */
+function erankly_send_feed_robots_header(): void {
+	$tag = erankly_feed_robots_tag();
+	if ( '' === $tag || headers_sent() ) {
+		return;
+	}
+
+	header( 'X-Robots-Tag: ' . $tag, true );
+}
+
+/** @return array<string,bool|string> */
+function erankly_apply_current_global_entity_robots( array $robots ): array {
+	foreach ( erankly_current_global_entity_contexts() as list( $setting_key, $entity ) ) {
+		$robots = erankly_apply_global_entity_robot_row( $robots, erankly_get_global_entity_meta_row( $setting_key, $entity ) );
 	}
 
 	return $robots;
@@ -419,8 +369,11 @@ function erankly_apply_current_object_robots_overrides( array $robots ): array {
  * @param bool   $is_public Whether the site discourages search engines.
  */
 function erankly_filter_robots_txt( string $output, bool $is_public ): string {
-	if ( erankly_detect_external_seo_head_owner() && ! (bool) apply_filters( 'erankly_enable_robots_txt_with_external_seo', false ) ) {
-		return $output;
+	$custom = (string) erankly_get_setting( 'robots_txt_extra', '' );
+
+	// Custom rules replace the entire file, including WordPress defaults and sitemap directives.
+	if ( '' !== trim( $custom ) ) {
+		return $custom;
 	}
 
 	erankly_load_sitemap_helpers();
@@ -465,24 +418,9 @@ function erankly_filter_robots_txt( string $output, bool $is_public ): string {
 		}
 	}
 
-	if ( $is_public && erankly_sitemap_enabled() && ! erankly_should_suppress_sitemaps() ) {
+	if ( $is_public && erankly_sitemap_enabled() ) {
 		// Core wp_sitemaps serves the main sitemap index at /wp-sitemap.xml.
 		$parsed['globals'][] = 'Sitemap: ' . esc_url_raw( erankly_get_sitemap_url( '/wp-sitemap.xml' ) );
-	}
-
-	$custom = trim( (string) erankly_get_setting( 'robots_txt_extra', '' ) );
-
-	if ( '' !== $custom ) {
-		$extra = erankly_robots_txt_parse_groups( explode( "\n", $custom ) );
-
-		// Rules typed without a User-agent header of their own belong to the wildcard group: that is where they
-		// ended up when the extra lines were simply appended to the flat list.
-		foreach ( $extra['preamble'] as $rule ) {
-			$parsed['groups'][ $wildcard ]['rules'][] = $rule;
-		}
-
-		$parsed['groups']  = array_merge( $parsed['groups'], $extra['groups'] );
-		$parsed['globals'] = array_merge( $parsed['globals'], $extra['globals'] );
 	}
 
 	$lines = erankly_robots_txt_render_groups( $parsed );
@@ -646,7 +584,7 @@ function erankly_force_robots_txt_request( WP $wp ): void {
 }
 
 function erankly_register_rewrites(): void {
-	if ( ! erankly_should_serve_sitemaps() ) {
+	if ( ! erankly_sitemap_enabled() ) {
 		return;
 	}
 

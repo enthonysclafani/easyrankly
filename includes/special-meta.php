@@ -61,28 +61,6 @@ function erankly_register_special_meta_setting(): void {
 }
 
 /**
- * Advanced robots keys stored by `erankly_sanitize_global_entity_directives()` and preserved by the PHP
- * settings form as hidden inputs. They are optional on each REST row: omit them when unset so an explicit
- * "off" is not written for a field that was inheriting the site default.
- *
- * @return array<int,string>
- */
-function erankly_special_meta_advanced_robot_keys(): array {
-	return array(
-		'index_directive',
-		'follow_directive',
-		'archive_directive',
-		'snippet_directive',
-		'image_directive',
-		'notranslate',
-		'indexifembedded',
-		'max_snippet',
-		'max_video_preview',
-		'max_image_preview',
-	);
-}
-
-/**
  * JSON Schema for one special-page row in wp/v2/settings. additionalProperties is false, so every field the
  * sanitizer can persist must be declared here or Core Data GET/PUT will drop it (or fail validation and
  * present the whole setting as null).

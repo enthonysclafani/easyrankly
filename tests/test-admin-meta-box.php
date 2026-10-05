@@ -58,78 +58,18 @@ final class ERankly_Admin_Meta_Box_Test extends WP_UnitTestCase {
 		$this->assertNotFalse( has_action( 'post_tag_add_form_fields', 'erankly_render_add_term_fields' ) );
 	}
 
-	public function test_post_global_meta_placeholder_expands_and_trims_the_stored_template(): void {
-		$post = self::factory()->post->create_and_get(
-			array(
-				'post_title' => 'Original title',
-				'import_id'  => 900101,
-			)
-		);
-
-		$this->store_settings(
-			array(
-				'global_post_type_meta' => array(
-					'post' => array( 'title' => '{{post_title}}' ),
-				),
-			)
-		);
-
-		$this->assertSame( 'Original title', erankly_get_post_global_meta_placeholder( $post, 'title', 70 ) );
-		$this->assertSame( 'Or', erankly_get_post_global_meta_placeholder( $post, 'title', 3 ) );
-
-		$this->store_settings( array( 'global_post_type_meta' => array() ) );
-		$this->assertSame( '', erankly_get_post_global_meta_placeholder( $post, 'title', 70 ) );
-	}
-
-	public function test_post_global_social_placeholder_expands_the_template(): void {
-		$post = self::factory()->post->create_and_get(
-			array(
-				'post_title' => 'Social title',
-				'import_id'  => 900102,
-			)
-		);
-
-		$this->store_settings( array( 'default_og_title' => '{{post_title}}' ) );
-
-		$this->assertSame( 'Social title', erankly_get_post_global_social_placeholder( $post->ID, 'default_og_title', 60 ) );
-		$this->assertSame( 'Soc', erankly_get_post_global_social_placeholder( $post->ID, 'default_og_title', 4 ) );
-
-		$this->store_settings( array( 'default_og_title' => '' ) );
-		$this->assertSame( '', erankly_get_post_global_social_placeholder( $post->ID, 'default_og_title', 60 ) );
-	}
-
-	public function test_term_global_meta_placeholder_reads_the_taxonomy_template(): void {
-		$this->store_settings(
-			array(
-				'global_taxonomy_meta' => array(
-					'category' => array( 'title' => 'Category template' ),
-				),
-			)
-		);
-
-		$this->assertSame( 'Category template', erankly_get_term_global_meta_placeholder( 'category', 'title' ) );
-	}
-
-	public function test_post_general_fields_hide_advanced_fields_in_simplified_mode(): void {
+	public function test_post_general_fields_render_every_field_without_placeholders(): void {
+		$this->store_settings( array( 'enable_breadcrumbs' => 1 ) );
 		$post = self::factory()->post->create_and_get();
 
 		$html = $this->capture( static fn() => erankly_render_post_general_fields( $post ) );
 
 		$this->assertStringContainsString( 'name="erankly_title"', $html );
 		$this->assertStringContainsString( 'name="erankly_description"', $html );
-		$this->assertStringNotContainsString( 'name="erankly_canonical"', $html );
-
-		$this->store_settings(
-			array(
-				'simplified_mode'    => 0,
-				'enable_breadcrumbs' => 1,
-			)
-		);
-
-		$full = $this->capture( static fn() => erankly_render_post_general_fields( $post ) );
-
-		$this->assertStringContainsString( 'name="erankly_canonical"', $full );
-		$this->assertStringContainsString( 'name="erankly_breadcrumb_name"', $full );
+		$this->assertStringContainsString( 'name="erankly_canonical"', $html );
+		$this->assertStringContainsString( 'name="erankly_breadcrumb_name"', $html );
+		$this->assertStringContainsString( 'data-erankly-counter="erankly-title-counter"', $html );
+		$this->assertStringNotContainsString( 'placeholder=', $html );
 	}
 
 	public function test_post_social_fields_render_the_social_inputs_and_media_field(): void {
@@ -144,18 +84,14 @@ final class ERankly_Admin_Meta_Box_Test extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'data-erankly-media-url-field', $html );
 	}
 
-	public function test_post_visibility_fields_switch_between_simplified_and_advanced_modes(): void {
+	public function test_post_visibility_fields_render_the_robots_directives(): void {
 		$post = self::factory()->post->create_and_get();
+		update_post_meta( $post->ID, '_erankly_index_directive', 'noindex' );
 
-		$simplified = $this->capture( static fn() => erankly_render_post_visibility_fields( $post ) );
-		$this->assertStringContainsString( 'name="erankly_hide_from_search_results"', $simplified );
-		$this->assertStringNotContainsString( 'name="erankly_index_directive"', $simplified );
-
-		$this->store_settings( array( 'simplified_mode' => 0 ) );
-
-		$advanced = $this->capture( static fn() => erankly_render_post_visibility_fields( $post ) );
-		$this->assertStringContainsString( 'name="erankly_index_directive"', $advanced );
-		$this->assertStringContainsString( 'name="erankly_exclude_search"', $advanced );
+		$html = $this->capture( static fn() => erankly_render_post_visibility_fields( $post ) );
+		$this->assertStringContainsString( 'name="erankly_index_directive"', $html );
+		$this->assertMatchesRegularExpression( '/value="noindex"\s+selected=\'selected\'/', $html );
+		$this->assertStringContainsString( 'name="erankly_exclude_search"', $html );
 	}
 
 	public function test_robots_directive_select_maps_axes_to_their_tokens(): void {
@@ -226,21 +162,16 @@ final class ERankly_Admin_Meta_Box_Test extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'data-erankly-schema-notice="default-custom"', $stored );
 	}
 
-	public function test_render_meta_box_includes_social_section_only_outside_simplified_mode(): void {
+	public function test_render_meta_box_includes_every_section(): void {
 		$post = self::factory()->post->create_and_get();
 
-		$simplified = $this->capture( static fn() => erankly_render_meta_box( $post ) );
+		$html = $this->capture( static fn() => erankly_render_meta_box( $post ) );
 
-		$this->assertStringContainsString( 'name="erankly_meta_box_nonce"', $simplified );
-		$this->assertStringContainsString( 'class="erankly-meta-box-section-title"', $simplified );
-		$this->assertStringContainsString( 'Search visibility', $simplified );
-		$this->assertStringNotContainsString( 'Social sharing', $simplified );
-
-		$this->store_settings( array( 'simplified_mode' => 0 ) );
-
-		$full = $this->capture( static fn() => erankly_render_meta_box( get_post( $post->ID ) ) );
-		$this->assertStringContainsString( 'Social sharing', $full );
-		$this->assertStringContainsString( 'data-erankly-post-schema', $full );
+		$this->assertStringContainsString( 'name="erankly_meta_box_nonce"', $html );
+		$this->assertStringContainsString( 'Social sharing', $html );
+		$this->assertStringContainsString( 'data-erankly-post-schema', $html );
+		$this->assertStringContainsString( 'Search visibility', $html );
+		$this->assertStringNotContainsString( 'placeholder=', $html );
 	}
 
 	public function test_render_add_term_fields_emits_the_nonce_and_wrapper(): void {
@@ -316,5 +247,30 @@ final class ERankly_Admin_Meta_Box_Test extends WP_UnitTestCase {
 		erankly_save_term_fields( $term->term_id );
 
 		$this->assertSame( 'Term title', get_term_meta( $term->term_id, '_erankly_title', true ) );
+	}
+
+	public function test_save_handlers_store_robots_directives_without_legacy_booleans(): void {
+		$admin_id = self::factory()->user->create( array( 'role' => 'administrator' ) );
+		wp_set_current_user( $admin_id );
+		$post = self::factory()->post->create_and_get();
+		$term = self::factory()->term->create_and_get( array( 'taxonomy' => 'category' ) );
+
+		$_POST = array(
+			'erankly_meta_box_nonce'    => wp_create_nonce( 'erankly_save_meta_box' ),
+			'erankly_term_fields_nonce' => wp_create_nonce( 'erankly_save_term_fields' ),
+			'erankly_index_directive'   => 'noindex',
+			'erankly_follow_directive'  => 'inherit',
+			'erankly_disable_sitemap'   => '1',
+		);
+
+		erankly_save_meta_box( $post->ID, $post );
+		erankly_save_term_fields( $term->term_id );
+
+		foreach ( array( 'post' => $post->ID, 'term' => $term->term_id ) as $object_type => $object_id ) {
+			$this->assertSame( 'noindex', get_metadata( $object_type, $object_id, '_erankly_index_directive', true ) );
+			$this->assertFalse( metadata_exists( $object_type, $object_id, '_erankly_follow_directive' ) );
+			$this->assertSame( '1', get_metadata( $object_type, $object_id, '_erankly_disable_sitemap', true ) );
+			$this->assertFalse( metadata_exists( $object_type, $object_id, '_erankly_noindex' ) );
+		}
 	}
 }

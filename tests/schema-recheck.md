@@ -15,7 +15,7 @@ Pagina bozza ID 55, poi eliminata.
 
 | Passo | Esito |
 |---|---|
-| Pannello Schema visibile | Sì (`simplified_mode=0`) |
+| Pannello Schema visibile | Sì |
 | Learn more | URL Google reale, non `#` |
 | Add JSON-LD da Automatic | Passa a **Automatic + custom** e crea textarea |
 | `{"foo":"bar"}` | `aria-invalid=true`, `aria-describedby`, `role=alert` |

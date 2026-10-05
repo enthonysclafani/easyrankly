@@ -129,7 +129,7 @@ final class ERankly_Settings_And_Robots_Regressions_Test extends WP_UnitTestCase
 		$settings['body_open_code_blocks']   = array( array( 'enabled' => 1, 'code' => '<span>open</span>' ) );
 		$settings['body_close_code_blocks']  = array( array( 'enabled' => 1, 'code' => '<span>close</span>' ) );
 
-		erankly_update_plugin_settings( $settings, '', true );
+		erankly_update_plugin_settings( $settings, true );
 		erankly_clear_settings_cache();
 
 		$merged = erankly_merge_settings_submission( array(), 'custom-code' );
@@ -147,7 +147,7 @@ final class ERankly_Settings_And_Robots_Regressions_Test extends WP_UnitTestCase
 		$settings['body_open_code_blocks']   = array( array( 'enabled' => 1, 'code' => '<span>open</span>' ) );
 		$settings['body_close_code_blocks']  = array( array( 'enabled' => 1, 'code' => '<span>close</span>' ) );
 
-		erankly_update_plugin_settings( $settings, '', true );
+		erankly_update_plugin_settings( $settings, true );
 		erankly_clear_settings_cache();
 
 		$merged = erankly_merge_settings_submission( array(), 'features' );
@@ -159,10 +159,9 @@ final class ERankly_Settings_And_Robots_Regressions_Test extends WP_UnitTestCase
 
 	public function test_hidden_disable_sitemap_field_is_rendered_when_checkbox_is_hidden(): void {
 		// Regression: entities without a Disable sitemap checkbox need a hidden field so a save does not clear the stored flag.
-		$settings                    = erankly_get_settings();
-		$settings['simplified_mode'] = 0;
+		$settings = erankly_get_settings();
 
-		erankly_update_plugin_settings( $settings, '', true );
+		erankly_update_plugin_settings( $settings, true );
 		erankly_clear_settings_cache();
 
 		ob_start();

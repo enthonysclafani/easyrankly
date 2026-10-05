@@ -182,7 +182,7 @@
 				return resolved[ normalizedKey ];
 			}
 
-			return __( 'Preview not available', 'easyrankly' );
+			return __( 'Preview not defined', 'easyrankly' );
 		} );
 	}
 
@@ -192,7 +192,6 @@
 		limit,
 		multiline = false,
 		onChange,
-		placeholder = '',
 		resolveDisplay = null,
 		value = '',
 		variables = {},
@@ -249,6 +248,7 @@
 			)
 			: null;
 		const helpId = lengthHelp ? controlIdRef.current + '-help' : undefined;
+		const isOverLimit = Boolean( limit ) && value.length > limit;
 
 		// Flatten the grouped variables into a single suggestion list. Rather than
 		// a separate "<>" button + popover, the field itself surfaces matching
@@ -386,7 +386,6 @@
 					closeSuggest();
 				}
 			},
-			placeholder,
 			value: displayValue,
 		};
 
@@ -476,7 +475,7 @@
 				lengthHelp && el(
 					'p',
 					{
-						className: 'components-base-control__help',
+						className: 'components-base-control__help erankly-character-counter' + ( isOverLimit ? ' is-over-limit' : '' ),
 						id: helpId,
 					},
 					lengthHelp
@@ -490,7 +489,7 @@
 		);
 	}
 
-	function SocialImageControl( { label = '', onChange, onMediaChange, placeholder = '', value = '', variables = {} } ) {
+	function SocialImageControl( { label = '', onChange, onMediaChange, value = '', variables = {} } ) {
 		// The attachment id is the frontend's fallback whenever the URL is empty, so it has to travel with the
 		// URL. Writing only the URL meant Remove (and a hand-cleared field) left an imported id behind and the
 		// image kept being emitted; a URL the picker did not produce no longer describes that id either.
@@ -526,7 +525,6 @@
 			],
 			label: label || __( 'Social image URL', 'easyrankly' ),
 			onChange: ( url ) => setMedia( url, 0 ),
-			placeholder,
 			value,
 			variables,
 		} );
@@ -566,16 +564,13 @@
 	// Builds the "Search appearance" controls. `data` is a { get, set } adapter
 	// keyed by short field names; `features` toggles the optional controls.
 	function searchAppearanceFields( { config, data, features = {} } ) {
-		const resolveDisplay = config.resolvePlaceholders
-			? ( text ) => resolveDisplayVariables( text, { postTitle: config.postTitle, siteName: config.siteName, siteDescription: config.siteDescription, examples: config.variableExamples } )
-			: null;
+		const resolveDisplay = ( text ) => resolveDisplayVariables( text, { postTitle: config.postTitle, siteName: config.siteName, siteDescription: config.siteDescription, examples: config.variableExamples } );
 		const fields = [
 			el( VariableControl, {
 				key: 'title',
 				label: __( 'Meta title', 'easyrankly' ),
 				limit: 65,
 				onChange: ( value ) => data.set( 'title', value ),
-				placeholder: config.titlePlaceholder,
 				resolveDisplay,
 				value: data.get( 'title' ),
 				variables: config.variables,
@@ -586,7 +581,6 @@
 				limit: 160,
 				multiline: true,
 				onChange: ( value ) => data.set( 'description', value ),
-				placeholder: config.descriptionPlaceholder,
 				resolveDisplay,
 				value: data.get( 'description' ),
 				variables: config.variables,
@@ -598,7 +592,6 @@
 				key: 'canonical',
 				label: __( 'Canonical URL', 'easyrankly' ),
 				onChange: ( value ) => data.set( 'canonical', value ),
-				placeholder: config.canonicalPlaceholder || '',
 				resolveDisplay,
 				value: data.get( 'canonical' ),
 				variables: config.variables,
@@ -610,7 +603,6 @@
 				key: 'breadcrumb',
 				label: __( 'Breadcrumb name', 'easyrankly' ),
 				onChange: ( value ) => data.set( 'breadcrumb_name', value ),
-				placeholder: config.postTitle || '',
 				value: data.get( 'breadcrumb_name' ),
 			} ) );
 		}
@@ -620,16 +612,13 @@
 
 	// Builds the "Social sharing" controls.
 	function socialFields( { config, data, features = {} } ) {
-		const resolveDisplay = config.resolvePlaceholders
-			? ( text ) => resolveDisplayVariables( text, { postTitle: config.postTitle, siteName: config.siteName, siteDescription: config.siteDescription, examples: config.variableExamples } )
-			: null;
+		const resolveDisplay = ( text ) => resolveDisplayVariables( text, { postTitle: config.postTitle, siteName: config.siteName, siteDescription: config.siteDescription, examples: config.variableExamples } );
 		const fields = [
 			el( VariableControl, {
 				key: 'og_title',
 				label: __( 'Open Graph title', 'easyrankly' ),
 				limit: 60,
 				onChange: ( value ) => data.set( 'og_title', value ),
-				placeholder: config.ogTitlePlaceholder,
 				resolveDisplay,
 				value: data.get( 'og_title' ),
 				variables: config.variables,
@@ -640,7 +629,6 @@
 				limit: 200,
 				multiline: true,
 				onChange: ( value ) => data.set( 'og_description', value ),
-				placeholder: config.ogDescriptionPlaceholder,
 				resolveDisplay,
 				value: data.get( 'og_description' ),
 				variables: config.variables,
@@ -650,7 +638,6 @@
 				label: __( 'X (Twitter) title', 'easyrankly' ),
 				limit: 70,
 				onChange: ( value ) => data.set( 'twitter_title', value ),
-				placeholder: config.twitterTitlePlaceholder,
 				resolveDisplay,
 				value: data.get( 'twitter_title' ),
 				variables: config.variables,
@@ -661,7 +648,6 @@
 				limit: 200,
 				multiline: true,
 				onChange: ( value ) => data.set( 'twitter_description', value ),
-				placeholder: config.twitterDescriptionPlaceholder,
 				resolveDisplay,
 				value: data.get( 'twitter_description' ),
 				variables: config.variables,
@@ -691,7 +677,6 @@
 					data.set( 'og_image_url', url );
 					data.set( 'og_image_id', id );
 				},
-				placeholder: config.socialImagePlaceholder,
 				value: data.get( 'og_image_url' ),
 				variables: config.variables,
 			} ) );
@@ -709,7 +694,6 @@
 					data.set( 'twitter_image_url', url );
 					data.set( 'twitter_image_id', id );
 				},
-				placeholder: config.socialImagePlaceholder,
 				value: data.get( 'twitter_image_url' ),
 				variables: config.variables,
 			} ) );
@@ -721,7 +705,6 @@
 					data.set( 'social_image_url', url );
 					data.set( 'og_image_id', id );
 				},
-				placeholder: config.socialImagePlaceholder,
 				value: data.get( 'social_image_url' ),
 				variables: config.variables,
 			} ) );
@@ -843,10 +826,7 @@
 
 		directives.forEach( ( directive ) => {
 			const pair = [ directive.allow, directive.deny ];
-			const legacyValue = directive.legacy && data.get( directive.legacy )
-				? directive.deny
-				: 'inherit';
-			const storedValue = normalizeRobotsDirectiveToken( data.get( directive.key ) || legacyValue );
+			const storedValue = normalizeRobotsDirectiveToken( data.get( directive.key ) || 'inherit' );
 
 			allowed.push( ...pair );
 			current[ directive.key ] = pair.includes( storedValue ) ? storedValue : 'inherit';
@@ -863,10 +843,6 @@
 			}
 
 			data.set( directive.key, nextValue );
-
-			if ( directive.legacy ) {
-				data.set( directive.legacy, directive.deny === nextValue );
-			}
 		}
 
 		function validateInput( input ) {
@@ -915,7 +891,6 @@
 						setFeedback( null );
 					}
 				},
-				placeholder: __( 'Add robots rule', 'easyrankly' ),
 				saveTransform: normalizeRobotsDirectiveToken,
 				suggestions: allowed,
 				value,
@@ -928,130 +903,115 @@
 	}
 
 	// Builds the "Search visibility" controls.
-	function visibilityFields( { config, data, features = {} } ) {
+	function visibilityFields( { data, features = {} } ) {
 		const toggle = ( key ) => ( value ) => data.set( key, value );
 		const fields = [];
 
-		if ( config.simplifiedMode ) {
-			fields.push( el( ToggleControl, {
-				checked: Boolean( ( features.triStateRobots ? 'noindex' === ( data.get( 'index_directive' ) || ( data.get( 'noindex' ) ? 'noindex' : 'inherit' ) ) : data.get( 'noindex' ) ) && data.get( 'disable_sitemap' ) ),
-				key: 'hide',
-				label: __( 'Hide from search results', 'easyrankly' ),
-				onChange: ( value ) => {
-					if ( features.triStateRobots ) {
-						data.set( 'index_directive', value ? 'noindex' : 'inherit' );
-					}
-					data.set( 'noindex', value );
-					data.set( 'disable_sitemap', value );
-				},
+		if ( features.triStateRobots ) {
+			const robotsDirectives = [
+				{ allow: 'index', deny: 'noindex', key: 'index_directive' },
+				{ allow: 'follow', deny: 'nofollow', key: 'follow_directive' },
+				{ allow: 'archive', deny: 'noarchive', key: 'archive_directive' },
+				{ allow: 'snippet', deny: 'nosnippet', key: 'snippet_directive' },
+				{ allow: 'imageindex', deny: 'noimageindex', key: 'image_directive' },
+			];
+
+			fields.push( el( RobotsDirectivesTokenControl, {
+				data,
+				directives: robotsDirectives,
+				key: 'robots_directives',
 			} ) );
+
+			fields.push(
+				el( TextControl, {
+					key: 'max_snippet',
+					label: __( 'Max snippet', 'easyrankly' ),
+					min: -1,
+					onChange: ( value ) => data.set( 'max_snippet', value ),
+					type: 'number',
+					value: data.get( 'max_snippet' ),
+				} ),
+				el( TextControl, {
+					key: 'max_video_preview',
+					label: __( 'Max video preview', 'easyrankly' ),
+					min: -1,
+					onChange: ( value ) => data.set( 'max_video_preview', value ),
+					type: 'number',
+					value: data.get( 'max_video_preview' ),
+				} ),
+				el( SelectControl, {
+					__next40pxDefaultSize: true,
+					key: 'max_image_preview',
+					label: __( 'Max image preview', 'easyrankly' ),
+					onChange: ( value ) => data.set( 'max_image_preview', value ),
+					options: [
+						{ label: __( 'Inherit', 'easyrankly' ), value: 'inherit' },
+						{ label: 'none', value: 'none' },
+						{ label: 'standard', value: 'standard' },
+						{ label: 'large', value: 'large' },
+					],
+					value: data.get( 'max_image_preview' ) || 'inherit',
+				} ),
+				el( ToggleControl, {
+					checked: Boolean( data.get( 'indexifembedded' ) ),
+					key: 'indexifembedded',
+					label: __( 'Index if embedded when noindex applies', 'easyrankly' ),
+					onChange: toggle( 'indexifembedded' ),
+				} )
+			);
+
+			const inconsistencyMessages = {
+				index_indexifembedded: __( 'indexifembedded requires noindex; ignored while index is selected.', 'easyrankly' ),
+				noimageindex_max_image_preview: __( 'noimageindex disables image previews.', 'easyrankly' ),
+				nosnippet_max_snippet: __( 'nosnippet disables text snippets, so Max snippet has no effect.', 'easyrankly' ),
+				snippet_zero: __( 'Max snippet 0 disables text snippets.', 'easyrankly' ),
+			};
+			const inconsistencies = getRobotsDirectiveInconsistencies( {
+				image: data.get( 'image_directive' ),
+				index: data.get( 'index_directive' ),
+				indexIfEmbedded: data.get( 'indexifembedded' ),
+				maxImagePreview: data.get( 'max_image_preview' ),
+				maxSnippet: data.get( 'max_snippet' ),
+				snippet: data.get( 'snippet_directive' ),
+			} );
+
+			inconsistencies.forEach( ( issue ) => {
+				fields.push( el( Notice, {
+					isDismissible: false,
+					key: 'robots-inconsistency-' + issue,
+					status: 'warning',
+				}, inconsistencyMessages[ issue ] ) );
+			} );
 		} else {
-			if ( features.triStateRobots ) {
-				const robotsDirectives = [
-					{ allow: 'index', deny: 'noindex', key: 'index_directive', legacy: 'noindex' },
-					{ allow: 'follow', deny: 'nofollow', key: 'follow_directive', legacy: 'nofollow' },
-					{ allow: 'archive', deny: 'noarchive', key: 'archive_directive', legacy: 'noarchive' },
-					{ allow: 'snippet', deny: 'nosnippet', key: 'snippet_directive' },
-					{ allow: 'imageindex', deny: 'noimageindex', key: 'image_directive' },
-				];
+			fields.push(
+				el( ToggleControl, {
+					checked: Boolean( data.get( 'noindex' ) ),
+					key: 'noindex',
+					label: __( 'Noindex', 'easyrankly' ),
+					onChange: toggle( 'noindex' ),
+				} ),
+				el( ToggleControl, {
+					checked: Boolean( data.get( 'nofollow' ) ),
+					key: 'nofollow',
+					label: __( 'Nofollow', 'easyrankly' ),
+					onChange: toggle( 'nofollow' ),
+				} ),
+				el( ToggleControl, {
+					checked: Boolean( data.get( 'noarchive' ) ),
+					key: 'noarchive',
+					label: __( 'Noarchive', 'easyrankly' ),
+					onChange: toggle( 'noarchive' ),
+				} )
+			);
+		}
 
-				fields.push( el( RobotsDirectivesTokenControl, {
-					data,
-					directives: robotsDirectives,
-					key: 'robots_directives',
-				} ) );
-
-				fields.push(
-					el( TextControl, {
-						key: 'max_snippet',
-						label: __( 'Max snippet', 'easyrankly' ),
-						min: -1,
-						onChange: ( value ) => data.set( 'max_snippet', value ),
-						type: 'number',
-						value: data.get( 'max_snippet' ),
-					} ),
-					el( TextControl, {
-						key: 'max_video_preview',
-						label: __( 'Max video preview', 'easyrankly' ),
-						min: -1,
-						onChange: ( value ) => data.set( 'max_video_preview', value ),
-						type: 'number',
-						value: data.get( 'max_video_preview' ),
-					} ),
-					el( SelectControl, {
-						__next40pxDefaultSize: true,
-						key: 'max_image_preview',
-						label: __( 'Max image preview', 'easyrankly' ),
-						onChange: ( value ) => data.set( 'max_image_preview', value ),
-						options: [
-							{ label: __( 'Inherit', 'easyrankly' ), value: 'inherit' },
-							{ label: 'none', value: 'none' },
-							{ label: 'standard', value: 'standard' },
-							{ label: 'large', value: 'large' },
-						],
-						value: data.get( 'max_image_preview' ) || 'inherit',
-					} ),
-					el( ToggleControl, {
-						checked: Boolean( data.get( 'indexifembedded' ) ),
-						key: 'indexifembedded',
-						label: __( 'Index if embedded when noindex applies', 'easyrankly' ),
-						onChange: toggle( 'indexifembedded' ),
-					} )
-				);
-
-				const inconsistencyMessages = {
-					index_indexifembedded: __( 'indexifembedded requires noindex; ignored while index is selected.', 'easyrankly' ),
-					noimageindex_max_image_preview: __( 'noimageindex disables image previews.', 'easyrankly' ),
-					nosnippet_max_snippet: __( 'nosnippet disables text snippets, so Max snippet has no effect.', 'easyrankly' ),
-					snippet_zero: __( 'Max snippet 0 disables text snippets.', 'easyrankly' ),
-				};
-				const inconsistencies = getRobotsDirectiveInconsistencies( {
-					image: data.get( 'image_directive' ),
-					index: data.get( 'index_directive' ),
-					indexIfEmbedded: data.get( 'indexifembedded' ),
-					maxImagePreview: data.get( 'max_image_preview' ),
-					maxSnippet: data.get( 'max_snippet' ),
-					snippet: data.get( 'snippet_directive' ),
-				} );
-
-				inconsistencies.forEach( ( issue ) => {
-					fields.push( el( Notice, {
-						isDismissible: false,
-						key: 'robots-inconsistency-' + issue,
-						status: 'warning',
-					}, inconsistencyMessages[ issue ] ) );
-				} );
-			} else {
-				fields.push(
-					el( ToggleControl, {
-						checked: Boolean( data.get( 'noindex' ) ),
-						key: 'noindex',
-						label: __( 'Noindex', 'easyrankly' ),
-						onChange: toggle( 'noindex' ),
-					} ),
-					el( ToggleControl, {
-						checked: Boolean( data.get( 'nofollow' ) ),
-						key: 'nofollow',
-						label: __( 'Nofollow', 'easyrankly' ),
-						onChange: toggle( 'nofollow' ),
-					} ),
-					el( ToggleControl, {
-						checked: Boolean( data.get( 'noarchive' ) ),
-						key: 'noarchive',
-						label: __( 'Noarchive', 'easyrankly' ),
-						onChange: toggle( 'noarchive' ),
-					} )
-				);
-			}
-
-			if ( false !== features.disableSitemap ) {
-				fields.push( el( ToggleControl, {
-					checked: Boolean( data.get( 'disable_sitemap' ) ),
-					key: 'disable_sitemap',
-					label: __( 'Disable sitemap', 'easyrankly' ),
-					onChange: toggle( 'disable_sitemap' ),
-				} ) );
-			}
+		if ( false !== features.disableSitemap ) {
+			fields.push( el( ToggleControl, {
+				checked: Boolean( data.get( 'disable_sitemap' ) ),
+				key: 'disable_sitemap',
+				label: __( 'Disable sitemap', 'easyrankly' ),
+				onChange: toggle( 'disable_sitemap' ),
+			} ) );
 		}
 
 		if ( features.excludeQueries ) {

@@ -94,9 +94,25 @@ final class ERankly_Migration_Adapter_RankMath extends ERankly_Migration_Adapter
 			return array();
 		}
 
-		$convert  = static fn( mixed $value ): string => erankly_import_convert_variables( is_scalar( $value ) ? (string) $value : '', 'rankmath' );
-		$settings = array();
 		$global_robots = array( $titles['robots_global'] ?? array(), $titles['advanced_robots_global'] ?? array() );
+
+		return array_merge(
+			$this->post_type_settings( $titles, $sitemap, $global_robots ),
+			$this->taxonomy_settings( $titles, $sitemap, $global_robots ),
+			$this->special_page_settings( $titles, $global_robots ),
+			$this->identity_settings( $titles ),
+			$this->social_settings( $titles ),
+			$this->feature_settings( $titles, $general, $sitemap )
+		);
+	}
+
+	/**
+	 * Maps the per post type titles, descriptions, robots and schema types.
+	 *
+	 * @return array<string,mixed>
+	 */
+	private function post_type_settings( array $titles, array $sitemap, array $global_robots ): array {
+		$settings = array();
 		$post_map = array();
 		foreach ( array_keys( erankly_get_public_post_types() ) as $post_type ) {
 			$prefix = 'pt_' . $post_type . '_';
@@ -119,8 +135,8 @@ final class ERankly_Migration_Adapter_RankMath extends ERankly_Migration_Adapter
 				? array( $titles[ $prefix . 'robots' ] ?? array(), $titles[ $prefix . 'advanced_robots' ] ?? array() )
 				: $global_robots;
 			$post_map[ $post_type ] = $this->global_meta_row(
-				$convert( $titles[ $prefix . 'title' ] ?? '' ),
-				$convert( $titles[ $prefix . 'description' ] ?? '' ),
+				$this->convert_template( $titles[ $prefix . 'title' ] ?? '' ),
+				$this->convert_template( $titles[ $prefix . 'description' ] ?? '' ),
 				$robots,
 				$in_sitemap,
 				'WebPage',
@@ -138,6 +154,16 @@ final class ERankly_Migration_Adapter_RankMath extends ERankly_Migration_Adapter
 			}
 		}
 
+		return $settings;
+	}
+
+	/**
+	 * Maps the per taxonomy titles, descriptions and robots.
+	 *
+	 * @return array<string,mixed>
+	 */
+	private function taxonomy_settings( array $titles, array $sitemap, array $global_robots ): array {
+		$settings = array();
 		$taxonomy_map = array();
 		foreach ( array_keys( erankly_get_public_taxonomies() ) as $taxonomy ) {
 			$prefix = 'tax_' . $taxonomy . '_';
@@ -154,8 +180,8 @@ final class ERankly_Migration_Adapter_RankMath extends ERankly_Migration_Adapter
 				? array( $titles[ $prefix . 'robots' ] ?? array(), $titles[ $prefix . 'advanced_robots' ] ?? array() )
 				: $global_robots;
 			$taxonomy_map[ $taxonomy ] = $this->global_meta_row(
-				$convert( $titles[ $prefix . 'title' ] ?? '' ),
-				$convert( $titles[ $prefix . 'description' ] ?? '' ),
+				$this->convert_template( $titles[ $prefix . 'title' ] ?? '' ),
+				$this->convert_template( $titles[ $prefix . 'description' ] ?? '' ),
 				$robots,
 				$in_sitemap
 			);
@@ -165,6 +191,16 @@ final class ERankly_Migration_Adapter_RankMath extends ERankly_Migration_Adapter
 			$settings['global_taxonomy_meta_linked'] = 0;
 		}
 
+		return $settings;
+	}
+
+	/**
+	 * Maps the homepage, archive, search and 404 defaults, including the homepage social overrides.
+	 *
+	 * @return array<string,mixed>
+	 */
+	private function special_page_settings( array $titles, array $global_robots ): array {
+		$settings = array();
 		$special = array();
 		$special_sources = array(
 			'homepage' => array( 'homepage_title', 'homepage_description', 'homepage_robots', 'homepage_custom_robots', 'homepage_advanced_robots' ),
@@ -213,10 +249,10 @@ final class ERankly_Migration_Adapter_RankMath extends ERankly_Migration_Adapter
 			$special['search']['disable_sitemap'] = $hidden ? 1 : 0;
 		}
 		if ( isset( $special['homepage'] ) ) {
-			$special['homepage']['og_title']            = $convert( $titles['homepage_facebook_title'] ?? '' );
-			$special['homepage']['og_description']      = $convert( $titles['homepage_facebook_description'] ?? '' );
-			$special['homepage']['twitter_title']       = $convert( $titles['homepage_twitter_title'] ?? '' );
-			$special['homepage']['twitter_description'] = $convert( $titles['homepage_twitter_description'] ?? '' );
+			$special['homepage']['og_title']            = $this->convert_template( $titles['homepage_facebook_title'] ?? '' );
+			$special['homepage']['og_description']      = $this->convert_template( $titles['homepage_facebook_description'] ?? '' );
+			$special['homepage']['twitter_title']       = $this->convert_template( $titles['homepage_twitter_title'] ?? '' );
+			$special['homepage']['twitter_description'] = $this->convert_template( $titles['homepage_twitter_description'] ?? '' );
 			$special['homepage']['social_image_url']    = esc_url_raw( (string) ( $titles['homepage_facebook_image'] ?? '' ) );
 			$special['homepage']['og_image_id']         = absint( $titles['homepage_facebook_image_id'] ?? 0 );
 		}
@@ -224,6 +260,16 @@ final class ERankly_Migration_Adapter_RankMath extends ERankly_Migration_Adapter
 			$settings['global_special_meta'] = $special;
 		}
 
+		return $settings;
+	}
+
+	/**
+	 * Maps the Organization or Person identity with its logo.
+	 *
+	 * @return array<string,mixed>
+	 */
+	private function identity_settings( array $titles ): array {
+		$settings = array();
 		$identity = strtolower( (string) ( $titles['knowledgegraph_type'] ?? '' ) );
 		if ( in_array( $identity, array( 'person', 'company', 'organization' ), true ) ) {
 			$settings['schema_identity'] = 'person' === $identity ? 'person' : 'organization';
@@ -244,6 +290,16 @@ final class ERankly_Migration_Adapter_RankMath extends ERankly_Migration_Adapter
 			$settings['organization_logo_url'] = esc_url_raw( (string) $titles['knowledgegraph_logo'] );
 		}
 
+		return $settings;
+	}
+
+	/**
+	 * Maps social profiles and the X handle.
+	 *
+	 * @return array<string,mixed>
+	 */
+	private function social_settings( array $titles ): array {
+		$settings = array();
 		$profiles = $this->social_profile_list(
 			array(
 				$titles['social_url_facebook'] ?? '',
@@ -263,6 +319,16 @@ final class ERankly_Migration_Adapter_RankMath extends ERankly_Migration_Adapter
 			$settings['twitter_site'] = $twitter_site;
 		}
 
+		return $settings;
+	}
+
+	/**
+	 * Maps breadcrumb, attachment, pagination, sitemap and redirect options.
+	 *
+	 * @return array<string,mixed>
+	 */
+	private function feature_settings( array $titles, array $general, array $sitemap ): array {
+		$settings = array();
 		if ( array_key_exists( 'breadcrumbs', $general ) ) {
 			$settings['enable_breadcrumbs'] = $this->enabled( $general['breadcrumbs'] ) ? 1 : 0;
 		}
@@ -419,29 +485,7 @@ final class ERankly_Migration_Adapter_RankMath extends ERankly_Migration_Adapter
 						continue;
 					}
 
-					$comparison = (string) ( $source['comparison'] ?? 'exact' );
-					$match_type = array(
-						'exact'    => 'exact',
-						'contains' => 'contains',
-						'start'    => 'starts_with',
-						'end'      => 'ends_with',
-						'regex'    => 'regex',
-					)[ $comparison ] ?? 'exact';
-					$pattern    = (string) $source['pattern'];
-					$query      = 'regex' === $match_type ? '' : (string) wp_parse_url( $pattern, PHP_URL_QUERY );
-
-					yield array(
-						'source_path'      => $pattern,
-						'source_query'     => $query,
-						'target_url'       => (string) ( $row['url_to'] ?? '' ),
-						'status_code'      => absint( $row['header_code'] ?? 301 ),
-						'match_type'       => $match_type,
-						'case_sensitive'   => isset( $source['ignore'] ) && 'case' === $source['ignore'] ? 0 : 1,
-						'trailing_slash'   => 'ignore',
-						'query_mode'       => '' !== $query ? 'exact' : 'ignore',
-						'is_active'        => 'active' === (string) ( $row['status'] ?? 'active' ) ? 1 : 0,
-						'source_reference' => 'redirect:' . $cursor . ':source:' . absint( $index ),
-					);
+					yield $this->map_redirect_source( $row, $source, $index, $cursor );
 				}
 			}
 		} while ( empty( $page['done'] ) );
@@ -518,28 +562,7 @@ final class ERankly_Migration_Adapter_RankMath extends ERankly_Migration_Adapter
 					continue;
 				}
 
-				$comparison = (string) ( $source['comparison'] ?? 'exact' );
-				$match_type = array(
-					'exact'    => 'exact',
-					'contains' => 'contains',
-					'start'    => 'starts_with',
-					'end'      => 'ends_with',
-					'regex'    => 'regex',
-				)[ $comparison ] ?? 'exact';
-				$pattern    = (string) $source['pattern'];
-				$query      = 'regex' === $match_type ? '' : (string) wp_parse_url( $pattern, PHP_URL_QUERY );
-				$records[]  = array(
-					'source_path'      => $pattern,
-					'source_query'     => $query,
-					'target_url'       => (string) ( $row['url_to'] ?? '' ),
-					'status_code'      => absint( $row['header_code'] ?? 301 ),
-					'match_type'       => $match_type,
-					'case_sensitive'   => isset( $source['ignore'] ) && 'case' === $source['ignore'] ? 0 : 1,
-					'trailing_slash'   => 'ignore',
-					'query_mode'       => '' !== $query ? 'exact' : 'ignore',
-					'is_active'        => 'active' === (string) ( $row['status'] ?? 'active' ) ? 1 : 0,
-					'source_reference' => 'redirect:' . $row_id . ':source:' . absint( $index ),
-				);
+				$records[] = $this->map_redirect_source( $row, $source, $index, $row_id );
 			}
 
 			$after_id     = max( $after_id, $row_id );
@@ -557,6 +580,33 @@ final class ERankly_Migration_Adapter_RankMath extends ERankly_Migration_Adapter
 				'source_offset' => 0,
 			),
 			'done'    => $done,
+		);
+	}
+
+	/** @return array<string,mixed> */
+	private function map_redirect_source( array $row, array $source, int|string $index, int $row_id ): array {
+		$comparison = (string) ( $source['comparison'] ?? 'exact' );
+		$match_type = array(
+			'exact'    => 'exact',
+			'contains' => 'contains',
+			'start'    => 'starts_with',
+			'end'      => 'ends_with',
+			'regex'    => 'regex',
+		)[ $comparison ] ?? 'exact';
+		$pattern    = (string) $source['pattern'];
+		$query      = 'regex' === $match_type ? '' : (string) wp_parse_url( $pattern, PHP_URL_QUERY );
+
+		return array(
+			'source_path'      => $pattern,
+			'source_query'     => $query,
+			'target_url'       => (string) ( $row['url_to'] ?? '' ),
+			'status_code'      => absint( $row['header_code'] ?? 301 ),
+			'match_type'       => $match_type,
+			'case_sensitive'   => isset( $source['ignore'] ) && 'case' === $source['ignore'] ? 0 : 1,
+			'trailing_slash'   => 'ignore',
+			'query_mode'       => '' !== $query ? 'exact' : 'ignore',
+			'is_active'        => 'active' === (string) ( $row['status'] ?? 'active' ) ? 1 : 0,
+			'source_reference' => 'redirect:' . $row_id . ':source:' . absint( $index ),
 		);
 	}
 

@@ -18,7 +18,7 @@ function erankly_redirects_cache_key( string $source_hash ): string {
 function erankly_rotate_redirects_cache_generation(): void {
 	$generation = wp_generate_uuid4();
 
-	update_option( ERANKLY_REDIRECTS_CACHE_GENERATION_OPTION, $generation, false );
+	update_option( ERANKLY_REDIRECTS_CACHE_GENERATION_OPTION, $generation, true );
 
 	if ( (string) get_option( ERANKLY_REDIRECTS_CACHE_GENERATION_OPTION, '' ) !== $generation ) {
 		set_transient( 'erankly_redirect_cache_rotation_failed', 1, DAY_IN_SECONDS );

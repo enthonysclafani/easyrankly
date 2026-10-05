@@ -1,0 +1,124 @@
+:is(.wp-block-easyrankly-contact-form, .erankly-form-field-editor) {
+	font-family: inherit;
+	font-size: var(--erankly-form-font-size);
+	line-height: 1.5;
+	color: var(--erankly-form-color);
+}
+.wp-block-easyrankly-contact-form {
+	display: grid;
+	gap: var(--erankly-form-gap);
+	font-family: inherit;
+}
+:is(.wp-block-easyrankly-contact-form .erankly-form-field, .erankly-form-field-editor) {
+	display: grid;
+	gap: 8px;
+	min-inline-size: 0;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	font-family: inherit;
+}
+:is(.wp-block-easyrankly-contact-form, .erankly-form-field-editor) label,
+:is(.wp-block-easyrankly-contact-form, .erankly-form-field-editor) legend {
+	padding: 0;
+	font-size: .9375em;
+	font-weight: 600;
+	line-height: 1.5;
+}
+:is(.wp-block-easyrankly-contact-form, .erankly-form-field-editor) legend {
+	margin-block-end: 8px;
+}
+:is(.wp-block-easyrankly-contact-form, .erankly-form-field-editor) :is(input:not([type=checkbox]):not([type=radio]), textarea, select) {
+	box-sizing: border-box;
+	min-inline-size: 0;
+	width: 100%;
+	min-height: 0;
+	margin: 0;
+	padding: var(--erankly-form-padding-vertical) var(--erankly-form-padding-horizontal);
+	border: var(--erankly-form-border-width) solid var(--erankly-form-border);
+	border-radius: var(--erankly-form-radius);
+	font-family: inherit;
+	font-size: var(--erankly-form-font-size);
+	line-height: 1.5;
+	color: var(--erankly-form-color);
+	background: var(--erankly-form-background);
+}
+.wp-block-easyrankly-contact-form .erankly-form-picker select {
+	height: auto;
+	min-height: 40px;
+	padding-inline: max(32px, var(--erankly-form-padding-horizontal));
+	text-align: center;
+	text-align-last: center;
+}
+:is(.wp-block-easyrankly-contact-form, .erankly-form-field-editor) textarea {
+	resize: vertical;
+}
+:is(.wp-block-easyrankly-contact-form, .erankly-form-field-editor) input::placeholder,
+:is(.wp-block-easyrankly-contact-form, .erankly-form-field-editor) textarea::placeholder {
+	color: var(--erankly-form-muted, #64748b);
+	opacity: 1;
+}
+:is(.wp-block-easyrankly-contact-form, .erankly-form-field-editor) input[type=checkbox],
+:is(.wp-block-easyrankly-contact-form, .erankly-form-field-editor) input[type=radio] {
+	flex: 0 0 auto;
+	width: 1.125em;
+	height: 1.125em;
+	margin: .2em 0 0;
+	accent-color: var(--erankly-form-accent);
+}
+.wp-block-easyrankly-contact-form fieldset.erankly-form-field > label,
+fieldset.erankly-form-field-editor > label,
+.erankly-form-field--consent > label {
+	display: flex;
+	align-items: flex-start;
+	gap: .625em;
+	font-weight: 400;
+}
+:is(.wp-block-easyrankly-contact-form, .erankly-form-field-editor) small {
+	font-size: .8125em;
+	line-height: 1.5;
+}
+.wp-block-easyrankly-contact-form > .wp-element-button {
+	justify-self: start;
+	box-sizing: border-box;
+	padding: .75em 1.25em;
+	border: 1px solid var(--erankly-form-accent);
+	border-radius: var(--erankly-form-button-radius);
+	font-family: inherit;
+	font-size: var(--erankly-form-font-size);
+	font-weight: 600;
+	line-height: 1.5;
+	color: var(--erankly-form-button-color);
+	background: var(--erankly-form-accent);
+	cursor: pointer;
+}
+.wp-block-easyrankly-contact-form :is(input, textarea, select, button):focus-visible {
+	outline: 2px solid var(--erankly-form-accent);
+	outline-offset: 2px;
+}
+.wp-block-easyrankly-contact-form [aria-invalid=true] {
+	border-color: var(--erankly-form-error, #b32d2e);
+	outline: 2px solid var(--erankly-form-error, #b32d2e);
+	outline-offset: 2px;
+}
+.wp-block-easyrankly-contact-form .erankly-form-error {
+	color: var(--erankly-form-error, #b32d2e);
+}
+.wp-block-easyrankly-contact-form .erankly-form-status {
+	margin: 0;
+}
+.wp-block-easyrankly-contact-form .erankly-form-honeypot {
+	position: absolute;
+	inset-inline-start: -10000px;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+}
+.wp-block-easyrankly-contact-form .erankly-form-status:empty,
+:is(.wp-block-easyrankly-contact-form, .erankly-form-field-editor) small:empty {
+	display: none;
+}
+.wp-block-easyrankly-contact-form button:disabled {
+	opacity: .6;
+	cursor: wait;
+}

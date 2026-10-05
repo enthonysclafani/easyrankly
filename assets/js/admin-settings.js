@@ -76,50 +76,6 @@
     root.querySelectorAll(selector).forEach(ER[callbackName]);
   }
 
-  function findNamedCheckbox(root, key) {
-    var suffix = "[" + key + "]";
-    var inputs = root.querySelectorAll("input");
-    var i;
-    var name;
-
-    for (i = 0; i < inputs.length; i++) {
-      name = inputs[i].name || "";
-      if (
-        inputs[i].type === "checkbox" &&
-        name.length >= suffix.length &&
-        name.slice(-suffix.length) === suffix
-      ) {
-        return inputs[i];
-      }
-    }
-
-    return null;
-  }
-
-  // Simplified mode only hides Advanced with the hidden attribute: toggle it
-  // on change so the tab appears or disappears without waiting for the
-  // reloadOnSave HTML refresh (which incomplete-config saves used to skip).
-  function bindSimplifiedModeNav(root) {
-    var tab;
-    var input;
-
-    if (!root || typeof root.querySelector !== "function") {
-      return;
-    }
-
-    tab = root.querySelector("#erankly-settings-tab-advanced");
-    input = findNamedCheckbox(root, "simplified_mode");
-
-    if (!tab || !input || input.eranklySimplifiedModeBound) {
-      return;
-    }
-
-    input.eranklySimplifiedModeBound = true;
-    input.addEventListener("change", function () {
-      tab.hidden = !!input.checked;
-    });
-  }
-
   function bindSettingsReplacement(root) {
     ["bindTabs", "bindSettingsTabs"].forEach(
       function (callbackName) {
@@ -144,14 +100,8 @@
     bindEach(root, "[data-erankly-user-search-wrap]", "bindUserSearch");
     bindEach(root, "[data-erankly-local-business]", "bindLocalBusiness");
     bindEach(root, "[data-erankly-file-dropzone]", "bindFileDropzone");
+    bindEach(root, '[data-erankly-settings-panel="settings-sitemap"]', "bindNewsSitemapSettings");
 
-    // The Reset modal lives inside the replaced root: without re-binding it the
-    // button opened a detached node and nothing happened until a full reload.
-    if (typeof ER.bindResetConfirmModal === "function") {
-      ER.bindResetConfirmModal();
-    }
-
-    bindSimplifiedModeNav(root);
     bindAllSettingsAutosave(root);
   }
 
@@ -498,22 +448,6 @@
             );
           }
 
-          // window.eranklyVariablePreview is only ever localized once, at
-          // the page's initial render. Toggling this field via autosave
-          // never re-runs wp_localize_script, so bindVariablePreview() would
-          // otherwise keep using the stale value (even across the
-          // reloadOnSave DOM refresh below) until a real browser reload.
-          if (
-            Object.prototype.hasOwnProperty.call(
-              payload,
-              "resolve_placeholders",
-            ) &&
-            window.eranklyVariablePreview
-          ) {
-            window.eranklyVariablePreview.resolvePlaceholders =
-              "1" === payload.resolve_placeholders;
-          }
-
           // Some panels' fields affect PHP-rendered tabs and controls
           // elsewhere on the page. Refresh only the EasyRankly settings
           // wrapper after the save lands, instead of reloading the whole
@@ -666,7 +600,25 @@
       });
   }
 
-  ER.bindSimplifiedModeNav = bindSimplifiedModeNav;
+  function bindNewsSitemapSettings(panel) {
+    var toggle = panel.querySelector('input[type="checkbox"][name$="[enable_news_sitemap]"]');
+    var fields = panel.querySelector("[data-erankly-news-sitemap-fields]");
+
+    if (!toggle || !fields || panel.eranklyNewsSitemapBound) {
+      return;
+    }
+
+    panel.eranklyNewsSitemapBound = true;
+
+    function updateVisibility() {
+      fields.hidden = !toggle.checked;
+    }
+
+    toggle.addEventListener("change", updateVisibility);
+    updateVisibility();
+  }
+
+  ER.bindNewsSitemapSettings = bindNewsSitemapSettings;
   ER.bindSettingsReplacement = bindSettingsReplacement;
   ER.refreshSettingsRoot = refreshSettingsRoot;
   ER.bindSettingsAutosave = bindSettingsAutosave;

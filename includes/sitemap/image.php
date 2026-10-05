@@ -191,10 +191,6 @@ function erankly_get_image_sitemap_xml( int $page = 1 ): string {
 			$image_nodes .= "\t\t</image:image>\n";
 		}
 
-		if ( '' === $image_nodes ) {
-			continue;
-		}
-
 		$has_entries = true;
 		$xml        .= "\t<url>\n";
 		$xml        .= "\t\t<loc>" . esc_xml( esc_url_raw( $loc ) ) . "</loc>\n";

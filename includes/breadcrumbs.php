@@ -5,7 +5,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-function erankly_breadcrumbs( array $args = array() ): string {
+function erankly_render_breadcrumbs( array $args = array() ): string {
 	if ( ! (bool) erankly_get_setting( 'enable_breadcrumbs', 1 ) ) {
 		return '';
 	}
@@ -73,7 +73,8 @@ function erankly_breadcrumbs( array $args = array() ): string {
 	$mark_rendered = null === $args['mark_rendered'] ? $echo : (bool) $args['mark_rendered'];
 
 	if ( '' !== $html && $mark_rendered ) {
-		erankly_breadcrumb_trail_was_rendered( true );
+		$state             = &erankly_breadcrumb_state();
+		$state['rendered'] = true;
 	}
 
 	if ( $echo ) {
@@ -83,27 +84,8 @@ function erankly_breadcrumbs( array $args = array() ): string {
 	return $html;
 }
 
-if ( ! function_exists( 'easyrankly_breadcrumbs' ) ) {
-	// Legacy public function kept for backward compatibility.
-	// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
-	/** Legacy alias for the public breadcrumbs template function. */
-	function easyrankly_breadcrumbs( array $args = array() ): string {
-		return erankly_breadcrumbs( $args );
-	}
-	// phpcs:enable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
-}
-
 function erankly_get_post_breadcrumb_name( int $post_id ): string {
 	$name = erankly_get_post_meta_string( $post_id, 'breadcrumb_name' );
-
-	if ( '' === $name && (bool) erankly_get_setting( 'simplified_mode', 1 ) ) {
-		$name = erankly_get_post_meta_string( $post_id, 'title' );
-
-		if ( '' !== $name ) {
-			$name = erankly_replace_variables( $name, $post_id, array( 'seo_title' ) );
-		}
-	}
-
 	$name = '' !== $name ? erankly_normalize_seo_text( $name ) : get_the_title( $post_id );
 
 	return (string) apply_filters( 'erankly_post_breadcrumb_name', $name, $post_id );
@@ -111,18 +93,10 @@ function erankly_get_post_breadcrumb_name( int $post_id ): string {
 
 /** @return array<int,array<string,string>> */
 function erankly_get_breadcrumb_items(): array {
-	static $resolved = null;
-	static $token    = -1;
+	$state = &erankly_breadcrumb_state();
 
-	$current_token = erankly_breadcrumb_items_resolution_token();
-
-	if ( $token !== $current_token ) {
-		$resolved = null;
-		$token    = $current_token;
-	}
-
-	if ( null !== $resolved ) {
-		return $resolved;
+	if ( is_array( $state['items'] ) ) {
+		return $state['items'];
 	}
 
 	$items = array(
@@ -246,9 +220,10 @@ function erankly_get_breadcrumb_items(): array {
 		);
 	}
 
-	$resolved = apply_filters( 'erankly_breadcrumb_items', $items );
+	$resolved       = apply_filters( 'erankly_breadcrumb_items', $items );
+	$state['items'] = is_array( $resolved ) ? $resolved : array();
 
-	return is_array( $resolved ) ? $resolved : array();
+	return $state['items'];
 }
 
 /** @return array<string,mixed> */
@@ -454,10 +429,7 @@ function erankly_breadcrumb_settings_help_text( ?bool $core_available = null ): 
 }
 
 function erankly_content_has_visible_breadcrumbs( string $content ): bool {
-	if (
-		has_shortcode( $content, 'erankly_breadcrumbs' )
-		|| has_shortcode( $content, 'easyrankly_breadcrumbs' )
-	) {
+	if ( has_shortcode( $content, 'erankly_breadcrumbs' ) ) {
 		return true;
 	}
 
@@ -483,141 +455,52 @@ function erankly_post_content_has_core_breadcrumbs_block(): bool {
 }
 
 /**
- * Request-level flag that a visible trail has already been produced.
+ * Per-request breadcrumb state, shared by the visible trail, the native block capture and BreadcrumbList JSON-LD.
  *
- * @param bool|null $set When non-null, replaces the flag. Pass false to reset.
+ * - rendered:     a visible trail (EasyRankly or native) has been printed.
+ * - core_items:   native items confirmed from a visible `core/breadcrumbs` block, or null.
+ * - pending:      native items collected by `block_core_breadcrumbs_items`, awaiting the block's final HTML.
+ * - previewing:   a classic-theme preview render of the native block is running.
+ * - preview_done: the preview already ran for this request.
+ * - items:        memoized erankly_get_breadcrumb_items() result.
+ *
+ * @return array<string,mixed>
  */
-function erankly_breadcrumb_trail_was_rendered( ?bool $set = null ): bool {
-	static $rendered = false;
+function &erankly_breadcrumb_state(): array {
+	static $state = null;
 
-	if ( null !== $set ) {
-		$rendered = $set;
+	if ( null === $state ) {
+		$state = erankly_breadcrumb_initial_state();
 	}
 
-	return $rendered;
+	return $state;
+}
+
+/** @return array<string,mixed> */
+function erankly_breadcrumb_initial_state(): array {
+	return array(
+		'rendered'     => false,
+		'core_items'   => null,
+		'pending'      => null,
+		'previewing'   => false,
+		'preview_done' => false,
+		'items'        => null,
+	);
+}
+
+/** Whether a visible trail has already been produced in this request. */
+function erankly_breadcrumb_trail_was_rendered(): bool {
+	return (bool) erankly_breadcrumb_state()['rendered'];
 }
 
 /**
- * Native breadcrumb items confirmed from a visible core block for this request.
+ * Native breadcrumb items confirmed from a visible core block for this request. Candidate items collected during
+ * `block_core_breadcrumbs_items` are not exposed until the block's final HTML is known.
  *
- * Confirmation happens after the block's final HTML is known. Candidate items
- * collected during `block_core_breadcrumbs_items` are not exposed here.
- *
- * @param array<int,array<string,string>>|null $items Items to store, or null to only read.
- * @param bool                                 $reset Clear the store.
  * @return array<int,array<string,string>>|null Null when nothing was confirmed.
  */
-function erankly_captured_core_breadcrumb_items( ?array $items = null, bool $reset = false ): ?array {
-	static $captured = false;
-	static $stored   = array();
-
-	if ( $reset ) {
-		$captured = false;
-		$stored   = array();
-
-		return null;
-	}
-
-	if ( null !== $items ) {
-		$captured = true;
-		$stored   = $items;
-	}
-
-	return $captured ? $stored : null;
-}
-
-/**
- * @param array<int,array<string,string>>|null $items Candidate items, or null to only read.
- * @param bool                                 $reset Clear the candidate.
- * @param bool                                 $take  Return and clear the candidate.
- * @return array<int,array<string,string>>|null
- */
-function erankly_pending_core_breadcrumb_items( ?array $items = null, bool $reset = false, bool $take = false ): ?array {
-	static $pending = null;
-
-	if ( $reset ) {
-		$pending = null;
-
-		return null;
-	}
-
-	if ( $take ) {
-		$taken   = $pending;
-		$pending = null;
-
-		return is_array( $taken ) ? $taken : null;
-	}
-
-	if ( null !== $items ) {
-		$pending = $items;
-	}
-
-	return $pending;
-}
-
-/**
- * @param string|null $set `preview`, `render`, or empty to only read. Pass '' with $reset to clear.
- */
-function erankly_core_breadcrumb_capture_source( ?string $set = null, bool $reset = false ): string {
-	static $source = '';
-
-	if ( $reset ) {
-		$source = '';
-
-		return '';
-	}
-
-	if ( null !== $set ) {
-		$source = $set;
-	}
-
-	return $source;
-}
-
-function erankly_core_breadcrumb_preview_completed( ?bool $set = null, bool $reset = false ): bool {
-	static $completed = false;
-
-	if ( $reset ) {
-		$completed = false;
-
-		return false;
-	}
-
-	if ( null !== $set ) {
-		$completed = $set;
-	}
-
-	return $completed;
-}
-
-function erankly_reset_breadcrumb_runtime_state(): void {
-	erankly_breadcrumb_trail_was_rendered( false );
-	erankly_captured_core_breadcrumb_items( null, true );
-	erankly_pending_core_breadcrumb_items( null, true );
-	erankly_core_breadcrumb_capture_source( null, true );
-	erankly_core_breadcrumb_preview_completed( null, true );
-	erankly_previewing_core_breadcrumbs( false );
-	erankly_breadcrumb_items_resolution_token( true );
-}
-
-function erankly_breadcrumb_items_resolution_token( bool $bump = false ): int {
-	static $token = 0;
-
-	if ( $bump ) {
-		++$token;
-	}
-
-	return $token;
-}
-
-function erankly_previewing_core_breadcrumbs( ?bool $set = null ): bool {
-	static $previewing = false;
-
-	if ( null !== $set ) {
-		$previewing = $set;
-	}
-
-	return $previewing;
+function erankly_captured_core_breadcrumb_items(): ?array {
+	return erankly_breadcrumb_state()['core_items'];
 }
 
 function erankly_normalize_core_breadcrumb_label( array $item ): string {
@@ -692,7 +575,8 @@ function erankly_normalize_core_breadcrumb_items( array $items ): array {
  */
 function erankly_capture_core_breadcrumb_items( array $items ): array {
 	if ( (bool) erankly_get_setting( 'enable_breadcrumbs', 1 ) ) {
-		erankly_pending_core_breadcrumb_items( erankly_normalize_core_breadcrumb_items( $items ) );
+		$state            = &erankly_breadcrumb_state();
+		$state['pending'] = erankly_normalize_core_breadcrumb_items( $items );
 	}
 
 	return $items;
@@ -704,39 +588,6 @@ function erankly_core_breadcrumbs_untitled_label( int $post_id = 0 ): string {
 	}
 
 	return __( '(no title)' ); // phpcs:ignore WordPress.WP.I18n.MissingArgDomain -- Match the core breadcrumbs untitled fallback.
-}
-
-/**
- * @return array<string,mixed>
- */
-function erankly_core_breadcrumbs_default_attributes(): array {
-	$defaults = array(
-		'prefersTaxonomy' => false,
-		'separator'       => '/',
-		'showHomeItem'    => true,
-		'showCurrentItem' => true,
-		'showOnHomePage'  => false,
-	);
-
-	if ( ! class_exists( 'WP_Block_Type_Registry', false ) ) {
-		return $defaults;
-	}
-
-	$block = WP_Block_Type_Registry::get_instance()->get_registered( 'core/breadcrumbs' );
-
-	if ( ! $block || ! is_array( $block->attributes ) ) {
-		return $defaults;
-	}
-
-	foreach ( $block->attributes as $name => $schema ) {
-		if ( ! is_array( $schema ) || ! array_key_exists( 'default', $schema ) ) {
-			continue;
-		}
-
-		$defaults[ $name ] = $schema['default'];
-	}
-
-	return $defaults;
 }
 
 /**
@@ -793,40 +644,32 @@ function erankly_inner_content_with_single_child( array $block ): array {
  * markup or setting the visibility flag.
  */
 function erankly_preview_core_breadcrumb_items_from_content(): void {
-	if ( is_array( erankly_captured_core_breadcrumb_items() ) || erankly_core_breadcrumb_preview_completed() ) {
+	$state = &erankly_breadcrumb_state();
+
+	if ( is_array( $state['core_items'] ) || $state['preview_done'] ) {
 		return;
 	}
 
-	if ( ! function_exists( 'render_block' ) || ! function_exists( 'parse_blocks' ) ) {
-		erankly_core_breadcrumb_preview_completed( true );
+	$state['preview_done'] = true;
+	$post                  = get_post();
 
-		return;
-	}
-
-	$post = get_post();
-
-	if ( ! $post instanceof WP_Post ) {
-		erankly_core_breadcrumb_preview_completed( true );
-
+	if ( ! function_exists( 'render_block' ) || ! function_exists( 'parse_blocks' ) || ! $post instanceof WP_Post ) {
 		return;
 	}
 
 	$block = erankly_core_breadcrumbs_preview_block( parse_blocks( (string) $post->post_content ) );
 
 	if ( null === $block ) {
-		erankly_core_breadcrumb_preview_completed( true );
-
 		return;
 	}
 
-	erankly_previewing_core_breadcrumbs( true );
+	$state['previewing'] = true;
 
 	try {
 		render_block( $block );
 	} finally {
-		erankly_previewing_core_breadcrumbs( false );
-		erankly_core_breadcrumb_preview_completed( true );
-		erankly_pending_core_breadcrumb_items( null, true );
+		$state['previewing'] = false;
+		$state['pending']    = null;
 	}
 }
 
@@ -899,45 +742,28 @@ function erankly_filter_core_breadcrumb_items( array $items ): array {
 function erankly_confirm_rendered_core_breadcrumbs( $html, $block = array() ) {
 	unset( $block );
 
-	$pending = erankly_pending_core_breadcrumb_items( null, false, true );
+	$state            = &erankly_breadcrumb_state();
+	$pending          = $state['pending'];
+	$state['pending'] = null;
 
-	if ( ! is_array( $pending ) ) {
+	if ( ! is_array( $pending ) || ! is_string( $html ) || '' === trim( $html ) ) {
 		return $html;
 	}
 
-	$visible = is_string( $html ) && '' !== trim( $html );
-
-	if ( ! $visible ) {
-		return $html;
-	}
-
-	$from_preview = erankly_previewing_core_breadcrumbs();
-	$source       = erankly_core_breadcrumb_capture_source();
-
-	if ( $from_preview ) {
-		if ( '' === $source && ! erankly_breadcrumb_trail_was_rendered() ) {
-			erankly_captured_core_breadcrumb_items( $pending );
-			erankly_core_breadcrumb_capture_source( 'preview' );
+	// A preview only supplies JSON-LD items; the first visible trail always wins.
+	if ( $state['previewing'] ) {
+		if ( null === $state['core_items'] && ! $state['rendered'] ) {
+			$state['core_items'] = $pending;
 		}
 
 		return $html;
 	}
 
-	if ( 'render' === $source ) {
-		erankly_mark_rendered_core_breadcrumbs( $html );
-
-		return $html;
+	if ( ! $state['rendered'] ) {
+		$state['core_items'] = $pending;
 	}
 
-	if ( erankly_breadcrumb_trail_was_rendered() ) {
-		return $html;
-	}
-
-	erankly_captured_core_breadcrumb_items( $pending );
-	erankly_core_breadcrumb_capture_source( 'render' );
-	erankly_mark_rendered_core_breadcrumbs( $html );
-
-	return $html;
+	return erankly_mark_rendered_core_breadcrumbs( $html );
 }
 
 /**
@@ -945,12 +771,10 @@ function erankly_confirm_rendered_core_breadcrumbs( $html, $block = array() ) {
  * @return mixed
  */
 function erankly_mark_rendered_core_breadcrumbs( $html ) {
-	if ( erankly_previewing_core_breadcrumbs() ) {
-		return $html;
-	}
+	$state = &erankly_breadcrumb_state();
 
-	if ( (bool) erankly_get_setting( 'enable_breadcrumbs', 1 ) && is_string( $html ) && '' !== trim( $html ) ) {
-		erankly_breadcrumb_trail_was_rendered( true );
+	if ( ! $state['previewing'] && (bool) erankly_get_setting( 'enable_breadcrumbs', 1 ) && is_string( $html ) && '' !== trim( $html ) ) {
+		$state['rendered'] = true;
 	}
 
 	return $html;
@@ -981,7 +805,6 @@ function erankly_render_breadcrumbs_block( array $attributes = array(), string $
 
 function erankly_register_breadcrumb_integrations(): void {
 	add_shortcode( 'erankly_breadcrumbs', 'erankly_breadcrumbs_shortcode' );
-	add_shortcode( 'easyrankly_breadcrumbs', 'erankly_breadcrumbs_shortcode' );
 
 	add_filter( 'block_core_breadcrumbs_items', 'erankly_filter_core_breadcrumb_items' );
 	add_filter( 'block_core_breadcrumbs_items', 'erankly_capture_core_breadcrumb_items', PHP_INT_MAX );
@@ -994,15 +817,8 @@ function erankly_register_breadcrumb_integrations(): void {
 	$block_dir      = ERANKLY_PATH . 'blocks/breadcrumbs';
 	$core_available = erankly_core_breadcrumbs_block_available();
 
-	wp_register_script(
-		'erankly-breadcrumbs-block',
-		ERANKLY_URL . 'blocks/breadcrumbs/index.js',
-		array( 'wp-blocks', 'wp-element', 'wp-i18n', 'wp-block-editor' ),
-		ERANKLY_VERSION,
-		true
-	);
-	wp_set_script_translations( 'erankly-breadcrumbs-block', 'easyrankly', ERANKLY_PATH . 'languages' );
-
+	// The editor script is registered by erankly_register_breadcrumbs_block_script() on
+	// enqueue_block_editor_assets: registering it here would boot WP_Scripts on every request.
 	// Keep the legacy block registered so existing content still renders.
 	// Hide it from the inserter only when the native block is actually available.
 	register_block_type(
@@ -1019,6 +835,18 @@ function erankly_register_breadcrumb_integrations(): void {
 	);
 
 	erankly_sync_legacy_breadcrumbs_availability();
+}
+
+/** Registers the legacy block's editor script, only when a block editor loads its assets. */
+function erankly_register_breadcrumbs_block_script(): void {
+	wp_register_script(
+		'erankly-breadcrumbs-block',
+		ERANKLY_URL . 'blocks/breadcrumbs/index.js',
+		array( 'wp-blocks', 'wp-element', 'wp-i18n', 'wp-block-editor' ),
+		ERANKLY_VERSION,
+		true
+	);
+	wp_set_script_translations( 'erankly-breadcrumbs-block', 'easyrankly', ERANKLY_PATH . 'languages' );
 }
 
 /**
@@ -1051,32 +879,34 @@ function erankly_sync_legacy_breadcrumbs_availability(): void {
 }
 
 function erankly_set_legacy_breadcrumbs_availability_script( bool $core_available ): void {
-	if ( ! function_exists( 'wp_scripts' ) || ! wp_script_is( 'erankly-breadcrumbs-block', 'registered' ) ) {
+	// Read the global instead of calling wp_scripts(): the editor script is registered only in editor
+	// contexts, and wp_scripts() would boot WP_Scripts on every request just to find it missing.
+	$wp_scripts = $GLOBALS['wp_scripts'] ?? null;
+
+	if ( ! $wp_scripts instanceof WP_Scripts || ! isset( $wp_scripts->registered['erankly-breadcrumbs-block'] ) ) {
 		return;
 	}
 
-	$script    = 'window.eranklyBreadcrumbsBlock = ' . wp_json_encode( array( 'coreAvailable' => $core_available ) ) . ';';
-	$wp_scripts = wp_scripts();
+	$script = 'window.eranklyBreadcrumbsBlock = ' . wp_json_encode( array( 'coreAvailable' => $core_available ) ) . ';';
 
-	if ( $wp_scripts instanceof WP_Scripts && isset( $wp_scripts->registered['erankly-breadcrumbs-block'] ) ) {
-		$before = $wp_scripts->registered['erankly-breadcrumbs-block']->extra['before'] ?? array();
+	$before = $wp_scripts->registered['erankly-breadcrumbs-block']->extra['before'] ?? array();
 
-		if ( ! is_array( $before ) ) {
-			$before = array();
-		}
-
-		$filtered = array();
-
-		foreach ( $before as $chunk ) {
-			if ( is_string( $chunk ) && false !== strpos( $chunk, 'window.eranklyBreadcrumbsBlock' ) ) {
-				continue;
-			}
-
-			$filtered[] = $chunk;
-		}
-
-		$wp_scripts->registered['erankly-breadcrumbs-block']->extra['before'] = $filtered;
+	if ( ! is_array( $before ) ) {
+		$before = array();
 	}
+
+	$filtered = array();
+
+	foreach ( $before as $chunk ) {
+		if ( is_string( $chunk ) && false !== strpos( $chunk, 'window.eranklyBreadcrumbsBlock' ) ) {
+			continue;
+		}
+
+		$filtered[] = $chunk;
+	}
+
+	$wp_scripts->registered['erankly-breadcrumbs-block']->extra['before'] = $filtered;
+
 
 	wp_add_inline_script( 'erankly-breadcrumbs-block', $script, 'before' );
 }

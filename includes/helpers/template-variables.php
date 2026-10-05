@@ -85,174 +85,239 @@ function erankly_get_variable_value( string $key, int $post_id = 0 ): string {
 
 	$resolving[ $key ] = true;
 	$post              = $post_id > 0 ? get_post( $post_id ) : null;
+	$post              = $post instanceof WP_Post ? $post : null;
 	$queried           = get_queried_object();
-	$value             = '';
+	$archive_author_id = erankly_get_archive_author_id();
+	$value             = erankly_resolve_variable(
+		$key,
+		array(
+			'post'              => $post,
+			'term'              => $queried instanceof WP_Term ? $queried : null,
+			'post_type'         => $queried instanceof WP_Post_Type ? $queried : null,
+			'archive_author_id' => $archive_author_id,
+			'author_id'         => $archive_author_id > 0 ? $archive_author_id : ( $post ? (int) $post->post_author : 0 ),
+			'preview'           => false,
+		)
+	);
+
+	unset( $resolving[ $key ] );
+
+	$cache[ $cache_key ] = $value;
+
+	return $value;
+}
+
+/** Returns the user whose author archive is being viewed, or 0 outside author archives. */
+function erankly_get_archive_author_id(): int {
+	$queried = get_queried_object();
+
+	if ( $queried instanceof WP_User ) {
+		return (int) $queried->ID;
+	}
+
+	if ( ! is_author() ) {
+		return 0;
+	}
+
+	$author_id = absint( get_queried_object_id() );
+
+	if ( $author_id < 1 ) {
+		$author    = get_user_by( 'slug', (string) get_query_var( 'author_name' ) );
+		$author_id = $author instanceof WP_User ? (int) $author->ID : 0;
+	}
+
+	return $author_id;
+}
+
+/**
+ * Resolves one {{variable}} for a context. Frontend requests describe the queried object; admin previews pass a
+ * sample post or term with `preview` set, which swaps request-only values (SEO title, archive date, pagination)
+ * for stand-ins so settings fields can still show an example.
+ *
+ * @param array{post:?WP_Post,term:?WP_Term,post_type:?WP_Post_Type,archive_author_id:int,author_id:int,preview:bool} $context
+ * @return string Plain text; empty when the variable has no value in this context.
+ */
+function erankly_resolve_variable( string $key, array $context ): string {
+	foreach ( array( 'erankly_resolve_content_variable', 'erankly_resolve_author_variable', 'erankly_resolve_request_variable', 'erankly_resolve_site_variable' ) as $resolver ) {
+		$value = $resolver( $key, $context );
+
+		if ( null !== $value ) {
+			return trim( wp_strip_all_tags( $value ) );
+		}
+	}
+
+	return '';
+}
+
+/**
+ * Resolves post, post type and taxonomy variables.
+ *
+ * @param array<string,mixed> $context See erankly_resolve_variable().
+ * @return string|null Null when the key belongs to another group.
+ */
+function erankly_resolve_content_variable( string $key, array $context ): ?string {
+	$post    = $context['post'];
+	$term    = $context['term'];
+	$preview = $context['preview'];
+	$value   = '';
 
 	switch ( $key ) {
 		case 'post_title':
-			$value = $post_id > 0 ? get_the_title( $post_id ) : '';
+			$value = $post ? get_the_title( $post ) : '';
 			break;
 		case 'post_excerpt':
-			if ( $post instanceof WP_Post ) {
+			if ( $post ) {
 				$value = has_excerpt( $post ) ? get_the_excerpt( $post ) : erankly_trim_text( $post->post_content, 160 );
 			}
 			break;
 		case 'post_content':
-			$value = $post instanceof WP_Post ? wp_strip_all_tags( strip_shortcodes( $post->post_content ) ) : '';
+			$value = $post ? wp_strip_all_tags( strip_shortcodes( $post->post_content ) ) : '';
+			$value = $preview ? erankly_trim_text( $value, 160 ) : $value;
 			break;
 		case 'post_url':
-			$value = $post_id > 0 ? (string) get_permalink( $post_id ) : '';
+			$value = $post ? (string) get_permalink( $post ) : '';
 			break;
 		case 'post_date':
-			$value = $post_id > 0 ? get_the_date( DATE_W3C, $post_id ) : '';
-			break;
 		case 'post_year':
-			$value = $post_id > 0 ? get_the_date( 'Y', $post_id ) : '';
-			break;
 		case 'post_month':
-			$value = $post_id > 0 ? get_the_date( 'F', $post_id ) : '';
-			break;
 		case 'post_day':
-			$value = $post_id > 0 ? get_the_date( 'j', $post_id ) : '';
+			$formats = array(
+				'post_date'  => DATE_W3C,
+				'post_year'  => 'Y',
+				'post_month' => 'F',
+				'post_day'   => 'j',
+			);
+			$value   = $post ? get_the_date( $formats[ $key ], $post ) : '';
 			break;
 		case 'post_modified_date':
-			$value = $post_id > 0 ? get_the_modified_date( DATE_W3C, $post_id ) : '';
+			$value = $post ? get_the_modified_date( DATE_W3C, $post ) : '';
 			break;
 		case 'post_author':
-			if ( $post instanceof WP_Post ) {
-				$value = get_the_author_meta( 'display_name', (int) $post->post_author );
+			$value = $post ? get_the_author_meta( 'display_name', (int) $post->post_author ) : '';
+			break;
+		case 'post_categories':
+			$value = $post ? erankly_get_post_category_names( $post->ID ) : '';
+			break;
+		case 'post_tags':
+			$value = $post ? erankly_get_post_tag_names( $post->ID ) : '';
+			break;
+		case 'featured_image':
+			$image = $post ? get_the_post_thumbnail_url( $post, 'full' ) : '';
+			$value = is_string( $image ) ? $image : '';
+			break;
+		case 'post_type_name':
+			$post_type = $post ? get_post_type_object( $post->post_type ) : $context['post_type'];
+			$value     = $post_type instanceof WP_Post_Type ? $post_type->labels->singular_name : ( $post ? $post->post_type : '' );
+			break;
+		case 'term_name':
+			$value = $term ? $term->name : '';
+			break;
+		case 'term_description':
+			$value = $term ? $term->description : '';
+			break;
+		case 'term_slug':
+			$value = $term ? $term->slug : '';
+			break;
+		case 'term_url':
+			$term_link = $term ? get_term_link( $term ) : '';
+			$value     = is_string( $term_link ) ? $term_link : '';
+			break;
+		case 'taxonomy_name':
+			if ( $term ) {
+				$taxonomy = get_taxonomy( $term->taxonomy );
+				$value    = $taxonomy instanceof WP_Taxonomy ? $taxonomy->labels->singular_name : $term->taxonomy;
 			}
 			break;
+		default:
+			return null;
+	}
+
+	return (string) $value;
+}
+
+/**
+ * Resolves author variables: the archive author name, and the profile of the post or archive author.
+ *
+ * @param array<string,mixed> $context See erankly_resolve_variable().
+ * @return string|null Null when the key belongs to another group.
+ */
+function erankly_resolve_author_variable( string $key, array $context ): ?string {
+	$value = '';
+
+	switch ( $key ) {
 		case 'author_name':
-			if ( $queried instanceof WP_User ) {
-				$value = $queried->display_name;
-			} elseif ( is_author() ) {
-				$author_id = absint( get_queried_object_id() );
-				if ( $author_id < 1 ) {
-					$author    = get_user_by( 'slug', (string) get_query_var( 'author_name' ) );
-					$author_id = $author instanceof WP_User ? (int) $author->ID : 0;
-				}
-				$value = $author_id > 0 ? get_the_author_meta( 'display_name', $author_id ) : '';
-			}
+			$value = $context['archive_author_id'] > 0 ? get_the_author_meta( 'display_name', $context['archive_author_id'] ) : '';
 			break;
 		case 'author_bio':
 		case 'author_first_name':
 		case 'author_last_name':
-		case 'author_url':
 		case 'author_website':
+			$fields = array(
+				'author_bio'        => 'description',
+				'author_first_name' => 'first_name',
+				'author_last_name'  => 'last_name',
+				'author_website'    => 'user_url',
+			);
+			$value  = $context['author_id'] > 0 ? (string) get_the_author_meta( $fields[ $key ], $context['author_id'] ) : '';
+			break;
+		case 'author_url':
+			$value = $context['author_id'] > 0 ? (string) get_author_posts_url( $context['author_id'] ) : '';
+			break;
 		case 'author_profile_url':
-			$author_id = $post instanceof WP_Post ? (int) $post->post_author : 0;
-			if ( $queried instanceof WP_User ) {
-				$author_id = (int) $queried->ID;
-			} elseif ( $author_id < 1 && is_author() ) {
-				$author_id = absint( get_queried_object_id() );
-				if ( $author_id < 1 ) {
-					$author    = get_user_by( 'slug', (string) get_query_var( 'author_name' ) );
-					$author_id = $author instanceof WP_User ? (int) $author->ID : 0;
-				}
-			}
-			if ( $author_id > 0 ) {
-				switch ( $key ) {
-					case 'author_bio':
-						$value = (string) get_the_author_meta( 'description', $author_id );
-						break;
-					case 'author_first_name':
-						$value = (string) get_the_author_meta( 'first_name', $author_id );
-						break;
-					case 'author_last_name':
-						$value = (string) get_the_author_meta( 'last_name', $author_id );
-						break;
-					case 'author_website':
-						$value = (string) get_the_author_meta( 'user_url', $author_id );
-						break;
-					case 'author_profile_url':
-						$value = (string) get_the_author_meta( 'user_url', $author_id );
-						$value = '' !== trim( $value ) ? $value : (string) get_author_posts_url( $author_id );
-						break;
-					default:
-						$value = (string) get_author_posts_url( $author_id );
-						break;
-				}
+			if ( $context['author_id'] > 0 ) {
+				$value = trim( (string) get_the_author_meta( 'user_url', $context['author_id'] ) );
+				$value = '' !== $value ? $value : (string) get_author_posts_url( $context['author_id'] );
 			}
 			break;
+		default:
+			return null;
+	}
+
+	return (string) $value;
+}
+
+/**
+ * Resolves variables that describe the current request: SEO output, archive date, search and pagination.
+ *
+ * @param array<string,mixed> $context See erankly_resolve_variable().
+ * @return string|null Null when the key belongs to another group.
+ */
+function erankly_resolve_request_variable( string $key, array $context ): ?string {
+	$post    = $context['post'];
+	$preview = $context['preview'];
+	$paged   = $preview ? 2 : max( (int) get_query_var( 'paged', 0 ), (int) get_query_var( 'page', 0 ) );
+	$value   = '';
+
+	switch ( $key ) {
 		case 'archive_date':
-			if ( is_year() || is_month() || is_day() ) {
-				$year  = absint( get_query_var( 'year' ) );
-				$month = max( 1, absint( get_query_var( 'monthnum' ) ) );
-				$day   = max( 1, absint( get_query_var( 'day' ) ) );
-				if ( $year > 0 ) {
-					$date = date_create_immutable( sprintf( '%04d-%02d-%02d 12:00:00', $year, $month, $day ), wp_timezone() );
-					if ( $date instanceof DateTimeImmutable ) {
-						$format = is_day() ? (string) get_option( 'date_format' ) : ( is_month() ? 'F Y' : 'Y' );
-						$value  = wp_date( $format, $date->getTimestamp(), wp_timezone() );
-					}
-				}
-			}
-			break;
-		case 'post_categories':
-			$value = erankly_get_post_category_names( $post_id );
-			break;
-		case 'post_tags':
-			$value = erankly_get_post_tag_names( $post_id );
+			$value = $preview ? wp_date( (string) get_option( 'date_format' ) ) : erankly_get_archive_date_label();
 			break;
 		case 'seo_title':
-			$value = function_exists( 'erankly_get_title' ) ? erankly_get_title() : '';
+			$value = $preview ? ( $post ? get_the_title( $post ) : '' ) : ( function_exists( 'erankly_get_title' ) ? erankly_get_title() : '' );
 			break;
 		case 'meta_description':
-			$value = function_exists( 'erankly_get_description' ) ? erankly_get_description() : '';
+			if ( $preview ) {
+				$value = $post ? erankly_resolve_variable( 'post_excerpt', $context ) : '';
+			} else {
+				$value = function_exists( 'erankly_get_description' ) ? erankly_get_description() : '';
+			}
 			break;
 		case 'canonical_url':
-			$value = function_exists( 'erankly_get_canonical' ) ? erankly_get_canonical() : '';
-			break;
-		case 'featured_image':
-			$image = $post_id > 0 ? get_the_post_thumbnail_url( $post_id, 'full' ) : '';
-			$value = is_string( $image ) ? $image : '';
-			break;
-		case 'post_type_name':
-			if ( $post instanceof WP_Post ) {
-				$post_type = get_post_type_object( $post->post_type );
-				$value     = $post_type instanceof WP_Post_Type ? $post_type->labels->singular_name : $post->post_type;
-			} elseif ( $queried instanceof WP_Post_Type ) {
-				$value = $queried->labels->singular_name;
-			}
-			break;
-		case 'term_name':
-			$value = $queried instanceof WP_Term ? $queried->name : '';
-			break;
-		case 'term_description':
-			$value = $queried instanceof WP_Term ? $queried->description : '';
-			break;
-		case 'term_slug':
-			$value = $queried instanceof WP_Term ? $queried->slug : '';
-			break;
-		case 'term_url':
-			if ( $queried instanceof WP_Term ) {
-				$term_link = get_term_link( $queried );
-				$value     = is_wp_error( $term_link ) ? '' : $term_link;
-			}
-			break;
-		case 'taxonomy_name':
-			if ( $queried instanceof WP_Term ) {
-				$taxonomy = get_taxonomy( $queried->taxonomy );
-				$value    = $taxonomy instanceof WP_Taxonomy ? $taxonomy->labels->singular_name : $queried->taxonomy;
-			}
+			$value = $preview ? ( $post ? (string) get_permalink( $post ) : '' ) : ( function_exists( 'erankly_get_canonical' ) ? erankly_get_canonical() : '' );
 			break;
 		case 'search_query':
-			$value = is_search() ? get_search_query() : '';
+			$value = ! $preview && is_search() ? get_search_query() : '';
 			break;
 		case 'page_number':
-			$paged = max( (int) get_query_var( 'paged', 0 ), (int) get_query_var( 'page', 0 ) );
-			$value = (string) max( 1, $paged );
+			$value = $preview ? '1' : (string) max( 1, $paged );
 			break;
 		case 'current_pagination':
-			$paged = max( (int) get_query_var( 'paged', 0 ), (int) get_query_var( 'page', 0 ) );
 			$value = $paged > 1 ? (string) $paged : '';
 			break;
 		case 'pagination':
-			$paged = max( (int) get_query_var( 'paged', 0 ), (int) get_query_var( 'page', 0 ) );
 			if ( $paged > 1 ) {
 				// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Core WP global, read-only.
-				$total = isset( $GLOBALS['wp_query'] ) ? max( $paged, (int) $GLOBALS['wp_query']->max_num_pages ) : $paged;
+				$total = $preview ? 5 : ( isset( $GLOBALS['wp_query'] ) ? max( $paged, (int) $GLOBALS['wp_query']->max_num_pages ) : $paged );
 				$value = sprintf(
 					/* translators: 1: current page number, 2: total pages. */
 					__( 'Page %1$d of %2$d', 'easyrankly' ),
@@ -263,8 +328,25 @@ function erankly_get_variable_value( string $key, int $post_id = 0 ): string {
 			break;
 		case 'max_pages':
 			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Core WP global, read-only.
-			$value = isset( $GLOBALS['wp_query'] ) ? (string) max( 1, (int) $GLOBALS['wp_query']->max_num_pages ) : '1';
+			$value = ! $preview && isset( $GLOBALS['wp_query'] ) ? (string) max( 1, (int) $GLOBALS['wp_query']->max_num_pages ) : '1';
 			break;
+		default:
+			return null;
+	}
+
+	return (string) $value;
+}
+
+/**
+ * Resolves site-wide and identity variables.
+ *
+ * @param array<string,mixed> $context See erankly_resolve_variable().
+ * @return string|null Null when the key belongs to another group.
+ */
+function erankly_resolve_site_variable( string $key, array $context ): ?string {
+	$value = '';
+
+	switch ( $key ) {
 		case 'current_year':
 			$value = wp_date( 'Y' );
 			break;
@@ -293,10 +375,10 @@ function erankly_get_variable_value( string $key, int $post_id = 0 ): string {
 			$value = erankly_get_organization_name();
 			break;
 		case 'website_name':
-			$value = function_exists( 'erankly_get_website_name' ) ? erankly_get_website_name() : get_bloginfo( 'name' );
+			$value = erankly_get_website_name();
 			break;
 		case 'website_description':
-			$value = function_exists( 'erankly_get_website_description' ) ? erankly_get_website_description() : get_bloginfo( 'description' );
+			$value = erankly_get_website_description();
 			break;
 		case 'organization_logo':
 		case 'organization_logo_url':
@@ -307,15 +389,42 @@ function erankly_get_variable_value( string $key, int $post_id = 0 ): string {
 			$value = erankly_get_site_icon_url();
 			break;
 		case 'schema_identity_id':
-			$value = function_exists( 'erankly_schema_identity_id' ) ? erankly_schema_identity_id() : home_url( '/#organization' );
+			if ( function_exists( 'erankly_schema_identity_id' ) ) {
+				$value = erankly_schema_identity_id();
+			} else {
+				$value = home_url( 'person' === (string) erankly_get_setting( 'schema_identity', 'organization' ) ? '/#person' : '/#organization' );
+			}
 			break;
+		default:
+			return null;
 	}
 
-	unset( $resolving[ $key ] );
+	return (string) $value;
+}
 
-	$cache[ $cache_key ] = trim( wp_strip_all_tags( (string) $value ) );
+/** Returns the formatted date of the current year, month or day archive, or an empty string elsewhere. */
+function erankly_get_archive_date_label(): string {
+	if ( ! is_year() && ! is_month() && ! is_day() ) {
+		return '';
+	}
 
-	return $cache[ $cache_key ];
+	$year = absint( get_query_var( 'year' ) );
+
+	if ( $year < 1 ) {
+		return '';
+	}
+
+	$month = max( 1, absint( get_query_var( 'monthnum' ) ) );
+	$day   = max( 1, absint( get_query_var( 'day' ) ) );
+	$date  = date_create_immutable( sprintf( '%04d-%02d-%02d 12:00:00', $year, $month, $day ), wp_timezone() );
+
+	if ( ! $date instanceof DateTimeImmutable ) {
+		return '';
+	}
+
+	$format = is_day() ? (string) get_option( 'date_format' ) : ( is_month() ? 'F Y' : 'Y' );
+
+	return (string) wp_date( $format, $date->getTimestamp(), wp_timezone() );
 }
 
 function erankly_get_post_category_names( int $post_id ): string {
@@ -359,203 +468,19 @@ function erankly_get_post_tag_names( int $post_id ): string {
  * @return string Empty string when this key has no example value here.
  */
 function erankly_get_variable_preview_value( string $key, ?WP_Post $post = null, ?WP_Term $term = null ): string {
-	$value = '';
+	$author_id = $post ? (int) $post->post_author : (int) get_current_user_id();
 
-	switch ( $key ) {
-		case 'post_title':
-			$value = $post ? get_the_title( $post ) : '';
-			break;
-		case 'post_excerpt':
-			if ( $post ) {
-				$value = has_excerpt( $post ) ? get_the_excerpt( $post ) : erankly_trim_text( $post->post_content, 160 );
-			}
-			break;
-		case 'post_content':
-			$value = $post ? erankly_trim_text( wp_strip_all_tags( strip_shortcodes( $post->post_content ) ), 160 ) : '';
-			break;
-		case 'post_url':
-			$value = $post ? (string) get_permalink( $post ) : '';
-			break;
-		case 'post_date':
-			$value = $post ? get_the_date( DATE_W3C, $post ) : '';
-			break;
-		case 'post_year':
-			$value = $post ? get_the_date( 'Y', $post ) : '';
-			break;
-		case 'post_month':
-			$value = $post ? get_the_date( 'F', $post ) : '';
-			break;
-		case 'post_day':
-			$value = $post ? get_the_date( 'j', $post ) : '';
-			break;
-		case 'post_modified_date':
-			$value = $post ? get_the_modified_date( DATE_W3C, $post ) : '';
-			break;
-		case 'post_author':
-			$value = $post ? get_the_author_meta( 'display_name', (int) $post->post_author ) : '';
-			break;
-		case 'author_name':
-			if ( $post ) {
-				$value = get_the_author_meta( 'display_name', (int) $post->post_author );
-			} else {
-				$user  = wp_get_current_user();
-				$value = $user->exists() ? $user->display_name : '';
-			}
-			break;
-		case 'author_bio':
-		case 'author_first_name':
-		case 'author_last_name':
-		case 'author_url':
-		case 'author_website':
-		case 'author_profile_url':
-			$user_id = $post ? (int) $post->post_author : (int) get_current_user_id();
-			if ( $user_id > 0 ) {
-				switch ( $key ) {
-					case 'author_bio':
-						$value = (string) get_the_author_meta( 'description', $user_id );
-						break;
-					case 'author_first_name':
-						$value = (string) get_the_author_meta( 'first_name', $user_id );
-						break;
-					case 'author_last_name':
-						$value = (string) get_the_author_meta( 'last_name', $user_id );
-						break;
-					case 'author_website':
-						$value = (string) get_the_author_meta( 'user_url', $user_id );
-						break;
-					case 'author_profile_url':
-						$value = (string) get_the_author_meta( 'user_url', $user_id );
-						$value = '' !== trim( $value ) ? $value : (string) get_author_posts_url( $user_id );
-						break;
-					default:
-						$value = (string) get_author_posts_url( $user_id );
-						break;
-				}
-			}
-			break;
-		case 'archive_date':
-			$value = wp_date( (string) get_option( 'date_format' ) );
-			break;
-		case 'post_categories':
-			$value = $post ? erankly_get_post_category_names( $post->ID ) : '';
-			break;
-		case 'post_tags':
-			$value = $post ? erankly_get_post_tag_names( $post->ID ) : '';
-			break;
-		case 'seo_title':
-			$value = $post ? get_the_title( $post ) : '';
-			break;
-		case 'meta_description':
-			if ( $post ) {
-				$value = has_excerpt( $post ) ? get_the_excerpt( $post ) : erankly_trim_text( $post->post_content, 160 );
-			}
-			break;
-		case 'canonical_url':
-			$value = $post ? (string) get_permalink( $post ) : '';
-			break;
-		case 'featured_image':
-			if ( $post ) {
-				$image = get_the_post_thumbnail_url( $post, 'full' );
-				$value = is_string( $image ) ? $image : '';
-			}
-			break;
-		case 'post_type_name':
-			if ( $post ) {
-				$post_type = get_post_type_object( $post->post_type );
-				$value     = $post_type instanceof WP_Post_Type ? $post_type->labels->singular_name : $post->post_type;
-			}
-			break;
-		case 'term_name':
-			$value = $term ? $term->name : '';
-			break;
-		case 'term_description':
-			$value = $term ? $term->description : '';
-			break;
-		case 'term_slug':
-			$value = $term ? $term->slug : '';
-			break;
-		case 'term_url':
-			if ( $term ) {
-				$term_link = get_term_link( $term );
-				$value     = is_wp_error( $term_link ) ? '' : $term_link;
-			}
-			break;
-		case 'taxonomy_name':
-			if ( $term ) {
-				$taxonomy = get_taxonomy( $term->taxonomy );
-				$value    = $taxonomy instanceof WP_Taxonomy ? $taxonomy->labels->singular_name : $term->taxonomy;
-			}
-			break;
-		case 'site_name':
-			$value = get_bloginfo( 'name' );
-			break;
-		case 'current_year':
-			$value = wp_date( 'Y' );
-			break;
-		case 'current_month':
-			$value = wp_date( 'F' );
-			break;
-		case 'current_day':
-			$value = wp_date( 'j' );
-			break;
-		case 'current_date':
-			$value = wp_date( (string) get_option( 'date_format' ) );
-			break;
-		case 'site_description':
-			$value = get_bloginfo( 'description' );
-			break;
-		case 'site_url':
-			$value = home_url( '/' );
-			break;
-		case 'site_language':
-			$value = get_bloginfo( 'language' );
-			break;
-		case 'organization_name':
-			$value = function_exists( 'erankly_get_organization_name' ) ? erankly_get_organization_name() : '';
-			break;
-		case 'website_name':
-			$value = function_exists( 'erankly_get_website_name' ) ? erankly_get_website_name() : get_bloginfo( 'name' );
-			break;
-		case 'website_description':
-			$value = function_exists( 'erankly_get_website_description' ) ? erankly_get_website_description() : get_bloginfo( 'description' );
-			break;
-		case 'organization_logo':
-		case 'organization_logo_url':
-			$value = function_exists( 'erankly_get_organization_logo_url' ) ? erankly_get_organization_logo_url() : '';
-			break;
-		case 'site_icon':
-		case 'site_icon_url':
-			$value = function_exists( 'erankly_get_site_icon_url' ) ? erankly_get_site_icon_url() : '';
-			break;
-		case 'schema_identity_id':
-			if ( function_exists( 'erankly_schema_identity_id' ) ) {
-				$value = erankly_schema_identity_id();
-			} else {
-				$type  = (string) erankly_get_setting( 'schema_identity', 'organization' );
-				$value = home_url( 'person' === $type ? '/#person' : '/#organization' );
-			}
-			break;
-		case 'page_number':
-		case 'max_pages':
-			// Admin screens have no paginated query; use the same floor the
-			// frontend resolver uses so {{page_number}} / {{max_pages}} can
-			// still preview on settings fields.
-			$value = '1';
-			break;
-		case 'current_pagination':
-			$value = '2';
-			break;
-		case 'pagination':
-			$value = sprintf(
-				/* translators: 1: current page number, 2: total pages. */
-				__( 'Page %1$d of %2$d', 'easyrankly' ),
-				2,
-				5
-			);
-			break;
-	}
-
-	return trim( wp_strip_all_tags( (string) $value ) );
+	return erankly_resolve_variable(
+		$key,
+		array(
+			'post'              => $post,
+			'term'              => $term,
+			'post_type'         => null,
+			'archive_author_id' => $author_id,
+			'author_id'         => $author_id,
+			'preview'           => true,
+		)
+	);
 }
 
 /**
@@ -569,82 +494,17 @@ function erankly_get_variable_preview_value( string $key, ?WP_Post $post = null,
  * @return array<string,string>
  */
 function erankly_get_admin_variable_examples( ?WP_Post $post = null, ?WP_Term $term = null ): array {
-	// Keep this list aligned with erankly_get_variable_groups(). Empty
-	// preview values are skipped below, so request-only keys such as
-	// search_query stay literal until they have a stand-in.
-	$keys = array(
-		'post_title',
-		'post_excerpt',
-		'post_content',
-		'post_url',
-		'post_date',
-		'post_year',
-		'post_month',
-		'post_day',
-		'post_modified_date',
-		'post_author',
-		'author_name',
-		'author_first_name',
-		'author_last_name',
-		'author_bio',
-		'author_url',
-		'author_website',
-		'author_profile_url',
-		'archive_date',
-		'post_categories',
-		'post_tags',
-		'post_type_name',
-		'featured_image',
-		'term_name',
-		'term_description',
-		'term_slug',
-		'term_url',
-		'taxonomy_name',
-		'seo_title',
-		'meta_description',
-		'canonical_url',
-		'search_query',
-		'pagination',
-		'current_pagination',
-		'page_number',
-		'max_pages',
-		'site_name',
-		'current_year',
-		'current_month',
-		'current_day',
-		'current_date',
-		'site_description',
-		'site_url',
-		'site_language',
-		'organization_name',
-		'website_name',
-		'website_description',
-		'organization_logo_url',
-		'site_icon_url',
-		'schema_identity_id',
-	);
-
-	if ( function_exists( 'erankly_get_variable_groups' ) ) {
-		foreach ( erankly_get_variable_groups() as $group ) {
-			if ( empty( $group['variables'] ) || ! is_array( $group['variables'] ) ) {
-				continue;
-			}
-
-			foreach ( array_keys( $group['variables'] ) as $key ) {
-				$keys[] = (string) $key;
-			}
-		}
-
-		$keys = array_values( array_unique( $keys ) );
-	}
+	require_once ERANKLY_PATH . 'admin/field-renderers.php';
 
 	$examples = array();
 
-	foreach ( $keys as $key ) {
-		$value = erankly_get_variable_preview_value( $key, $post, $term );
+	foreach ( erankly_get_variable_groups() as $group ) {
+		foreach ( array_keys( $group['variables'] ) as $key ) {
+			$value = erankly_get_variable_preview_value( (string) $key, $post, $term );
 
-		if ( '' !== $value ) {
-			$examples[ $key ] = $value;
+			if ( '' !== $value ) {
+				$examples[ (string) $key ] = $value;
+			}
 		}
 	}
 

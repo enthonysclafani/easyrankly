@@ -75,6 +75,20 @@ final class ERankly_Redirects_Repository_Test extends WP_UnitTestCase {
 		return $reflection->invokeArgs( $repository, $args );
 	}
 
+	public function test_has_active_rules_follows_mutations_through_the_autoloaded_manifest(): void {
+		$this->assertFalse( $this->repo()->has_active_rules() );
+
+		$id = $this->make_rule();
+		$this->assertTrue( $this->repo()->has_active_rules() );
+
+		global $wpdb;
+		$autoload = $wpdb->get_var( $wpdb->prepare( "SELECT autoload FROM {$wpdb->options} WHERE option_name = %s", 'erankly_redirects_runtime_rules' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Asserts the stored autoload flag.
+		$this->assertContains( $autoload, array( 'on', 'yes', 'auto-on' ) );
+
+		$this->repo()->toggle_active( $id );
+		$this->assertFalse( $this->repo()->has_active_rules() );
+	}
+
 	public function test_get_table_name_uses_wordpress_prefix(): void {
 		global $wpdb;
 		$this->assertSame( $wpdb->prefix . 'erankly_redirects', ERankly_Redirects_Repository::get_table_name() );

@@ -149,7 +149,7 @@ function erankly_get_post_content_image_urls( int $post_id ): array {
 		}
 	}
 
-	if ( function_exists( 'parse_blocks' ) && has_blocks( $post->post_content ) ) {
+	if ( has_blocks( $post->post_content ) ) {
 		foreach ( erankly_get_image_block_attachment_ids( parse_blocks( $post->post_content ) ) as $attachment_id ) {
 			$images[] = erankly_get_image_url( $attachment_id, 'full' );
 		}
@@ -187,11 +187,6 @@ function erankly_get_term_meta_string( int $term_id, string $key ): string {
 	return is_string( $value ) ? trim( $value ) : '';
 }
 
-/** @param string $key     Meta key without plugin prefix. */
-function erankly_get_term_meta_bool( int $term_id, string $key ): bool {
-	return '1' === (string) get_term_meta( $term_id, '_erankly_' . $key, true );
-}
-
 /** @return WP_Term|null */
 function erankly_get_primary_term( int $post_id, string $taxonomy ): ?WP_Term {
 	$primary_terms = get_post_meta( $post_id, '_erankly_primary_terms', true );
@@ -207,46 +202,19 @@ function erankly_get_primary_term( int $post_id, string $taxonomy ): ?WP_Term {
 }
 
 /**
- * Returns the explicit robots directive for a post or term. Legacy boolean metadata is used only when the
- * tri-state field has never been stored, which keeps upgrades lossless while allowing an explicit positive
- * directive to override a restrictive global default.
+ * Returns the explicit robots directive for a post, term or user, or `inherit` when none is stored.
  *
  * @param string $object_type `post`, `term`, or `user`.
  * @param string $axis        index, follow, archive, snippet, or image.
  */
 function erankly_get_object_robots_directive( string $object_type, int $object_id, string $axis ): string {
-	$key = '_erankly_' . $axis . '_directive';
-
-	if ( 'term' === $object_type ) {
-		$value = get_term_meta( $object_id, $key, true );
-	} elseif ( 'user' === $object_type ) {
-		$value = get_user_meta( $object_id, $key, true );
-	} else {
-		$value = get_post_meta( $object_id, $key, true );
-	}
-
-	$value = is_string( $value ) ? trim( $value ) : '';
-
-	if ( '' !== $value && 'inherit' !== $value ) {
-		return $value;
-	}
-
-	$legacy = array(
-		'index'   => 'noindex',
-		'follow'  => 'nofollow',
-		'archive' => 'noarchive',
-	);
-
-	if ( ! isset( $legacy[ $axis ] ) || 'inherit' === $value ) {
+	if ( ! erankly_seo_enabled() ) {
 		return 'inherit';
 	}
+	$value = get_metadata( $object_type, $object_id, '_erankly_' . $axis . '_directive', true );
+	$value = is_string( $value ) ? trim( $value ) : '';
 
-	$legacy_key = '_erankly_' . $legacy[ $axis ];
-	$legacy_val = 'term' === $object_type
-		? get_term_meta( $object_id, $legacy_key, true )
-		: ( 'user' === $object_type ? get_user_meta( $object_id, $legacy_key, true ) : get_post_meta( $object_id, $legacy_key, true ) );
-
-	return '1' === (string) $legacy_val ? $legacy[ $axis ] : 'inherit';
+	return '' !== $value ? $value : 'inherit';
 }
 
 function erankly_get_global_post_type_meta( string $post_type, string $field ): string {
@@ -414,6 +382,9 @@ function erankly_get_global_entity_meta( string $setting_key, string $entity, st
 }
 
 function erankly_get_global_entity_directive( string $setting_key, string $entity, string $field ): bool {
+	if ( ! erankly_seo_enabled() ) {
+		return false;
+	}
 	if ( ! in_array( $field, array( 'noindex', 'nofollow', 'noarchive', 'disable_sitemap' ), true ) ) {
 		return false;
 	}

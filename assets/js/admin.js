@@ -34,24 +34,12 @@
     bindEach("[data-erankly-user-search-wrap]", "bindUserSearch");
     bindEach("[data-erankly-local-business]", "bindLocalBusiness");
     bindEach("[data-erankly-file-dropzone]", "bindFileDropzone");
-    bindEach(".erankly-term-doc-link", "moveTermDocLink");
+    bindEach('[data-erankly-settings-panel="settings-sitemap"]', "bindNewsSitemapSettings");
 
-    bindRoot("bindSimplifiedModeNav");
     bindRoot("bindAllSettingsAutosave");
+    bindEach("[data-erankly-database-tools]", "bindDatabaseTools");
 
-    // The variables module owns one delegated outside-click listener. Escape
-    // remains here so every picker can also be dismissed from the keyboard.
-    document.addEventListener("keydown", function (event) {
-      if (event.key === "Escape" && typeof ER.closeVariablePicker === "function") {
-        document
-          .querySelectorAll("[data-erankly-variable-field]")
-          .forEach(ER.closeVariablePicker);
-      }
-    });
 
-    if (typeof ER.bindResetConfirmModal === "function") {
-      ER.bindResetConfirmModal();
-    }
   });
 
 })();

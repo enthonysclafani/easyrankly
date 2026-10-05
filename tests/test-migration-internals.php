@@ -230,65 +230,38 @@ final class ERankly_Migration_Internals_Test extends WP_UnitTestCase {
 		$this->assertFileExists( $path );
 	}
 
-	public function test_job_runner_lock_key_is_derived_from_the_job_id(): void {
-		$runner = new ERankly_Migration_Job_Runner();
-		$key    = (string) self::call_private( ERankly_Migration_Job_Runner::class, 'lock_key', array( 'job-abc' ), $runner );
-
-		$this->assertSame( 'erankly_migration_lock_' . substr( hash( 'sha256', 'job-abc' ), 0, 24 ), $key );
+	public function test_job_lease_key_is_derived_from_the_job_id(): void {
+		$this->assertSame( 'erankly_migration_lock_' . substr( hash( 'sha256', 'job-abc' ), 0, 24 ), ERankly_Job_Lease::key( 'erankly_migration_lock_', 'job-abc' ) );
 	}
 
-	public function test_job_runner_owns_lock_only_with_a_matching_unexpired_token(): void {
-		$runner = new ERankly_Migration_Job_Runner();
+	public function test_job_lease_is_owned_only_with_a_matching_unexpired_token(): void {
 		$job_id = 'job-lock-' . wp_generate_password( 6, false );
-		$key    = (string) self::call_private( ERankly_Migration_Job_Runner::class, 'lock_key', array( $job_id ), $runner );
+		$key    = ERankly_Job_Lease::key( 'erankly_migration_lock_', $job_id );
 
 		// A matching, unexpired token is owned.
 		update_option( $key, array( 'token' => 'tok-1', 'expires' => time() + 60 ), false );
-		$this->assertTrue(
-			(bool) self::call_private( ERankly_Migration_Job_Runner::class, 'owns_lock', array( $job_id, 'tok-1' ), $runner )
-		);
+		$this->assertTrue( ERankly_Job_Lease::owns( 'erankly_migration_lock_', $job_id, 'tok-1' ) );
 
 		// A different token is not.
-		$this->assertFalse(
-			(bool) self::call_private( ERankly_Migration_Job_Runner::class, 'owns_lock', array( $job_id, 'tok-2' ), $runner )
-		);
+		$this->assertFalse( ERankly_Job_Lease::owns( 'erankly_migration_lock_', $job_id, 'tok-2' ) );
 
-		// An expired lock is not owned even with the right token.
+		// An expired lease is not owned even with the right token, and cannot be renewed.
 		update_option( $key, array( 'token' => 'tok-1', 'expires' => time() - 5 ), false );
-		$this->assertFalse(
-			(bool) self::call_private( ERankly_Migration_Job_Runner::class, 'owns_lock', array( $job_id, 'tok-1' ), $runner )
-		);
+		$this->assertFalse( ERankly_Job_Lease::owns( 'erankly_migration_lock_', $job_id, 'tok-1' ) );
+		$this->assertFalse( ERankly_Job_Lease::renew( 'erankly_migration_lock_', $job_id, 'tok-1' ) );
 
-		delete_option( $key );
+		// A new worker takes the expired lease over; the old token can no longer release it.
+		$token = ERankly_Job_Lease::acquire( 'erankly_migration_lock_', $job_id );
+		$this->assertNotSame( '', $token );
+		ERankly_Job_Lease::release( 'erankly_migration_lock_', $job_id, 'tok-1' );
+		$this->assertTrue( ERankly_Job_Lease::owns( 'erankly_migration_lock_', $job_id, $token ) );
+
+		ERankly_Job_Lease::release( 'erankly_migration_lock_', $job_id, $token );
+		$this->assertFalse( get_option( $key, false ) );
 	}
 
-	public function test_job_runner_owns_lock_is_false_without_a_lock_option(): void {
-		$runner = new ERankly_Migration_Job_Runner();
-		$job_id = 'job-missing-' . wp_generate_password( 6, false );
-
-		$this->assertFalse(
-			(bool) self::call_private( ERankly_Migration_Job_Runner::class, 'owns_lock', array( $job_id, 'tok' ), $runner )
-		);
-	}
-
-	public function test_job_runner_owns_lock_falls_back_to_created_plus_ttl(): void {
-		$runner = new ERankly_Migration_Job_Runner();
-		$job_id = 'job-created-' . wp_generate_password( 6, false );
-		$key    = (string) self::call_private( ERankly_Migration_Job_Runner::class, 'lock_key', array( $job_id ), $runner );
-
-		// No explicit expiry: the lock is valid while created + TTL is in the future.
-		update_option( $key, array( 'token' => 'tok', 'created' => time() ), false );
-		$this->assertTrue(
-			(bool) self::call_private( ERankly_Migration_Job_Runner::class, 'owns_lock', array( $job_id, 'tok' ), $runner )
-		);
-
-		// A very old 'created' value is treated as expired.
-		update_option( $key, array( 'token' => 'tok', 'created' => time() - WEEK_IN_SECONDS ), false );
-		$this->assertFalse(
-			(bool) self::call_private( ERankly_Migration_Job_Runner::class, 'owns_lock', array( $job_id, 'tok' ), $runner )
-		);
-
-		delete_option( $key );
+	public function test_job_lease_is_not_owned_without_a_lock_option(): void {
+		$this->assertFalse( ERankly_Job_Lease::owns( 'erankly_migration_lock_', 'job-missing-' . wp_generate_password( 6, false ), 'tok' ) );
 	}
 
 	public function test_job_runner_add_warning_appends_and_dedupes_by_code_and_reference(): void {

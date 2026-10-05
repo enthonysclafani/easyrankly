@@ -80,6 +80,11 @@ function erankly_cache_core_sitemap_taxonomies_url_list( ?array $url_list, strin
 
 /** @return array<int,array<string,string>>|null */
 function erankly_cache_core_sitemap_users_url_list( ?array $url_list, int $page_num ): ?array {
+	// An empty list makes core answer 404 for a users sitemap hidden from the index.
+	if ( ! erankly_should_include_user_sitemap() ) {
+		return array();
+	}
+
 	return erankly_cache_core_sitemap_url_list( $url_list, 'users', '', $page_num );
 }
 
@@ -284,7 +289,7 @@ function erankly_filter_core_sitemap_terms_query_args( array $args, string $taxo
 		return $args;
 	}
 
-	$exclusion = erankly_get_sitemap_term_exclusion_meta_query(
+	$exclusion = erankly_get_sitemap_exclusion_meta_query(
 		erankly_get_global_taxonomy_directive( $taxonomy, 'noindex' )
 	);
 
@@ -372,13 +377,12 @@ function erankly_filter_core_sitemap_taxonomies( array $taxonomies ): array {
 	return $taxonomies;
 }
 
-/** @return WP_Sitemaps_Provider|null */
-function erankly_filter_core_sitemap_add_provider( $provider, string $name ) {
-	if ( 'users' === $name && ! erankly_should_include_user_sitemap() ) {
-		return null;
-	}
-
-	return $provider;
+/**
+ * Hides the users sitemap from the index when it should not be exposed. The users provider stays registered:
+ * wp_sitemaps_add_provider fires on init for every request, while this filter runs only when a sitemap is built.
+ */
+function erankly_filter_core_sitemap_users_max_num_pages( ?int $max_num_pages ): ?int {
+	return erankly_should_include_user_sitemap() ? $max_num_pages : 0;
 }
 
 /**
@@ -565,6 +569,10 @@ function erankly_filter_sitemap_post_type_names_by_global_directives( array $pos
 
 /** @return array<int,int> */
 function erankly_get_non_self_canonical_post_ids( array $post_types = array() ): array {
+	if ( ! erankly_seo_enabled() ) {
+		return array();
+	}
+
 	$post_types = array_values( array_unique( array_filter( array_map( 'sanitize_key', $post_types ) ) ) );
 	if ( ! $post_types ) {
 		$post_types = array_keys( erankly_get_sitemap_post_types() );
@@ -733,6 +741,10 @@ function erankly_replace_sitemap_user_canonical_variables( string $value, WP_Use
 
 /** @return array<int,int> */
 function erankly_get_non_self_canonical_term_ids( string $taxonomy ): array {
+	if ( ! erankly_seo_enabled() ) {
+		return array();
+	}
+
 	$taxonomy = sanitize_key( $taxonomy );
 	$cache_key = erankly_get_sitemap_cache_key( 'canonical_terms_' . $taxonomy );
 	$cached    = get_transient( $cache_key );
@@ -788,6 +800,10 @@ function erankly_get_non_self_canonical_term_ids( string $taxonomy ): array {
 
 /** @return array<int,int> */
 function erankly_get_non_self_canonical_user_ids(): array {
+	if ( ! erankly_seo_enabled() ) {
+		return array();
+	}
+
 	$cache_key = erankly_get_sitemap_cache_key( 'canonical_users' );
 	$cached    = get_transient( $cache_key );
 	if ( is_array( $cached ) ) {
@@ -849,7 +865,7 @@ function erankly_is_post_sitemap_eligible( int $post_id, array $allowed_post_typ
 
 	if (
 		erankly_get_global_post_type_directive( $post->post_type, 'disable_sitemap' )
-		|| erankly_get_post_meta_bool( $post_id, 'disable_sitemap' )
+		|| ( erankly_seo_enabled() && erankly_get_post_meta_bool( $post_id, 'disable_sitemap' ) )
 	) {
 		return false;
 	}
@@ -869,9 +885,7 @@ function erankly_is_post_sitemap_eligible( int $post_id, array $allowed_post_typ
 }
 
 /**
- * Returns the SQL suffix that excludes posts blocked from sitemap output. The tri-state directive is canonical
- * when it contains a recognized value. The legacy boolean is consulted only when that directive is absent,
- * retaining compatibility without allowing a stale legacy flag to override explicit `index` metadata.
+ * Returns the SQL suffix that excludes posts blocked from sitemap output.
  *
  * @param string            $post_alias Alias of the posts table in the owning query.
  * @param array<int,string> $post_types Post types included by the owning query.
@@ -881,6 +895,10 @@ function erankly_get_sitemap_exclusion_sql( string $post_alias = 'p', array $pos
 
 	if ( 1 !== preg_match( '/^[A-Za-z_][A-Za-z0-9_]*$/D', $post_alias ) ) {
 		$post_alias = 'p';
+	}
+
+	if ( ! erankly_seo_enabled() ) {
+		return " AND {$post_alias}.post_password = ''";
 	}
 
 	$post_types = array_values( array_unique( array_filter( array_map( 'sanitize_key', $post_types ) ) ) );
@@ -895,20 +913,6 @@ function erankly_get_sitemap_exclusion_sql( string $post_alias = 'p', array $pos
 			WHERE pm_erankly_index_noindex.post_id = {$post_alias}.ID
 				AND pm_erankly_index_noindex.meta_key = '_erankly_index_directive'
 				AND pm_erankly_index_noindex.meta_value = 'noindex'
-		)
-		AND (
-			EXISTS (
-				SELECT 1 FROM {$wpdb->postmeta} pm_erankly_index_override
-				WHERE pm_erankly_index_override.post_id = {$post_alias}.ID
-					AND pm_erankly_index_override.meta_key = '_erankly_index_directive'
-					AND pm_erankly_index_override.meta_value IN ('index', 'inherit', 'noindex')
-			)
-			OR NOT EXISTS (
-				SELECT 1 FROM {$wpdb->postmeta} pm_erankly_legacy_noindex
-				WHERE pm_erankly_legacy_noindex.post_id = {$post_alias}.ID
-					AND pm_erankly_legacy_noindex.meta_key = '_erankly_noindex'
-					AND pm_erankly_legacy_noindex.meta_value = '1'
-			)
 		)
 		AND NOT EXISTS (
 			SELECT 1 FROM {$wpdb->postmeta} pm_erankly_sitemap_disabled
@@ -952,13 +956,15 @@ function erankly_get_sitemap_exclusion_sql( string $post_alias = 'p', array $pos
 }
 
 /**
- * Returns meta query clauses that exclude blocked sitemap URLs. The canonical tri-state directive takes
- * precedence over the legacy boolean. A recognized explicit `index` therefore remains eligible even if stale
- * `_erankly_noindex` metadata is still present.
+ * Returns meta query clauses that exclude blocked sitemap URLs (posts and terms).
  *
  * @return array<int|string,mixed>
  */
 function erankly_get_sitemap_exclusion_meta_query( bool $require_explicit_index = false, bool $include_disable_sitemap = true ): array {
+	if ( ! erankly_seo_enabled() ) {
+		return array();
+	}
+
 	$index_clause = $require_explicit_index
 		? array(
 			'key'     => '_erankly_index_directive',
@@ -981,23 +987,6 @@ function erankly_get_sitemap_exclusion_meta_query( bool $require_explicit_index 
 	$query = array(
 		'relation' => 'AND',
 		$index_clause,
-		array(
-			'relation' => 'OR',
-			array(
-				'key'     => '_erankly_index_directive',
-				'value'   => array( 'index', 'inherit', 'noindex' ),
-				'compare' => 'IN',
-			),
-			array(
-				'key'     => '_erankly_noindex',
-				'compare' => 'NOT EXISTS',
-			),
-			array(
-				'key'     => '_erankly_noindex',
-				'value'   => '1',
-				'compare' => '!=',
-			),
-		),
 	);
 
 	if ( $include_disable_sitemap ) {
@@ -1018,18 +1007,12 @@ function erankly_get_sitemap_exclusion_meta_query( bool $require_explicit_index 
 	return $query;
 }
 
-/**
- * Returns meta query clauses that exclude noindex terms from taxonomy sitemaps. Terms use the same canonical and
- * legacy keys as posts, so the post exclusion clauses apply unchanged.
- *
- * @return array<int|string,mixed>
- */
-function erankly_get_sitemap_term_exclusion_meta_query( bool $require_explicit_index = false ): array {
-	return erankly_get_sitemap_exclusion_meta_query( $require_explicit_index );
-}
-
 /** Returns the SQL suffix that excludes noindex or non-canonical authors. */
 function erankly_get_sitemap_user_exclusion_sql( string $user_id_expression ): string {
+	if ( ! erankly_seo_enabled() ) {
+		return '';
+	}
+
 	global $wpdb;
 
 	if ( 1 !== preg_match( '/^[A-Za-z_][A-Za-z0-9_.]*$/D', $user_id_expression ) ) {
@@ -1042,20 +1025,6 @@ function erankly_get_sitemap_user_exclusion_sql( string $user_id_expression ): s
 			WHERE um_erankly_index_noindex.user_id = {$user_id_expression}
 				AND um_erankly_index_noindex.meta_key = '_erankly_index_directive'
 				AND um_erankly_index_noindex.meta_value = 'noindex'
-		)
-		AND (
-			EXISTS (
-				SELECT 1 FROM {$wpdb->usermeta} um_erankly_index_override
-				WHERE um_erankly_index_override.user_id = {$user_id_expression}
-					AND um_erankly_index_override.meta_key = '_erankly_index_directive'
-					AND um_erankly_index_override.meta_value IN ('index', 'inherit', 'noindex')
-			)
-			OR NOT EXISTS (
-				SELECT 1 FROM {$wpdb->usermeta} um_erankly_legacy_noindex
-				WHERE um_erankly_legacy_noindex.user_id = {$user_id_expression}
-					AND um_erankly_legacy_noindex.meta_key = '_erankly_noindex'
-					AND um_erankly_legacy_noindex.meta_value = '1'
-			)
 		)
 	";
 
@@ -1072,6 +1041,10 @@ function erankly_get_sitemap_user_exclusion_sql( string $user_id_expression ): s
  * XML sitemaps because those archives usually duplicate the main content listing.
  */
 function erankly_should_include_user_sitemap(): bool {
+	if ( ! erankly_seo_enabled() ) {
+		return true;
+	}
+
 	$author_hidden = erankly_get_global_entity_directive( 'global_special_meta', 'author', 'noindex' )
 		|| erankly_get_global_entity_directive( 'global_special_meta', 'author', 'disable_sitemap' );
 	$include       = ! $author_hidden && erankly_count_sitemap_users() > 1;
@@ -1097,8 +1070,7 @@ function erankly_get_sitemap_user_ids(): array {
 function erankly_get_sitemap_user_stats(): array {
 	global $wpdb;
 
-	// The wp_sitemaps_add_provider filter fires on init for every request, so
-	// this author lookup must be transient-cached, not just per-request.
+	// Transient-cached: the index and every users sitemap page need this lookup.
 	$transient_key = erankly_get_sitemap_cache_key( 'user_stats' );
 	static $cache_by_transient_key = array();
 
@@ -1171,4 +1143,79 @@ function erankly_format_sitemap_gmt_date( string $date ): string {
 	$timestamp = strtotime( $date . ' UTC' );
 
 	return false === $timestamp ? '' : gmdate( DATE_W3C, $timestamp );
+}
+
+/** Aligns the native WordPress sitemap with EasyRankly visibility rules and keeps its URL cache fresh. */
+function erankly_core_sitemap_boot(): void {
+	add_filter( 'wp_sitemaps_posts_query_args', 'erankly_filter_core_sitemap_posts_query_args', 20, 2 );
+	add_filter( 'wp_sitemaps_posts_pre_url_list', 'erankly_cache_core_sitemap_posts_url_list', 5, 3 );
+	add_filter( 'wp_sitemaps_posts_pre_url_list', 'erankly_filter_core_sitemap_posts_pre_url_list', 20, 3 );
+	add_filter( 'wp_sitemaps_posts_pre_max_num_pages', 'erankly_filter_core_sitemap_posts_pre_max_num_pages', 20, 2 );
+	add_filter( 'wp_sitemaps_taxonomies_query_args', 'erankly_filter_core_sitemap_terms_query_args', 20, 2 );
+	add_filter( 'wp_sitemaps_taxonomies_pre_url_list', 'erankly_cache_core_sitemap_taxonomies_url_list', 5, 3 );
+	add_filter( 'wp_sitemaps_users_query_args', 'erankly_filter_core_sitemap_users_query_args', 20 );
+	add_filter( 'wp_sitemaps_users_pre_url_list', 'erankly_cache_core_sitemap_users_url_list', 5, 2 );
+	add_filter( 'wp_sitemaps_post_types', 'erankly_filter_core_sitemap_post_types', 20 );
+	add_filter( 'wp_sitemaps_taxonomies', 'erankly_filter_core_sitemap_taxonomies', 20 );
+	add_filter( 'wp_sitemaps_users_pre_max_num_pages', 'erankly_filter_core_sitemap_users_max_num_pages', 20 );
+	add_filter( 'posts_where', 'erankly_filter_sitemap_posts_where', 20, 2 );
+	add_action( 'template_redirect', 'erankly_start_core_sitemap_output_buffer', 0 );
+
+	add_action( 'save_post', 'erankly_flush_sitemap_cache_for_post' );
+	add_action( 'deleted_post', 'erankly_flush_sitemap_cache_for_deleted_post' );
+	add_action( 'transition_post_status', 'erankly_flush_sitemap_cache_for_status', 10, 3 );
+	add_action( 'profile_update', 'erankly_flush_sitemap_cache' );
+	add_action( 'user_register', 'erankly_flush_sitemap_cache' );
+	add_action( 'deleted_user', 'erankly_flush_sitemap_cache' );
+	add_action( 'added_user_meta', 'erankly_flush_sitemap_cache_for_user_meta', 10, 3 );
+	add_action( 'updated_user_meta', 'erankly_flush_sitemap_cache_for_user_meta', 10, 3 );
+	add_action( 'deleted_user_meta', 'erankly_flush_sitemap_cache_for_user_meta', 10, 3 );
+	add_action( 'added_term_meta', 'erankly_flush_sitemap_cache_for_term_meta', 10, 3 );
+	add_action( 'updated_term_meta', 'erankly_flush_sitemap_cache_for_term_meta', 10, 3 );
+	add_action( 'deleted_term_meta', 'erankly_flush_sitemap_cache_for_term_meta', 10, 3 );
+	add_action( 'created_term', 'erankly_flush_sitemap_cache', 10, 3 );
+	add_action( 'edited_term', 'erankly_flush_sitemap_cache', 10, 3 );
+	add_action( 'delete_term', 'erankly_flush_sitemap_cache', 10, 5 );
+	add_action( 'added_post_meta', 'erankly_flush_sitemap_cache_for_post_meta', 10, 3 );
+	add_action( 'updated_post_meta', 'erankly_flush_sitemap_cache_for_post_meta', 10, 3 );
+	add_action( 'deleted_post_meta', 'erankly_flush_sitemap_cache_for_post_meta', 10, 3 );
+	foreach ( array( 'home', 'siteurl', 'permalink_structure', 'show_on_front', 'page_on_front', 'page_for_posts' ) as $sitemap_option ) {
+		add_action( 'update_option_' . $sitemap_option, 'erankly_flush_sitemap_cache' );
+	}
+}
+
+/**
+ * Registers the optional sitemap module: the extra content-type provider and the specialised news, image and
+ * video sitemaps. Each specialised file is parsed only when its feature is enabled.
+ */
+function erankly_sitemap_module_boot(): void {
+	require_once ERANKLY_PATH . 'includes/class-erankly-site-sitemaps-provider.php';
+	add_action(
+		'init',
+		static function (): void {
+			wp_register_sitemap_provider( 'erankly-site', new ERankly_Site_Sitemaps_Provider() );
+		}
+	);
+
+	// Specialised sitemaps require non-standard XML namespaces, so they are served as EasyRankly virtual files.
+	$specialists = array_filter(
+		array(
+			'news'  => (bool) erankly_get_setting( 'enable_news_sitemap', 0 ),
+			'image' => (bool) erankly_get_setting( 'enable_image_sitemap', 0 ),
+			'video' => (bool) erankly_get_setting( 'enable_video_sitemap', 0 ),
+		)
+	);
+	foreach ( array_keys( $specialists ) as $type ) {
+		require_once ERANKLY_PATH . 'includes/sitemap/' . $type . '.php';
+	}
+	if ( $specialists ) {
+		require_once ERANKLY_PATH . 'includes/class-erankly-specialist-sitemaps-provider.php';
+		add_action(
+			'init',
+			static function (): void {
+				wp_register_sitemap_provider( 'erankly', new ERankly_Specialist_Sitemaps_Provider() );
+			}
+		);
+	}
+	add_action( 'template_redirect', 'erankly_maybe_render_virtual_files', 0 );
 }

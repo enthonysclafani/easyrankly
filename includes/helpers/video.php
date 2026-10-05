@@ -56,15 +56,6 @@ function erankly_extract_video_urls( string $content ): array {
 }
 
 /**
- * Back-compat alias used by the video sitemap.
- *
- * @return array<int,string>
- */
-function erankly_extract_sitemap_video_urls( string $content ): array {
-	return erankly_extract_video_urls( $content );
-}
-
-/**
  * @param string $video_url Video URL (page, short, or embed form).
  * @return string Embed URL, or empty string if unsupported.
  */
@@ -88,11 +79,6 @@ function erankly_get_video_embed_url( string $video_url ): string {
 	return '';
 }
 
-/** Back-compat alias used by the video sitemap. */
-function erankly_get_sitemap_video_embed_url( string $video_url ): string {
-	return erankly_get_video_embed_url( $video_url );
-}
-
 /** @return string Content URL, or empty string if unsupported. */
 function erankly_get_video_content_url( string $video_url ): string {
 	$path = wp_parse_url( $video_url, PHP_URL_PATH );
@@ -102,11 +88,6 @@ function erankly_get_video_content_url( string $video_url ): string {
 	}
 
 	return '';
-}
-
-/** Back-compat alias used by the video sitemap. */
-function erankly_get_sitemap_video_content_url( string $video_url ): string {
-	return erankly_get_video_content_url( $video_url );
 }
 
 /** @return string Thumbnail URL, or empty string. */
@@ -128,7 +109,3 @@ function erankly_get_video_thumbnail_url( int $post_id, string $video_url ): str
 	return '';
 }
 
-/** Back-compat alias used by the video sitemap. */
-function erankly_get_sitemap_video_thumbnail_url( int $post_id, string $video_url ): string {
-	return erankly_get_video_thumbnail_url( $post_id, $video_url );
-}

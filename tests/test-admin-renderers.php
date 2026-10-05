@@ -1,5 +1,5 @@
 <?php
-/** Admin renderers: shared field renderers, settings field renderers, section wrappers and sidebar nav icons. */
+/** Admin renderers: shared field renderers, settings field renderers and section wrappers. */
 
 final class ERankly_Admin_Renderers_Test extends WP_UnitTestCase {
 
@@ -12,7 +12,6 @@ final class ERankly_Admin_Renderers_Test extends WP_UnitTestCase {
 		require_once ERANKLY_PATH . 'includes/admin.php';
 		require_once ERANKLY_PATH . 'admin/field-renderers.php';
 		require_once ERANKLY_PATH . 'admin/settings/section-links.php';
-		require_once ERANKLY_PATH . 'admin/settings/nav-icons.php';
 		require_once ERANKLY_PATH . 'admin/settings/renderers.php';
 		erankly_load_content_helpers();
 	}
@@ -46,7 +45,13 @@ final class ERankly_Admin_Renderers_Test extends WP_UnitTestCase {
 	}
 
 	public function test_variable_picker_renders_a_listbox_with_every_group_and_examples(): void {
-		$html = $this->capture( static fn() => erankly_render_variable_picker( array( 'post_title' => 'Post title' ) ) );
+		$html = $this->capture( static function (): void {
+			erankly_render_variable_picker( array( 'post_title' => 'Post title' ) );
+			erankly_render_variable_picker( array( 'term_name' => 'Term name' ) );
+			do_action( 'admin_footer' );
+		} );
+		$this->assertSame( 1, substr_count( $html, 'data-erankly-variable-menu' ) );
+		$this->assertSame( 2, substr_count( $html, 'data-erankly-variable-preview' ) );
 
 		$this->assertStringContainsString( 'data-erankly-variable-menu', $html );
 		$this->assertStringContainsString( 'role="listbox"', $html );
@@ -66,7 +71,8 @@ final class ERankly_Admin_Renderers_Test extends WP_UnitTestCase {
 			)
 		);
 
-		$this->assertStringContainsString( 'data-erankly-variable="{{page_number}}"', $html );
+		$this->assertStringContainsString( 'data-erankly-variable-groups="[&quot;pagination&quot;]"', $html );
+		$this->assertStringNotContainsString( 'data-erankly-variable-menu', $html );
 		$this->assertStringNotContainsString( '{{post_title}}', $html );
 		// Examples are filtered to variables that exist in an allowed group.
 		$this->assertStringContainsString( 'data-erankly-variable-examples=', $html );
@@ -145,22 +151,6 @@ final class ERankly_Admin_Renderers_Test extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'Probe', $writable );
 	}
 
-	public function test_custom_code_block_preserves_the_legacy_migration_flag(): void {
-		$html = $this->capture(
-			static fn() => erankly_render_custom_code_block(
-				array(
-					'enabled'         => 1,
-					'legacy_migrated' => 1,
-				),
-				'0',
-				'p',
-				true
-			)
-		);
-
-		$this->assertStringContainsString( 'name="p[0][legacy_migrated]" value="1"', $html );
-	}
-
 	public function test_schema_textarea_field_wires_the_error_region(): void {
 		$html = $this->capture(
 			static fn() => erankly_render_schema_textarea_field( '0', 'erankly_schema_blocks', 'custom_json', 'JSON-LD code', '{}', 10 )
@@ -175,7 +165,7 @@ final class ERankly_Admin_Renderers_Test extends WP_UnitTestCase {
 
 	public function test_media_url_field_renders_attachment_id_hidden_input_and_preview(): void {
 		$html = $this->capture(
-			static fn() => erankly_render_media_url_field( 'f', 'n', 'https://example.com/img.png', 'ph', 'aid', 7, true )
+			static fn() => erankly_render_media_url_field( 'f', 'n', 'https://example.com/img.png', 'aid', 7, true )
 		);
 
 		$this->assertStringContainsString( 'data-erankly-media-url-field', $html );
@@ -188,14 +178,14 @@ final class ERankly_Admin_Renderers_Test extends WP_UnitTestCase {
 
 	public function test_media_url_field_skips_the_preview_for_template_values_and_optional_id_field(): void {
 		$html = $this->capture(
-			static fn() => erankly_render_media_url_field( 'f', 'n', '{{site_icon_url}}', '', '', 0, true )
+			static fn() => erankly_render_media_url_field( 'f', 'n', '{{site_icon_url}}', '', 0, true )
 		);
 
 		$this->assertStringNotContainsString( '<img', $html );
 		$this->assertStringNotContainsString( 'data-erankly-media-url-id', $html );
 
 		$no_preview = $this->capture(
-			static fn() => erankly_render_media_url_field( 'f', 'n', 'https://example.com/img.png', '', '', 0, false )
+			static fn() => erankly_render_media_url_field( 'f', 'n', 'https://example.com/img.png', '', 0, false )
 		);
 		$this->assertStringNotContainsString( 'data-erankly-media-url-preview', $no_preview );
 	}
@@ -232,10 +222,10 @@ final class ERankly_Admin_Renderers_Test extends WP_UnitTestCase {
 
 		$this->assertStringContainsString( 'Incomplete configuration', $html );
 		$this->assertStringContainsString( 'erankly-notice-body', $html );
-		$this->assertStringContainsString( esc_url( erankly_settings_tab_url( 'general' ) ), $html );
-		$this->assertStringContainsString( 'erankly_tab=general', $html );
+		$this->assertStringContainsString( esc_url( erankly_settings_tab_url( 'seo' ) ), $html );
+		$this->assertStringContainsString( 'erankly_tab=seo', $html );
 		$this->assertStringContainsString( '#erankly-organization-details', $html );
-		$this->assertStringContainsString( 'Set the address in General', $html );
+		$this->assertStringContainsString( 'Set the address in SEO', $html );
 	}
 
 	public function test_local_business_settings_hide_the_fieldset_until_enabled(): void {
@@ -369,45 +359,13 @@ final class ERankly_Admin_Renderers_Test extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'aria-labelledby="id-label"', $html );
 	}
 
-	public function test_social_meta_defaults_become_linked_when_templates_match(): void {
-		$settings = erankly_get_settings();
-		$settings['default_og_title']            = 'Same';
-		$settings['default_twitter_title']       = 'Same';
-		$settings['default_og_description']      = 'Same';
-		$settings['default_twitter_description'] = 'Same';
-		$settings['social_defaults_linked']      = 1;
-
-		$html = $this->capture( static fn() => erankly_render_social_meta_defaults( $settings ) );
-
-		$this->assertStringContainsString( 'erankly-tabs-group is-linked', $html );
-		$this->assertStringContainsString( 'name="' . ERANKLY_OPTION . '[default_og_title]"', $html );
-		$this->assertStringContainsString( 'name="' . ERANKLY_OPTION . '[social_defaults_linked]" value="1"', $html );
-		$this->assertStringContainsString( 'data-erankly-linked-input', $html );
-	}
-
-	public function test_social_meta_defaults_are_unlinked_when_templates_differ(): void {
-		$settings = erankly_get_settings();
-		$settings['default_og_title']            = 'Open Graph';
-		$settings['default_twitter_title']       = 'Twitter';
-		$settings['default_og_description']      = 'A';
-		$settings['default_twitter_description'] = 'B';
-		$settings['social_defaults_linked']      = 1;
-
-		$html = $this->capture( static fn() => erankly_render_social_meta_defaults( $settings ) );
-
-		$this->assertStringNotContainsString( 'erankly-tabs-group is-linked', $html );
-	}
-
-	public function test_special_page_defaults_render_tabs_and_hidden_social_inputs_in_simplified_mode(): void {
-		$settings                    = erankly_get_settings();
-		$settings['simplified_mode'] = 1;
-
-		$html = $this->capture( static fn() => erankly_render_special_page_defaults( erankly_special_page_keys(), $settings ) );
+	public function test_special_page_defaults_render_tabs_and_social_fields(): void {
+		$html = $this->capture( static fn() => erankly_render_special_page_defaults( erankly_special_page_keys(), erankly_get_settings() ) );
 
 		$this->assertStringContainsString( 'erankly-tabs-group-pages', $html );
 		$this->assertStringContainsString( 'name="' . ERANKLY_OPTION . '[global_special_meta][homepage][title]"', $html );
 		$this->assertStringContainsString( 'name="' . ERANKLY_OPTION . '[global_special_meta][homepage][og_title]"', $html );
-		$this->assertStringNotContainsString( 'erankly-defaults-section', $html );
+		$this->assertStringContainsString( 'erankly-defaults-section', $html );
 	}
 
 	public function test_special_page_defaults_return_nothing_for_an_empty_entity_list(): void {
@@ -416,12 +374,7 @@ final class ERankly_Admin_Renderers_Test extends WP_UnitTestCase {
 		$this->assertSame( '', $html );
 	}
 
-	public function test_special_page_group_renders_visible_social_fields_when_not_simplified(): void {
-		$settings                    = erankly_get_settings();
-		$settings['simplified_mode'] = 0;
-		erankly_tests_set_settings( $settings );
-		erankly_clear_settings_cache();
-
+	public function test_special_page_group_renders_the_tab_and_social_fields(): void {
 		$html = $this->capture(
 			static fn() => erankly_render_special_page_defaults_group(
 				array( 'homepage' => 'Homepage' ),
@@ -437,19 +390,16 @@ final class ERankly_Admin_Renderers_Test extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'erankly-defaults-section', $html );
 	}
 
-	public function test_special_page_social_defaults_render_hidden_inputs_in_simplified_mode(): void {
+	public function test_special_page_social_defaults_render_the_social_fields(): void {
 		$row = array(
-			'og_title' => 'OG',
+			'og_title'    => 'OG',
 			'og_image_id' => 4,
 		);
 
-		$simple = $this->capture( static fn() => erankly_render_special_page_social_defaults( 'global_special_meta', 'homepage', $row, 'erankly-global_special_meta-homepage', true ) );
-		$this->assertStringContainsString( 'type="hidden" name="' . ERANKLY_OPTION . '[global_special_meta][homepage][og_title]" value="OG"', $simple );
-		$this->assertStringContainsString( 'name="' . ERANKLY_OPTION . '[global_special_meta][homepage][og_image_id]" value="4"', $simple );
-
-		$full = $this->capture( static fn() => erankly_render_special_page_social_defaults( 'global_special_meta', 'homepage', $row, 'erankly-global_special_meta-homepage', false ) );
-		$this->assertStringContainsString( 'erankly-defaults-section', $full );
-		$this->assertStringContainsString( 'id="erankly-global_special_meta-homepage-og-title"', $full );
+		$html = $this->capture( static fn() => erankly_render_special_page_social_defaults( 'global_special_meta', 'homepage', $row, 'erankly-global_special_meta-homepage' ) );
+		$this->assertStringContainsString( 'erankly-defaults-section', $html );
+		$this->assertStringContainsString( 'id="erankly-global_special_meta-homepage-og-title"', $html );
+		$this->assertStringContainsString( 'name="' . ERANKLY_OPTION . '[global_special_meta][homepage][og_image_id]" value="4"', $html );
 	}
 
 	public function test_global_advanced_robot_preservation_only_forwards_known_keys(): void {
@@ -473,7 +423,7 @@ final class ERankly_Admin_Renderers_Test extends WP_UnitTestCase {
 		$this->assertTrue( erankly_section_stack() );
 	}
 
-	public function test_section_open_and_close_emit_balanced_markup_with_doc_link(): void {
+	public function test_section_open_and_close_emit_balanced_markup_without_doc_link(): void {
 		$html = $this->capture(
 			static function (): void {
 				erankly_section_open( 'Search engines', array( 'doc' => 'search-engines' ) );
@@ -484,61 +434,21 @@ final class ERankly_Admin_Renderers_Test extends WP_UnitTestCase {
 		$this->assert_balanced_divs( $html );
 		$this->assertStringContainsString( 'class="erankly-settings-section"', $html );
 		$this->assertStringContainsString( 'class="erankly-card"', $html );
-		$this->assertStringContainsString( 'class="erankly-section-doc-link"', $html );
-		$this->assertStringContainsString( 'data-erankly-doc-section="search-engines"', $html );
+		$this->assertStringNotContainsString( 'erankly-section-doc-link', $html );
+		$this->assertStringNotContainsString( 'data-erankly-doc-section', $html );
+		$this->assertStringNotContainsString( 'Learn more', $html );
 	}
 
-	public function test_section_open_honours_class_card_false_and_hidden_flags(): void {
+	public function test_section_open_honours_class_and_card_false(): void {
 		$html = $this->capture(
 			static function (): void {
-				erankly_section_open( 'Hidden section', array( 'class' => 'probe', 'card' => false, 'hidden' => true ) );
+				erankly_section_open( 'Probe section', array( 'class' => 'probe', 'card' => false ) );
 				erankly_section_close();
 			}
 		);
 
 		$this->assert_balanced_divs( $html );
-		$this->assertStringContainsString( 'erankly-settings-section probe" hidden', $html );
+		$this->assertStringContainsString( 'erankly-settings-section probe">', $html );
 		$this->assertStringNotContainsString( 'class="erankly-card"', $html );
-	}
-
-	public function test_section_doc_link_is_omitted_for_unknown_sections(): void {
-		$this->assertSame( '', $this->capture( static fn() => erankly_render_section_doc_link( 'term-meta' ) ) );
-		$this->assertStringContainsString( 'erankly-section-doc-link', $this->capture( static fn() => erankly_render_section_doc_link( 'xml-sitemap' ) ) );
-	}
-
-	public function test_section_doc_links_are_filterable(): void {
-		$filter = static function ( array $links ): array {
-			$links['probe-section'] = 'https://example.com/docs';
-			return $links;
-		};
-
-		add_filter( 'erankly_section_doc_links', $filter );
-
-		try {
-			$this->assertSame( 'https://example.com/docs', erankly_section_doc_links()['probe-section'] );
-		} finally {
-			remove_filter( 'erankly_section_doc_links', $filter );
-		}
-	}
-
-	public function test_nav_icons_alias_special_pages_to_general_and_fallback_in_nav_icon(): void {
-		$icons = erankly_nav_icons();
-
-		$this->assertArrayHasKey( 'general', $icons );
-		$this->assertSame( $icons['general'], $icons['special-pages'] );
-		$this->assertStringContainsString( '<path', $icons['general'] );
-
-		$this->assertStringContainsString( '<svg class="erankly-nav-icon"', erankly_nav_icon( 'general' ) );
-		$this->assertStringContainsString( 'M3 11.99', erankly_nav_icon( 'general' ) );
-		$this->assertStringContainsString( 'M7 3v18', erankly_nav_icon( 'no-such-slug' ) );
-	}
-
-	public function test_nav_icon_allowed_html_permits_svg_and_path(): void {
-		$allowed = erankly_nav_icon_allowed_html();
-
-		$this->assertArrayHasKey( 'svg', $allowed );
-		$this->assertArrayHasKey( 'path', $allowed );
-		$this->assertArrayHasKey( 'viewbox', $allowed['svg'] );
-		$this->assertArrayHasKey( 'd', $allowed['path'] );
 	}
 }

@@ -216,3 +216,409 @@
 	color: var(--erankly-color-error);
 	margin: 0 0 var(--erankly-space-field);
 }
+
+/*
+ * SERP preview.
+ *
+ * The header button sits next to Core's "View" link; the modal mimics a desktop
+ * Google results page inside a browser window, so the colours and metrics in
+ * .erankly-serp-window follow Google rather than the plugin tokens. Only the modal chrome around it uses the plugin tokens.
+ */
+.erankly-serp-preview-slot {
+	display: flex;
+	align-items: center;
+}
+
+@media (max-width: 781px) {
+	.erankly-serp-preview-slot {
+		display: none;
+	}
+}
+
+.components-modal__frame.erankly-serp-modal {
+	width: min(1120px, calc(100vw - 48px));
+	max-width: none;
+}
+
+/* The window sits flush on the modal's bottom edge, as if it continued below. */
+.erankly-serp-modal .components-modal__content {
+	padding: 0 24px;
+}
+
+/* Browser window. */
+.erankly-serp-window {
+	--serp-bg: #fff;
+	--serp-text: #1f1f1f;
+	--serp-muted: #5e5e5e;
+	--serp-icon: #5f6368;
+	--serp-search-icon: #4285f4;
+	--serp-border: #ebebeb;
+	--serp-bar-bg: #fff;
+	--serp-bar-border: transparent;
+	--serp-bar-shadow: 0 2px 5px 1px rgba(64, 60, 67, 0.16);
+	--serp-site: #202124;
+	--serp-url: #4d5156;
+	--serp-title: #1a0dab;
+	--serp-snippet: #474747;
+	--serp-snippet-strong: #1f1f1f;
+	--serp-date: #70757a;
+	--serp-favicon-bg: #f3f5f6;
+	--serp-favicon-border: #dadce0;
+	--serp-bone: #f1f3f4;
+	--serp-chrome: #f1f3f4;
+	--serp-chrome-border: #e3e3e3;
+	--serp-address: #fff;
+	--serp-signin-bg: #0b57d0;
+	--serp-signin-text: #fff;
+
+	container-type: inline-size;
+	overflow: hidden;
+	border: 1px solid var(--serp-chrome-border);
+	border-bottom: 0;
+	border-radius: 12px 12px 0 0;
+	background: var(--serp-bg);
+	box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08), 0 2px 6px rgba(0, 0, 0, 0.04);
+	color: var(--serp-text);
+}
+
+.erankly-serp-window__bar {
+	display: grid;
+	grid-template-columns: 64px minmax(0, 1fr) 64px;
+	align-items: center;
+	height: 38px;
+	padding: 0 14px;
+	border-bottom: 1px solid var(--serp-chrome-border);
+	background: var(--serp-chrome);
+}
+
+.erankly-serp-window__dots {
+	display: flex;
+	gap: 7px;
+}
+
+.erankly-serp-window__dots span {
+	width: 11px;
+	height: 11px;
+	border-radius: 50%;
+	background: #ff5f57;
+}
+
+.erankly-serp-window__dots span:nth-child(2) {
+	background: #febc2e;
+}
+
+.erankly-serp-window__dots span:nth-child(3) {
+	background: #28c840;
+}
+
+.erankly-serp-window__address {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 6px;
+	justify-self: center;
+	box-sizing: border-box;
+	width: min(440px, 100%);
+	height: 24px;
+	padding: 0 12px;
+	border-radius: 12px;
+	background: var(--serp-address);
+	color: var(--serp-muted);
+	font: 12px/1 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+.erankly-serp-window__address span {
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+}
+
+/* Results page. */
+.erankly-serp {
+	--serp-offset: 164px;
+
+	box-sizing: border-box;
+	height: 500px;
+	padding-top: 20px;
+	overflow: hidden;
+	font-family: Arial, sans-serif;
+}
+
+.erankly-serp__icon {
+	display: block;
+	flex: 0 0 auto;
+}
+
+.erankly-serp__header {
+	display: grid;
+	grid-template-columns: var(--serp-offset) minmax(0, 692px) 1fr;
+	align-items: center;
+	padding-right: 20px;
+}
+
+.erankly-serp__logo {
+	justify-self: center;
+	color: var(--serp-text);
+	font-family: "Product Sans", "Google Sans", Arial, sans-serif;
+	font-size: 28px;
+	letter-spacing: -0.5px;
+	line-height: 1;
+}
+
+.erankly-serp__searchbar {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	box-sizing: border-box;
+	height: 46px;
+	padding: 0 14px 0 22px;
+	border: 1px solid var(--serp-bar-border);
+	border-radius: 24px;
+	background: var(--serp-bar-bg);
+	box-shadow: var(--serp-bar-shadow);
+}
+
+.erankly-serp__query {
+	flex: 1 1 auto;
+	min-width: 0;
+	overflow: hidden;
+	color: var(--serp-text);
+	font-size: 16px;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+}
+
+.erankly-serp__searchbar-actions {
+	display: flex;
+	align-items: center;
+	gap: 14px;
+	color: var(--serp-icon);
+}
+
+.erankly-serp__searchbar-actions .erankly-serp__icon--clear {
+	color: var(--serp-muted);
+}
+
+.erankly-serp__searchbar-actions .erankly-serp__icon--search {
+	color: var(--serp-search-icon);
+}
+
+.erankly-serp__divider {
+	width: 1px;
+	height: 26px;
+	background: var(--serp-border);
+}
+
+.erankly-serp__account {
+	display: flex;
+	align-items: center;
+	justify-self: end;
+	gap: 18px;
+	color: var(--serp-icon);
+}
+
+.erankly-serp__sign-in {
+	padding: 10px 22px;
+	border-radius: 20px;
+	background: var(--serp-signin-bg);
+	color: var(--serp-signin-text);
+	font-family: "Google Sans", Roboto, Arial, sans-serif;
+	font-size: 14px;
+	font-weight: 500;
+	line-height: 1;
+	white-space: nowrap;
+}
+
+.erankly-serp__tabs {
+	display: flex;
+	gap: 26px;
+	margin-top: 14px;
+	padding-left: calc(var(--serp-offset) + 6px);
+	overflow: hidden;
+	border-bottom: 1px solid var(--serp-border);
+	color: var(--serp-muted);
+	font-family: "Google Sans", Roboto, Arial, sans-serif;
+	font-size: 14px;
+	white-space: nowrap;
+}
+
+.erankly-serp__tab {
+	display: inline-flex;
+	align-items: center;
+	padding: 14px 0 11px;
+	border-bottom: 3px solid transparent;
+}
+
+.erankly-serp__tab.is-active {
+	border-bottom-color: var(--serp-text);
+	color: var(--serp-text);
+	font-weight: 700;
+}
+
+.erankly-serp__tab.is-tools {
+	margin-left: 10px;
+}
+
+.erankly-serp__tab .erankly-serp__icon {
+	margin-right: -4px;
+}
+
+.erankly-serp__results {
+	display: flex;
+	flex-direction: column;
+	gap: 26px;
+	box-sizing: border-box;
+	max-width: calc(var(--serp-offset) + 6px + 600px);
+	padding: 22px 0 0 calc(var(--serp-offset) + 6px);
+}
+
+.erankly-serp__source {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	margin-bottom: 6px;
+}
+
+.erankly-serp__favicon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex: 0 0 auto;
+	box-sizing: border-box;
+	width: 28px;
+	height: 28px;
+	border: 1px solid var(--serp-favicon-border);
+	border-radius: 50%;
+	background: var(--serp-favicon-bg);
+	color: #5f6368;
+}
+
+.erankly-serp__favicon img {
+	width: 18px;
+	height: 18px;
+	object-fit: contain;
+}
+
+.erankly-serp__source-text {
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+}
+
+.erankly-serp__site-name {
+	color: var(--serp-site);
+	font-size: 14px;
+	line-height: 20px;
+}
+
+.erankly-serp__url-row {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	min-width: 0;
+	color: var(--serp-url);
+}
+
+.erankly-serp__url {
+	overflow: hidden;
+	font-size: 12px;
+	line-height: 18px;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+}
+
+.erankly-serp__title {
+	margin: 0;
+	padding: 2px 0 4px;
+	overflow: hidden;
+	color: var(--serp-title);
+	font-family: Arial, sans-serif;
+	font-size: 20px;
+	font-weight: 400;
+	line-height: 26px;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+	cursor: pointer;
+}
+
+.erankly-serp__title:hover {
+	text-decoration: underline;
+}
+
+.erankly-serp__description {
+	display: -webkit-box;
+	overflow: hidden;
+	color: var(--serp-snippet);
+	font-size: 14px;
+	line-height: 22px;
+	-webkit-box-orient: vertical;
+	-webkit-line-clamp: 2;
+	overflow-wrap: break-word;
+}
+
+.erankly-serp__description b {
+	color: var(--serp-snippet-strong);
+	font-weight: 700;
+}
+
+.erankly-serp__date {
+	color: var(--serp-date);
+}
+
+/* Placeholder results. */
+.erankly-serp__result--skeleton .erankly-serp__favicon {
+	border-color: transparent;
+	background: var(--serp-bone);
+}
+
+.erankly-serp__result--skeleton .erankly-serp__source-text {
+	gap: 7px;
+}
+
+.erankly-serp__bone {
+	display: block;
+	height: 10px;
+	border-radius: 5px;
+	background: var(--serp-bone);
+}
+
+.erankly-serp__bone--title {
+	height: 18px;
+	margin: 10px 0 12px;
+	border-radius: 9px;
+}
+
+.erankly-serp__bone--text + .erankly-serp__bone--text {
+	margin-top: 10px;
+}
+
+@container (max-width: 1000px) {
+	.erankly-serp {
+		--serp-offset: 120px;
+	}
+
+	.erankly-serp__account {
+		display: none;
+	}
+}
+
+@container (max-width: 720px) {
+	.erankly-serp {
+		--serp-offset: 14px;
+	}
+
+	.erankly-serp__header {
+		grid-template-columns: minmax(0, 1fr);
+		gap: 16px;
+		padding: 0 20px;
+	}
+
+	.erankly-serp__logo {
+		justify-self: start;
+	}
+
+	.erankly-serp__results {
+		padding-right: 20px;
+	}
+}
+

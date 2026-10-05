@@ -17,8 +17,6 @@ final class ERankly_Site_Sitemaps_Provider extends WP_Sitemaps_Provider {
 
 	/** @return array<int,array<string,string>> */
 	public function get_url_list( $page_num, $object_subtype = '' ): array {
-		unset( $object_subtype );
-
 		$page_num = max( 1, absint( $page_num ) );
 
 		return array_slice(
@@ -29,8 +27,6 @@ final class ERankly_Site_Sitemaps_Provider extends WP_Sitemaps_Provider {
 	}
 
 	public function get_max_num_pages( $object_subtype = '' ): int {
-		unset( $object_subtype );
-
 		return (int) ceil( count( $this->get_entries() ) / ERANKLY_SITEMAP_PER_PAGE );
 	}
 

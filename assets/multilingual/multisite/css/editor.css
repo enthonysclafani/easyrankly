@@ -1,0 +1,15 @@
+/**
+ * EasyRankly Multilingual for Multisite -- block editor panel.
+ *
+ * The panel itself reuses the host plugin's .erankly-panel chrome; only the add-on's own notes and the
+ * read-only site rows are styled here.
+ */
+
+.erankly-mlms-panel-note {
+	margin: 0 0 12px;
+}
+
+.erankly-mlms-site-label {
+	font-weight: 600;
+	margin-bottom: 0;
+}

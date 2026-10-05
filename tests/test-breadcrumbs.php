@@ -109,19 +109,7 @@ final class ERankly_Breadcrumbs_Test extends WP_UnitTestCase {
 		$this->assertSame( 'Etichetta briciola', erankly_get_post_breadcrumb_name( $post_id ) );
 	}
 
-	public function test_post_breadcrumb_name_reuses_the_title_meta_in_simplified_mode(): void {
-		erankly_tests_set_settings( array( 'simplified_mode' => 1 ) );
-		erankly_clear_settings_cache();
-
-		$post_id = $this->make_post( array( 'title' => 'Titolo SEO' ) );
-
-		$this->assertSame( 'Titolo SEO', erankly_get_post_breadcrumb_name( $post_id ) );
-	}
-
-	public function test_post_breadcrumb_name_ignores_the_title_meta_outside_simplified_mode(): void {
-		erankly_tests_set_settings( array( 'simplified_mode' => 0 ) );
-		erankly_clear_settings_cache();
-
+	public function test_post_breadcrumb_name_ignores_the_title_meta(): void {
 		$post_id = $this->make_post( array( 'title' => 'Titolo SEO' ), '', 'Titolo del post' );
 
 		$this->assertSame( 'Titolo del post', erankly_get_post_breadcrumb_name( $post_id ) );
@@ -342,14 +330,6 @@ final class ERankly_Breadcrumbs_Test extends WP_UnitTestCase {
 		}
 	}
 
-	public function test_legacy_alias_delegates_to_erankly_breadcrumbs(): void {
-		$this->assertTrue( function_exists( 'easyrankly_breadcrumbs' ) );
-		$this->assertSame(
-			erankly_breadcrumbs( array( 'echo' => false ) ),
-			easyrankly_breadcrumbs( array( 'echo' => false ) )
-		);
-	}
-
 	/**
 	 * @runInSeparateProcess
 	 * @preserveGlobalState disabled
@@ -439,19 +419,6 @@ final class ERankly_Breadcrumbs_Test extends WP_UnitTestCase {
 	 */
 	public function test_has_visible_breadcrumbs_detects_the_shortcode(): void {
 		$post_id = $this->make_post( array(), 'Testo [erankly_breadcrumbs] fine' );
-		$this->go_to( get_permalink( $post_id ) );
-
-		remove_theme_support( 'erankly-breadcrumbs' );
-
-		$this->assertTrue( erankly_has_visible_breadcrumbs() );
-	}
-
-	/**
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
-	public function test_has_visible_breadcrumbs_detects_the_legacy_shortcode(): void {
-		$post_id = $this->make_post( array(), 'Testo [easyrankly_breadcrumbs] fine' );
 		$this->go_to( get_permalink( $post_id ) );
 
 		remove_theme_support( 'erankly-breadcrumbs' );
@@ -641,12 +608,10 @@ final class ERankly_Breadcrumbs_Test extends WP_UnitTestCase {
 		}
 
 		remove_shortcode( 'erankly_breadcrumbs' );
-		remove_shortcode( 'easyrankly_breadcrumbs' );
 
 		erankly_register_breadcrumb_integrations();
 
 		$this->assertSame( 'erankly_breadcrumbs_shortcode', $GLOBALS['shortcode_tags']['erankly_breadcrumbs'] ?? null );
-		$this->assertSame( 'erankly_breadcrumbs_shortcode', $GLOBALS['shortcode_tags']['easyrankly_breadcrumbs'] ?? null );
 		$this->assertTrue( $registry->is_registered( 'easyrankly/breadcrumbs' ) );
 		$this->assertSame(
 			! erankly_core_breadcrumbs_block_available(),

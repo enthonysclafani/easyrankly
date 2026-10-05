@@ -10,62 +10,21 @@ final class ERankly_Meta_Helpers_Test extends WP_UnitTestCase {
 		erankly_load_content_helpers();
 		erankly_tests_load_settings_sanitizer();
 
-		foreach ( array( 'includes/meta-render.php', 'includes/custom-code.php', 'includes/reset.php', 'includes/network-reset.php' ) as $file ) {
+		foreach ( array( 'includes/meta-render.php', 'includes/custom-code.php' ) as $file ) {
 			require_once ERANKLY_PATH . $file;
 		}
 	}
 
 	public function tear_down(): void {
-		foreach ( array( 'erankly_reset_notice', 'page' ) as $key ) {
-			unset( $_GET[ $key ] );
-		}
+		unset( $_GET['page'] );
 		wp_set_current_user( 0 );
 		erankly_clear_settings_cache();
 		parent::tear_down();
 	}
 
-	/**
-	 * Clears a one-time migration flag from the storage the runtime reads.
-	 *
-	 * erankly_get_plugin_option()/erankly_update_plugin_option() store these
-	 * flags as a NETWORK option on Multisite, so delete_option() alone would
-	 * leave the flag in place there and the migration would bail.
-	 */
-	private function clear_migration_flag( string $option ): void {
-		if ( is_multisite() ) {
-			delete_site_option( $option );
-
-			return;
-		}
-
-		delete_option( $option );
-
-		$runtime_key = erankly_runtime_state_key( $option );
-		if ( '' === $runtime_key ) {
-			return;
-		}
-
-		$state = get_option( ERANKLY_RUNTIME_STATE_OPTION, array() );
-		if ( is_array( $state ) && array_key_exists( $runtime_key, $state ) ) {
-			unset( $state[ $runtime_key ] );
-			update_option( ERANKLY_RUNTIME_STATE_OPTION, $state, true );
-		}
-
-		unset( $GLOBALS['erankly_runtime_state_cache'] );
-	}
-
 	/* ----------------------------------------------------------------------
 	 * includes/meta.php
 	 * -------------------------------------------------------------------- */
-
-	public function test_importable_meta_keys_drops_legacy_boolean_robots_keys(): void {
-		$post = erankly_importable_meta_keys( 'post' );
-		$this->assertArrayHasKey( '_erankly_title', $post );
-		$this->assertArrayHasKey( '_erankly_schema_blocks', $post );
-		$this->assertArrayNotHasKey( '_erankly_noindex', $post );
-		$this->assertArrayNotHasKey( '_erankly_nofollow', $post );
-		$this->assertArrayNotHasKey( '_erankly_noarchive', $post );
-	}
 
 	public function test_importable_meta_keys_scopes_the_term_subset(): void {
 		$term = erankly_importable_meta_keys( 'term' );
@@ -97,27 +56,6 @@ final class ERankly_Meta_Helpers_Test extends WP_UnitTestCase {
 		$this->assertInstanceOf( stdClass::class, $prepared );
 		$this->assertSame( $stored, $GLOBALS['erankly_schema_blocks_previous'] );
 		unset( $GLOBALS['erankly_schema_blocks_previous'] );
-	}
-
-	public function test_migrate_legacy_social_image_meta_runs_a_single_batch(): void {
-		delete_option( 'erankly_legacy_social_image_migrated' );
-
-		$post_id = self::factory()->post->create();
-		update_post_meta( $post_id, '_erankly_social_image_url', 'https://example.test/legacy.jpg' );
-
-		erankly_migrate_legacy_social_image_meta();
-
-		$this->assertSame( 'https://example.test/legacy.jpg', get_post_meta( $post_id, '_erankly_og_image_url', true ) );
-		$this->assertSame( 'https://example.test/legacy.jpg', get_post_meta( $post_id, '_erankly_twitter_image_url', true ) );
-		$this->assertFalse( metadata_exists( 'post', $post_id, '_erankly_social_image_url' ) );
-		$this->assertSame( 1, (int) get_option( 'erankly_legacy_social_image_migrated' ) );
-
-		// A second legacy row added afterwards is left alone: the migration is one-shot.
-		$second = self::factory()->post->create();
-		update_post_meta( $second, '_erankly_social_image_url', 'https://example.test/second.jpg' );
-		erankly_migrate_legacy_social_image_meta();
-
-		$this->assertTrue( metadata_exists( 'post', $second, '_erankly_social_image_url' ) );
 	}
 
 	public function test_sanitize_primary_terms_keeps_only_positive_pairs(): void {
@@ -483,18 +421,13 @@ final class ERankly_Meta_Helpers_Test extends WP_UnitTestCase {
 	 * includes/helpers/global-meta.php
 	 * -------------------------------------------------------------------- */
 
-	public function test_get_post_and_term_meta_bool_reads_stored_truthiness(): void {
+	public function test_get_post_meta_bool_reads_stored_truthiness(): void {
 		$post_id = self::factory()->post->create();
-		update_post_meta( $post_id, '_erankly_noindex', '1' );
-		$this->assertTrue( erankly_get_post_meta_bool( $post_id, 'noindex' ) );
-		update_post_meta( $post_id, '_erankly_noindex', '0' );
-		$this->assertFalse( erankly_get_post_meta_bool( $post_id, 'noindex' ) );
+		update_post_meta( $post_id, '_erankly_disable_sitemap', '1' );
+		$this->assertTrue( erankly_get_post_meta_bool( $post_id, 'disable_sitemap' ) );
+		update_post_meta( $post_id, '_erankly_disable_sitemap', '0' );
+		$this->assertFalse( erankly_get_post_meta_bool( $post_id, 'disable_sitemap' ) );
 		$this->assertFalse( erankly_get_post_meta_bool( $post_id, 'missing' ) );
-
-		$term_id = self::factory()->term->create( array( 'taxonomy' => 'category' ) );
-		update_term_meta( $term_id, '_erankly_nofollow', '1' );
-		$this->assertTrue( erankly_get_term_meta_bool( $term_id, 'nofollow' ) );
-		$this->assertFalse( erankly_get_term_meta_bool( $term_id, 'noindex' ) );
 	}
 
 	public function test_get_primary_term_requires_the_term_be_assigned(): void {
@@ -824,69 +757,6 @@ final class ERankly_Meta_Helpers_Test extends WP_UnitTestCase {
 		$this->assertTrue( $rendered );
 	}
 
-	public function test_maybe_migrate_post_type_schema_moves_types_out_of_legacy_rows(): void {
-		$this->clear_migration_flag( 'erankly_migrated_post_type_schema_v1' );
-
-		$stored                                       = erankly_get_settings();
-		// The migration bails when the modern key already exists, so start without it.
-		unset( $stored['global_post_type_schema'] );
-		$stored['global_post_type_meta']['post']      = array( 'title' => 'Kept title', 'webpage_type' => 'ItemPage', 'article_type' => '' );
-		erankly_update_plugin_settings( $stored, '', true );
-		erankly_clear_settings_cache();
-
-		erankly_maybe_migrate_post_type_schema();
-
-		$settings = erankly_get_settings();
-		$this->assertSame( 'ItemPage', $settings['global_post_type_schema']['post']['webpage_type'] );
-		// An empty stored article_type means "emit no Article node".
-		$this->assertSame( 'none', $settings['global_post_type_schema']['post']['article_type'] );
-		$this->assertSame( 'Kept title', $settings['global_post_type_meta']['post']['title'] );
-		$this->assertArrayNotHasKey( 'webpage_type', $settings['global_post_type_meta']['post'] );
-		$this->assertNotEmpty( erankly_get_plugin_option( 'erankly_migrated_post_type_schema_v1', false ) );
-	}
-
-	public function test_maybe_migrate_settings_rewrites_legacy_title_templates(): void {
-		$this->clear_migration_flag( 'erankly_migrated_title_defaults_v1' );
-
-		$stored                                      = erankly_get_settings();
-		$stored['default_og_title']                  = '{{post_title}} - {{site_name}}';
-		$stored['global_post_type_meta']['post']['title'] = '{{post_title}} - {{site_name}}';
-		erankly_update_plugin_settings( $stored, '', true );
-		erankly_clear_settings_cache();
-
-		erankly_maybe_migrate_settings();
-
-		$settings = erankly_get_settings();
-		$this->assertSame( '{{post_title}}', $settings['default_og_title'] );
-		$this->assertSame( '{{post_title}}', $settings['global_post_type_meta']['post']['title'] );
-		$this->assertNotEmpty( erankly_get_plugin_option( 'erankly_migrated_title_defaults_v1', false ) );
-	}
-
-	public function test_maybe_migrate_local_business_pages_builds_the_per_blog_map(): void {
-		$this->clear_migration_flag( 'erankly_migrated_local_business_pages_v1' );
-
-		$page_id = self::factory()->post->create(
-			array(
-				'post_type'   => 'page',
-				'post_status' => 'publish',
-				'post_name'   => 'contact',
-			)
-		);
-
-		$stored                                 = erankly_get_settings();
-		$stored['local_business_page_path']     = '/contact/';
-		$stored['local_business_pages']         = array();
-		erankly_update_plugin_settings( $stored, '', true );
-		erankly_clear_settings_cache();
-
-		erankly_maybe_migrate_local_business_pages();
-
-		$settings = erankly_get_settings();
-		$this->assertArrayHasKey( get_current_blog_id(), $settings['local_business_pages'] );
-		$this->assertSame( $page_id, $settings['local_business_pages'][ get_current_blog_id() ] );
-		$this->assertNotEmpty( erankly_get_plugin_option( 'erankly_migrated_local_business_pages_v1', false ) );
-	}
-
 	/* ----------------------------------------------------------------------
 	 * includes/helpers/template-variables.php
 	 * -------------------------------------------------------------------- */
@@ -999,181 +869,5 @@ final class ERankly_Meta_Helpers_Test extends WP_UnitTestCase {
 		$this->assertSame( 20, has_action( 'wp_head', 'erankly_render_custom_head_code' ) );
 		$this->assertSame( 5, has_action( 'wp_body_open', 'erankly_render_custom_body_open_code' ) );
 		$this->assertSame( 20, has_action( 'wp_footer', 'erankly_render_custom_body_close_code' ) );
-		$this->assertSame( 18, has_action( 'init', 'erankly_maybe_migrate_legacy_custom_code' ) );
-	}
-
-	public function test_maybe_migrate_legacy_custom_code_moves_scalars_into_blocks(): void {
-		$stored                           = erankly_get_settings();
-		$stored['head_code']              = '<meta name="legacy-head" content="1">';
-		$stored['head_code_blocks']       = array();
-		$stored['body_open_code']         = '<div id="legacy-open"></div>';
-		$stored['body_open_code_blocks']  = array();
-		erankly_update_plugin_settings( $stored, '', true );
-		erankly_clear_settings_cache();
-
-		erankly_maybe_migrate_legacy_custom_code();
-
-		$settings = erankly_get_settings();
-		$this->assertSame( '', $settings['head_code'] );
-		$this->assertCount( 1, $settings['head_code_blocks'] );
-		$this->assertSame( '<meta name="legacy-head" content="1">', $settings['head_code_blocks'][0]['code'] );
-		$this->assertSame( '', $settings['body_open_code'] );
-		$this->assertCount( 1, $settings['body_open_code_blocks'] );
-	}
-
-	public function test_maybe_migrate_legacy_custom_code_clears_a_duplicate_scalar(): void {
-		$block = array(
-			'enabled'         => 1,
-			'code'            => '<meta name="dupe" content="1">',
-			'target_contexts' => array( 'singular' ),
-		);
-
-		$stored                     = erankly_get_settings();
-		$stored['head_code']        = '<meta name="dupe" content="1">';
-		$stored['head_code_blocks'] = array( $block );
-		erankly_update_plugin_settings( $stored, '', true );
-		erankly_clear_settings_cache();
-
-		erankly_maybe_migrate_legacy_custom_code();
-
-		$settings = erankly_get_settings();
-		$this->assertSame( '', $settings['head_code'] );
-		$this->assertCount( 1, $settings['head_code_blocks'] );
-	}
-
-	/* ----------------------------------------------------------------------
-	 * includes/reset.php
-	 * -------------------------------------------------------------------- */
-
-	public function test_reset_url_points_at_the_settings_tab(): void {
-		$url = erankly_reset_url();
-		$this->assertStringContainsString( 'page=erankly', $url );
-		$this->assertStringContainsString( 'erankly_tab=settings', $url );
-	}
-
-	public function test_reset_render_notice_outputs_each_state(): void {
-		$_GET['erankly_reset_notice'] = 'local';
-		ob_start();
-		erankly_reset_render_notice();
-		$this->assertStringContainsString( 'reset for this site', (string) ob_get_clean() );
-
-		$_GET['erankly_reset_notice'] = 'global_queued';
-		ob_start();
-		erankly_reset_render_notice();
-		$this->assertStringContainsString( 'network reset has started', (string) ob_get_clean() );
-
-		$_GET['erankly_reset_notice'] = 'unknown_state';
-		ob_start();
-		erankly_reset_render_notice();
-		$this->assertSame( '', (string) ob_get_clean() );
-	}
-
-	public function test_reset_abandon_settings_lock_removes_a_stale_lease(): void {
-		erankly_add_settings_lock(
-			array(
-				'token'       => 'stale-token',
-				'acquired_at' => time() - 600,
-				'expires_at'  => time() - 300,
-			)
-		);
-		$this->assertIsArray( erankly_get_settings_lock() );
-
-		erankly_reset_abandon_settings_lock();
-
-		$this->assertFalse( erankly_get_settings_lock() );
-	}
-
-	public function test_reset_network_shared_data_restores_defaults(): void {
-		erankly_update_plugin_settings( array( 'organization_name' => 'Custom organisation' ) );
-		erankly_clear_settings_cache();
-
-		erankly_reset_network_shared_data();
-
-		$defaults = erankly_default_settings();
-		$settings = erankly_get_settings();
-		$this->assertSame( $defaults['organization_name'], $settings['organization_name'] );
-	}
-
-	public function test_reset_network_returns_false_without_multisite(): void {
-		if ( is_multisite() ) {
-			// This asserts the Single Site guard: erankly_reset_network() is only
-			// inert when the install is not Multisite.
-			$this->markTestSkipped( 'Guards the Single Site behaviour of the network reset.' );
-		}
-
-		$this->assertFalse( is_multisite() );
-		$this->assertFalse( erankly_reset_network() );
-	}
-
-	public function test_reset_render_panel_is_silent_without_capability(): void {
-		wp_set_current_user( 0 );
-
-		ob_start();
-		erankly_reset_render_panel();
-		$this->assertSame( '', (string) ob_get_clean() );
-	}
-
-	public function test_reset_handle_actions_ignores_non_reset_requests(): void {
-		$stored                      = erankly_get_settings();
-		$stored['organization_name'] = 'Untouched by reset probe';
-		erankly_update_plugin_settings( $stored, '', true );
-		erankly_clear_settings_cache();
-		$before = erankly_get_settings();
-
-		// No capability: even a valid-looking submission is ignored.
-		wp_set_current_user( 0 );
-		$_GET['page']                 = 'erankly';
-		$_POST['erankly_reset_action'] = 'reset_local';
-		erankly_reset_handle_actions();
-		unset( $_POST['erankly_reset_action'] );
-
-		// Capability, but the request is not the reset form.
-		$admin_id = self::factory()->user->create( array( 'role' => 'administrator' ) );
-		wp_set_current_user( $admin_id );
-		$_GET['page'] = 'not-erankly';
-		erankly_reset_handle_actions();
-
-		erankly_clear_settings_cache();
-		$this->assertSame( $before['organization_name'], erankly_get_settings()['organization_name'] );
-	}
-
-	/* ----------------------------------------------------------------------
-	 * includes/network-reset.php (single-site guards)
-	 * -------------------------------------------------------------------- */
-
-	public function test_schedule_network_reset_batch_requires_multisite(): void {
-		if ( is_multisite() ) {
-			// On Single Site the scheduler rejects the request outright; on
-			// Multisite it proceeds and fails later with erankly_reset_inactive
-			// because no reset job exists, so this guard is Single Site only.
-			$this->markTestSkipped( 'Guards the Single Site behaviour of the network reset scheduler.' );
-		}
-
-		$result = erankly_schedule_network_reset_batch( 'token' );
-		$this->assertWPError( $result );
-		$this->assertSame( 'erankly_reset_invalid', $result->get_error_code() );
-	}
-
-	public function test_queue_network_reset_returns_false_without_multisite(): void {
-		if ( is_multisite() ) {
-			// erankly_queue_network_reset() succeeds on Multisite, so the
-			// Single Site "returns false" guard does not apply there.
-			$this->markTestSkipped( 'Guards the Single Site behaviour of the network reset queue.' );
-		}
-
-		$this->assertFalse( erankly_queue_network_reset() );
-	}
-
-	public function test_process_network_reset_batch_is_inert_without_multisite(): void {
-		erankly_process_network_reset_batch( 'token' );
-
-		// The worker must not schedule or record anything on a single-site install.
-		$this->assertFalse( wp_next_scheduled( ERANKLY_NETWORK_RESET_CRON_HOOK ) );
-	}
-
-	public function test_render_network_reset_status_notice_is_inert_without_multisite(): void {
-		ob_start();
-		erankly_render_network_reset_status_notice();
-		$this->assertSame( '', (string) ob_get_clean() );
 	}
 }

@@ -194,8 +194,9 @@ function erankly_get_news_sitemap_stats(): array {
 		return $stats_by_cache_key[ $cache_key ];
 	}
 
+	$entries           = erankly_get_news_sitemap_entries();
 	$lastmod_timestamp = 0;
-	foreach ( erankly_get_news_sitemap_entries() as $row ) {
+	foreach ( $entries as $row ) {
 		$lastmod   = is_array( $row['entry'] ?? null ) ? (string) ( $row['entry']['lastmod'] ?? '' ) : '';
 		$timestamp = '' === $lastmod ? false : strtotime( $lastmod );
 		if ( false !== $timestamp ) {
@@ -204,7 +205,7 @@ function erankly_get_news_sitemap_stats(): array {
 	}
 
 	$stats_by_cache_key[ $cache_key ] = array(
-		'count'   => count( erankly_get_news_sitemap_entries() ),
+		'count'   => count( $entries ),
 		'lastmod' => $lastmod_timestamp > 0 ? gmdate( DATE_W3C, $lastmod_timestamp ) : '',
 	);
 	set_transient( $cache_key, $stats_by_cache_key[ $cache_key ], HOUR_IN_SECONDS );

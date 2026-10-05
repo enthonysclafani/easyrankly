@@ -31,9 +31,6 @@ function erankly_core_meta_keys(): array {
 		'_erankly_og_image_alt'          => 'string',
 		'_erankly_twitter_image_url'     => 'string',
 		'_erankly_twitter_image_alt'     => 'string',
-		'_erankly_noindex'               => 'boolean',
-		'_erankly_nofollow'              => 'boolean',
-		'_erankly_noarchive'             => 'boolean',
 		'_erankly_index_directive'       => 'string',
 		'_erankly_follow_directive'      => 'string',
 		'_erankly_archive_directive'     => 'string',
@@ -171,9 +168,7 @@ function erankly_addon_meta_keys(): array {
  * Every registered key belongs to posts, but terms and users only ever consume a subset at runtime, so this
  * list also drives registration for those types (see erankly_register_meta()). Importers write through the
  * same list so a source plugin that stores schema or primary terms on a taxonomy cannot leave rows behind that
- * nothing in EasyRankly can consume. Legacy keys superseded by the tri-state robots directives are never
- * imported either: they are read only as a fallback when the directive is absent, so writing both would make
- * the boolean inert while still costing a row.
+ * nothing in EasyRankly can consume.
  *
  * Add-on keys registered via `erankly_meta_keys` are importable on terms (the historical object type for that
  * filter) and are sanitized through `erankly_sanitize_extension_meta`. They are not imported onto users unless
@@ -185,11 +180,6 @@ function erankly_addon_meta_keys(): array {
  */
 function erankly_importable_meta_keys( string $object_type ): array {
 	$keys = erankly_get_meta_keys();
-	unset(
-		$keys['_erankly_noindex'],
-		$keys['_erankly_nofollow'],
-		$keys['_erankly_noarchive']
-	);
 
 	if ( 'post' === $object_type ) {
 		return $keys;
@@ -234,9 +224,6 @@ function erankly_importable_meta_keys( string $object_type ): array {
 /**
  * Returns the meta keys registered for one object type.
  *
- * Import/export uses erankly_importable_meta_keys() and never writes the legacy robots booleans. Registration
- * still exposes them on terms because the term editor dual-writes them alongside the tri-state directives.
- *
  * @param string $object_type One of post, term or user.
  * @return array<string,string> Meta key => value type.
  */
@@ -246,16 +233,6 @@ function erankly_registered_meta_keys( string $object_type ): array {
 	}
 
 	$keys = erankly_importable_meta_keys( $object_type );
-
-	if ( 'term' === $object_type ) {
-		$all = erankly_get_meta_keys();
-
-		foreach ( array( '_erankly_noindex', '_erankly_nofollow', '_erankly_noarchive' ) as $legacy_boolean ) {
-			if ( isset( $all[ $legacy_boolean ] ) ) {
-				$keys[ $legacy_boolean ] = $all[ $legacy_boolean ];
-			}
-		}
-	}
 
 	/**
  * Filters the meta keys registered for one object type. Add-ons that need a key on users (or extra term
@@ -302,7 +279,7 @@ function erankly_register_meta(): void {
 
 	// Posts carry the complete model. Terms and users are registered below with
 	// erankly_registered_meta_keys(): schema, targeting and primary-term keys have
-	// no reader outside posts, while terms still register the legacy robots booleans.
+	// no reader outside posts.
 	foreach ( $meta as $key => $type ) {
 		register_post_meta(
 			'',
@@ -350,8 +327,6 @@ function erankly_register_meta(): void {
 		);
 	}
 }
-
-add_action( 'rest_api_init', 'erankly_register_schema_blocks_rest_guards' );
 
 /**
  * Prevents Gutenberg from wiping or rejecting schema blocks when the editor holds null.
@@ -507,9 +482,6 @@ function erankly_sanitize_registered_meta( mixed $value, string $meta_key ): mix
 		case '_erankly_og_image_id':
 		case '_erankly_twitter_image_id':
 			return absint( $value );
-		case '_erankly_noindex':
-		case '_erankly_nofollow':
-		case '_erankly_noarchive':
 		case '_erankly_indexifembedded':
 		case '_erankly_disable_sitemap':
 		case '_erankly_exclude_search':
@@ -518,63 +490,6 @@ function erankly_sanitize_registered_meta( mixed $value, string $meta_key ): mix
 			return (bool) $value;
 		default:
 			return apply_filters( 'erankly_sanitize_extension_meta', $value, $meta_key );
-	}
-}
-
-/** Migrates one object's retired shared image into both modern network-specific fields. */
-function erankly_migrate_legacy_social_image_for_object( string $object_type, int $object_id ): void {
-	if ( $object_id < 1 || ! in_array( $object_type, array( 'post', 'term' ), true ) ) {
-		return;
-	}
-
-	$legacy = trim( (string) get_metadata( $object_type, $object_id, '_erankly_social_image_url', true ) );
-	if ( '' !== $legacy ) {
-		foreach ( array( '_erankly_og_image_url', '_erankly_twitter_image_url' ) as $target_key ) {
-			if ( '' === trim( (string) get_metadata( $object_type, $object_id, $target_key, true ) ) ) {
-				update_metadata( $object_type, $object_id, $target_key, wp_slash( $legacy ) );
-			}
-		}
-	}
-
-	delete_metadata( $object_type, $object_id, '_erankly_social_image_url' );
-}
-
-/**
- * Advances the legacy social-image migration in bounded batches. Frontend and
- * editor reads also migrate their current object immediately, so no URL is lost
- * while a large site works through the queue.
- */
-function erankly_migrate_legacy_social_image_meta(): void {
-	if ( (bool) get_option( 'erankly_legacy_social_image_migrated', false ) ) {
-		return;
-	}
-
-	global $wpdb;
-	$limit    = 200;
-	$post_ids = $wpdb->get_col(
-		$wpdb->prepare(
-			"SELECT DISTINCT post_id FROM {$wpdb->postmeta} WHERE meta_key = %s LIMIT %d",
-			'_erankly_social_image_url',
-			$limit
-		)
-	); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Bounded one-time metadata migration.
-	$term_ids = $wpdb->get_col(
-		$wpdb->prepare(
-			"SELECT DISTINCT term_id FROM {$wpdb->termmeta} WHERE meta_key = %s LIMIT %d",
-			'_erankly_social_image_url',
-			$limit
-		)
-	); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Bounded one-time metadata migration.
-
-	foreach ( $post_ids as $post_id ) {
-		erankly_migrate_legacy_social_image_for_object( 'post', absint( $post_id ) );
-	}
-	foreach ( $term_ids as $term_id ) {
-		erankly_migrate_legacy_social_image_for_object( 'term', absint( $term_id ) );
-	}
-
-	if ( count( $post_ids ) < $limit && count( $term_ids ) < $limit ) {
-		update_option( 'erankly_legacy_social_image_migrated', 1, false );
 	}
 }
 

@@ -36,24 +36,6 @@ final class ERankly_Opengraph_Output_Test extends WP_UnitTestCase {
 		return (int) $post_id;
 	}
 
-	public function test_simplified_social_title_prefers_the_seo_title_meta(): void {
-		$with_meta    = $this->make_post( array( 'title' => 'Curated SEO title' ), '', 'Fallback post title' );
-		$without_meta = $this->make_post( array(), '', 'Plain post title' );
-
-		$this->assertSame( 'Curated SEO title', erankly_get_simplified_social_title( $with_meta ) );
-		$this->assertSame( 'Plain post title', erankly_get_simplified_social_title( $without_meta ) );
-	}
-
-	public function test_simplified_social_description_falls_back_to_excerpt_then_content(): void {
-		$with_meta    = $this->make_post( array( 'description' => 'Curated description' ), '<p>Body copy.</p>' );
-		$with_excerpt = $this->make_post( array(), '<p>Body copy.</p>', 'Excerpt post', 'The hand written excerpt' );
-		$from_content = $this->make_post( array(), '<p>Hello <strong>world</strong>.</p>' );
-
-		$this->assertSame( 'Curated description', erankly_get_simplified_social_description( $with_meta ) );
-		$this->assertSame( 'The hand written excerpt', erankly_get_simplified_social_description( $with_excerpt ) );
-		$this->assertSame( 'Hello world.', erankly_get_simplified_social_description( $from_content ) );
-	}
-
 	/**
 	 * The variable resolver memoises per key+post, and the SQLite test rollback
 	 * rewinds post IDs, so a shared process can read another test's cached title.
@@ -89,22 +71,96 @@ final class ERankly_Opengraph_Output_Test extends WP_UnitTestCase {
 		$this->assertSame( 'X card description', erankly_get_twitter_description() );
 	}
 
-	public function test_social_text_falls_back_to_the_global_default_setting(): void {
-		// simplified_mode off so the per-object automatic value does not win.
+	/**
+	 * @dataProvider social_post_types
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_social_text_uses_the_relevant_post_type_and_ignores_retired_defaults( string $post_type ): void {
+		if ( 'book' === $post_type ) {
+			register_post_type( 'book', array( 'public' => true, 'has_archive' => true ) );
+		}
 		erankly_update_plugin_settings(
 			array(
-				'simplified_mode'     => 0,
-				'default_og_title'    => 'Global Open Graph title',
-				'default_twitter_title' => 'Global X title',
+				'default_og_title'            => 'Retired OG title',
+				'default_og_description'      => 'Retired OG description',
+				'default_twitter_title'       => 'Retired X title',
+				'default_twitter_description' => 'Retired X description',
+				'global_post_type_meta_linked' => 0,
+				'global_post_type_meta' => array(
+					'post' => array( 'title' => 'Post {{post_title}}', 'description' => 'Post description' ),
+					'page' => array( 'title' => 'Page {{post_title}}', 'description' => 'Page description' ),
+					'book' => array( 'title' => 'Book {{post_title}}', 'description' => 'Book description' ),
+				),
 			)
 		);
 		erankly_clear_settings_cache();
 
-		$post_id = $this->make_post( array(), '', 'Ignored post title' );
+		$post_id = self::factory()->post->create( array( 'post_type' => $post_type, 'post_status' => 'publish', 'post_title' => 'Widgets' ) );
 		$this->go_to( get_permalink( $post_id ) );
 
-		$this->assertSame( 'Global Open Graph title', erankly_get_og_title() );
-		$this->assertSame( 'Global X title', erankly_get_twitter_title() );
+		$this->assertSame( ucfirst( $post_type ) . ' Widgets', erankly_get_og_title() );
+		$this->assertSame( ucfirst( $post_type ) . ' description', erankly_get_og_description() );
+		$this->assertSame( erankly_get_og_title(), erankly_get_twitter_title() );
+		$this->assertSame( erankly_get_og_description(), erankly_get_twitter_description() );
+	}
+
+	public static function social_post_types(): array {
+		return array( 'post' => array( 'post' ), 'page' => array( 'page' ), 'custom type' => array( 'book' ) );
+	}
+
+	/**
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_social_fallback_keeps_per_content_seo_overrides(): void {
+		$post_id = $this->make_post( array( 'title' => 'Content SEO title', 'description' => 'Content SEO description' ) );
+		$this->go_to( get_permalink( $post_id ) );
+
+		$this->assertSame( 'Content SEO title', erankly_get_og_title() );
+		$this->assertSame( 'Content SEO description', erankly_get_og_description() );
+		$this->assertSame( 'Content SEO title', erankly_get_twitter_title() );
+		$this->assertSame( 'Content SEO description', erankly_get_twitter_description() );
+	}
+
+	/**
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_social_fallback_uses_post_type_archive_defaults(): void {
+		register_post_type( 'book', array( 'public' => true, 'has_archive' => true ) );
+		erankly_update_plugin_settings( array(
+			'global_post_type_meta_linked' => 0,
+			'global_post_type_meta' => array( 'book' => array( 'title' => 'Book archive', 'description' => 'Books available' ) ),
+		) );
+		erankly_clear_settings_cache();
+		$this->go_to( home_url( '/?post_type=book' ) );
+
+		$this->assertTrue( is_post_type_archive( 'book' ) );
+		$this->assertSame( 'Book archive', erankly_get_og_title() );
+		$this->assertSame( 'Books available', erankly_get_og_description() );
+		$this->assertSame( 'Book archive', erankly_get_twitter_title() );
+		$this->assertSame( 'Books available', erankly_get_twitter_description() );
+	}
+
+	/**
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_social_fallback_uses_taxonomy_defaults(): void {
+		erankly_update_plugin_settings( array(
+			'global_taxonomy_meta_linked' => 0,
+			'global_taxonomy_meta' => array( 'category' => array( 'title' => 'Category {{term_name}}', 'description' => 'Category description' ) ),
+		) );
+		erankly_clear_settings_cache();
+		$term_id = self::factory()->category->create( array( 'name' => 'Widgets' ) );
+		$this->go_to( get_category_link( $term_id ) );
+
+		$this->assertTrue( is_category() );
+		$this->assertSame( 'Category Widgets', erankly_get_og_title() );
+		$this->assertSame( 'Category description', erankly_get_og_description() );
+		$this->assertSame( 'Category Widgets', erankly_get_twitter_title() );
+		$this->assertSame( 'Category description', erankly_get_twitter_description() );
 	}
 
 	public function test_social_text_is_trimmed_to_the_limit(): void {

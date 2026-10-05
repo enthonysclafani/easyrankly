@@ -29,17 +29,20 @@ define( 'ERANKLY_IMPORT_JSON_NODE_BYTES', 512 );
  * additionally constrained by the memory currently available to PHP. Decoding JSON into associative arrays can
  * require many times the source size, so the raw upload must remain only a small fraction of the remaining
  * memory after a reserve for WordPress and the database writes.
+ * Set ERANKLY_IMPORT_MAX_BYTES in wp-config.php to override the default ceiling using
+ * a shorthand such as '50M' or a number of bytes. The erankly_import_export_max_bytes
+ * filter receives the converted byte value and can further adjust it.
  *
  * @return int Maximum number of bytes accepted from the uploaded file.
  */
 function erankly_import_export_max_bytes(): int {
+	$maximum      = defined( 'ERANKLY_IMPORT_MAX_BYTES' ) ? ERANKLY_IMPORT_MAX_BYTES : ERANKLY_IMPORT_DEFAULT_MAX_BYTES;
+	$maximum      = wp_convert_hr_to_bytes( (string) $maximum );
 	$configured   = max(
 		1024,
-		(int) apply_filters( 'erankly_import_export_max_bytes', ERANKLY_IMPORT_DEFAULT_MAX_BYTES )
+		(int) apply_filters( 'erankly_import_export_max_bytes', $maximum )
 	);
-	$memory_limit = function_exists( 'wp_convert_hr_to_bytes' )
-		? wp_convert_hr_to_bytes( (string) ini_get( 'memory_limit' ) )
-		: -1;
+	$memory_limit = wp_convert_hr_to_bytes( (string) ini_get( 'memory_limit' ) );
 
 	if ( $memory_limit <= 0 ) {
 		return $configured;
@@ -113,11 +116,6 @@ function erankly_import_export_read_bounded_file( string $path, int $maximum ): 
 		'error'    => '',
 		'contents' => $contents,
 	);
-}
-
-/** Backward-compatible upload-specific name for the bounded local-file reader. */
-function erankly_import_export_read_bounded_upload( string $path, int $maximum ): array {
-	return erankly_import_export_read_bounded_file( $path, $maximum );
 }
 
 /**
@@ -227,9 +225,7 @@ function erankly_import_export_json_memory_error( string $json ): string {
 		return 'too-complex';
 	}
 
-	$memory_limit = function_exists( 'wp_convert_hr_to_bytes' )
-		? wp_convert_hr_to_bytes( (string) ini_get( 'memory_limit' ) )
-		: -1;
+	$memory_limit = wp_convert_hr_to_bytes( (string) ini_get( 'memory_limit' ) );
 
 	if ( $memory_limit <= 0 ) {
 		return '';
@@ -315,6 +311,10 @@ function erankly_import_export_handle_actions(): void {
 		erankly_import_export_handle_import();
 	}
 
+	if ( 'import-cancel' === $action ) {
+		erankly_import_export_handle_import_cancel();
+	}
+
 	if ( 'migrate' === $action ) {
 		$source = isset( $_POST['erankly_migration_source'] ) ? sanitize_key( wp_unslash( $_POST['erankly_migration_source'] ) ) : '';
 		erankly_import_export_handle_third_party( $source );
@@ -328,12 +328,6 @@ function erankly_import_export_handle_actions(): void {
 	if ( 'migration-restore-backup' === $action ) {
 		$report_id = isset( $_POST['erankly_migration_report_id'] ) ? sanitize_text_field( wp_unslash( $_POST['erankly_migration_report_id'] ) ) : '';
 		erankly_import_export_handle_backup_restore( $report_id );
-	}
-
-	// Backward compatibility for forms or integrations created before the
-	// preview/report workflow was introduced.
-	if ( in_array( $action, array( 'yoast', 'rankmath', 'aioseo', 'seopress' ), true ) ) {
-		erankly_import_export_handle_third_party( $action );
 	}
 }
 
@@ -367,7 +361,7 @@ function erankly_import_export_handle_import(): void {
 	}
 
 	$maximum = erankly_import_export_max_bytes();
-	$read    = erankly_import_export_read_bounded_upload( $tmp_name, $maximum );
+	$read    = erankly_import_export_read_bounded_file( $tmp_name, $maximum );
 	if ( empty( $read['ok'] ) ) {
 		$notice = 'too-large' === (string) ( $read['error'] ?? '' ) ? 'too-large' : 'invalid';
 		erankly_import_export_redirect( array( 'erankly_io_notice' => $notice ) );
@@ -397,35 +391,72 @@ function erankly_import_export_handle_import(): void {
 		$notice = match ( $error ) {
 			'import_already_running'      => 'import-running',
 			'migration_already_running'   => 'migration-running',
-			'transfer_start_in_progress'  => 'transfer-starting',
 			'unfiltered_html_required'    => 'custom-code-capability',
 			'unsupported_format'          => 'unsupported-format',
 			default                       => 'import-error',
 		};
 		erankly_import_export_redirect( array( 'erankly_io_notice' => $notice ) );
 	}
-	$job       = is_array( $started['job'] ?? null ) ? $started['job'] : array();
-	$job_id    = (string) ( $job['id'] ?? '' );
-	$processed = ERankly_Import_Job_Runner::process( $job_id );
-	if ( is_array( $processed ) ) {
-		erankly_import_export_redirect( array( 'erankly_io_notice' => 'import-running' ) );
+	// The Import / Export page now shows the active job and drives its batches.
+	erankly_import_export_redirect( array() );
+}
+
+/** Cancels the active native import from the progress panel. */
+function erankly_import_export_handle_import_cancel(): void {
+	check_admin_referer( 'erankly_io_import_cancel' );
+
+	$job_id = isset( $_POST['erankly_import_job_id'] ) ? sanitize_text_field( wp_unslash( $_POST['erankly_import_job_id'] ) ) : '';
+	erankly_import_export_redirect( array( 'erankly_io_notice' => ERankly_Import_Job_Runner::cancel( $job_id ) ? 'import-cancelled' : 'import-error' ) );
+}
+
+/**
+ * AJAX: applies the next batch of the active native import. The progress panel calls this repeatedly while it stays
+ * open; the response carries the progress, or the URL of the summary once the job is finished.
+ */
+function erankly_import_export_ajax_batch(): void {
+	check_ajax_referer( 'erankly_io_import_batch' );
+
+	if ( ! current_user_can( is_multisite() ? 'manage_network_options' : 'manage_options' ) ) {
+		wp_send_json_error( null, 403 );
+	}
+
+	$job_id = isset( $_POST['job_id'] ) ? sanitize_text_field( wp_unslash( $_POST['job_id'] ) ) : '';
+	$job    = ERankly_Import_Job_Runner::process( $job_id );
+
+	if ( is_array( $job ) ) {
+		if ( ! empty( $job['error'] ) ) {
+			wp_send_json_error( array( 'message' => __( 'A batch could not be applied. Reload this page to retry from the saved checkpoint.', 'easyrankly' ) ), 500 );
+		}
+		wp_send_json_success( array_merge( array( 'done' => false ), ERankly_Import_Job_Runner::progress( $job ) ) );
 	}
 
 	$finished = get_option( ERANKLY_IMPORT_LAST_RESULT_OPTION, array() );
 	if ( ! is_array( $finished ) || 'complete' !== (string) ( $finished['status'] ?? '' ) ) {
-		erankly_import_export_redirect( array( 'erankly_io_notice' => 'import-error' ) );
+		wp_send_json_success(
+			array(
+				'done'     => true,
+				'redirect' => add_query_arg( 'erankly_io_notice', 'import-error', erankly_import_export_url() ),
+			)
+		);
 	}
+
 	$counts = is_array( $finished['counts'] ?? null ) ? $finished['counts'] : array();
-	erankly_import_export_redirect(
+	wp_send_json_success(
 		array(
-			'erankly_io_notice' => 'imported',
-			'er_settings'       => (int) ( $counts['settings'] ?? 0 ),
-			'er_redirects'      => (int) ( $counts['redirects'] ?? 0 ),
-			'er_redirects_transformed' => (int) ( $counts['redirects_transformed'] ?? 0 ),
-			'er_redirects_skipped' => (int) ( ( $counts['redirects_unsupported'] ?? 0 ) + ( $counts['redirects_invalid'] ?? 0 ) ),
-			'er_post_meta'      => (int) ( $counts['post_meta'] ?? 0 ),
-			'er_term_meta'      => (int) ( $counts['term_meta'] ?? 0 ),
-			'er_user_meta'      => (int) ( $counts['user_meta'] ?? 0 ),
+			'done'     => true,
+			'redirect' => add_query_arg(
+				array(
+					'erankly_io_notice'        => 'imported',
+					'er_settings'              => (int) ( $counts['settings'] ?? 0 ),
+					'er_redirects'             => (int) ( $counts['redirects'] ?? 0 ),
+					'er_redirects_transformed' => (int) ( $counts['redirects_transformed'] ?? 0 ),
+					'er_redirects_skipped'     => (int) ( ( $counts['redirects_unsupported'] ?? 0 ) + ( $counts['redirects_invalid'] ?? 0 ) ),
+					'er_post_meta'             => (int) ( $counts['post_meta'] ?? 0 ),
+					'er_term_meta'             => (int) ( $counts['term_meta'] ?? 0 ),
+					'er_user_meta'             => (int) ( $counts['user_meta'] ?? 0 ),
+				),
+				erankly_import_export_url()
+			),
 		)
 	);
 }
@@ -508,8 +539,8 @@ function erankly_import_export_handle_migration_job( string $job_id, string $act
 /**
  * Restores the automatic pre-import backup of one migration report.
  *
- * This is the migration's undo path. It replays the complete backup document through the ordinary import
- * worker, so recovery uses the same code an administrator would trigger by uploading that file by hand.
+ * This is the migration's undo path. It replays the complete backup document through the ordinary import,
+ * so recovery uses the same code an administrator would trigger by uploading that file by hand.
  */
 function erankly_import_export_handle_backup_restore( string $report_id ): void {
 	check_admin_referer( 'erankly_migration_backup_' . $report_id );
@@ -524,12 +555,11 @@ function erankly_import_export_handle_backup_restore( string $report_id ): void 
 	}
 
 	$error  = (string) ( $result['error'] ?? '' );
-	$notice = 'import-running';
+	$notice = '';
 	if ( empty( $result['ok'] ) ) {
 		$notice = match ( $error ) {
 			'import_already_running'      => 'import-running',
 			'migration_already_running'   => 'migration-running',
-			'transfer_start_in_progress'  => 'transfer-starting',
 			'unfiltered_html_required'    => 'custom-code-capability',
 			'backup_unavailable'          => 'migration-backup-expired',
 			default                       => 'migration-restore-error',

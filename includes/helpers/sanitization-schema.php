@@ -138,24 +138,6 @@ function erankly_is_food_business_type( string $type ): bool {
 	return in_array( $type, array( 'Restaurant', 'CafeOrCoffeeShop', 'BarOrPub', 'Bakery', 'FoodEstablishment' ), true );
 }
 
-function erankly_sanitize_relative_path( mixed $value ): string {
-	$value = trim( (string) $value );
-
-	if ( '' === $value || str_starts_with( $value, '//' ) || 1 === preg_match( '#^[a-z][a-z0-9+.-]*:#i', $value ) ) {
-		return '';
-	}
-
-	$path = wp_parse_url( $value, PHP_URL_PATH );
-
-	if ( ! is_string( $path ) || '' === $path ) {
-		return '';
-	}
-
-	$path = '/' . ltrim( sanitize_text_field( $path ), '/' );
-
-	return '/' === $path ? '/' : trailingslashit( $path );
-}
-
 function erankly_sanitize_phone( mixed $value ): string {
 	$value  = erankly_sanitize_text( $value );
 	$value  = preg_replace( '/[^0-9+().\-\s]/', '', $value );

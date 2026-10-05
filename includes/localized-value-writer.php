@@ -101,8 +101,7 @@ function erankly_get_localized_value_source_state( string $key ): array|WP_Error
 /**
  * Writes one registered source value with fingerprint CAS and verification. Repeating a completed write or
  * restore is idempotent even when its expected fingerprint is now stale. A different desired value must match
- * the current fingerprint. The shared settings mutex serializes this operation with every other EasyRankly
- * settings writer.
+ * the current fingerprint.
  *
  * @param string $expected_fingerprint Fingerprint returned by the read API.
  * @return array{contract:string,key:string,value:string,value_hash:string,fingerprint:string,format:string,changed:bool,idempotent:bool}|WP_Error
@@ -127,103 +126,84 @@ function erankly_update_localized_value_source( string $key, mixed $value, strin
 		);
 	}
 
-	$lock = erankly_acquire_settings_lock();
-	if ( is_wp_error( $lock ) ) {
+	erankly_localized_value_source_refresh_settings();
+	$current = erankly_localized_value_source_state_from_definition( $definition );
+	$desired = erankly_localized_value_source_sanitize_candidate( $definition, $value );
+	if ( is_wp_error( $desired ) ) {
+		return $desired;
+	}
+
+	if ( hash_equals( (string) $current['value_hash'], hash( 'sha256', $desired ) ) ) {
+		return array_merge(
+			$current,
+			array(
+				'changed'    => false,
+				'idempotent' => true,
+			)
+		);
+	}
+
+	if ( ! hash_equals( (string) $current['fingerprint'], $expected_fingerprint ) ) {
 		return erankly_localized_value_source_error(
-			'erankly_localized_value_source_locked',
-			__( 'The localized EasyRankly source writer is currently locked.', 'easyrankly' ),
-			423,
+			'erankly_localized_value_source_revision_conflict',
+			__( 'The localized EasyRankly source changed after it was read.', 'easyrankly' ),
+			409,
+			array(
+				'key'                 => (string) $definition['key'],
+				'current_fingerprint' => (string) $current['fingerprint'],
+			)
+		);
+	}
+
+	$settings = erankly_get_settings();
+	erankly_localized_value_source_set_path( $settings, (array) $definition['path'], $desired );
+	$sanitized = erankly_localized_value_source_sanitize_settings( $settings );
+	$root      = (string) $definition['path'][0];
+	$result    = erankly_update_plugin_settings( array( $root => $sanitized[ $root ] ?? array() ) );
+
+	if ( ! $result ) {
+		return erankly_localized_value_source_error(
+			'erankly_localized_value_source_write_failed',
+			__( 'EasyRankly could not persist the localized source value.', 'easyrankly' ),
+			503,
 			array(
 				'key'       => (string) $definition['key'],
-				'cause'     => sanitize_key( $lock->get_error_code() ),
+				'cause'     => 'settings_update_failed',
 				'retryable' => true,
 			)
 		);
 	}
 
-	try {
-		erankly_localized_value_source_refresh_settings();
-		$current = erankly_localized_value_source_state_from_definition( $definition );
-		$desired = erankly_localized_value_source_sanitize_candidate( $definition, $value );
-		if ( is_wp_error( $desired ) ) {
-			return $desired;
-		}
+	/** Fires after storage write and before verification. Payloads contain identifiers and fingerprints only, never values. */
+	do_action( 'erankly_localized_value_source_write_checkpoint', (string) $definition['key'], $expected_fingerprint );
 
-		if ( hash_equals( (string) $current['value_hash'], hash( 'sha256', $desired ) ) ) {
-			return array_merge(
-				$current,
-				array(
-					'changed'    => false,
-					'idempotent' => true,
-				)
-			);
-		}
-
-		if ( ! hash_equals( (string) $current['fingerprint'], $expected_fingerprint ) ) {
-			return erankly_localized_value_source_error(
-				'erankly_localized_value_source_revision_conflict',
-				__( 'The localized EasyRankly source changed after it was read.', 'easyrankly' ),
-				409,
-				array(
-					'key'                 => (string) $definition['key'],
-					'current_fingerprint' => (string) $current['fingerprint'],
-				)
-			);
-		}
-
-		$settings = erankly_get_settings();
-		erankly_localized_value_source_set_path( $settings, (array) $definition['path'], $desired );
-		$sanitized = erankly_localized_value_source_sanitize_settings( $settings );
-		$root      = (string) $definition['path'][0];
-		$result    = erankly_update_plugin_settings( array( $root => $sanitized[ $root ] ?? array() ), $lock );
-
-		if ( is_wp_error( $result ) || true !== $result ) {
-			return erankly_localized_value_source_error(
-				'erankly_localized_value_source_write_failed',
-				__( 'EasyRankly could not persist the localized source value.', 'easyrankly' ),
-				503,
-				array(
-					'key'       => (string) $definition['key'],
-					'cause'     => is_wp_error( $result ) ? sanitize_key( $result->get_error_code() ) : 'settings_update_failed',
-					'retryable' => true,
-				)
-			);
-		}
-
-		/** Fires after storage write and before verification. Payloads contain identifiers and fingerprints only, never values. */
-		do_action( 'erankly_localized_value_source_write_checkpoint', (string) $definition['key'], $expected_fingerprint );
-
-		$verified = erankly_localized_value_source_state_from_definition( $definition );
-		if ( ! hash_equals( hash( 'sha256', $desired ), (string) $verified['value_hash'] ) ) {
-			return erankly_localized_value_source_error(
-				'erankly_localized_value_source_verify_failed',
-				__( 'EasyRankly could not verify the localized source write.', 'easyrankly' ),
-				503,
-				array(
-					'key'                 => (string) $definition['key'],
-					'current_fingerprint' => (string) $verified['fingerprint'],
-					'retryable'           => false,
-				)
-			);
-		}
-
-		return array_merge(
-			$verified,
+	$verified = erankly_localized_value_source_state_from_definition( $definition );
+	if ( ! hash_equals( hash( 'sha256', $desired ), (string) $verified['value_hash'] ) ) {
+		return erankly_localized_value_source_error(
+			'erankly_localized_value_source_verify_failed',
+			__( 'EasyRankly could not verify the localized source write.', 'easyrankly' ),
+			503,
 			array(
-				'changed'    => true,
-				'idempotent' => false,
+				'key'                 => (string) $definition['key'],
+				'current_fingerprint' => (string) $verified['fingerprint'],
+				'retryable'           => false,
 			)
 		);
-	} finally {
-		erankly_release_settings_lock( $lock );
 	}
+
+	return array_merge(
+		$verified,
+		array(
+			'changed'    => true,
+			'idempotent' => false,
+		)
+	);
 }
 
 /**
- * Forces the CAS read after lock acquisition to bypass stale request/cache data. The settings option is
+ * Forces the fingerprint read to bypass stale request/cache data. The settings option is
  * autoloaded, so deleting only its individual cache key is insufficient. Clearing alloptions and notoptions is
- * required for a long-running process to observe a write completed by another process before it acquired the
- * shared mutex.
+ * required for a long-running process to observe a write completed by another process.
  */
 function erankly_localized_value_source_refresh_settings(): void {
 	erankly_clear_settings_cache();

@@ -190,33 +190,3 @@ function erankly_export_download(): void {
 	}
 	exit;
 }
-
-/**
- * Restores an EasyRankly export payload.
- *
- * @return array<string,mixed> Cumulative counts plus cursor and done.
- */
-function erankly_import_apply( array $data, array $checkpoint = array() ): array {
-	_deprecated_function( __FUNCTION__, '2.0.0', 'ERankly_Import_Job_Runner' );
-
-	return ERankly_Import_Job_Runner::apply_payload_batch( $data, $checkpoint );
-}
-
-/**
- * Imports useful per-content SEO data from a third-party plugin. Existing EasyRankly values are never
- * overwritten, so the import only fills in fields that are currently empty.
- *
- * @return array{post_meta:int,term_meta:int,queued:bool,job_id:string}
- */
-function erankly_import_third_party( string $source ): array {
-	_deprecated_function( __FUNCTION__, '2.0.0', 'erankly_migration_job_runner()->start()' );
-	$result = erankly_migration_job_runner()->start( $source, false );
-	$job    = is_array( $result['job'] ?? null ) ? $result['job'] : array();
-
-	return array(
-		'post_meta' => 0,
-		'term_meta' => 0,
-		'queued'    => ! empty( $result['ok'] ),
-		'job_id'    => sanitize_text_field( (string) ( $job['id'] ?? '' ) ),
-	);
-}

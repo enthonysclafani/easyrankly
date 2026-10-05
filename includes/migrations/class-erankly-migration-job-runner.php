@@ -5,6 +5,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+require_once dirname( __DIR__ ) . '/class-erankly-job-lease.php';
+
 /**
  * Reads one source plugin in restart-safe batches and writes directly into EasyRankly.
  *
@@ -13,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * run rather than by a parallel simulation.
  */
 final class ERankly_Migration_Job_Runner {
-	private const LOCK_TTL     = 300;
+	private const LOCK_PREFIX  = 'erankly_migration_lock_';
 	private const DETAIL_LIMIT = 200;
 
 	private ERankly_Migration_Manager $manager;
@@ -26,28 +28,16 @@ final class ERankly_Migration_Job_Runner {
 	}
 
 	/**
- * Starts a new resumable preview or import.
- *
- * @param bool $dry_run Whether writes are simulated.
- * @return array{ok:bool,job?:array<string,mixed>,error?:string}
- * @throws RuntimeException When an owned checkpoint cannot be removed after a failed start.
- */
+	 * Starts a new resumable preview or import.
+	 *
+	 * @param bool $dry_run Whether writes are simulated.
+	 * @return array{ok:bool,job?:array<string,mixed>,error?:string}
+	 * @throws RuntimeException When an owned checkpoint cannot be removed after a failed start.
+	 */
 	public function start( string $source, bool $dry_run ): array {
-		$active = $this->raw_active_job();
-		if ( is_array( $active ) ) {
-			return array(
-				'ok'    => false,
-				'job'   => $active,
-				'error' => 'migration_already_running',
-			);
-		}
-		$active_import = $this->active_import_job();
-		if ( is_array( $active_import ) ) {
-			return array(
-				'ok'    => false,
-				'job'   => $active_import,
-				'error' => 'import_already_running',
-			);
+		$busy = $this->busy_result();
+		if ( null !== $busy ) {
+			return $busy;
 		}
 
 		$adapter = $this->manager->adapter( $source );
@@ -72,6 +62,50 @@ final class ERankly_Migration_Job_Runner {
 			);
 		}
 
+		$job = $this->new_job( $adapter, $source, $dry_run, $fingerprint );
+		if ( is_string( $job ) ) {
+			return array(
+				'ok'    => false,
+				'error' => $job,
+			);
+		}
+
+		return $this->persist_new_job( $job );
+	}
+
+	/**
+	 * Returns the refusal for a start while a migration or a native import is active, or null when idle.
+	 *
+	 * @return array{ok:bool,job:array<string,mixed>,error:string}|null
+	 */
+	private function busy_result(): ?array {
+		$active = $this->raw_active_job();
+		if ( is_array( $active ) ) {
+			return array(
+				'ok'    => false,
+				'job'   => $active,
+				'error' => 'migration_already_running',
+			);
+		}
+		$active_import = $this->active_import_job();
+		if ( is_array( $active_import ) ) {
+			return array(
+				'ok'    => false,
+				'job'   => $active_import,
+				'error' => 'import_already_running',
+			);
+		}
+
+		return null;
+	}
+
+	/**
+	 * Builds the queued job and its report. A real import also captures the pre-import backup, because the
+	 * import is the only irreversible step.
+	 *
+	 * @return array<string,mixed>|string The job, or an error code when the backup could not be written.
+	 */
+	private function new_job( ERankly_Migration_Adapter $adapter, string $source, bool $dry_run, string $fingerprint ): array|string {
 		$job_id                       = wp_generate_uuid4();
 		$report                       = $this->manager->new_report( $source, $dry_run, $job_id );
 		$report['source_fingerprint'] = $fingerprint;
@@ -91,20 +125,16 @@ final class ERankly_Migration_Job_Runner {
 			);
 		}
 
-		// A real import is the only irreversible step, so capture the undo artefact before the first write.
 		if ( ! $dry_run ) {
 			$backup = erankly_migration_create_backup();
 			if ( empty( $backup['ok'] ) ) {
-				return array(
-					'ok'    => false,
-					'error' => sanitize_key( (string) ( $backup['error'] ?? 'backup_write_failed' ) ),
-				);
+				return sanitize_key( (string) ( $backup['error'] ?? 'backup_write_failed' ) );
 			}
 			unset( $backup['ok'] );
 			$report['backup'] = $backup;
 		}
 
-		$job = array(
+		return array(
 			'id'                 => $job_id,
 			'source'             => $adapter->slug(),
 			'dry_run'            => $dry_run,
@@ -120,7 +150,18 @@ final class ERankly_Migration_Job_Runner {
 			'counts'             => $this->manager->empty_counts(),
 			'report'             => $report,
 		);
+	}
 
+	/**
+	 * Stores the job checkpoint under the shared data-transfer gate and schedules its first batch. Any refusal
+	 * discards the backup taken for this start.
+	 *
+	 * @param array<string,mixed> $job Job from new_job().
+	 * @return array{ok:bool,job?:array<string,mixed>,error?:string}
+	 * @throws RuntimeException When an owned checkpoint cannot be removed after a failed start.
+	 */
+	private function persist_new_job( array $job ): array {
+		$report      = $job['report'];
 		$start_token = erankly_acquire_data_transfer_start_lock();
 		if ( '' === $start_token ) {
 			$this->discard_unattached_backup( $report );
@@ -133,48 +174,16 @@ final class ERankly_Migration_Job_Runner {
 		try {
 			// Recheck both workers inside the shared gate. The earlier checks make
 			// common requests cheap; these close the race while a backup was made.
-			$active = $this->raw_active_job();
-			if ( is_array( $active ) ) {
-				$this->discard_unattached_backup( $report );
-				return array(
-					'ok'    => false,
-					'job'   => $active,
-					'error' => 'migration_already_running',
-				);
-			}
-			$active_import = $this->active_import_job();
-			if ( is_array( $active_import ) ) {
-				$this->discard_unattached_backup( $report );
-				return array(
-					'ok'    => false,
-					'job'   => $active_import,
-					'error' => 'import_already_running',
-				);
-			}
-
-			if ( ! add_option( ERANKLY_MIGRATION_ACTIVE_JOB_OPTION, $job, '', 'no' ) ) {
-				$this->discard_unattached_backup( $report );
-				$active        = $this->raw_active_job();
-				$active_import = $this->active_import_job();
-				if ( is_array( $active ) ) {
-					return array(
-						'ok'    => false,
-						'job'   => $active,
-						'error' => 'migration_already_running',
-					);
-				}
-				if ( is_array( $active_import ) ) {
-					return array(
-						'ok'    => false,
-						'job'   => $active_import,
-						'error' => 'import_already_running',
-					);
-				}
-
-				return array(
+			$busy = $this->busy_result();
+			if ( null === $busy && ! add_option( ERANKLY_MIGRATION_ACTIVE_JOB_OPTION, $job, '', 'no' ) ) {
+				$busy = $this->busy_result() ?? array(
 					'ok'    => false,
 					'error' => 'job_checkpoint_unavailable',
 				);
+			}
+			if ( null !== $busy ) {
+				$this->discard_unattached_backup( $report );
+				return $busy;
 			}
 			$this->active_job_cache = null;
 
@@ -183,12 +192,12 @@ final class ERankly_Migration_Job_Runner {
 				if ( ! is_array( $stored ) || wp_json_encode( $stored ) !== wp_json_encode( $job ) ) {
 					throw new RuntimeException( 'Migration job checkpoint could not be persisted.' );
 				}
-				if ( ! $this->schedule( $job_id ) ) {
+				if ( ! ERankly_Job_Lease::schedule( ERANKLY_MIGRATION_CRON_HOOK, $job['id'] ) ) {
 					$this->add_warning( $job, 'cron_schedule_failed', 'The automatic worker could not be scheduled. Use Resume now from the migration screen.', '' );
 					$this->save_job( $job );
 				}
 			} catch ( RuntimeException ) {
-				$this->delete_active_job_if_owned( $job_id );
+				$this->delete_active_job_if_owned( $job['id'] );
 				$this->discard_unattached_backup( $report );
 				return array(
 					'ok'    => false,
@@ -212,7 +221,7 @@ final class ERankly_Migration_Job_Runner {
 		}
 		$job = $this->raw_active_job();
 		if ( is_array( $job ) && 'paused' !== (string) ( $job['status'] ?? '' ) && empty( $job['cancel_requested'] ) ) {
-			$this->schedule( (string) $job['id'] );
+			ERankly_Job_Lease::schedule( ERANKLY_MIGRATION_CRON_HOOK, (string) $job['id'] );
 		}
 
 		$this->active_job_cache = $job;
@@ -253,9 +262,9 @@ final class ERankly_Migration_Job_Runner {
 			return null;
 		}
 
-		$token = $this->acquire_lock( $job_id );
+		$token = ERankly_Job_Lease::acquire( self::LOCK_PREFIX, $job_id );
 		if ( '' === $token ) {
-			$this->schedule( $job_id, 10 );
+			ERankly_Job_Lease::schedule( ERANKLY_MIGRATION_CRON_HOOK, $job_id, 10 );
 			return $job;
 		}
 
@@ -265,7 +274,7 @@ final class ERankly_Migration_Job_Runner {
 				return null;
 			}
 			if ( ! empty( $job['cancel_requested'] ) ) {
-				if ( ! $this->renew_lock( $job_id, $token ) ) {
+				if ( ! ERankly_Job_Lease::renew( self::LOCK_PREFIX, $job_id, $token ) ) {
 					throw new RuntimeException( 'The migration worker lease was lost before cancellation.' );
 				}
 				$this->finish( $job, true );
@@ -280,20 +289,18 @@ final class ERankly_Migration_Job_Runner {
 				throw new RuntimeException( 'Migration adapter is no longer available.' );
 			}
 
-			if ( function_exists( 'wp_raise_memory_limit' ) ) {
-				wp_raise_memory_limit( 'admin' );
-			}
+			wp_raise_memory_limit( 'admin' );
 			if ( function_exists( 'erankly_import_variable_diagnostics' ) ) {
 				erankly_import_variable_diagnostics( null, true );
 			}
 
-			if ( ! $this->renew_lock( $job_id, $token ) ) {
+			if ( ! ERankly_Job_Lease::renew( self::LOCK_PREFIX, $job_id, $token ) ) {
 				throw new RuntimeException( 'The migration worker lease was lost before applying the batch.' );
 			}
 
 			$job['status'] = ! empty( $job['dry_run'] ) ? 'previewing' : 'importing';
 			$this->process_stream( $job, $adapter, $token );
-			if ( ! $this->renew_lock( $job_id, $token ) ) {
+			if ( ! ERankly_Job_Lease::renew( self::LOCK_PREFIX, $job_id, $token ) ) {
 				throw new RuntimeException( 'The migration worker lease was lost before saving its checkpoint.' );
 			}
 
@@ -307,15 +314,15 @@ final class ERankly_Migration_Job_Runner {
 			}
 
 			$this->save_job( $job );
-			$this->schedule( $job_id );
+			ERankly_Job_Lease::schedule( ERANKLY_MIGRATION_CRON_HOOK, $job_id );
 
 			return $job;
 		} catch ( Throwable $error ) {
 			// A stale worker must never overwrite a checkpoint after another worker
 			// has taken its expired lease. A token owner, however, keeps the local
 			// cursor and counters so a caught write error does not lose progress.
-			if ( ! $this->owns_lock( $job_id, $token ) ) {
-				$this->schedule( $job_id, 10 );
+			if ( ! ERankly_Job_Lease::owns( self::LOCK_PREFIX, $job_id, $token ) ) {
+				ERankly_Job_Lease::schedule( ERANKLY_MIGRATION_CRON_HOOK, $job_id, 10 );
 				$current = $this->raw_active_job();
 				return is_array( $current ) ? $current : null;
 			}
@@ -339,7 +346,7 @@ final class ERankly_Migration_Job_Runner {
 
 			return null;
 		} finally {
-			$this->release_lock( $job_id, $token );
+			ERankly_Job_Lease::release( self::LOCK_PREFIX, $job_id, $token );
 		}
 	}
 
@@ -361,7 +368,7 @@ final class ERankly_Migration_Job_Runner {
 			: $adapter->redirect_batch( is_array( $job['cursor'] ) ? $job['cursor'] : array(), $limit );
 		$records = is_array( $page['records'] ?? null ) ? $page['records'] : array();
 
-		if ( ! $this->renew_lock( $job_id, $token ) ) {
+		if ( ! ERankly_Job_Lease::renew( self::LOCK_PREFIX, $job_id, $token ) ) {
 			throw new RuntimeException( 'The migration worker lease was lost while reading the source batch.' );
 		}
 
@@ -372,7 +379,7 @@ final class ERankly_Migration_Job_Runner {
 					$this->write_content_record( $job, $record );
 				}
 				++$processed;
-				if ( 0 === $processed % 25 && ! $this->renew_lock( $job_id, $token ) ) {
+				if ( 0 === $processed % 25 && ! ERankly_Job_Lease::renew( self::LOCK_PREFIX, $job_id, $token ) ) {
 					throw new RuntimeException( 'The migration worker lease was lost while writing content.' );
 				}
 			}
@@ -445,7 +452,7 @@ final class ERankly_Migration_Job_Runner {
 		$stored    = erankly_get_stored_settings();
 
 		foreach ( array_keys( $settings ) as $key ) {
-			if ( ! $this->renew_lock( (string) ( $job['id'] ?? '' ), $token ) ) {
+			if ( ! ERankly_Job_Lease::renew( self::LOCK_PREFIX, (string) ( $job['id'] ?? '' ), $token ) ) {
 				throw new RuntimeException( 'The migration worker lease was lost while writing settings.' );
 			}
 			if ( ! array_key_exists( $key, $sanitized ) ) {
@@ -482,8 +489,7 @@ final class ERankly_Migration_Job_Runner {
 			if ( $is_special ) {
 				$written = is_array( $value ) && erankly_update_special_meta_map( $value ) === $value;
 			} else {
-				$updated = erankly_update_plugin_settings( array( $key => $value ) );
-				$written = ! is_wp_error( $updated ) && (bool) $updated;
+				$written = erankly_update_plugin_settings( array( $key => $value ) );
 			}
 			if ( $written ) {
 				++$job['counts']['settings_written'];
@@ -648,7 +654,7 @@ final class ERankly_Migration_Job_Runner {
 					$this->write_redirect_record( $job, $adapter, $row, $repository );
 				}
 				++$processed;
-				if ( 0 === $processed % 25 && ! $this->renew_lock( (string) ( $job['id'] ?? '' ), $token ) ) {
+				if ( 0 === $processed % 25 && ! ERankly_Job_Lease::renew( self::LOCK_PREFIX, (string) ( $job['id'] ?? '' ), $token ) ) {
 					throw new RuntimeException( 'The migration worker lease was lost while writing redirects.' );
 				}
 			}
@@ -899,124 +905,6 @@ final class ERankly_Migration_Job_Runner {
 		}
 	}
 
-	private function schedule( string $job_id, int $delay = 1 ): bool {
-		$args = array( $job_id );
-		if ( false !== wp_next_scheduled( ERANKLY_MIGRATION_CRON_HOOK, $args ) ) {
-			return true;
-		}
-
-		$result = wp_schedule_single_event( time() + max( 1, $delay ), ERANKLY_MIGRATION_CRON_HOOK, $args, true );
-
-		return ! is_wp_error( $result ) && false !== $result;
-	}
-
-	/**
- * Acquires an atomic, expiring option lock.
- *
- * @return string Lock token or an empty string.
- */
-	private function acquire_lock( string $job_id ): string {
-		global $wpdb;
-
-		$key     = $this->lock_key( $job_id );
-		$token   = wp_generate_uuid4();
-		$value   = array(
-			'token'   => $token,
-			'expires' => time() + self::LOCK_TTL,
-		);
-		$created = add_option( $key, $value, '', 'no' );
-		if ( $created ) {
-			return $token;
-		}
-
-		$lock = get_option( $key, array() );
-		$expires = is_array( $lock )
-			? (int) ( $lock['expires'] ?? (int) ( $lock['created'] ?? 0 ) + self::LOCK_TTL )
-			: 0;
-		if ( $expires >= time() ) {
-			return '';
-		}
-
-		$updated = $wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Atomic compare-and-swap prevents two workers taking over the same stale lock.
-			$wpdb->prepare(
-				'UPDATE %i SET option_value = %s WHERE option_name = %s AND option_value = %s',
-				$wpdb->options,
-				maybe_serialize( $value ),
-				$key,
-				maybe_serialize( $lock )
-			)
-		);
-		if ( 1 === $updated ) {
-			wp_cache_delete( $key, 'options' );
-		}
-
-		return 1 === $updated ? $token : '';
-	}
-
-	/** Renews a lease only while this worker still owns a non-expired token. */
-	private function renew_lock( string $job_id, string $token ): bool {
-		global $wpdb;
-
-		$key  = $this->lock_key( $job_id );
-		$lock = get_option( $key, array() );
-		if ( ! is_array( $lock ) || ! hash_equals( (string) ( $lock['token'] ?? '' ), $token ) ) {
-			return false;
-		}
-
-		$expires = (int) ( $lock['expires'] ?? (int) ( $lock['created'] ?? 0 ) + self::LOCK_TTL );
-		if ( $expires < time() ) {
-			return false;
-		}
-
-		$renewed            = $lock;
-		$renewed['expires'] = max( time() + self::LOCK_TTL, $expires + 1 );
-		$updated            = $wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Atomic lease renewal fences stale workers before a checkpoint write.
-			$wpdb->prepare(
-				'UPDATE %i SET option_value = %s WHERE option_name = %s AND option_value = %s',
-				$wpdb->options,
-				maybe_serialize( $renewed ),
-				$key,
-				maybe_serialize( $lock )
-			)
-		);
-		if ( 1 === $updated ) {
-			wp_cache_delete( $key, 'options' );
-		}
-
-		return 1 === $updated;
-	}
-
-	/** Whether the caller still owns an unexpired lease. */
-	private function owns_lock( string $job_id, string $token ): bool {
-		$lock = get_option( $this->lock_key( $job_id ), array() );
-		if ( ! is_array( $lock ) ) {
-			return false;
-		}
-
-		$expires = (int) ( $lock['expires'] ?? (int) ( $lock['created'] ?? 0 ) + self::LOCK_TTL );
-
-		return $expires >= time() && hash_equals( (string) ( $lock['token'] ?? '' ), $token );
-	}
-
-	/** Releases a lock only when the caller still owns it. */
-	private function release_lock( string $job_id, string $token ): void {
-		global $wpdb;
-
-		$key  = $this->lock_key( $job_id );
-		$lock = get_option( $key, array() );
-		if ( is_array( $lock ) && hash_equals( (string) ( $lock['token'] ?? '' ), $token ) ) {
-			$wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Token-matched delete cannot release a successor's lock.
-				$wpdb->prepare(
-					'DELETE FROM %i WHERE option_name = %s AND option_value = %s',
-					$wpdb->options,
-					$key,
-					maybe_serialize( $lock )
-				)
-			);
-			wp_cache_delete( $key, 'options' );
-		}
-	}
-
 	/**
  * Deletes the active checkpoint only when it still belongs to this job.
  *
@@ -1043,11 +931,6 @@ final class ERankly_Migration_Job_Runner {
 		if ( '' !== $path ) {
 			ERankly_Migration_Upload_Store::delete( $path );
 		}
-	}
-
-	/** Returns the bounded option name for one job lock. */
-	private function lock_key( string $job_id ): string {
-		return 'erankly_migration_lock_' . substr( hash( 'sha256', $job_id ), 0, 24 );
 	}
 
 	private function cancel_key( string $job_id ): string {

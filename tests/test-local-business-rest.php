@@ -164,7 +164,7 @@ final class ERankly_Local_Business_Rest_Test extends WP_UnitTestCase {
 
 		$stored                         = erankly_get_settings();
 		$stored['local_business_pages'] = array( get_current_blog_id() => $peeked_id );
-		erankly_update_plugin_settings( $stored, '', true );
+		erankly_update_plugin_settings( $stored, true );
 		erankly_clear_settings_cache();
 
 		$included = rest_get_server()->dispatch( $first )->get_data();

@@ -15,7 +15,6 @@ final class ERankly_Breadcrumbs_Native_Test extends WP_UnitTestCase {
 			array(
 				'enable_breadcrumbs'     => 1,
 				'breadcrumb_jsonld_mode' => 'when_visible',
-				'simplified_mode'        => 0,
 			)
 		);
 		erankly_reset_breadcrumb_runtime_state();

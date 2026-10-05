@@ -7,9 +7,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /** Repository for the erankly_redirects table. */
 final class ERankly_Redirects_Repository {
-	/** Non-autoloaded option containing frontend-ready active rules. */
+	/** Small autoloaded manifest read on every frontend request; the rule segments stay non-autoloaded. */
 	private const RUNTIME_RULES_OPTION         = 'erankly_redirects_runtime_rules';
-	private const RUNTIME_RULES_VERSION        = 5;
+	private const RUNTIME_RULES_VERSION        = 6;
 	private const RUNTIME_GLOBAL_OPTION        = 'erankly_redirects_runtime_rules_global';
 	private const RUNTIME_ALL_OPTION           = 'erankly_redirects_runtime_rules_all';
 	private const RUNTIME_PREFIX_INDEX_OPTION  = 'erankly_redirects_runtime_rules_prefix_index';
@@ -83,31 +83,7 @@ final class ERankly_Redirects_Repository {
  * @return array<int,array<string,mixed>>
  */
 	public function get_pattern_rules( string $request_path = '', string $current_query = '' ): array {
-		global $wpdb;
-
-		if ( null === $this->runtime_rules ) {
-			$manifest = get_option( self::RUNTIME_RULES_OPTION, null );
-			if ( is_array( $manifest ) && self::RUNTIME_RULES_VERSION === (int) ( $manifest['version'] ?? 0 ) ) {
-				$this->runtime_rules = $manifest;
-			} else {
-				$sql  = $wpdb->prepare(
-					'SELECT id, source_path, source_hash, source_query, target_url, status_code, match_type, case_sensitive, trailing_slash, query_mode
-					FROM %i
-					WHERE is_active = 1 AND (
-						match_type <> %s OR case_sensitive = 1 OR trailing_slash <> %s OR query_mode <> %s
-					)
-					ORDER BY id ASC',
-					$this->table_name,
-					'exact',
-					'ignore',
-					'ignore'
-				);
-				$rows = $wpdb->get_results( $sql, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Rebuilds compact runtime buckets after explicit invalidation.
-
-				$this->runtime_rules = $this->compile_runtime_rules( is_array( $rows ) ? $rows : array() );
-				$this->persist_runtime_rules( $this->runtime_rules );
-			}
-		}
+		$this->load_runtime_rules();
 
 		if ( '' === $request_path ) {
 			if ( isset( $this->runtime_rules['all'] ) && is_array( $this->runtime_rules['all'] ) ) {
@@ -139,6 +115,49 @@ final class ERankly_Redirects_Repository {
 		usort( $candidates, array( 'ERankly_Redirects_Normalizer', 'compare_rules' ) );
 
 		return $candidates;
+	}
+
+	/**
+	 * Returns whether the site has any active redirect. Read from the autoloaded manifest, so requests on a site
+	 * without redirects skip every lookup query.
+	 */
+	public function has_active_rules(): bool {
+		$this->load_runtime_rules();
+
+		return (int) ( $this->runtime_rules['active_count'] ?? 0 ) > 0;
+	}
+
+	/** Loads the runtime manifest, rebuilding it from the table after an invalidation. */
+	private function load_runtime_rules(): void {
+		global $wpdb;
+
+		if ( null !== $this->runtime_rules ) {
+			return;
+		}
+
+		$manifest = get_option( self::RUNTIME_RULES_OPTION, null );
+		if ( is_array( $manifest ) && self::RUNTIME_RULES_VERSION === (int) ( $manifest['version'] ?? 0 ) ) {
+			$this->runtime_rules = $manifest;
+			return;
+		}
+
+		$sql  = $wpdb->prepare(
+			'SELECT id, source_path, source_hash, source_query, target_url, status_code, match_type, case_sensitive, trailing_slash, query_mode
+			FROM %i
+			WHERE is_active = 1 AND (
+				match_type <> %s OR case_sensitive = 1 OR trailing_slash <> %s OR query_mode <> %s
+			)
+			ORDER BY id ASC',
+			$this->table_name,
+			'exact',
+			'ignore',
+			'ignore'
+		);
+		$rows = $wpdb->get_results( $sql, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Rebuilds compact runtime buckets after explicit invalidation.
+
+		$this->runtime_rules                 = $this->compile_runtime_rules( is_array( $rows ) ? $rows : array() );
+		$this->runtime_rules['active_count'] = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE is_active = 1', $this->table_name ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Counted once per invalidation, stored in the manifest.
+		$this->persist_runtime_rules( $this->runtime_rules );
 	}
 
 	/**
@@ -239,8 +258,9 @@ final class ERankly_Redirects_Repository {
 			array(
 				'version'      => self::RUNTIME_RULES_VERSION,
 				'prefix_count' => count( $prefix_options ),
+				'active_count' => (int) ( $compiled['active_count'] ?? 0 ),
 			),
-			false
+			true
 		);
 	}
 

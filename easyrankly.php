@@ -34,7 +34,6 @@ define( 'ERANKLY_OPTION', 'erankly_settings' );
 // Special-page metadata is stored per site on Multisite (see erankly_get_site_special_meta()).
 define( 'ERANKLY_SPECIAL_META_OPTION', 'erankly_special_meta' );
 define( 'ERANKLY_VERSION_OPTION', 'erankly_version' );
-define( 'ERANKLY_RUNTIME_STATE_OPTION', 'erankly_runtime_state' );
 define( 'ERANKLY_REWRITE_FLUSH_OPTION', 'erankly_flush_rewrite_rules' );
 define( 'ERANKLY_SITEMAP_TRANSIENT_PREFIX', 'erankly_sitemap_' );
 define( 'ERANKLY_SITEMAP_CACHE_VERSION_OPTION', 'erankly_sitemap_cache_version' );
@@ -44,16 +43,12 @@ define( 'ERANKLY_REDIRECTS_CACHE_GENERATION_OPTION', 'erankly_redirects_cache_ge
 define( 'ERANKLY_NETWORK_SITE_BATCH_SIZE', 100 );
 define( 'ERANKLY_LOCAL_BUSINESS_SITE_CHOICE_LIMIT', 20 );
 define( 'ERANKLY_LOCAL_BUSINESS_PAGE_CHOICE_LIMIT', 50 );
-define( 'ERANKLY_NETWORK_RESET_JOB_OPTION', 'erankly_network_reset_job' );
-define( 'ERANKLY_NETWORK_RESET_CRON_HOOK', 'erankly_network_reset_batch' );
-define( 'ERANKLY_NETWORK_RESET_BATCH_SIZE', 10 );
 define( 'ERANKLY_NETWORK_WEB_LIFECYCLE_LIMIT', 100 );
 define( 'ERANKLY_MIGRATION_ACTIVE_JOB_OPTION', 'erankly_migration_active_job_v1' );
 define( 'ERANKLY_MIGRATION_CRON_HOOK', 'erankly_migration_process_batch' );
 define( 'ERANKLY_MIGRATION_BATCH_SIZE', 100 );
 define( 'ERANKLY_IMPORT_ACTIVE_JOB_OPTION', 'erankly_import_active_job_v1' );
 define( 'ERANKLY_IMPORT_LAST_RESULT_OPTION', 'erankly_import_last_result_v1' );
-define( 'ERANKLY_IMPORT_CRON_HOOK', 'erankly_import_process_batch' );
 define( 'ERANKLY_IMPORT_BATCH_SIZE', 100 );
 
 /** Native export document version. Bumped when the JSON structure changes. */
@@ -63,121 +58,32 @@ define( 'ERANKLY_EXPORT_FORMAT', '4.0' );
 define( 'ERANKLY_IMPORT_JSON_MAX_DEPTH', 64 );
 
 require_once ERANKLY_PATH . 'includes/helpers.php';
-require_once ERANKLY_PATH . 'includes/settings-lock.php';
 require_once ERANKLY_PATH . 'includes/localized-value-writer.php';
 require_once ERANKLY_PATH . 'includes/class-erankly-multilingual-provider-registry.php';
 require_once ERANKLY_PATH . 'includes/seo-state.php';
 
-/**
- * Maps a legacy hot option to its compact runtime-state key. The legacy options remain mirrored for rollback
- * compatibility, while the autoloaded state avoids separate queries for values read during bootstrap.
- *
- * One-time migrated_* flags stay as standalone options. Folding them into runtime_state duplicated writes without
- * removing the original rows, so uninstall still has to delete both.
- */
-function erankly_runtime_state_key( string $option ): string {
-	$keys = array(
-		ERANKLY_VERSION_OPTION            => 'version',
-		ERANKLY_REWRITE_GENERATION_OPTION => 'rewrite_generation',
-	);
-
-	return $keys[ $option ] ?? '';
-}
-
-/**
- * Returns the compact, autoloaded runtime state for a single-site install. Existing installations are migrated
- * lazily once. Network options keep their existing storage because WordPress has no equivalent autoload flag for
- * them.
- *
- * @return array<string,mixed>
- */
-function erankly_get_runtime_state(): array {
-	global $erankly_runtime_state_cache;
-
-	if ( isset( $erankly_runtime_state_cache ) && is_array( $erankly_runtime_state_cache ) ) {
-		return $erankly_runtime_state_cache;
-	}
-
-	$state = get_option( ERANKLY_RUNTIME_STATE_OPTION, false );
-
-	if ( ! is_array( $state ) ) {
-		$state = array(
-			'version'            => get_option( ERANKLY_VERSION_OPTION, '' ),
-			'rewrite_generation' => get_option( ERANKLY_REWRITE_GENERATION_OPTION, '0' ),
-		);
-
-		if ( ! add_option( ERANKLY_RUNTIME_STATE_OPTION, $state, '', true ) ) {
-			$stored_state = get_option( ERANKLY_RUNTIME_STATE_OPTION, false );
-
-			if ( is_array( $stored_state ) ) {
-				$state = $stored_state;
-			} else {
-				update_option( ERANKLY_RUNTIME_STATE_OPTION, $state, true );
-			}
-		}
-	}
-
-	$erankly_runtime_state_cache = $state;
-
-	return $state;
-}
-
-/** Updates one compact runtime value and mirrors its legacy option. */
-function erankly_update_runtime_state( string $option, mixed $value ): void {
-	global $erankly_runtime_state_cache;
-
-	$key           = erankly_runtime_state_key( $option );
-	$state         = erankly_get_runtime_state();
-	$state[ $key ] = $value;
-
-	update_option( ERANKLY_RUNTIME_STATE_OPTION, $state, true );
-	update_option( $option, $value, false );
-
-	$erankly_runtime_state_cache = $state;
-}
-
 /** Gets a plugin option using network storage on Multisite. */
 function erankly_get_plugin_option( string $key, mixed $default_value = false ): mixed {
-	$runtime_key = erankly_runtime_state_key( $key );
-
-	if ( ! is_multisite() && '' !== $runtime_key ) {
-		$state = erankly_get_runtime_state();
-
-		return array_key_exists( $runtime_key, $state ) ? $state[ $runtime_key ] : $default_value;
-	}
-
 	return is_multisite() ? get_site_option( $key, $default_value ) : get_option( $key, $default_value );
 }
 
 /**
  * Updates a plugin option using network storage on Multisite.
  *
- * @throws RuntimeException When the atomic settings update fails.
+ * @throws RuntimeException When the settings update fails.
  */
 function erankly_update_plugin_option( string $key, mixed $value ): void {
 	if ( ERANKLY_OPTION === $key ) {
-		$result = erankly_update_plugin_settings( is_array( $value ) ? $value : array() );
-
-		if ( is_wp_error( $result ) || ! $result ) {
-			throw new RuntimeException( esc_html__( 'EasyRankly could not update its settings atomically.', 'easyrankly' ) );
+		if ( ! erankly_update_plugin_settings( is_array( $value ) ? $value : array() ) ) {
+			throw new RuntimeException( esc_html__( 'EasyRankly could not update its settings.', 'easyrankly' ) );
 		}
 	} elseif ( is_multisite() ) {
 		update_site_option( $key, $value );
-	} elseif ( '' !== erankly_runtime_state_key( $key ) ) {
-		erankly_update_runtime_state( $key, $value );
 	} else {
-		// The settings array is read on every request, so autoload it; other options aren't.
-		update_option( $key, $value, ERANKLY_OPTION === $key );
+		// The version and rewrite generation are read on every request, so autoload them; other options aren't.
+		update_option( $key, $value, in_array( $key, array( ERANKLY_VERSION_OPTION, ERANKLY_REWRITE_GENERATION_OPTION ), true ) );
 	}
 }
-
-// Interlock direct Settings API writers (including options.php) with the same
-// provider-neutral mutex used by the public localized-source writer.
-add_filter( 'pre_update_option_' . ERANKLY_OPTION, 'erankly_interlock_settings_pre_update', 10, 3 );
-add_filter( 'pre_update_site_option_' . ERANKLY_OPTION, 'erankly_interlock_settings_pre_update', 10, 4 );
-add_action( 'update_option_' . ERANKLY_OPTION, 'erankly_release_direct_settings_lock', 10, 0 );
-add_action( 'update_site_option_' . ERANKLY_OPTION, 'erankly_release_direct_settings_lock', 10, 0 );
-add_action( 'shutdown', 'erankly_release_direct_settings_lock', PHP_INT_MAX );
 
 require_once ERANKLY_PATH . 'includes/compatibility.php';
 require_once ERANKLY_PATH . 'includes/meta.php';
@@ -191,158 +97,27 @@ if ( is_admin() ) {
 
 /** Boots the plugin after all plugins are available for compatibility checks. */
 function erankly_bootstrap(): void {
-	require_once ERANKLY_PATH . 'includes/breadcrumbs.php';
-	add_action( 'admin_notices', 'erankly_render_invalid_json_ld_notice' );
+	erankly_suspend_legacy_multilingual_addon();
+	// Disabled content shortcodes stay invisible without loading their implementations.
+	add_shortcode( 'easyrankly_form', '__return_empty_string' );
+	if ( ! erankly_seo_enabled() ) {
+		add_shortcode( 'erankly_breadcrumbs', '__return_empty_string' );
+	}
+	erankly_boot_feature_modules();
+
 	add_action( 'admin_notices', 'erankly_render_multilingual_provider_notices' );
 	add_action( 'network_admin_notices', 'erankly_render_multilingual_provider_notices' );
 	add_filter( 'debug_information', 'erankly_add_multilingual_debug_information' );
 	add_action( 'update_option_' . ERANKLY_SPECIAL_META_OPTION, 'erankly_handle_sitemap_visibility_updated', 10, 2 );
-
 	add_action( ERANKLY_MIGRATION_CRON_HOOK, 'erankly_process_migration_job' );
-	add_action( ERANKLY_IMPORT_CRON_HOOK, 'erankly_process_import_job' );
-	add_action( 'init', 'erankly_register_meta' );
-	add_action( 'init', 'erankly_register_breadcrumb_integrations', 11 );
-	add_action( 'wp_loaded', 'erankly_sync_legacy_breadcrumbs_availability' );
-	add_action( 'enqueue_block_editor_assets', 'erankly_sync_legacy_breadcrumbs_availability', 1 );
 	add_action( 'init', 'erankly_register_rewrites' );
-	add_action( 'init', 'erankly_migrate_legacy_social_image_meta', 14 );
-	add_action( 'init', 'erankly_maybe_migrate_settings', 15 );
-	add_action( 'init', 'erankly_maybe_migrate_post_type_schema', 16 );
-	add_action( 'init', 'erankly_maybe_migrate_local_business_pages', 17 );
 	add_action( 'init', 'erankly_maybe_flush_after_upgrade', 20 );
 	add_action( 'init', 'erankly_maybe_flush_rewrite_rules', 30 );
-
-	if (
-		is_multisite()
-		&& (
-			wp_doing_cron()
-			|| is_network_admin()
-			|| ( defined( 'WP_CLI' ) && WP_CLI )
-		)
-	) {
-		require_once ERANKLY_PATH . 'includes/network-reset.php';
-		add_action( ERANKLY_NETWORK_RESET_CRON_HOOK, 'erankly_process_network_reset_batch' );
-		add_action( 'network_admin_notices', 'erankly_render_network_reset_status_notice' );
-	}
-
-	if ( erankly_redirects_enabled() ) {
-		require_once ERANKLY_PATH . 'includes/redirects.php';
-		erankly_redirects_boot();
-	}
-
-	if ( erankly_custom_code_enabled() ) {
-		require_once ERANKLY_PATH . 'includes/custom-code.php';
-		erankly_custom_code_boot();
-	}
-
-	// The native WordPress sitemap remains available when EasyRankly's optional
-	// sitemap module is off. Keep its URL lists aligned with EasyRankly's robots,
-	// canonical and per-object visibility rules unless another SEO plugin owns
-	// sitemap output.
-	if ( ! erankly_should_suppress_sitemaps() ) {
-		erankly_load_sitemap_helpers();
-		erankly_load_content_helpers();
-		require_once ERANKLY_PATH . 'includes/sitemap/core.php';
-		add_filter( 'wp_sitemaps_posts_query_args', 'erankly_filter_core_sitemap_posts_query_args', 20, 2 );
-		add_filter( 'wp_sitemaps_posts_pre_url_list', 'erankly_cache_core_sitemap_posts_url_list', 5, 3 );
-		add_filter( 'wp_sitemaps_posts_pre_url_list', 'erankly_filter_core_sitemap_posts_pre_url_list', 20, 3 );
-		add_filter( 'wp_sitemaps_posts_pre_max_num_pages', 'erankly_filter_core_sitemap_posts_pre_max_num_pages', 20, 2 );
-		add_filter( 'wp_sitemaps_taxonomies_query_args', 'erankly_filter_core_sitemap_terms_query_args', 20, 2 );
-		add_filter( 'wp_sitemaps_taxonomies_pre_url_list', 'erankly_cache_core_sitemap_taxonomies_url_list', 5, 3 );
-		add_filter( 'wp_sitemaps_users_query_args', 'erankly_filter_core_sitemap_users_query_args', 20 );
-		add_filter( 'wp_sitemaps_users_pre_url_list', 'erankly_cache_core_sitemap_users_url_list', 5, 2 );
-		add_filter( 'wp_sitemaps_post_types', 'erankly_filter_core_sitemap_post_types', 20 );
-		add_filter( 'wp_sitemaps_taxonomies', 'erankly_filter_core_sitemap_taxonomies', 20 );
-		add_filter( 'wp_sitemaps_add_provider', 'erankly_filter_core_sitemap_add_provider', 20, 2 );
-		add_filter( 'posts_where', 'erankly_filter_sitemap_posts_where', 20, 2 );
-		add_action( 'template_redirect', 'erankly_start_core_sitemap_output_buffer', 0 );
-
-		add_action( 'save_post', 'erankly_flush_sitemap_cache_for_post' );
-		add_action( 'deleted_post', 'erankly_flush_sitemap_cache_for_deleted_post' );
-		add_action( 'transition_post_status', 'erankly_flush_sitemap_cache_for_status', 10, 3 );
-		add_action( 'profile_update', 'erankly_flush_sitemap_cache' );
-		add_action( 'user_register', 'erankly_flush_sitemap_cache' );
-		add_action( 'deleted_user', 'erankly_flush_sitemap_cache' );
-		add_action( 'added_user_meta', 'erankly_flush_sitemap_cache_for_user_meta', 10, 3 );
-		add_action( 'updated_user_meta', 'erankly_flush_sitemap_cache_for_user_meta', 10, 3 );
-		add_action( 'deleted_user_meta', 'erankly_flush_sitemap_cache_for_user_meta', 10, 3 );
-		add_action( 'added_term_meta', 'erankly_flush_sitemap_cache_for_term_meta', 10, 3 );
-		add_action( 'updated_term_meta', 'erankly_flush_sitemap_cache_for_term_meta', 10, 3 );
-		add_action( 'deleted_term_meta', 'erankly_flush_sitemap_cache_for_term_meta', 10, 3 );
-		add_action( 'created_term', 'erankly_flush_sitemap_cache', 10, 3 );
-		add_action( 'edited_term', 'erankly_flush_sitemap_cache', 10, 3 );
-		add_action( 'delete_term', 'erankly_flush_sitemap_cache', 10, 5 );
-		add_action( 'added_post_meta', 'erankly_flush_sitemap_cache_for_post_meta', 10, 3 );
-		add_action( 'updated_post_meta', 'erankly_flush_sitemap_cache_for_post_meta', 10, 3 );
-		add_action( 'deleted_post_meta', 'erankly_flush_sitemap_cache_for_post_meta', 10, 3 );
-		foreach ( array( 'home', 'siteurl', 'permalink_structure', 'show_on_front', 'page_on_front', 'page_for_posts' ) as $sitemap_option ) {
-			add_action( 'update_option_' . $sitemap_option, 'erankly_flush_sitemap_cache' );
-		}
-	}
-
-	if ( erankly_should_serve_sitemaps() ) {
-		require_once ERANKLY_PATH . 'includes/class-erankly-site-sitemaps-provider.php';
-		add_action(
-			'init',
-			function () {
-				wp_register_sitemap_provider( 'erankly-site', new ERankly_Site_Sitemaps_Provider() );
-			}
-		);
-
-		// Specialised sitemaps (image, video, news) that require non-standard XML
-		// namespaces are still served as EasyRankly virtual files. Each implementation
-		// file is parsed only when its feature is enabled, so unused sitemap types add
-		// no per-request cost.
-		if ( (bool) erankly_get_setting( 'enable_news_sitemap', 0 ) ) {
-			require_once ERANKLY_PATH . 'includes/sitemap/news.php';
-		}
-
-		if ( (bool) erankly_get_setting( 'enable_image_sitemap', 0 ) ) {
-			require_once ERANKLY_PATH . 'includes/sitemap/image.php';
-		}
-
-		if ( (bool) erankly_get_setting( 'enable_video_sitemap', 0 ) ) {
-			require_once ERANKLY_PATH . 'includes/sitemap/video.php';
-		}
-
-		$has_specialist_sitemaps = (bool) erankly_get_setting( 'enable_news_sitemap', 0 )
-			|| (bool) erankly_get_setting( 'enable_image_sitemap', 0 )
-			|| (bool) erankly_get_setting( 'enable_video_sitemap', 0 );
-
-		if ( $has_specialist_sitemaps ) {
-			require_once ERANKLY_PATH . 'includes/class-erankly-specialist-sitemaps-provider.php';
-			add_action(
-				'init',
-				function () {
-					wp_register_sitemap_provider( 'erankly', new ERankly_Specialist_Sitemaps_Provider() );
-				}
-			);
-		}
-		add_action( 'template_redirect', 'erankly_maybe_render_virtual_files', 0 );
-	}
 
 	if ( is_admin() ) {
 		erankly_admin_bootstrap();
 	}
-
-	if ( erankly_is_frontend_html_request() ) {
-		add_action( 'wp', 'erankly_bootstrap_frontend_modules', 1 );
-	}
-
-	add_action( 'rest_api_init', 'erankly_register_user_search_route' );
-	add_action( 'rest_api_init', 'erankly_register_local_business_routes' );
-	// Literal `/settings/special-pages` must register before the generic
-	// `/settings/(?P<panel>[a-z-]+)` pattern; WP_REST_Server keeps the first match.
-	add_action( 'rest_api_init', 'erankly_register_special_pages_autosave_route' );
 	add_action( 'rest_api_init', 'erankly_register_settings_autosave_route' );
-	add_action( 'rest_api_init', 'erankly_register_special_meta_setting', 5 );
-	add_filter( 'robots_txt', 'erankly_filter_robots_txt', 20, 2 );
-	add_action( 'parse_request', 'erankly_force_robots_txt_request' );
-	add_action( 'template_redirect', 'erankly_send_feed_robots_header', 1 );
-	add_action( 'pre_get_posts', 'erankly_filter_visibility_queries' );
-	add_action( 'added_post_meta', 'erankly_invalidate_visibility_exclusion_cache', 10, 3 );
-	add_action( 'updated_post_meta', 'erankly_invalidate_visibility_exclusion_cache', 10, 3 );
-	add_action( 'deleted_post_meta', 'erankly_invalidate_visibility_exclusion_cache', 10, 3 );
 
 	if ( is_multisite() ) {
 		add_action( 'update_site_option_' . ERANKLY_OPTION, 'erankly_handle_network_settings_updated', 10, 3 );
@@ -350,7 +125,7 @@ function erankly_bootstrap(): void {
 		add_action( 'update_option_' . ERANKLY_OPTION, 'erankly_handle_settings_updated', 10, 2 );
 	}
 
-	/** Fires after EasyRankly core has finished booting. Add-ons should load feature modules here so core helpers and settings are available. */
+	/** Fires after the manager boots the enabled modules; public helpers remain available for add-ons. */
 	do_action( 'erankly_bootstrap' );
 }
 add_action( 'plugins_loaded', 'erankly_bootstrap', 5 );
@@ -363,42 +138,6 @@ add_action( 'plugins_loaded', 'erankly_close_multilingual_provider_registry', 20
 function erankly_process_migration_job( string $job_id ): void {
 	require_once ERANKLY_PATH . 'includes/migrations.php';
 	erankly_migration_job_runner()->process( $job_id );
-}
-
-function erankly_process_import_job( string $job_id ): void {
-	require_once ERANKLY_PATH . 'includes/migrations.php';
-	require_once ERANKLY_PATH . 'includes/class-erankly-import-job-runner.php';
-	ERankly_Import_Job_Runner::process( $job_id );
-}
-
-/**
- * Loads frontend-only modules after WordPress has resolved an HTML request. REST requests normally terminate
- * before the wp hook, so they do not parse the canonical, social, schema, or breadcrumb implementations.
- */
-function erankly_bootstrap_frontend_modules(): void {
-	erankly_load_content_helpers();
-	require_once ERANKLY_PATH . 'includes/meta-render.php';
-
-	require_once ERANKLY_PATH . 'includes/breadcrumbs.php';
-
-	// template_redirect runs after this wp:1 action, so the callback is defined in time.
-	if ( 'none' !== (string) erankly_get_setting( 'attachment_redirect', 'none' ) ) {
-		add_action( 'template_redirect', 'erankly_redirect_attachment' );
-	}
-
-	if ( ! erankly_should_output_head() ) {
-		return;
-	}
-
-	require_once ERANKLY_PATH . 'includes/canonical.php';
-	require_once ERANKLY_PATH . 'includes/opengraph.php';
-	require_once ERANKLY_PATH . 'includes/schema.php';
-
-	remove_action( 'wp_head', 'rel_canonical' );
-	add_filter( 'pre_get_document_title', 'erankly_filter_document_title', 20 );
-	add_filter( 'document_title_parts', 'erankly_filter_document_title_parts', 20 );
-	add_action( 'wp_head', 'erankly_render_head', 1 );
-	add_filter( 'wp_robots', 'erankly_filter_wp_robots', 20 );
 }
 
 /**
@@ -418,15 +157,13 @@ function erankly_rotate_rewrite_generation(): void {
 	}
 }
 
-/** @throws RuntimeException When atomic initialization fails. */
+/** @throws RuntimeException When initialization fails. */
 function erankly_activate(): void {
 	erankly_load_default_helpers();
 	$is_new_install = false === erankly_get_plugin_option( ERANKLY_OPTION, false );
 
 	if ( $is_new_install ) {
-		$created = erankly_update_plugin_settings( erankly_default_settings(), '', true );
-
-		if ( is_wp_error( $created ) || ! $created ) {
+		if ( ! erankly_update_plugin_settings( erankly_default_settings(), true ) ) {
 			throw new RuntimeException( esc_html__( 'EasyRankly could not initialize its settings.', 'easyrankly' ) );
 		}
 	}
@@ -434,7 +171,7 @@ function erankly_activate(): void {
 	if ( is_multisite() ) {
 		add_site_option( ERANKLY_VERSION_OPTION, ERANKLY_VERSION );
 	} else {
-		add_option( ERANKLY_VERSION_OPTION, ERANKLY_VERSION, '', 'no' );
+		add_option( ERANKLY_VERSION_OPTION, ERANKLY_VERSION, '', true );
 	}
 
 	erankly_rotate_rewrite_generation();
@@ -448,9 +185,8 @@ register_activation_hook( ERANKLY_FILE, 'erankly_activate' );
 /**
  * Returns a keyset-paginated batch of site IDs for the current network.
  *
- * Uninstall, deactivation and network reset keep $active_only false so deleted,
- * spam and archived blogs are still swept. Mapping migrations and admin pickers
- * pass true to skip those sites. That is stricter than core get_sites() defaults,
+ * Deactivation keeps $active_only false so deleted, spam and archived blogs are
+ * still swept. Admin pickers pass true to skip those sites. That is stricter than core get_sites() defaults,
  * which leave deleted/spam/archived unfiltered (null) and do not limit network_id=0
  * to the current network.
  *
@@ -472,7 +208,7 @@ function erankly_get_network_site_ids_batch(
 	$network_id = (int) get_current_network_id();
 
 	if ( $active_only ) {
-		$site_ids = $wpdb->get_col( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Keyset pagination keeps lifecycle and reset sweeps bounded.
+		$site_ids = $wpdb->get_col( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Keyset pagination keeps lifecycle sweeps bounded.
 			$wpdb->prepare(
 				'SELECT blog_id FROM %i WHERE site_id = %d AND blog_id > %d AND deleted = %d AND spam = %d AND archived = %d ORDER BY blog_id ASC LIMIT %d',
 				$wpdb->blogs,
@@ -485,7 +221,7 @@ function erankly_get_network_site_ids_batch(
 			)
 		);
 	} else {
-		$site_ids = $wpdb->get_col( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Keyset pagination keeps lifecycle and reset sweeps bounded.
+		$site_ids = $wpdb->get_col( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Keyset pagination keeps lifecycle sweeps bounded.
 			$wpdb->prepare(
 				'SELECT blog_id FROM %i WHERE site_id = %d AND blog_id > %d ORDER BY blog_id ASC LIMIT %d',
 				$wpdb->blogs,
@@ -542,58 +278,7 @@ function erankly_network_lifecycle_requires_cli(): bool {
 function erankly_get_rewrite_signature(): string {
 	$generation = (string) erankly_get_plugin_option( ERANKLY_REWRITE_GENERATION_OPTION, '0' );
 
-	return ERANKLY_VERSION . ':' . $generation . ':' . ( erankly_should_serve_sitemaps() ? '1' : '0' );
-}
-
-/**
- * Deletes retired keys from the persisted settings array. The settings writer merges changes over the stored
- * array and the interlock re-adds current values, so keys whose readers were removed would otherwise be
- * preserved forever as "extension settings". Called once from the version upgrade routine.
- *
- * @param string[] $keys Setting keys that no longer have a reader.
- * @return bool Whether the reduced settings snapshot was durably stored.
- */
-function erankly_remove_retired_setting_keys( array $keys ): bool {
-	$stored = is_multisite() ? get_site_option( ERANKLY_OPTION, array() ) : get_option( ERANKLY_OPTION, array() );
-
-	if ( ! is_array( $stored ) ) {
-		return true;
-	}
-
-	$remaining = array_diff_key( $stored, array_fill_keys( $keys, true ) );
-
-	if ( $remaining === $stored ) {
-		return true;
-	}
-
-	$lock_token = erankly_acquire_settings_lock();
-
-	if ( is_wp_error( $lock_token ) ) {
-		return false;
-	}
-
-	// The replace context makes the settings interlock pass the reduced array through unchanged instead of
-	// merging it back over the stored keys (see erankly_interlock_settings_pre_update()).
-	$GLOBALS['erankly_settings_write_context'] = array(
-		'token'             => $lock_token,
-		'release_on_update' => false,
-		'replace'           => true,
-	);
-
-	try {
-		if ( is_multisite() ) {
-			update_site_option( ERANKLY_OPTION, $remaining );
-		} else {
-			update_option( ERANKLY_OPTION, $remaining, true );
-		}
-
-		$persisted = is_multisite() ? get_site_option( ERANKLY_OPTION, array() ) : get_option( ERANKLY_OPTION, array() );
-
-		return is_array( $persisted ) && $persisted === $remaining;
-	} finally {
-		unset( $GLOBALS['erankly_settings_write_context'] );
-		erankly_release_settings_lock( $lock_token );
-	}
+	return ERANKLY_VERSION . ':' . $generation . ':' . ( erankly_sitemap_enabled() ? '1' : '0' );
 }
 
 /**
@@ -607,19 +292,10 @@ function erankly_maybe_flush_after_upgrade(): void {
 		return;
 	}
 
-	// Migration verification, the rollback journal and the staging queue were retired. Their tables, options
-	// and cron hooks have no reader left, so an upgraded site must not keep carrying them.
-	require_once ERANKLY_PATH . 'includes/migrations/legacy-cleanup.php';
-	if ( ! erankly_migration_purge_legacy_state() ) {
-		return;
+	// Updates skip the activation hook: store the autoloaded rewrite generation it would have created.
+	if ( '' === (string) erankly_get_plugin_option( ERANKLY_REWRITE_GENERATION_OPTION, '' ) ) {
+		erankly_update_plugin_option( ERANKLY_REWRITE_GENERATION_OPTION, wp_generate_uuid4() );
 	}
-
-	// The noodp robots directive (dropped from Google's robots meta spec years ago; its only data source,
-	// DMOZ, shut down in 2017) and the pre-2.0 robots_max_image_preview_large fallback have no reader left.
-	if ( ! erankly_remove_retired_setting_keys( array( 'robots_noodp', 'robots_max_image_preview_large' ) ) ) {
-		return;
-	}
-
 	erankly_update_plugin_option( ERANKLY_VERSION_OPTION, ERANKLY_VERSION );
 }
 
@@ -633,7 +309,13 @@ function erankly_handle_settings_updated( mixed $old_value, mixed $value ): void
 
 	$old_value = is_array( $old_value ) ? $old_value : array();
 	$value     = is_array( $value ) ? $value : array();
+	if ( ! is_multisite() && (bool) ( $old_value['enable_multilingual'] ?? false ) !== (bool) ( $value['enable_multilingual'] ?? false ) ) {
+		delete_option( 'rewrite_rules' );
+		wp_unschedule_hook( 'erankly_multilingual_migrate' );
+	}
 	$keys      = array(
+		'enable_seo',
+		'enable_multilingual',
 		'enable_sitemap',
 		'enable_news_sitemap',
 		'news_sitemap_post_types',
@@ -681,26 +363,18 @@ function erankly_maybe_flush_rewrite_rules(): void {
 }
 
 /**
- * Removes deactivation-only state from the current site. Clears every EasyRankly WP-Cron hook so pending import,
+ * Removes deactivation-only state from the current site. Clears the migration WP-Cron hook so pending
  * migration and rollback pages cannot fire after reactivation. Active job checkpoints are intentionally retained
- * so an administrator can resume from the admin UI. Reset and uninstall delete those checkpoints; deactivation
- * must not.
+ * so an administrator can resume from the admin UI. Uninstall deletes those checkpoints; deactivation must not.
  *
  * @throws RuntimeException When a scheduled task cannot be removed.
  */
 function erankly_deactivate_current_site(): void {
-	foreach (
-		array(
-			ERANKLY_NETWORK_RESET_CRON_HOOK,
-			ERANKLY_MIGRATION_CRON_HOOK,
-			ERANKLY_IMPORT_CRON_HOOK,
-		) as $hook
-	) {
-		$result = wp_unschedule_hook( $hook, true );
+	wp_unschedule_hook( 'erankly_multilingual_migrate' );
+	$result = wp_unschedule_hook( ERANKLY_MIGRATION_CRON_HOOK, true );
 
-		if ( false === $result || is_wp_error( $result ) ) {
-			throw new RuntimeException( esc_html__( 'EasyRankly could not remove its scheduled tasks during deactivation.', 'easyrankly' ) );
-		}
+	if ( false === $result || is_wp_error( $result ) ) {
+		throw new RuntimeException( esc_html__( 'EasyRankly could not remove its scheduled tasks during deactivation.', 'easyrankly' ) );
 	}
 
 	erankly_load_sitemap_helpers();
@@ -710,22 +384,6 @@ function erankly_deactivate_current_site(): void {
 	// Invalidate the stored rules. Core rebuilds them without EasyRankly on the
 	// site's next request; no costly hard flush is needed here.
 	delete_option( 'rewrite_rules' );
-}
-
-/**
- * Cancels and verifies removal of the current network reset job. A stale active job must never survive
- * deactivation: the Network Admin self-healing notice would otherwise schedule it again after reactivation.
- *
- * @throws RuntimeException When the reset state cannot be removed.
- */
-function erankly_cancel_network_reset_job(): void {
-	$missing = 'erankly-reset-missing-' . wp_generate_uuid4();
-
-	delete_site_option( ERANKLY_NETWORK_RESET_JOB_OPTION );
-
-	if ( get_site_option( ERANKLY_NETWORK_RESET_JOB_OPTION, $missing ) !== $missing ) {
-		throw new RuntimeException( esc_html__( 'EasyRankly could not cancel the active network reset during deactivation.', 'easyrankly' ) );
-	}
 }
 
 /** @param bool $network_deactivating Whether this is a network deactivation. */
@@ -750,8 +408,6 @@ function erankly_deactivate( bool $network_deactivating = false ): void {
 				)
 			);
 		}
-
-		erankly_cancel_network_reset_job();
 
 		$last_site_id = 0;
 
@@ -1017,6 +673,15 @@ function erankly_rest_save_settings_panel( WP_REST_Request $request ) {
 	if ( ! isset( $registry[ $panel_key ] ) ) {
 		return new WP_Error( 'erankly_unknown_settings_panel', __( 'Unknown settings panel.', 'easyrankly' ), array( 'status' => 404 ) );
 	}
+	$module = match ( $panel_key ) {
+		'seo', 'general', 'social', 'schema', 'advanced', 'special-pages' => 'seo',
+		'sitemap' => 'sitemap',
+		'custom-code' => 'custom-code',
+		default => '',
+	};
+	if ( '' !== $module && ! erankly_feature_module_enabled( $module ) ) {
+		return new WP_Error( 'erankly_disabled_settings_module', __( 'This feature module is disabled.', 'easyrankly' ), array( 'status' => 403 ) );
+	}
 
 	$panel_config = $registry[ $panel_key ];
 	$payload      = (array) $request->get_param( 'settings' );
@@ -1033,9 +698,9 @@ function erankly_rest_save_settings_panel( WP_REST_Request $request ) {
 		erankly_update_plugin_option( ERANKLY_OPTION, $sanitized );
 	} catch ( RuntimeException $exception ) {
 		return new WP_Error(
-			'erankly_settings_locked',
+			'erankly_settings_save_failed',
 			$exception->getMessage(),
-			array( 'status' => 409 )
+			array( 'status' => 500 )
 		);
 	}
 
@@ -1114,9 +779,9 @@ function erankly_rest_save_special_pages( WP_REST_Request $request ) {
 		erankly_update_special_meta_map( $map );
 	} catch ( RuntimeException $exception ) {
 		return new WP_Error(
-			'erankly_settings_locked',
+			'erankly_settings_save_failed',
 			$exception->getMessage(),
-			array( 'status' => 409 )
+			array( 'status' => 500 )
 		);
 	}
 

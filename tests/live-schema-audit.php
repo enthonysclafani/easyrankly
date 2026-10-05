@@ -347,7 +347,6 @@ try {
 	$settings['organization_locality']     = 'Milano';
 	$settings['organization_postal_code']  = '20100';
 	$settings['organization_country']      = 'IT';
-	$settings['enable_website_search_action'] = 0;
 	$settings['breadcrumb_jsonld_mode']    = 'when_visible';
 	$esempio = get_page_by_path( 'esempio' );
 	$esempio_id = $esempio instanceof WP_Post ? (int) $esempio->ID : 0;
@@ -370,7 +369,7 @@ try {
 		$settings['local_business_pages'][2] = $example_id;
 	}
 
-	erankly_update_plugin_settings( $settings, '', true );
+	erankly_update_plugin_settings( $settings, true );
 	erankly_clear_settings_cache();
 
 	$esempio_url = $esempio_id > 0 ? (string) get_permalink( $esempio_id ) : home_url( '/esempio/' );
@@ -436,7 +435,6 @@ try {
 		);
 	}
 
-	$event_id = 0;
 	$event_id = wp_insert_post(
 		array(
 			'post_type'    => 'event',
@@ -449,53 +447,13 @@ try {
 
 	if ( ! is_wp_error( $event_id ) && $event_id > 0 ) {
 		$created[] = array( 'blog_id' => get_current_blog_id(), 'id' => (int) $event_id );
-		update_post_meta( $event_id, '_event_start', 'not-a-date' );
-		$event_schema = erankly_schema_event( (int) $event_id );
-
-		if ( ! empty( $event_schema ) ) {
-			erankly_live_fail( $failures, 'Event with an invalid start date was emitted.' );
-		} else {
-			erankly_live_pass( 'Event without a valid startDate is not emitted.' );
-		}
-
 		update_post_meta( $event_id, '_event_start', '2026-09-06 18:00:00' );
-		update_post_meta( $event_id, '_event_end', '2026-09-06 16:00:00' );
 		update_post_meta( $event_id, 'event_location', 'Sala Prove' );
-		$event_schema = erankly_schema_event( (int) $event_id );
 
-		if ( empty( $event_schema['startDate'] ) ) {
-			erankly_live_fail( $failures, 'Valid event startDate was not emitted.' );
+		if ( ! empty( erankly_schema_event( (int) $event_id ) ) ) {
+			erankly_live_fail( $failures, 'A generic event post type was guessed into an Event node.' );
 		} else {
-			erankly_live_pass( 'Valid event emits an ISO startDate.' );
-		}
-
-		if ( isset( $event_schema['endDate'] ) ) {
-			erankly_live_fail( $failures, 'endDate earlier than startDate was emitted.' );
-		} else {
-			erankly_live_pass( 'endDate earlier than startDate is omitted.' );
-		}
-	} else {
-		erankly_live_pass( 'Skipped generic event post type (not registered).' );
-	}
-
-	$faq_id = wp_insert_post(
-		array(
-			'post_type'    => 'post',
-			'post_status'  => 'publish',
-			'post_title'   => 'FAQ length fixture',
-			'post_content' => '<!-- wp:yoast/faq-block {"questions":[{"question":"' . str_repeat( 'Q', 160 ) . '","answer":"' . str_repeat( 'A', 620 ) . '"}]} /-->',
-		),
-		true
-	);
-
-	if ( ! is_wp_error( $faq_id ) && $faq_id > 0 ) {
-		$created[] = array( 'blog_id' => get_current_blog_id(), 'id' => (int) $faq_id );
-		$faq       = erankly_schema_faq( (int) $faq_id );
-
-		if ( empty( $faq['mainEntity'][0]['name'] ) || strlen( (string) $faq['mainEntity'][0]['name'] ) < 160 ) {
-			erankly_live_fail( $failures, 'FAQ question was truncated.' );
-		} else {
-			erankly_live_pass( 'FAQ question is not truncated.' );
+			erankly_live_pass( 'Generic event post types do not emit a guessed Event.' );
 		}
 	}
 
@@ -636,27 +594,6 @@ try {
 		}
 	}
 
-	$howto_id = wp_insert_post(
-		array(
-			'post_type'    => 'post',
-			'post_status'  => 'publish',
-			'post_title'   => 'HowTo fixture',
-			'post_content' => '<p class="schema-how-to-description">Bake a cake.</p><strong class="schema-how-to-step-name">Mix</strong><p class="schema-how-to-step-text">Stir the batter.</p><strong class="schema-how-to-step-name">Bake</strong><p class="schema-how-to-step-text">Cook for 40 minutes.</p>',
-		),
-		true
-	);
-
-	if ( ! is_wp_error( $howto_id ) && $howto_id > 0 ) {
-		$created[] = array( 'blog_id' => get_current_blog_id(), 'id' => (int) $howto_id );
-		$howto     = erankly_schema_howto( (int) $howto_id );
-
-		if ( isset( $howto['@type'] ) && 'HowTo' === $howto['@type'] && isset( $howto['step'] ) && count( $howto['step'] ) >= 2 ) {
-			erankly_live_pass( 'HowTo schema emits multiple steps from HTML.' );
-		} else {
-			erankly_live_fail( $failures, 'HowTo schema was incomplete.' );
-		}
-	}
-
 	$article_id = wp_insert_post(
 		array(
 			'post_type'    => 'post',
@@ -695,7 +632,7 @@ try {
 
 	$profile_settings = erankly_get_stored_settings();
 	$profile_settings['global_post_type_schema']['page']['webpage_type'] = 'ProfilePage';
-	erankly_update_plugin_settings( $profile_settings, '', true );
+	erankly_update_plugin_settings( $profile_settings, true );
 	erankly_clear_settings_cache();
 	update_post_meta( $it_page, '_erankly_schema_mode', 'default' );
 	delete_post_meta( $it_page, '_erankly_schema_blocks' );
@@ -716,8 +653,7 @@ try {
 		erankly_live_fail( $failures, 'ProfilePage mainEntity was missing.' );
 	}
 
-	erankly_clear_schema_merge_warnings();
-	erankly_merge_schema_nodes(
+	$merged = erankly_merge_schema_nodes(
 		array(
 			'@id'  => '#conflict',
 			'name' => array( 'alternate' => 'Auto' ),
@@ -728,10 +664,10 @@ try {
 		)
 	);
 
-	if ( array() !== erankly_schema_merge_warning_messages() ) {
-		erankly_live_pass( 'Unresolved @id merge conflicts produce warning messages.' );
+	if ( 'Custom overlay' === ( $merged['name'] ?? null ) ) {
+		erankly_live_pass( 'Unresolved @id merge conflicts keep the later layer.' );
 	} else {
-		erankly_live_fail( $failures, 'Merge conflict produced no warning messages.' );
+		erankly_live_fail( $failures, 'Merge conflict did not keep the later layer.' );
 	}
 
 	$target_settings                         = erankly_get_stored_settings();
@@ -748,7 +684,7 @@ try {
 			),
 		),
 	);
-	erankly_update_plugin_settings( $target_settings, '', true );
+	erankly_update_plugin_settings( $target_settings, true );
 	erankly_clear_settings_cache();
 
 	$it_target_html = erankly_live_fetch( get_permalink( $it_page ) );
@@ -788,7 +724,7 @@ try {
 				),
 			),
 		);
-		erankly_update_plugin_settings( $en_settings, '', true );
+		erankly_update_plugin_settings( $en_settings, true );
 		erankly_clear_settings_cache();
 
 		$en_included = erankly_live_parse_graph( erankly_live_fetch( $en_permalink ) );
@@ -873,7 +809,7 @@ try {
 		}
 	}
 
-	erankly_update_plugin_settings( is_array( $original ) ? $original : array(), '', true );
+	erankly_update_plugin_settings( is_array( $original ) ? $original : array(), true );
 	erankly_clear_settings_cache();
 	if ( $admin_id > 0 ) {
 		delete_transient( 'erankly_invalid_json_ld_' . $admin_id );

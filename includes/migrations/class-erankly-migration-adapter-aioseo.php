@@ -97,16 +97,6 @@ final class ERankly_Migration_Adapter_AIOSEO extends ERankly_Migration_Adapter {
 			return array();
 		}
 
-		$convert  = static fn( mixed $value ): string => erankly_import_convert_variables( is_scalar( $value ) ? (string) $value : '', 'aioseo' );
-		$first_scalar = static function ( array $values, string $default = '' ): string {
-			foreach ( $values as $value ) {
-				if ( is_scalar( $value ) && '' !== trim( (string) $value ) ) {
-					return (string) $value;
-				}
-			}
-
-			return $default;
-		};
 		$settings = array();
 		$global   = $this->nested_value( $options, 'searchAppearance.global', array() );
 		$global   = is_array( $global ) ? $global : array();
@@ -114,12 +104,30 @@ final class ERankly_Migration_Adapter_AIOSEO extends ERankly_Migration_Adapter {
 		$schema   = is_array( $schema ) ? $schema : array();
 		$website_name = $this->first_nested_value( $schema, array( 'websiteName', 'website.name' ) );
 		if ( is_scalar( $website_name ) && '' !== trim( (string) $website_name ) ) {
-			$settings['website_name'] = $convert( $website_name );
+			$settings['website_name'] = $this->convert_template( $website_name );
 		}
 
 		$global_robots = $this->nested_value( $options, 'searchAppearance.advanced.globalRobotsMeta', array() );
 		$global_robots = $this->resolved_global_robots( is_array( $global_robots ) ? $global_robots : array() );
 
+		return array_merge(
+			$settings,
+			$this->post_type_settings( $options, $dynamic, $global_robots ),
+			$this->taxonomy_settings( $options, $dynamic, $global_robots ),
+			$this->special_page_settings( $options, $global_robots ),
+			$this->identity_settings( $schema ),
+			$this->social_settings( $options ),
+			$this->feature_settings( $options, $dynamic, $global_robots )
+		);
+	}
+
+	/**
+	 * Maps the per post type titles, descriptions, robots, sitemap membership and schema types.
+	 *
+	 * @return array<string,mixed>
+	 */
+	private function post_type_settings( array $options, array $dynamic, array $global_robots ): array {
+		$settings = array();
 		$post_types = $this->nested_value( $dynamic, 'searchAppearance.postTypes', array() );
 		if ( ! is_array( $post_types ) ) {
 			$post_types = $this->nested_value( $options, 'searchAppearance.postTypes', array() );
@@ -145,8 +153,8 @@ final class ERankly_Migration_Adapter_AIOSEO extends ERankly_Migration_Adapter {
 				$in_sitemap        = false;
 			}
 			$post_map[ $post_type ] = $this->global_meta_row(
-				$convert( $config['title'] ?? '' ),
-				$convert( $config['metaDescription'] ?? $config['description'] ?? '' ),
+				$this->convert_template( $config['title'] ?? '' ),
+				$this->convert_template( $config['metaDescription'] ?? $config['description'] ?? '' ),
 				$robots,
 				$in_sitemap,
 				$page_type,
@@ -164,6 +172,16 @@ final class ERankly_Migration_Adapter_AIOSEO extends ERankly_Migration_Adapter {
 			}
 		}
 
+		return $settings;
+	}
+
+	/**
+	 * Maps the per taxonomy titles, descriptions, robots and sitemap membership.
+	 *
+	 * @return array<string,mixed>
+	 */
+	private function taxonomy_settings( array $options, array $dynamic, array $global_robots ): array {
+		$settings = array();
 		$taxonomies = $this->nested_value( $dynamic, 'searchAppearance.taxonomies', array() );
 		if ( ! is_array( $taxonomies ) ) {
 			$taxonomies = $this->nested_value( $options, 'searchAppearance.taxonomies', array() );
@@ -180,13 +198,23 @@ final class ERankly_Migration_Adapter_AIOSEO extends ERankly_Migration_Adapter {
 				$robots['noindex'] = true;
 				$in_sitemap        = false;
 			}
-			$taxonomy_map[ $taxonomy ] = $this->global_meta_row( $convert( $config['title'] ?? '' ), $convert( $config['metaDescription'] ?? $config['description'] ?? '' ), $robots, $in_sitemap );
+			$taxonomy_map[ $taxonomy ] = $this->global_meta_row( $this->convert_template( $config['title'] ?? '' ), $this->convert_template( $config['metaDescription'] ?? $config['description'] ?? '' ), $robots, $in_sitemap );
 		}
 		if ( $taxonomy_map ) {
 			$settings['global_taxonomy_meta']        = $taxonomy_map;
 			$settings['global_taxonomy_meta_linked'] = 0;
 		}
 
+		return $settings;
+	}
+
+	/**
+	 * Maps the homepage, archive, search and 404 defaults, including the homepage social overrides.
+	 *
+	 * @return array<string,mixed>
+	 */
+	private function special_page_settings( array $options, array $global_robots ): array {
+		$settings = array();
 		$special = array();
 		$special_paths = array(
 			'homepage' => array( 'searchAppearance.global', 'searchAppearance.homePage' ),
@@ -222,11 +250,11 @@ final class ERankly_Migration_Adapter_AIOSEO extends ERankly_Migration_Adapter {
 			$twitter_home  = $this->nested_value( $options, 'social.twitter.homePage', array() );
 			$facebook_home = is_array( $facebook_home ) ? $facebook_home : array();
 			$twitter_home  = is_array( $twitter_home ) ? $twitter_home : array();
-			$special['homepage']['og_title']            = $convert( $facebook_home['title'] ?? '' );
-			$special['homepage']['og_description']      = $convert( $facebook_home['description'] ?? '' );
-			$special['homepage']['twitter_title']       = $convert( $twitter_home['title'] ?? '' );
-			$special['homepage']['twitter_description'] = $convert( $twitter_home['description'] ?? '' );
-			$special['homepage']['social_image_url']    = esc_url_raw( $first_scalar( array( $facebook_home['image'] ?? '', $twitter_home['image'] ?? '' ) ) );
+			$special['homepage']['og_title']            = $this->convert_template( $facebook_home['title'] ?? '' );
+			$special['homepage']['og_description']      = $this->convert_template( $facebook_home['description'] ?? '' );
+			$special['homepage']['twitter_title']       = $this->convert_template( $twitter_home['title'] ?? '' );
+			$special['homepage']['twitter_description'] = $this->convert_template( $twitter_home['description'] ?? '' );
+			$special['homepage']['social_image_url']    = esc_url_raw( $this->first_scalar( array( $facebook_home['image'] ?? '', $twitter_home['image'] ?? '' ) ) );
 
 			if ( $this->enabled( $this->nested_value( $options, 'social.twitter.general.useOgData', false ) ) ) {
 				if ( '' === $special['homepage']['twitter_title'] ) {
@@ -241,22 +269,32 @@ final class ERankly_Migration_Adapter_AIOSEO extends ERankly_Migration_Adapter {
 			$settings['global_special_meta'] = $special;
 		}
 
+		return $settings;
+	}
+
+	/**
+	 * Maps the Organization or Person identity with its logo and contact details.
+	 *
+	 * @return array<string,mixed>
+	 */
+	private function identity_settings( array $schema ): array {
+		$settings = array();
 		$identity = strtolower( (string) $this->first_nested_value( $schema, array( 'siteRepresents', 'siteRepresentsType' ), '' ) );
 		if ( in_array( $identity, array( 'person', 'organization' ), true ) ) {
 			$settings['schema_identity'] = $identity;
 		}
 		$organization = $this->nested_value( $schema, 'organization', array() );
 		$organization = is_array( $organization ) ? $organization : array();
-		$organization_name = $first_scalar( array( $schema['organizationName'] ?? '', $organization['name'] ?? '' ) );
-		$organization_desc = $first_scalar( array( $schema['organizationDescription'] ?? '', $organization['description'] ?? '' ) );
+		$organization_name = $this->first_scalar( array( $schema['organizationName'] ?? '', $organization['name'] ?? '' ) );
+		$organization_desc = $this->first_scalar( array( $schema['organizationDescription'] ?? '', $organization['description'] ?? '' ) );
 		if ( '' !== $organization_name ) {
-			$settings['organization_name'] = $convert( $organization_name );
+			$settings['organization_name'] = $this->convert_template( $organization_name );
 		}
 		if ( '' !== $organization_desc ) {
-			$settings['organization_description'] = $convert( $organization_desc );
+			$settings['organization_description'] = $this->convert_template( $organization_desc );
 		}
 		$logo_id = absint( $this->first_nested_value( $organization, array( 'logo.id', 'logo.attachmentId', 'logoId' ), 0 ) );
-		$logo_url = $first_scalar(
+		$logo_url = $this->first_scalar(
 			array(
 				$schema['organizationLogo'] ?? '',
 				$this->first_nested_value( $organization, array( 'logo.url', 'logoUrl' ), '' ),
@@ -279,10 +317,20 @@ final class ERankly_Migration_Adapter_AIOSEO extends ERankly_Migration_Adapter {
 		if ( 'person' === ( $settings['schema_identity'] ?? '' ) ) {
 			$person          = $schema['person'] ?? array();
 			$person_id       = is_array( $person ) ? ( $person['userId'] ?? $person['id'] ?? 0 ) : $person;
-			$person_name     = $first_scalar( array( $schema['personName'] ?? '', is_array( $person ) ? ( $person['name'] ?? '' ) : '' ) );
+			$person_name     = $this->first_scalar( array( $schema['personName'] ?? '', is_array( $person ) ? ( $person['name'] ?? '' ) : '' ) );
 			$settings['schema_person_user_id'] = $this->person_user_id_or_warning( $person_id, $person_name );
 		}
 
+		return $settings;
+	}
+
+	/**
+	 * Maps social profiles, the X handle and the default social image.
+	 *
+	 * @return array<string,mixed>
+	 */
+	private function social_settings( array $options ): array {
+		$settings = array();
 		$same_username_urls = $this->same_username_profiles( $options );
 		$profiles = $this->social_profile_list(
 			array(
@@ -300,7 +348,7 @@ final class ERankly_Migration_Adapter_AIOSEO extends ERankly_Migration_Adapter {
 		$same_twitter  = $this->enabled( $same_username['enable'] ?? false ) && in_array( 'twitterUrl', $same_included, true )
 			? (string) ( $same_username['username'] ?? '' )
 			: '';
-		$twitter_site = $first_scalar(
+		$twitter_site = $this->first_scalar(
 			array(
 				$this->nested_value( $options, 'social.twitter.username', '' ),
 				$this->nested_value( $options, 'social.twitter.site', '' ),
@@ -312,7 +360,7 @@ final class ERankly_Migration_Adapter_AIOSEO extends ERankly_Migration_Adapter {
 		if ( '' !== $twitter_site ) {
 			$settings['twitter_site'] = $twitter_site;
 		}
-		$default_image = $first_scalar(
+		$default_image = $this->first_scalar(
 			array(
 				$this->nested_value( $options, 'social.facebook.general.defaultImagePosts', '' ),
 				$this->nested_value( $options, 'social.twitter.general.defaultImagePosts', '' ),
@@ -324,6 +372,16 @@ final class ERankly_Migration_Adapter_AIOSEO extends ERankly_Migration_Adapter {
 			$settings['default_social_image_url'] = esc_url_raw( $default_image );
 		}
 
+		return $settings;
+	}
+
+	/**
+	 * Maps sitemap, breadcrumb, site-wide robots, attachment and redirect options.
+	 *
+	 * @return array<string,mixed>
+	 */
+	private function feature_settings( array $options, array $dynamic, array $global_robots ): array {
+		$settings = array();
 		foreach ( array(
 			'enable_sitemap'     => array( 'sitemap.general.enable', 'sitemap.general.enabled' ),
 			'enable_breadcrumbs' => array( 'breadcrumbs.enable', 'breadcrumbs.enabled' ),
@@ -520,28 +578,10 @@ final class ERankly_Migration_Adapter_AIOSEO extends ERankly_Migration_Adapter {
 	/** @return iterable<int,array<string,mixed>> */
 	public function redirect_records(): iterable {
 		foreach ( $this->table_rows( 'aioseo_redirects' ) as $row ) {
-			$source = (string) ( $row['source_url'] ?? '' );
-			if ( '' === $source ) {
-				continue;
+			$redirect = $this->map_redirect_row( $row );
+			if ( is_array( $redirect ) ) {
+				yield $redirect;
 			}
-
-			$match      = strtolower( (string) ( $row['source_url_match'] ?? 'exact' ) );
-			$match_type = 'regex' === $match ? 'regex' : 'exact';
-			$query      = 'regex' === $match_type ? '' : (string) wp_parse_url( $source, PHP_URL_QUERY );
-			$query_mode = $this->aioseo_query_mode( (string) ( $row['query_param'] ?? '' ), $query );
-
-			yield array(
-				'source_path'      => $source,
-				'source_query'     => 'exact' === $query_mode ? $query : '',
-				'target_url'       => (string) ( $row['target_url'] ?? '' ),
-				'status_code'      => absint( $row['type'] ?? 301 ),
-				'match_type'       => $match_type,
-				'case_sensitive'   => empty( $row['ignore_case'] ) ? 1 : 0,
-				'trailing_slash'   => 'ignore',
-				'query_mode'       => $query_mode,
-				'is_active'        => empty( $row['enabled'] ) ? 0 : 1,
-				'source_reference' => 'redirect:' . absint( $row['id'] ?? 0 ),
-			);
 		}
 	}
 
@@ -554,32 +594,42 @@ final class ERankly_Migration_Adapter_AIOSEO extends ERankly_Migration_Adapter {
 		$records = array();
 
 		foreach ( $page['records'] as $row ) {
-			$source = (string) ( $row['source_url'] ?? '' );
-			if ( '' === $source ) {
-				continue;
+			$redirect = $this->map_redirect_row( $row );
+			if ( is_array( $redirect ) ) {
+				$records[] = $redirect;
 			}
-			$match      = strtolower( (string) ( $row['source_url_match'] ?? 'exact' ) );
-			$match_type = 'regex' === $match ? 'regex' : 'exact';
-			$query      = 'regex' === $match_type ? '' : (string) wp_parse_url( $source, PHP_URL_QUERY );
-			$query_mode = $this->aioseo_query_mode( (string) ( $row['query_param'] ?? '' ), $query );
-			$records[]  = array(
-				'source_path'      => $source,
-				'source_query'     => 'exact' === $query_mode ? $query : '',
-				'target_url'       => (string) ( $row['target_url'] ?? '' ),
-				'status_code'      => absint( $row['type'] ?? 301 ),
-				'match_type'       => $match_type,
-				'case_sensitive'   => empty( $row['ignore_case'] ) ? 1 : 0,
-				'trailing_slash'   => 'ignore',
-				'query_mode'       => $query_mode,
-				'is_active'        => empty( $row['enabled'] ) ? 0 : 1,
-				'source_reference' => 'redirect:' . absint( $row['id'] ?? 0 ),
-			);
 		}
 
 		return array(
 			'records' => $records,
 			'cursor'  => $page['done'] ? array( 'stage' => 'done' ) : array( 'after_id' => $page['after_id'] ),
 			'done'    => $page['done'],
+		);
+	}
+
+	/** @return array<string,mixed>|null */
+	private function map_redirect_row( array $row ): ?array {
+		$source = (string) ( $row['source_url'] ?? '' );
+		if ( '' === $source ) {
+			return null;
+		}
+
+		$match      = strtolower( (string) ( $row['source_url_match'] ?? 'exact' ) );
+		$match_type = 'regex' === $match ? 'regex' : 'exact';
+		$query      = 'regex' === $match_type ? '' : (string) wp_parse_url( $source, PHP_URL_QUERY );
+		$query_mode = $this->aioseo_query_mode( (string) ( $row['query_param'] ?? '' ), $query );
+
+		return array(
+			'source_path'      => $source,
+			'source_query'     => 'exact' === $query_mode ? $query : '',
+			'target_url'       => (string) ( $row['target_url'] ?? '' ),
+			'status_code'      => absint( $row['type'] ?? 301 ),
+			'match_type'       => $match_type,
+			'case_sensitive'   => empty( $row['ignore_case'] ) ? 1 : 0,
+			'trailing_slash'   => 'ignore',
+			'query_mode'       => $query_mode,
+			'is_active'        => empty( $row['enabled'] ) ? 0 : 1,
+			'source_reference' => 'redirect:' . absint( $row['id'] ?? 0 ),
 		);
 	}
 

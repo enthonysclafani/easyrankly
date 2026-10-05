@@ -89,66 +89,17 @@ final class ERankly_Compatibility_Test extends WP_UnitTestCase {
 		$this->assertSame( '', erankly_get_woocommerce_product_brand( $no_brand ) );
 	}
 
-	public function test_should_serve_sitemaps_requires_the_module_and_no_external_seo(): void {
-		erankly_update_plugin_settings( array( 'enable_sitemap' => 0 ) );
-		erankly_clear_settings_cache();
-		$this->assertFalse( erankly_should_suppress_sitemaps() );
-		$this->assertFalse( erankly_should_serve_sitemaps() );
-
-		erankly_update_plugin_settings( array( 'enable_sitemap' => 1 ) );
-		erankly_clear_settings_cache();
-		$this->assertTrue( erankly_should_serve_sitemaps() );
-
-		add_filter( 'erankly_suppress_sitemaps_with_external_seo', '__return_true' );
-		try {
-			$this->assertTrue( erankly_should_suppress_sitemaps() );
-			$this->assertFalse( erankly_should_serve_sitemaps() );
-		} finally {
-			remove_filter( 'erankly_suppress_sitemaps_with_external_seo', '__return_true' );
-		}
+	public function test_easy_rankly_never_defers_to_other_seo_plugins(): void {
+		// EasyRankly is standalone: no detection, suppression or conflict notice exists.
+		$this->assertFalse( function_exists( 'erankly_external_seo_head_owners' ) );
+		$this->assertFalse( function_exists( 'erankly_detect_external_seo_head_owner' ) );
+		$this->assertFalse( function_exists( 'erankly_should_suppress_sitemaps' ) );
+		$this->assertFalse( function_exists( 'erankly_should_serve_sitemaps' ) );
+		$this->assertFalse( function_exists( 'erankly_compatibility_notice_external_seo' ) );
+		$this->assertFalse( has_action( 'admin_notices', 'erankly_compatibility_notice_external_seo' ) );
 	}
 
-	public function test_legacy_sitemap_filter_treats_its_boolean_as_suppression(): void {
-		// Despite its "enable_..." name, the legacy hook's value is the suppression
-		// state, so returning true suppresses -- and therefore disables serving.
-		erankly_update_plugin_settings( array( 'enable_sitemap' => 1 ) );
-		erankly_clear_settings_cache();
-
-		add_filter( 'erankly_enable_sitemaps_with_external_seo', '__return_true' );
-		try {
-			$this->assertTrue( erankly_should_suppress_sitemaps() );
-			$this->assertFalse( erankly_should_serve_sitemaps() );
-		} finally {
-			remove_filter( 'erankly_enable_sitemaps_with_external_seo', '__return_true' );
-		}
-	}
-
-	public function test_legacy_hook_aliases_map_to_canonical_hooks(): void {
-		$aliases = erankly_legacy_developer_api_hook_aliases();
-
-		$this->assertNotEmpty( $aliases );
-		$this->assertArrayHasKey( 'easyrankly_title', $aliases );
-		$this->assertSame( 'erankly_title', $aliases['easyrankly_title'] );
-		$this->assertSame( 'erankly_og_title', $aliases['easyrankly_og_title'] );
-		$this->assertSame( 'erankly_schema', $aliases['easyrankly_schema'] );
-	}
-
-	public function test_legacy_hook_alias_is_actually_wired_to_the_canonical_hook(): void {
-		$legacy = static fn( string $value ): string => $value . '|legacy';
-		add_filter( 'easyrankly_title', $legacy, 10, 1 );
-
-		try {
-			// Applying the canonical hook runs the legacy hook through the alias.
-			$this->assertSame( 'Base|legacy', apply_filters( 'erankly_title', 'Base' ) );
-		} finally {
-			remove_filter( 'easyrankly_title', $legacy, 10 );
-		}
-	}
-
-	public function test_no_external_seo_owner_lets_easy_rankly_own_the_head(): void {
-		// The external-owner list is memoised during bootstrap, so a conflicting
-		// SEO plugin cannot be simulated here; this covers the no-conflict path.
-		$this->assertFalse( erankly_detect_external_seo_head_owner() );
+	public function test_head_output_follows_the_request_type_and_filter(): void {
 		$this->assertTrue( erankly_should_output_head() );
 
 		add_filter( 'erankly_enable_head_output', '__return_false' );
@@ -157,22 +108,5 @@ final class ERankly_Compatibility_Test extends WP_UnitTestCase {
 		} finally {
 			remove_filter( 'erankly_enable_head_output', '__return_false' );
 		}
-	}
-
-	public function test_compatibility_notice_is_silent_without_a_conflict(): void {
-		$admin_id = self::factory()->user->create( array( 'role' => 'administrator' ) );
-		wp_set_current_user( $admin_id );
-		$this->assertTrue( current_user_can( 'manage_options' ) );
-
-		// No external owner: an administrator is never shown the conflict notice.
-		ob_start();
-		erankly_compatibility_notice_external_seo();
-		$this->assertSame( '', (string) ob_get_clean() );
-
-		// Without the capability it is silent regardless.
-		wp_set_current_user( 0 );
-		ob_start();
-		erankly_compatibility_notice_external_seo();
-		$this->assertSame( '', (string) ob_get_clean() );
 	}
 }

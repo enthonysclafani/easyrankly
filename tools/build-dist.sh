@@ -27,6 +27,7 @@ rm -rf \
 	"$STAGING/$PLUGIN_SLUG/.github" \
 	"$STAGING/$PLUGIN_SLUG/.delta" \
 	"$STAGING/$PLUGIN_SLUG/.dist" \
+	"$STAGING/$PLUGIN_SLUG/.erankly-audit" \
 	"$STAGING/$PLUGIN_SLUG/.playwright-cli" \
 	"$STAGING/$PLUGIN_SLUG/.commandcode" \
 	"$STAGING/$PLUGIN_SLUG/tests" \
@@ -36,6 +37,7 @@ rm -f \
 	"$STAGING/$PLUGIN_SLUG/.gitignore" \
 	"$STAGING/$PLUGIN_SLUG/.distignore" \
 	"$STAGING/$PLUGIN_SLUG/.DS_Store" \
+	"$STAGING/$PLUGIN_SLUG/.phpunit.result.cache" \
 	"$STAGING/$PLUGIN_SLUG/phpunit.xml.dist" \
 	"$STAGING/$PLUGIN_SLUG/composer.json" \
 	"$STAGING/$PLUGIN_SLUG/composer.lock" \

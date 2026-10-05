@@ -193,7 +193,7 @@
 				...shared.searchAppearanceFields( { config, data, features } ),
 				...( wp.hooks && wp.hooks.applyFilters ? wp.hooks.applyFilters( 'erankly.siteEditor.searchAppearanceExtras', [], { context, data, config } ) : [] )
 			),
-			! config.simplifiedMode && el(
+			el(
 				PluginDocumentSettingPanel,
 				{ className: 'erankly-panel erankly-panel--social', name: 'erankly-special-social', title: __( 'Social sharing', 'easyrankly' ) },
 				...shared.socialFields( { config, data, features } ),
@@ -202,7 +202,7 @@
 			el(
 				PluginDocumentSettingPanel,
 				{ className: 'erankly-panel erankly-panel--visibility', name: 'erankly-special-visibility', title: __( 'Search visibility', 'easyrankly' ) },
-				...shared.visibilityFields( { config, data, features } )
+				...shared.visibilityFields( { data, features } )
 			)
 		);
 	}

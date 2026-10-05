@@ -10,6 +10,7 @@ final class ERankly_Sitemap_Test extends WP_UnitTestCase {
 
 	public function set_up(): void {
 		parent::set_up();
+		erankly_clear_settings_cache();
 
 		register_post_type(
 			'erankly_test_doc',
@@ -31,6 +32,7 @@ final class ERankly_Sitemap_Test extends WP_UnitTestCase {
 		remove_filter( 'erankly_global_entity_meta_map', array( $this, 'filter_visibility' ), 10 );
 		remove_filter( 'erankly_sitemap_site_urls', array( $this, 'filter_site_urls' ), 10 );
 		unregister_post_type( 'erankly_test_doc' );
+		erankly_clear_settings_cache();
 
 		parent::tear_down();
 	}
@@ -99,6 +101,21 @@ final class ERankly_Sitemap_Test extends WP_UnitTestCase {
 		$this->assertNotContains( get_permalink( $canonical ), $locs );
 	}
 
+	public function test_sitemap_remains_available_without_applying_disabled_seo_metadata(): void {
+		erankly_tests_set_settings( array( 'enable_seo' => 0, 'enable_sitemap' => 1 ) );
+		$ids = self::factory()->post->create_many( 3, array( 'post_type' => 'erankly_test_doc', 'post_status' => 'publish' ) );
+		update_post_meta( $ids[0], '_erankly_index_directive', 'noindex' );
+		update_post_meta( $ids[1], '_erankly_canonical', 'https://canonical.invalid/elsewhere/' );
+		update_post_meta( $ids[2], '_erankly_disable_sitemap', '1' );
+		update_option( ERANKLY_SITEMAP_CACHE_VERSION_OPTION, wp_rand( 10000, PHP_INT_MAX ), false );
+		$provider = new WP_Sitemaps_Posts();
+		$locs = array_column( $provider->get_url_list( 1, 'erankly_test_doc' ), 'loc' );
+		foreach ( $ids as $id ) {
+			$this->assertContains( get_permalink( $id ), $locs );
+		}
+		$this->assertSame( 'noindex', get_post_meta( $ids[0], '_erankly_index_directive', true ) );
+	}
+
 	public function test_explicit_index_overrides_global_noindex_but_not_sitemap_disable(): void {
 		$inherited = self::factory()->post->create(
 			array(
@@ -145,8 +162,11 @@ final class ERankly_Sitemap_Test extends WP_UnitTestCase {
 		);
 		update_user_meta( $hidden_author, '_erankly_index_directive', 'noindex' );
 
+		// One indexable author alone hides the users sitemap; force it on to inspect the list.
+		add_filter( 'erankly_include_user_sitemap', '__return_true' );
 		$provider = new WP_Sitemaps_Users();
 		$locs     = array_column( $provider->get_url_list( 1 ), 'loc' );
+		remove_filter( 'erankly_include_user_sitemap', '__return_true' );
 
 		$this->assertContains( get_author_posts_url( $visible_author ), $locs );
 		$this->assertNotContains( get_author_posts_url( $hidden_author ), $locs );
@@ -162,6 +182,21 @@ final class ERankly_Sitemap_Test extends WP_UnitTestCase {
 		update_option( ERANKLY_SITEMAP_CACHE_VERSION_OPTION, wp_rand( 10000, PHP_INT_MAX ), false );
 
 		$this->assertNotContains( $term_id, erankly_get_non_self_canonical_term_ids( 'category' ) );
+	}
+
+	public function test_single_author_site_hides_the_users_sitemap(): void {
+		$author = self::factory()->user->create( array( 'role' => 'author' ) );
+		self::factory()->post->create(
+			array(
+				'post_author' => $author,
+				'post_status' => 'publish',
+			)
+		);
+
+		$provider = new WP_Sitemaps_Users();
+
+		$this->assertSame( 0, $provider->get_max_num_pages() );
+		$this->assertSame( array(), $provider->get_url_list( 1 ) );
 	}
 
 	public function test_user_stats_follow_the_current_sitemap_cache_generation(): void {

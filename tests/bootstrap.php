@@ -94,3 +94,38 @@ function erankly_tests_set_accessible( ReflectionMethod $method ): void {
 		$method->setAccessible( true );
 	}
 }
+
+/** Clears the per-request breadcrumb capture state between assertions. */
+function erankly_reset_breadcrumb_runtime_state(): void {
+	$state = &erankly_breadcrumb_state();
+	$state = erankly_breadcrumb_initial_state();
+}
+
+/**
+ * Returns the registered core/breadcrumbs attribute defaults.
+ *
+ * @return array<string,mixed>
+ */
+function erankly_core_breadcrumbs_default_attributes(): array {
+	$defaults = array(
+		'prefersTaxonomy' => false,
+		'separator'       => '/',
+		'showHomeItem'    => true,
+		'showCurrentItem' => true,
+		'showOnHomePage'  => false,
+	);
+
+	$block = WP_Block_Type_Registry::get_instance()->get_registered( 'core/breadcrumbs' );
+
+	if ( ! $block || ! is_array( $block->attributes ) ) {
+		return $defaults;
+	}
+
+	foreach ( $block->attributes as $name => $schema ) {
+		if ( is_array( $schema ) && array_key_exists( 'default', $schema ) ) {
+			$defaults[ $name ] = $schema['default'];
+		}
+	}
+
+	return $defaults;
+}

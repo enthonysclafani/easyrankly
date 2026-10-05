@@ -1,0 +1,170 @@
+/** Conservative database maintenance, scoped to the Tools panel. */
+/* Section width, heading, card padding and vertical rhythm come from admin-core.css. */
+.erankly-tools-intro {
+	display: flex;
+	flex-direction: column;
+	gap: var(--erankly-space-label);
+}
+.erankly-tools-intro h3,
+.erankly-tools-results h3 {
+	font-size: 13px;
+	margin: 0;
+}
+.erankly-tools-intro p {
+	font-size: 13px;
+	line-height: 1.5;
+	margin: 0;
+}
+.erankly-tools-scope {
+	color: var(--erankly-color-muted);
+}
+.erankly-tools-options {
+	border: 0;
+	min-width: 0;
+	padding: 0;
+}
+.erankly-tools-row {
+	align-items: start;
+	display: grid;
+	gap: var(--erankly-space-label);
+	grid-template-columns: 36px minmax(0, 1fr) auto;
+}
+.erankly-tools-row input[type="checkbox"].erankly-toggle {
+	margin: 0;
+}
+.erankly-tools-row-content {
+	min-width: 0;
+}
+.erankly-tools-row-title {
+	align-items: center;
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--erankly-space-2);
+	min-height: 20px;
+}
+.erankly-tools-row-content label {
+	font-size: 13px;
+	line-height: 1.5;
+}
+.erankly-tools-row-content p.description {
+	margin: var(--erankly-space-help) 0 0;
+}
+.erankly-tools-badge {
+	background: var(--erankly-color-surface);
+	border: 1px solid var(--erankly-color-border);
+	border-radius: var(--erankly-radius-compact);
+	color: var(--erankly-color-muted);
+	display: inline-block;
+	font-size: 10px;
+	line-height: 1.6;
+	padding: 0 var(--erankly-space-1);
+}
+.erankly-tools-badge.is-recommended {
+	background: var(--erankly-color-info-surface);
+	border-color: var(--erankly-color-info-border);
+	color: var(--erankly-color-info);
+}
+.erankly-tools-count {
+	color: var(--erankly-color-muted);
+	font-size: 13px;
+	font-variant-numeric: tabular-nums;
+	line-height: 1.7;
+}
+.erankly-tools-actions {
+	align-items: center;
+}
+.erankly-tools-selection,
+.erankly-tools-footnote {
+	color: var(--erankly-color-muted);
+	font-size: 12px;
+	line-height: 1.6;
+}
+.erankly-tools-status {
+	font-size: 13px;
+	line-height: 1.6;
+}
+.erankly-tools-status.is-error {
+	color: var(--erankly-color-error);
+}
+/* Keep the empty live region available to assistive technology without a gap. */
+.erankly-tools-status:empty {
+	position: absolute;
+}
+.erankly-tools-progress {
+	align-items: center;
+	display: flex;
+	gap: var(--erankly-space-3);
+	margin-top: var(--erankly-space-4);
+}
+.erankly-tools-progress progress {
+	accent-color: var(--erankly-color-info);
+	flex: 1;
+	width: 100%;
+}
+.erankly-tools .erankly-tools-dialog {
+	background: var(--erankly-color-surface);
+	border: 1px solid var(--erankly-color-border);
+	border-radius: var(--erankly-radius-surface);
+	box-shadow: var(--erankly-shadow-popover);
+	box-sizing: border-box;
+	color: var(--erankly-color-text);
+	margin: auto;
+	max-height: 85vh;
+	max-width: 640px;
+	padding: var(--erankly-space-5);
+	width: calc(100% - 32px);
+}
+.erankly-tools-dialog::backdrop {
+	background: rgba(0, 0, 0, .45);
+}
+.erankly-tools-dialog h2 {
+	font-size: 21px;
+	margin: 0 0 var(--erankly-space-3);
+}
+.erankly-tools-dialog p,
+.erankly-tools-acknowledge {
+	font-size: 13px;
+	line-height: 1.6;
+}
+.erankly-tools-summary details {
+	border: 1px solid var(--erankly-color-border);
+	margin: var(--erankly-space-2) 0;
+	padding: var(--erankly-space-3);
+}
+.erankly-tools-summary summary {
+	cursor: pointer;
+	font-size: 13px;
+	font-weight: 600;
+}
+.erankly-tools-summary ul {
+	font-size: 12px;
+	list-style: disc;
+	max-height: 180px;
+	overflow: auto;
+	overflow-wrap: anywhere;
+	padding-inline-start: var(--erankly-space-4);
+}
+.erankly-tools-acknowledge {
+	align-items: baseline;
+	display: flex;
+	gap: var(--erankly-space-2);
+	margin-top: var(--erankly-space-4);
+}
+.erankly-tools-dialog-actions {
+	display: flex;
+	gap: var(--erankly-space-3);
+	justify-content: flex-end;
+	margin-top: var(--erankly-space-5);
+}
+.erankly-tools [hidden] {
+	display: none !important;
+}
+@media (max-width: 600px) {
+	.erankly-tools-count {
+		max-width: 85px;
+		overflow-wrap: anywhere;
+	}
+	.erankly-tools-selection {
+		flex-basis: 100%;
+	}
+}

@@ -104,13 +104,22 @@ function erankly_render_variable_picker( array $examples = array(), array $allow
 		}
 		$examples = array_intersect_key( $examples, $variable_keys );
 	}
-	$listbox_id = wp_unique_id( 'erankly-variable-listbox-' );
+	// Footer emits the catalog once, including when fields live inside builder templates.
+	add_action( 'admin_footer', 'erankly_render_shared_variable_menu' );
 	?>
-	<span class="erankly-variable-preview" data-erankly-variable-preview aria-hidden="true" <?php echo $examples ? 'data-erankly-variable-examples="' . esc_attr( (string) wp_json_encode( $examples ) ) . '"' : ''; ?>></span>
+	<span class="erankly-variable-preview" data-erankly-variable-preview aria-hidden="true" data-erankly-variable-groups="<?php echo esc_attr( (string) wp_json_encode( array_keys( $groups ) ) ); ?>" <?php echo $examples ? 'data-erankly-variable-examples="' . esc_attr( (string) wp_json_encode( $examples ) ) . '"' : ''; ?>></span>
+	<?php
+}
+
+/** One catalog per admin page; JavaScript moves it into the active field. */
+function erankly_render_shared_variable_menu(): void {
+	$groups = erankly_get_variable_groups();
+	$listbox_id = 'erankly-variable-listbox';
+	?>
 	<div class="erankly-variable-menu" id="<?php echo esc_attr( $listbox_id ); ?>" data-erankly-variable-menu role="listbox" hidden>
 		<?php foreach ( $groups as $group_key => $group ) : ?>
 			<?php $group_id = $listbox_id . '-' . sanitize_html_class( (string) $group_key ); ?>
-			<div class="erankly-variable-group" role="group" aria-labelledby="<?php echo esc_attr( $group_id ); ?>" data-erankly-variable-group>
+			<div class="erankly-variable-group" role="group" aria-labelledby="<?php echo esc_attr( $group_id ); ?>" data-erankly-variable-group="<?php echo esc_attr( (string) $group_key ); ?>">
 				<span class="erankly-variable-group-label" id="<?php echo esc_attr( $group_id ); ?>"><?php echo esc_html( (string) $group['label'] ); ?></span>
 			<?php foreach ( $group['variables'] as $key => $label ) : ?>
 				<?php $variable = '{{' . $key . '}}'; ?>
@@ -124,6 +133,7 @@ function erankly_render_variable_picker( array $examples = array(), array $allow
 	</div>
 	<?php
 }
+
 function erankly_render_schema_block( array $block, string $index, string $name_prefix, bool $is_global = false ): void {
 	$enabled     = ! isset( $block['enabled'] ) || ! empty( $block['enabled'] );
 	$fields      = isset( $block['fields'] ) && is_array( $block['fields'] ) ? $block['fields'] : array();
@@ -216,12 +226,9 @@ function erankly_render_custom_code_block( array $block, string $index, string $
 			<span class="erankly-code-title" data-erankly-code-title><?php echo esc_html( '' !== $name ? $name : __( 'Code snippet', 'easyrankly' ) ); ?></span>
 		</summary>
 		<div class="erankly-code-panel" data-erankly-code-panel>
-			<?php if ( ! empty( $block['legacy_migrated'] ) ) : ?>
-				<input type="hidden" name="<?php echo esc_attr( $name_prefix ); ?>[<?php echo esc_attr( $index ); ?>][legacy_migrated]" value="1">
-			<?php endif; ?>
 			<div class="erankly-code-field">
 				<label for="<?php echo esc_attr( $name_id ); ?>"><?php esc_html_e( 'Snippet name', 'easyrankly' ); ?></label>
-				<input id="<?php echo esc_attr( $name_id ); ?>" class="widefat" type="text" maxlength="120" name="<?php echo esc_attr( $name_prefix ); ?>[<?php echo esc_attr( $index ); ?>][name]" value="<?php echo esc_attr( $name ); ?>" placeholder="<?php esc_attr_e( 'Code snippet', 'easyrankly' ); ?>" data-erankly-code-name>
+				<input id="<?php echo esc_attr( $name_id ); ?>" class="widefat" type="text" maxlength="120" name="<?php echo esc_attr( $name_prefix ); ?>[<?php echo esc_attr( $index ); ?>][name]" value="<?php echo esc_attr( $name ); ?>" data-erankly-code-name>
 			</div>
 			<?php erankly_render_schema_targeting_fields( $block, $index, $name_prefix, $enabled, __( 'Enable this code snippet', 'easyrankly' ), true, 'custom-code' ); ?>
 			<div class="erankly-code-field">
@@ -244,11 +251,13 @@ function erankly_render_schema_textarea_field( string $index, string $name_prefi
 			<?php erankly_render_variable_picker(); ?>
 		</div>
 		<p class="erankly-schema-json-error" id="<?php echo esc_attr( $error_id ); ?>" data-erankly-json-ld-error role="alert" hidden><?php echo esc_html( erankly_invalid_json_ld_message() ); ?></p>
+		<p class="description" data-erankly-json-ld-notice aria-live="polite" hidden></p>
 	</div>
 	<?php
 }
-function erankly_render_media_url_field( string $id, string $name, string $value, string $placeholder = '', string $attachment_id_name = '', int $attachment_id = 0, bool $show_preview = true ): void {
+function erankly_render_media_url_field( string $id, string $name, string $value, string $attachment_id_name = '', int $attachment_id = 0, bool $show_preview = true ): void {
 	$preview = '' !== $value && false === strpos( $value, '{{' ) ? $value : '';
+	$has_value = '' !== trim( $value );
 	?>
 	<div class="erankly-media-url-field" data-erankly-media-url-field>
 		<?php if ( '' !== $attachment_id_name ) : ?>
@@ -256,11 +265,11 @@ function erankly_render_media_url_field( string $id, string $name, string $value
 		<?php endif; ?>
 		<div class="erankly-media-url-control">
 			<div class="erankly-variable-field" data-erankly-variable-field>
-				<input id="<?php echo esc_attr( $id ); ?>" class="widefat" type="text" data-erankly-media-url-input name="<?php echo esc_attr( $name ); ?>" value="<?php echo esc_attr( $value ); ?>" placeholder="<?php echo esc_attr( $placeholder ); ?>">
+				<input id="<?php echo esc_attr( $id ); ?>" class="widefat" type="text" data-erankly-media-url-input name="<?php echo esc_attr( $name ); ?>" value="<?php echo esc_attr( $value ); ?>">
 				<?php erankly_render_variable_picker(); ?>
 			</div>
-			<button type="button" class="button erankly-select-media-url" data-erankly-select-media-url><?php esc_html_e( 'Select image', 'easyrankly' ); ?></button>
-			<button type="button" class="button erankly-clear-media-url" data-erankly-clear-media-url><?php esc_html_e( 'Remove', 'easyrankly' ); ?></button>
+			<button type="button" class="button erankly-select-media-url" data-erankly-select-media-url <?php echo $has_value ? 'hidden' : ''; ?>><?php esc_html_e( 'Select image', 'easyrankly' ); ?></button>
+			<button type="button" class="button erankly-clear-media-url" data-erankly-clear-media-url <?php echo $has_value ? '' : 'hidden'; ?>><?php esc_html_e( 'Remove', 'easyrankly' ); ?></button>
 		</div>
 		<?php if ( $show_preview ) : ?>
 			<div class="erankly-media-preview erankly-media-url-preview" data-erankly-media-url-preview>

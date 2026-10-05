@@ -23,22 +23,27 @@ final class ERankly_Custom_Code_Boundaries_Test extends WP_UnitTestCase {
 			revoke_super_admin( $user_id );
 		}
 		$this->granted_super_admin_ids = array();
-		erankly_update_plugin_settings( $this->original_settings, '', true );
+		erankly_update_plugin_settings( $this->original_settings, true );
 		erankly_clear_settings_cache();
 		delete_option( defined( 'ERANKLY_IMPORT_ACTIVE_JOB_OPTION' ) ? ERANKLY_IMPORT_ACTIVE_JOB_OPTION : 'erankly_import_active_job_v1' );
 		wp_set_current_user( 0 );
 		parent::tear_down();
 	}
 
-	public function test_rest_autosave_authorized_user_persists_innocent_panel_field(): void {
+	public function test_rest_autosave_authorized_user_persists_combined_seo_fields(): void {
 		$this->create_privileged_admin();
 
-		$marker = 'erankly-rest-' . wp_generate_uuid4();
-		$request = new WP_REST_Request( 'POST', '/erankly/v1/settings/general' );
+		$marker  = 'erankly-rest-' . wp_generate_uuid4();
+		$before  = erankly_get_settings();
+		$request = new WP_REST_Request( 'POST', '/erankly/v1/settings/seo' );
 		$request->set_param(
 			'settings',
 			array(
-				'website_name' => $marker,
+				'website_name'           => $marker,
+				'twitter_site'           => '@seoprobe',
+				'breadcrumb_jsonld_mode' => 'off',
+				'robots_nosnippet'        => 1,
+				'enable_forms'           => empty( $before['enable_forms'] ) ? 1 : 0,
 			)
 		);
 
@@ -48,7 +53,12 @@ final class ERankly_Custom_Code_Boundaries_Test extends WP_UnitTestCase {
 		$this->assertSame( 200, $response->get_status() );
 		$this->assertTrue( ! empty( $data['saved'] ) );
 		erankly_clear_settings_cache();
-		$this->assertSame( $marker, erankly_get_settings()['website_name'] );
+		$saved = erankly_get_settings();
+		$this->assertSame( $marker, $saved['website_name'] );
+		$this->assertSame( '@seoprobe', $saved['twitter_site'] );
+		$this->assertSame( 'off', $saved['breadcrumb_jsonld_mode'] );
+		$this->assertSame( 1, $saved['robots_nosnippet'] );
+		$this->assertSame( $before['enable_forms'], $saved['enable_forms'] );
 	}
 
 	public function test_rest_autosave_rejects_editor_and_does_not_mutate_options(): void {
@@ -81,7 +91,6 @@ final class ERankly_Custom_Code_Boundaries_Test extends WP_UnitTestCase {
 		$kept = '<meta name="erankly-kept-rest" content="1">';
 		$stored                           = erankly_get_settings();
 		$stored['enable_custom_code']     = 1;
-		$stored['head_code']             = '';
 		$stored['head_code_blocks']      = array(
 			array(
 				'enabled'         => 1,
@@ -89,7 +98,7 @@ final class ERankly_Custom_Code_Boundaries_Test extends WP_UnitTestCase {
 				'target_contexts' => array( 'front_page' ),
 			),
 		);
-		erankly_update_plugin_settings( $stored, '', true );
+		erankly_update_plugin_settings( $stored, true );
 		erankly_clear_settings_cache();
 
 		$this->set_current_user_without_unfiltered_html( $admin_id );
@@ -138,10 +147,9 @@ final class ERankly_Custom_Code_Boundaries_Test extends WP_UnitTestCase {
 			array(
 				'head_code_blocks' => array(
 					array(
-						'enabled'           => 1,
-						'legacy_migrated'   => 1,
-						'code'              => '<script>alert(1)</script>',
-						'target_contexts'   => array( 'front_page' ),
+						'enabled'         => 1,
+						'code'            => '<script>alert(1)</script>',
+						'target_contexts' => array( 'front_page' ),
 					),
 				),
 			)
@@ -153,7 +161,6 @@ final class ERankly_Custom_Code_Boundaries_Test extends WP_UnitTestCase {
 		$after = erankly_get_settings();
 		$this->assertSame( 1, (int) $after['enable_custom_code'] );
 		$this->assertSame( $kept, $after['head_code_blocks'][0]['code'] );
-		$this->assertSame( 0, (int) ( $after['head_code_blocks'][0]['legacy_migrated'] ?? 0 ) );
 	}
 
 	public function test_form_persist_helper_merges_panel_and_stores_custom_code_for_privileged_user(): void {
@@ -193,7 +200,7 @@ final class ERankly_Custom_Code_Boundaries_Test extends WP_UnitTestCase {
 				'target_contexts' => array( 'front_page' ),
 			),
 		);
-		erankly_update_plugin_settings( $stored, '', true );
+		erankly_update_plugin_settings( $stored, true );
 		erankly_clear_settings_cache();
 
 		$this->set_current_user_without_unfiltered_html( $admin_id );
@@ -256,11 +263,10 @@ final class ERankly_Custom_Code_Boundaries_Test extends WP_UnitTestCase {
 		$this->assertNull( ERankly_Import_Job_Runner::active_job() );
 	}
 
-	public function test_privileged_import_worker_sanitizes_budgets_and_keeps_trusted_legacy(): void {
+	public function test_privileged_import_worker_sanitizes_budgets(): void {
 		$this->create_privileged_admin();
 
-		$limit  = erankly_custom_code_max_bytes();
-		$legacy = erankly_custom_code_migrated_block( '<meta name="erankly-import-legacy" content="1">' );
+		$limit   = erankly_custom_code_max_bytes();
 		$regular = array(
 			'enabled'         => 1,
 			'code'            => str_repeat( 'I', $limit ),
@@ -268,28 +274,31 @@ final class ERankly_Custom_Code_Boundaries_Test extends WP_UnitTestCase {
 		);
 		$settings                     = erankly_get_settings();
 		$settings['enable_custom_code'] = 1;
-		$settings['head_code']         = '';
-		$settings['head_code_blocks'] = array( $regular, $legacy );
+		$settings['head_code_blocks'] = array( $regular, $regular );
 
-		$counts = ERankly_Import_Job_Runner::apply_payload_batch(
-			array(
-				'plugin'   => 'erankly',
-				'format'   => '4.0',
-				'settings' => $settings,
-			)
+		$data = array(
+			'plugin'   => 'erankly',
+			'format'   => '4.0',
+			'settings' => $settings,
 		);
+		$path = ERankly_Migration_Upload_Store::directory() . '/erankly-import-' . bin2hex( random_bytes( 16 ) ) . '.json';
+		file_put_contents( $path, wp_json_encode( $data ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Test fixture in private storage.
+		$started = ERankly_Import_Job_Runner::start_from_file( $path, $data );
+		$this->assertTrue( $started['ok'] );
+		for ( $i = 0; $i < 10 && null !== ERankly_Import_Job_Runner::process( (string) $started['job']['id'] ); $i++ ) {
+			continue;
+		}
 
-		$this->assertSame( 1, (int) ( $counts['settings'] ?? 0 ) );
+		$this->assertSame( 1, (int) ( get_option( ERANKLY_IMPORT_LAST_RESULT_OPTION, array() )['counts']['settings'] ?? 0 ) );
 		erankly_clear_settings_cache();
 		$after  = erankly_get_settings();
 		$blocks = $after['head_code_blocks'];
 		$this->assertSame( 1, (int) $after['enable_custom_code'] );
-		$this->assertLessThanOrEqual( erankly_custom_code_max_blocks() + 1, count( $blocks ) );
+		$this->assertCount( 1, $blocks );
 		$this->assertLessThanOrEqual(
-			erankly_custom_code_max_total_bytes() + $limit,
+			erankly_custom_code_max_total_bytes(),
 			array_sum( array_map( static fn( array $block ): int => strlen( (string) $block['code'] ), $blocks ) )
 		);
-		$this->assertContains( $legacy['code'], array_column( $blocks, 'code' ) );
 	}
 
 	public function test_import_worker_without_a_start_job_does_not_apply_a_forged_job_id(): void {
@@ -299,39 +308,6 @@ final class ERankly_Custom_Code_Boundaries_Test extends WP_UnitTestCase {
 		$this->assertNull( ERankly_Import_Job_Runner::process( wp_generate_uuid4() ) );
 		erankly_clear_settings_cache();
 		$this->assertSame( $before, erankly_get_settings() );
-	}
-
-	public function test_client_rest_payload_cannot_forge_legacy_migrated_marker(): void {
-		$this->create_privileged_admin();
-
-		$regular = array(
-			'enabled'         => 1,
-			'code'            => '<meta name="erankly-rest-regular" content="1">',
-			'target_contexts' => array( 'front_page' ),
-		);
-		$blocks = array_fill( 0, erankly_custom_code_max_blocks(), $regular );
-		$blocks[] = array(
-			'enabled'         => 1,
-			'legacy_migrated' => 1,
-			'code'            => '<meta name="erankly-forged-legacy" content="1">',
-			'target_contexts' => array( 'front_page' ),
-		);
-
-		$request = new WP_REST_Request( 'POST', '/erankly/v1/settings/custom-code' );
-		$request->set_param(
-			'settings',
-			array(
-				'head_code_blocks' => $blocks,
-			)
-		);
-		$response = rest_get_server()->dispatch( $request );
-		$this->assertSame( 200, $response->get_status() );
-
-		erankly_clear_settings_cache();
-		$after = erankly_get_settings()['head_code_blocks'];
-		$this->assertCount( erankly_custom_code_max_blocks(), $after );
-		$this->assertSame( 0, array_sum( array_column( $after, 'legacy_migrated' ) ) );
-		$this->assertNotContains( '<meta name="erankly-forged-legacy" content="1">', array_column( $after, 'code' ) );
 	}
 
 	/**

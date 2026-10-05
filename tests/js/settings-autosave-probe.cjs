@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
- * DOM probe: Simplified mode immediately shows or hides the Advanced tab, and a
- * 200 autosave with incomplete:true still refreshes the settings root (cache: no-store).
+ * DOM probe: a 200 autosave with incomplete:true still refreshes the settings
+ * root (cache: no-store).
  */
 "use strict";
 
@@ -204,25 +204,19 @@ function createEvent(type) {
 function markup(document) {
   const root = document.createElement("div");
   root.className = "erankly-settings";
-  const tab = document.createElement("a");
-  tab.id = "erankly-settings-tab-advanced";
-  tab.setAttribute("id", "erankly-settings-tab-advanced");
-  tab.hidden = true;
   const status = document.createElement("span");
   status.setAttribute("data-erankly-autosave-status", "");
   const panel = document.createElement("div");
-  panel.setAttribute("data-erankly-settings-panel", "settings-settings");
+  panel.setAttribute("data-erankly-settings-panel", "settings-features");
   const input = document.createElement("input");
   input.type = "checkbox";
-  input.checked = true;
-  input.name = "erankly_settings[simplified_mode]";
-  input.setAttribute("name", "erankly_settings[simplified_mode]");
+  input.name = "erankly_settings[enable_sitemap]";
+  input.setAttribute("name", "erankly_settings[enable_sitemap]");
   panel.appendChild(input);
-  root.appendChild(tab);
   root.appendChild(status);
   root.appendChild(panel);
   document.body.appendChild(root);
-  return { root, tab, input, panel, status };
+  return { root, input, panel, status };
 }
 
 function assert(condition, message) {
@@ -314,10 +308,10 @@ function loadSettings(document, extras) {
       error: "Could not save. Reload the page.",
     },
     panels: {
-      settings: {
-        restUrl: "https://example.test/wp-json/erankly/v1/settings/settings",
+      features: {
+        restUrl: "https://example.test/wp-json/erankly/v1/settings/features",
         reloadOnSave: true,
-        refreshKeys: ["simplified_mode"],
+        refreshKeys: ["enable_sitemap"],
       },
     },
   };
@@ -351,26 +345,6 @@ function loadSettings(document, extras) {
 }
 
 async function main() {
-  const navDocument = new FakeDocument();
-  const nav = markup(navDocument);
-  const navRuntime = loadSettings(navDocument, {
-    fetch: function () {
-      return Promise.resolve({ ok: true, json: function () { return Promise.resolve({}); } });
-    },
-  });
-  navRuntime.ER.bindSimplifiedModeNav(nav.root);
-  assert(nav.tab.hidden === true, "Advanced starts hidden while Simplified mode is on");
-  nav.input.checked = false;
-  nav.input.dispatchEvent(createEvent("change"));
-  assert(nav.tab.hidden === false, "unchecking Simplified mode must show Advanced immediately");
-  nav.input.checked = true;
-  nav.input.dispatchEvent(createEvent("change"));
-  assert(nav.tab.hidden === true, "checking Simplified mode must hide Advanced immediately");
-  navRuntime.ER.bindSimplifiedModeNav(nav.root);
-  nav.input.checked = false;
-  nav.input.dispatchEvent(createEvent("change"));
-  assert(nav.tab.hidden === false, "a second bind must not stack listeners that fight the toggle");
-
   const calls = [];
   const saveDocument = new FakeDocument();
   const save = markup(saveDocument);
@@ -402,14 +376,14 @@ async function main() {
     },
   });
   runtime.ER.bindAllSettingsAutosave(save.root);
-  save.input.checked = false;
+  save.input.checked = true;
   save.input.dispatchEvent(createEvent("change"));
   await runtime.advance(900);
   await runtime.advance(700);
   assert(runtime.reloads.count === 0, "a successful save must not fall back to location.reload");
   assert(
-    calls.some((call) => call.method === "POST" && call.url.indexOf("/settings/settings") !== -1),
-    "toggling Simplified mode must POST the settings panel",
+    calls.some((call) => call.method === "POST" && call.url.indexOf("/settings/features") !== -1),
+    "toggling a feature must POST the features panel",
   );
   assert(
     calls.some(

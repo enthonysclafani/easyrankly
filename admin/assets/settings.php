@@ -1,9 +1,7 @@
 <?php
 /**
  * Admin asset enqueuer: resolves the surface (settings tab / classic editor / taxonomy / Site Editor),
- * enqueues CSS + JS modules, localizes i18n and autosave config. The autosave panel map is deliberately
- * hand-written instead of derived from erankly_settings_autosave_panels(): on Network Admin,
- * admin/settings-page.php is not loaded yet at admin_enqueue_scripts time.
+ * enqueues CSS + JS modules, localizes i18n and autosave config from the shared core panel registry.
  */
 defined( 'ABSPATH' ) || exit;
 function erankly_admin_enqueue_assets( string $hook_suffix ): void {
@@ -17,6 +15,9 @@ function erankly_admin_enqueue_assets( string $hook_suffix ): void {
 	$is_block_editor = $is_editor && $screen->is_block_editor();
 	$is_site_editor  = 'site-editor' === $screen->base;
 	if ( ! $is_settings && ! $is_editor && ! $is_taxonomy && ! $is_site_editor ) {
+		return;
+	}
+	if ( ! $is_settings && ! erankly_seo_enabled() ) {
 		return;
 	}
 	erankly_load_content_helpers();
@@ -36,6 +37,28 @@ function erankly_admin_enqueue_assets( string $hook_suffix ): void {
 		$surface = 'classic-editor';
 	}
 	$asset_modules = erankly_admin_asset_modules( $surface );
+	erankly_admin_enqueue_surface_styles( $is_settings, $settings_tab );
+	erankly_admin_enqueue_scripts( $asset_modules );
+	erankly_admin_localize_asset_modules( $asset_modules, $surface, $is_settings, $settings_tab );
+	if ( $is_settings && 'redirects' === $settings_tab && erankly_redirects_enabled() ) {
+		erankly_admin_enqueue_redirects_assets();
+	}
+	do_action(
+		'erankly_admin_enqueue_assets',
+		array(
+			'hook_suffix'     => $hook_suffix,
+			'screen'          => $screen,
+			'is_settings'     => $is_settings,
+			'is_editor'       => $is_editor,
+			'is_taxonomy'     => $is_taxonomy,
+			'is_block_editor' => false,
+			'is_site_editor'  => false,
+			'settings_tab'    => $settings_tab,
+		)
+	);
+}
+/** Enqueues the shared admin styles plus the files specific to one settings tab or the classic editor. */
+function erankly_admin_enqueue_surface_styles( bool $is_settings, string $settings_tab ): void {
 	erankly_enqueue_shared_styles();
 	wp_enqueue_style(
 		'erankly-admin',
@@ -50,19 +73,26 @@ function erankly_admin_enqueue_assets( string $hook_suffix ): void {
 			wp_enqueue_script(
 				'erankly-admin-import-export',
 				ERANKLY_URL . 'assets/js/admin-import-export.js',
-				array(),
+				array( 'wp-i18n' ),
 				ERANKLY_VERSION,
 				true
 			);
+			wp_set_script_translations( 'erankly-admin-import-export', 'easyrankly', ERANKLY_PATH . 'languages' );
 		}
-		if ( 'settings' === $settings_tab ) {
-			wp_enqueue_style( 'erankly-reset', ERANKLY_URL . 'assets/css/reset.css', array( 'erankly-admin-settings' ), ERANKLY_VERSION );
+		if ( 'tools' === $settings_tab ) {
+			wp_enqueue_style( 'erankly-tools', ERANKLY_URL . 'assets/css/tools.css', array( 'erankly-admin-settings' ), ERANKLY_VERSION . '.' . filemtime( ERANKLY_PATH . 'assets/css/tools.css' ) );
 		}
 	} else {
 		wp_enqueue_style( 'erankly-classic-editor', ERANKLY_URL . 'assets/css/classic-editor.css', array( 'erankly-admin-settings' ), ERANKLY_VERSION );
 	}
-	erankly_admin_enqueue_scripts( $asset_modules );
-	if ( $is_settings && 'general' === $settings_tab ) {
+}
+/**
+ * Localizes the data each enqueued admin module reads.
+ *
+ * @param array<int,string> $asset_modules Modules from erankly_admin_asset_modules().
+ */
+function erankly_admin_localize_asset_modules( array $asset_modules, string $surface, bool $is_settings, string $settings_tab ): void {
+	if ( $is_settings && 'seo' === $settings_tab ) {
 		wp_localize_script(
 			'erankly-admin',
 			'eranklyUserSearch',
@@ -87,10 +117,9 @@ function erankly_admin_enqueue_assets( string $hook_suffix ): void {
 			'erankly-admin',
 			'eranklyVariablePreview',
 			array(
-				'resolvePlaceholders' => (bool) erankly_get_setting( 'resolve_placeholders', 1 ),
-				'siteDescription'     => get_bloginfo( 'description' ),
-				'siteName'            => get_bloginfo( 'name' ),
-				'unavailableLabel'    => __( 'Preview not available', 'easyrankly' ),
+				'siteDescription'  => get_bloginfo( 'description' ),
+				'siteName'         => get_bloginfo( 'name' ),
+				'unavailableLabel' => __( 'Preview not defined', 'easyrankly' ),
 			)
 		);
 	}
@@ -104,7 +133,7 @@ function erankly_admin_enqueue_assets( string $hook_suffix ): void {
 			)
 		);
 	}
-	if ( in_array( 'schema', $asset_modules, true ) || in_array( 'blocks', $asset_modules, true ) ) {
+	if ( in_array( 'schema', $asset_modules, true ) || in_array( 'blocks', $asset_modules, true ) || in_array( 'schema-builder', $asset_modules, true ) || in_array( 'code-builder', $asset_modules, true ) ) {
 		wp_localize_script(
 			'erankly-admin',
 			'eranklySchemaBuilder',
@@ -116,6 +145,8 @@ function erankly_admin_enqueue_assets( string $hook_suffix ): void {
 				),
 			)
 		);
+	}
+	if ( in_array( 'widgets', $asset_modules, true ) || in_array( 'local-business', $asset_modules, true ) ) {
 		wp_localize_script(
 			'erankly-admin',
 			'eranklyLocalBusiness',
@@ -140,109 +171,77 @@ function erankly_admin_enqueue_assets( string $hook_suffix ): void {
 		);
 	}
 	if ( $is_settings && in_array( 'settings', $asset_modules, true ) ) {
-		wp_localize_script(
-			'erankly-admin',
-			'eranklySettingsAutosave',
-			array(
-				'nonce'  => wp_create_nonce( 'wp_rest' ),
-				'i18n'   => array(
-					'saving'     => __( 'Saving…', 'easyrankly' ),
-					'saved'      => __( 'Saved', 'easyrankly' ),
-					'warning'    => __( 'Saved with warnings', 'easyrankly' ),
-					'retry'      => __( 'Saving failed. Retrying…', 'easyrankly' ),
-					'error'      => __( 'Could not save. Reload the page.', 'easyrankly' ),
-					'incomplete' => __( 'Saved, but the configuration is incomplete.', 'easyrankly' ),
-				),
-				'panels' => apply_filters(
-					'erankly_settings_autosave_client_panels',
-					array_filter(
-						array(
-							'general'       => array( 'restUrl' => esc_url_raw( rest_url( 'erankly/v1/settings/general' ) ) ),
-							'advanced'      => array(
-								'restUrl'      => esc_url_raw( rest_url( 'erankly/v1/settings/advanced' ) ),
-								'reloadOnSave' => true,
-							),
-							'sitemap'       => array( 'restUrl' => esc_url_raw( rest_url( 'erankly/v1/settings/sitemap' ) ) ),
-							'features'      => array(
-								'restUrl'      => esc_url_raw( rest_url( 'erankly/v1/settings/features' ) ),
-								'reloadOnSave' => true,
-								'refreshKeys'  => array( 'enable_redirects', 'enable_sitemap', 'enable_custom_code' ),
-							),
-							'settings'      => array(
-								'restUrl'      => esc_url_raw( rest_url( 'erankly/v1/settings/settings' ) ),
-								'reloadOnSave' => true,
-								'refreshKeys'  => array( 'simplified_mode' ),
-							),
-							'social'        => array( 'restUrl' => esc_url_raw( rest_url( 'erankly/v1/settings/social' ) ) ),
-							'schema'        => array( 'restUrl' => esc_url_raw( rest_url( 'erankly/v1/settings/schema' ) ) ),
-							'custom-code'   => array( 'restUrl' => esc_url_raw( rest_url( 'erankly/v1/settings/custom-code' ) ) ),
-							'special-pages' => array( 'restUrl' => esc_url_raw( rest_url( 'erankly/v1/settings/special-pages' ) ) ),
-						),
-						'is_array'
-					)
-				),
-			)
-		);
+		wp_localize_script( 'erankly-admin', 'eranklySettingsAutosave', erankly_admin_settings_autosave_config() );
 	}
-	if ( $is_settings && 'redirects' === $settings_tab && erankly_redirects_enabled() ) {
-		wp_enqueue_style(
-			'erankly-redirects',
-			ERANKLY_URL . 'assets/css/redirects.css',
-			array( 'erankly-admin' ),
-			ERANKLY_VERSION
-		);
-		wp_enqueue_script(
-			'erankly-redirects',
-			ERANKLY_URL . 'assets/js/redirects.js',
-			array(),
-			ERANKLY_VERSION,
-			true
-		);
-		wp_localize_script(
-			'erankly-redirects',
-			'eranklyRedirects',
-			array(
-				'restUrlToggle' => esc_url_raw( rest_url( 'erankly/v1/redirects/toggle' ) ),
-				'restUrlDelete' => esc_url_raw( rest_url( 'erankly/v1/redirects/delete' ) ),
-				'restUrlTest'   => esc_url_raw( rest_url( 'erankly/v1/redirects/test' ) ),
-				'nonce'         => wp_create_nonce( 'wp_rest' ),
-				'requestFailed' => __( 'Request failed', 'easyrankly' ),
-				'statusOnlyCodes' => array_map( 'strval', ERankly_Redirects_Normalizer::STATUS_ONLY_CODES ),
-				/* translators: %s: Redirect source path. */
-				'deleteConfirm' => __( 'The redirect from %s will be permanently deleted.', 'easyrankly' ),
-				'enableLabel'   => __( 'Enable', 'easyrankly' ),
-				'disableLabel'  => __( 'Disable', 'easyrankly' ),
-				/* translators: %s: Source path of the redirect to enable. */
-				'enableAria'    => __( 'Enable redirect from %s', 'easyrankly' ),
-				/* translators: %s: Source path of the redirect to disable. */
-				'disableAria'   => __( 'Disable redirect from %s', 'easyrankly' ),
-				'activeYes'     => __( 'Yes', 'easyrankly' ),
-				'activeNo'      => __( 'No', 'easyrankly' ),
-				'toggleError'   => __( 'The redirect status could not be changed.', 'easyrankly' ),
-				'deleteError'   => __( 'The redirect could not be deleted.', 'easyrankly' ),
-				'emptyTable'    => __( 'No redirects found.', 'easyrankly' ),
-				/* translators: %s: Redirect destination URL. */
-				'testMatched'   => __( 'Matches. Destination: %s', 'easyrankly' ),
-				'testMatchedStatus' => __( 'Matches. This response has no destination.', 'easyrankly' ),
-				'testNoMatch'   => __( 'This URL does not match the rule.', 'easyrankly' ),
-				'testError'     => __( 'The rule could not be tested.', 'easyrankly' ),
-				'exactHelp'     => __( 'Matches one path. By default, letter case and a final slash are ignored.', 'easyrankly' ),
-				'wildcardHelp'  => __( 'Use * to capture variable path segments. Use * in the target to insert each captured value.', 'easyrankly' ),
-				'regexHelp'     => __( 'Use a PCRE path expression and $1, $2… in the target for captured values.', 'easyrankly' ),
-			)
-		);
-	}
-	do_action(
-		'erankly_admin_enqueue_assets',
+}
+/**
+ * Client configuration for the settings autosave: status labels and the REST endpoint of each panel.
+ *
+ * @return array<string,mixed>
+ */
+function erankly_admin_settings_autosave_config(): array {
+	return array(
+		'nonce'  => wp_create_nonce( 'wp_rest' ),
+		'i18n'   => array(
+			'saving'     => __( 'Saving…', 'easyrankly' ),
+			'saved'      => __( 'Saved', 'easyrankly' ),
+			'warning'    => __( 'Saved with warnings', 'easyrankly' ),
+			'retry'      => __( 'Saving failed. Retrying…', 'easyrankly' ),
+			'error'      => __( 'Could not save. Reload the page.', 'easyrankly' ),
+			'incomplete' => __( 'Saved, but the configuration is incomplete.', 'easyrankly' ),
+		),
+		'panels' => apply_filters(
+			'erankly_settings_autosave_client_panels',
+			erankly_admin_settings_client_panels()
+		),
+	);
+}
+/** Enqueues and localizes the redirect manager on its settings tab. */
+function erankly_admin_enqueue_redirects_assets(): void {
+	wp_enqueue_style(
+		'erankly-redirects',
+		ERANKLY_URL . 'assets/css/redirects.css',
+		array( 'erankly-admin' ),
+		ERANKLY_VERSION
+	);
+	wp_enqueue_script(
+		'erankly-redirects',
+		ERANKLY_URL . 'assets/js/redirects.js',
+		array(),
+		ERANKLY_VERSION,
+		true
+	);
+	wp_localize_script(
+		'erankly-redirects',
+		'eranklyRedirects',
 		array(
-			'hook_suffix'     => $hook_suffix,
-			'screen'          => $screen,
-			'is_settings'     => $is_settings,
-			'is_editor'       => $is_editor,
-			'is_taxonomy'     => $is_taxonomy,
-			'is_block_editor' => false,
-			'is_site_editor'  => false,
-			'settings_tab'    => $settings_tab,
+			'restUrlToggle' => esc_url_raw( rest_url( 'erankly/v1/redirects/toggle' ) ),
+			'restUrlDelete' => esc_url_raw( rest_url( 'erankly/v1/redirects/delete' ) ),
+			'restUrlTest'   => esc_url_raw( rest_url( 'erankly/v1/redirects/test' ) ),
+			'nonce'         => wp_create_nonce( 'wp_rest' ),
+			'requestFailed' => __( 'Request failed', 'easyrankly' ),
+			'statusOnlyCodes' => array_map( 'strval', ERankly_Redirects_Normalizer::STATUS_ONLY_CODES ),
+			/* translators: %s: Redirect source path. */
+			'deleteConfirm' => __( 'The redirect from %s will be permanently deleted.', 'easyrankly' ),
+			'enableLabel'   => __( 'Enable', 'easyrankly' ),
+			'disableLabel'  => __( 'Disable', 'easyrankly' ),
+			/* translators: %s: Source path of the redirect to enable. */
+			'enableAria'    => __( 'Enable redirect from %s', 'easyrankly' ),
+			/* translators: %s: Source path of the redirect to disable. */
+			'disableAria'   => __( 'Disable redirect from %s', 'easyrankly' ),
+			'activeYes'     => __( 'Yes', 'easyrankly' ),
+			'activeNo'      => __( 'No', 'easyrankly' ),
+			'toggleError'   => __( 'The redirect status could not be changed.', 'easyrankly' ),
+			'deleteError'   => __( 'The redirect could not be deleted.', 'easyrankly' ),
+			'emptyTable'    => __( 'No redirects found.', 'easyrankly' ),
+			/* translators: %s: Redirect destination URL. */
+			'testMatched'   => __( 'Matches. Destination: %s', 'easyrankly' ),
+			'testMatchedStatus' => __( 'Matches. This response has no destination.', 'easyrankly' ),
+			'testNoMatch'   => __( 'This URL does not match the rule.', 'easyrankly' ),
+			'testError'     => __( 'The rule could not be tested.', 'easyrankly' ),
+			'exactHelp'     => __( 'Matches one path. By default, letter case and a final slash are ignored.', 'easyrankly' ),
+			'wildcardHelp'  => __( 'Use * to capture variable path segments. Use * in the target to insert each captured value.', 'easyrankly' ),
+			'regexHelp'     => __( 'Use a PCRE path expression and $1, $2… in the target for captured values.', 'easyrankly' ),
 		)
 	);
 }

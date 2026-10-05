@@ -64,10 +64,8 @@ final class ERankly_Migration_Upload_Store {
 
 	/** Returns the retention window for pre-import backups. */
 	public static function backup_ttl(): int {
-		$default = defined( 'WEEK_IN_SECONDS' ) ? WEEK_IN_SECONDS : 604800;
-
 		/** Filters how long an automatic pre-import backup stays restorable. */
-		return max( 300, (int) apply_filters( 'erankly_migration_backup_ttl', $default ) );
+		return max( 300, (int) apply_filters( 'erankly_migration_backup_ttl', WEEK_IN_SECONDS ) );
 	}
 
 	/**
@@ -77,9 +75,9 @@ final class ERankly_Migration_Upload_Store {
 	 * @return string Empty when no non-public writable directory is available.
 	 */
 	public static function directory( bool $create = true ): string {
-		$site_id = function_exists( 'get_current_blog_id' ) ? get_current_blog_id() : 0;
+		$site_id = get_current_blog_id();
 		$token   = substr( hash( 'sha256', wp_normalize_path( ABSPATH ) . '|' . (string) $site_id ), 0, 20 );
-		$base    = function_exists( 'get_temp_dir' ) ? get_temp_dir() : sys_get_temp_dir();
+		$base    = get_temp_dir();
 		$path    = (string) apply_filters( 'erankly_migration_private_directory', trailingslashit( $base ) . 'easyrankly-migrations-' . $token, $site_id );
 		$path    = untrailingslashit( wp_normalize_path( $path ) );
 
@@ -116,7 +114,7 @@ final class ERankly_Migration_Upload_Store {
 		$path      = wp_normalize_path( $path );
 		$basename  = basename( $path );
 
-		$import_pattern = preg_quote( self::IMPORT_FILE_PREFIX, '/' ) . '[a-f0-9]{32}\.json(?:\.spool)?';
+		$import_pattern = preg_quote( self::IMPORT_FILE_PREFIX, '/' ) . '[a-f0-9]{32}\.json';
 		$backup_pattern = preg_quote( self::BACKUP_FILE_PREFIX, '/' ) . '[a-f0-9]{32}\.json';
 
 		return '' !== $directory
@@ -157,9 +155,9 @@ final class ERankly_Migration_Upload_Store {
 			return 0;
 		}
 
-		$import_job  = function_exists( 'get_option' ) ? get_option( ERANKLY_IMPORT_ACTIVE_JOB_OPTION, array() ) : array();
+		$import_job  = get_option( ERANKLY_IMPORT_ACTIVE_JOB_OPTION, array() );
 		$import_file = is_array( $import_job ) ? wp_normalize_path( (string) ( $import_job['path'] ?? $import_job['file'] ?? $import_job['source_file'] ?? '' ) ) : '';
-		$ttl         = max( 300, (int) apply_filters( 'erankly_migration_upload_ttl', defined( 'DAY_IN_SECONDS' ) ? DAY_IN_SECONDS : 86400 ) );
+		$ttl         = max( 300, (int) apply_filters( 'erankly_migration_upload_ttl', DAY_IN_SECONDS ) );
 		$cutoff      = time() - $ttl;
 		$backup_cutoff = time() - self::backup_ttl();
 		$deleted     = 0;
@@ -300,7 +298,12 @@ final class ERankly_Migration_Upload_Store {
 			'size'     => (int) $size,
 		);
 
+		// wp_check_filetype_and_ext() also requires the type to be in get_allowed_mime_types(), which does not list
+		// application/json by default; allow exactly these types for this private upload only.
+		$upload_mimes_filter = static fn( array $allowed ): array => array_merge( $allowed, $mimes );
+
 		add_filter( 'upload_dir', $upload_dir_filter, PHP_INT_MAX );
+		add_filter( 'upload_mimes', $upload_mimes_filter, PHP_INT_MAX );
 		try {
 			$handled = wp_handle_upload(
 				$normalized_file,
@@ -314,6 +317,7 @@ final class ERankly_Migration_Upload_Store {
 			);
 		} finally {
 			remove_filter( 'upload_dir', $upload_dir_filter, PHP_INT_MAX );
+			remove_filter( 'upload_mimes', $upload_mimes_filter, PHP_INT_MAX );
 		}
 
 		$handled_path = is_array( $handled ) && ! empty( $handled['file'] )
