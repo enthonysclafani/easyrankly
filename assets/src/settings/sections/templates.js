@@ -3,8 +3,10 @@ import {
 	CardBody,
 	CardHeader,
 	PanelBody,
+	SelectControl,
 	TextControl,
 } from '@wordpress/components';
+import { useState } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 
 import useTypeContexts from '../use-type-contexts';
@@ -23,10 +25,27 @@ const CONTEXTS = [
 const VARIABLES =
 	'{{title}} {{sep}} {{site_name}} {{tagline}} {{page}} {{excerpt}} {{term_description}} {{author}} {{post_type}} {{category}} {{date}} {{search_query}}';
 
-function ContextFields( { contextKey, label, templates, update } ) {
+/**
+ * Title and description fields of one context.
+ *
+ * @param {Object}                 props              Props.
+ * @param {string}                 props.contextKey   Context key.
+ * @param {string}                 props.label        Context label.
+ * @param {Object}                 props.templates    Templates being edited.
+ * @param {Object}                 props.placeholders Templates used when a field is empty.
+ * @param {(next: Object) => void} props.onChange     Receives the edited templates.
+ */
+function ContextFields( {
+	contextKey,
+	label,
+	templates,
+	placeholders,
+	onChange,
+} ) {
 	const current = templates[ contextKey ] ?? {};
+	const fallback = placeholders?.[ contextKey ] ?? {};
 	const set = ( field ) => ( value ) =>
-		update( 'templates', {
+		onChange( {
 			...templates,
 			[ contextKey ]: {
 				title: '',
@@ -45,6 +64,7 @@ function ContextFields( { contextKey, label, templates, update } ) {
 				__next40pxDefaultSize
 				__nextHasNoMarginBottom
 				label={ __( 'Title', 'easyrankly' ) }
+				placeholder={ fallback.title ?? '' }
 				value={ current.title ?? '' }
 				onChange={ set( 'title' ) }
 			/>
@@ -52,6 +72,7 @@ function ContextFields( { contextKey, label, templates, update } ) {
 				__next40pxDefaultSize
 				__nextHasNoMarginBottom
 				label={ __( 'Meta description', 'easyrankly' ) }
+				placeholder={ fallback.description ?? '' }
 				value={ current.description ?? '' }
 				onChange={ set( 'description' ) }
 			/>
@@ -61,7 +82,32 @@ function ContextFields( { contextKey, label, templates, update } ) {
 
 export default function Templates( { settings, update } ) {
 	const typeContexts = useTypeContexts();
-	const templates = settings.templates ?? {};
+	const [ language, setLanguage ] = useState( '' );
+	const languages = Object.entries( settings.languages ?? {} );
+	const base = settings.templates ?? {};
+	const byLanguage = settings.language_templates ?? {};
+
+	// With a language chosen, its own templates are edited and the general ones show as placeholders.
+	const templates = language ? ( byLanguage[ language ] ?? {} ) : base;
+	const placeholders = language ? base : null;
+	const onChange = ( next ) =>
+		language
+			? update( 'language_templates', {
+					...byLanguage,
+					[ language ]: next,
+				} )
+			: update( 'templates', next );
+
+	const fields = ( [ key, label ] ) => (
+		<ContextFields
+			key={ key }
+			contextKey={ key }
+			label={ label }
+			templates={ templates }
+			placeholders={ placeholders }
+			onChange={ onChange }
+		/>
+	);
 
 	return (
 		<Card className="easyrankly-settings__section">
@@ -79,15 +125,30 @@ export default function Templates( { settings, update } ) {
 					{ __( 'Variables:', 'easyrankly' ) }{ ' ' }
 					<code>{ VARIABLES }</code>
 				</p>
-				{ CONTEXTS.map( ( [ key, label ] ) => (
-					<ContextFields
-						key={ key }
-						contextKey={ key }
-						label={ label }
-						templates={ templates }
-						update={ update }
+				{ languages.length > 1 && (
+					<SelectControl
+						__next40pxDefaultSize
+						__nextHasNoMarginBottom
+						label={ __( 'Language', 'easyrankly' ) }
+						help={ __(
+							'Templates of one language are used on its pages. Empty fields use the templates of all languages.',
+							'easyrankly'
+						) }
+						value={ language }
+						options={ [
+							{
+								value: '',
+								label: __( 'All languages', 'easyrankly' ),
+							},
+							...languages.map( ( [ slug, item ] ) => ( {
+								value: slug,
+								label: item.name,
+							} ) ),
+						] }
+						onChange={ setLanguage }
 					/>
-				) ) }
+				) }
+				{ CONTEXTS.map( fields ) }
 				{ typeContexts.length > 0 && (
 					<PanelBody
 						title={ __(
@@ -102,15 +163,7 @@ export default function Templates( { settings, update } ) {
 								'easyrankly'
 							) }
 						</p>
-						{ typeContexts.map( ( [ key, label ] ) => (
-							<ContextFields
-								key={ key }
-								contextKey={ key }
-								label={ label }
-								templates={ templates }
-								update={ update }
-							/>
-						) ) }
+						{ typeContexts.map( fields ) }
 					</PanelBody>
 				) }
 			</CardBody>
