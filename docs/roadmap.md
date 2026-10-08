@@ -81,14 +81,16 @@ Fase 5 tocca la dashboard delle proposte: si cambia una volta sola, sulla nuova 
       descrizioni, Indicizzazione, Lingue), markup `form-table`, nessun JS tranne la scelta dell'immagine. Test: ogni
       pagina salva solo i suoi campi e lascia intatti gli altri (anche le caselle non spuntate e i template delle altre
       lingue), utente senza `manage_options`, nonce, valori fuori schema. Sparisce l'entry point `settings`.
-- [ ] 4.2 Redirect e Custom code con `WP_List_Table` e schermate "Aggiungi" / "Modifica" classiche
-      (`admin-post.php`, nonce, capability); codice degli snippet con `wp_enqueue_code_editor()`. Test: risposte HTTP
+- [x] 4.2 Redirect e Custom code con `WP_List_Table` e schermate "Aggiungi" / "Modifica" classiche (form inviati
+      alla schermata stessa, così un errore torna con i valori digitati; nonce, capability; salvataggio tramite le route
+      REST esistenti con `rest_do_request()`); codice degli snippet con `wp_enqueue_code_editor()`. Test: risposte HTTP
       delle schermate e dei form, permessi (`manage_options`, `unfiltered_html`, `edit_plugins`), nonce, stesse regole
       di oggi su sorgente, destinazione e sintassi PHP. Spariscono gli entry point `redirects` e `snippets`.
 - [ ] 4.3 Agente AI con markup classico: schede `nav-tab-wrapper`, tabelle `wp-list-table`, "Modifica e accetta" nella
       riga, nessun `wp-components`.
-- [ ] 4.4 Nessun foglio di stile `wp-components` né CSS nostro sulle schermate del plugin (resta solo nell'editor a
-      blocchi). Test: gli stili accodati su ogni schermata del plugin.
+- [ ] 4.4 Il plugin non accoda `wp-components` né CSS suoi sulle schermate del plugin (restano solo nell'editor a
+      blocchi). Il core li carica comunque in tutto l'admin per la palette dei comandi (`wp_enqueue_command_palette_assets`,
+      WordPress 7.0): conta ciò che accodiamo noi. Test: gli stili accodati dal plugin su ogni sua schermata.
 
 ## Fase 5 — Punti di estensione per EasyRankly Pro
 
