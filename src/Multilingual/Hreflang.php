@@ -116,20 +116,14 @@ final class Hreflang {
 			return isset( $urls[ $post->ID ] ) ? array_column( $urls, 'url', 'language' ) : array();
 		}
 
-		$map = Translations::of( $post->ID );
-		$ids = array_values( $map );
-		_prime_post_caches( $ids );
-		update_object_term_cache( $ids, $post->post_type );
-
 		$urls = array();
-		foreach ( $map as $language => $id ) {
-			$member = get_post( $id );
-			if ( null === $member || ! self::indexable( $member ) ) {
+		foreach ( Translations::versions( $post->ID ) as $language => $member ) {
+			if ( ! self::indexable( $member ) ) {
 				continue;
 			}
 			$url = get_permalink( $member );
 			if ( is_string( $url ) ) {
-				$urls[ $id ] = array(
+				$urls[ $member->ID ] = array(
 					'language' => $language,
 					'url'      => $url,
 				);

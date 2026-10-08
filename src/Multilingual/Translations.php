@@ -89,6 +89,35 @@ final class Translations {
 	}
 
 	/**
+	 * The post and its translations as post objects, keyed by language slug.
+	 *
+	 * Loads every version and its terms with one query each instead of one per version.
+	 *
+	 * @param int $post_id Post ID.
+	 * @return array<string, \WP_Post>
+	 */
+	public static function versions( int $post_id ): array {
+		$map  = self::of( $post_id );
+		$post = get_post( $post_id );
+		if ( null === $post ) {
+			return array();
+		}
+
+		_prime_post_caches( array_values( $map ) );
+		update_object_term_cache( array_values( $map ), $post->post_type );
+
+		$versions = array();
+		foreach ( $map as $language => $id ) {
+			$version = get_post( $id );
+			if ( null !== $version ) {
+				$versions[ $language ] = $version;
+			}
+		}
+
+		return $versions;
+	}
+
+	/**
 	 * Sets the language of a post, keeping its group valid.
 	 *
 	 * @param int    $post_id Post ID.

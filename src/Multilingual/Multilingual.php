@@ -28,6 +28,7 @@ final class Multilingual {
 		( new Routing() )->register();
 		( new Rest() )->register();
 		( new Hreflang() )->register();
+		( new Switcher() )->register();
 		add_action( 'wp_sitemaps_init', array( $this, 'register_sitemap' ) );
 	}
 

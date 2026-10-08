@@ -1,0 +1,22 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "easyrankly/language-switcher",
+	"title": "Language switcher",
+	"category": "widgets",
+	"icon": "translation",
+	"description": "Links to this page in the other languages of the site, or to their home when there is no translation.",
+	"keywords": [ "language", "translation", "multilingual" ],
+	"textdomain": "easyrankly",
+	"supports": {
+		"html": false,
+		"typography": {
+			"fontSize": true
+		},
+		"spacing": {
+			"margin": true,
+			"padding": true
+		}
+	},
+	"editorScript": "file:../../build/language-switcher.js"
+}
