@@ -13,7 +13,7 @@ capire la logica già testata. Il codice si riscrive secondo `CLAUDE.md`: niente
 - [x] `tools/check-architecture.php` con test sui casi vietati e consentiti
 - [x] CI su GitHub: controlli statici su PHP 8.1 e 8.4, test anche su multisite (solo anti-conflitto), Plugin Check
 - [x] `composer.lock` generato e committato
-- [ ] Primo run verde della CI su GitHub
+- [x] Primo run verde della CI su GitHub (branch `Refactory`)
 
 ## Fase 1 — SEO di base
 
