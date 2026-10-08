@@ -214,7 +214,8 @@ final class CustomCode {
 	 * @return bool
 	 */
 	public static function php_allowed(): bool {
-		return ! ( defined( 'DISALLOW_FILE_EDIT' ) && DISALLOW_FILE_EDIT ) && ! ( defined( 'DISALLOW_FILE_MODS' ) && DISALLOW_FILE_MODS );
+		// Same checks core makes before granting edit_plugins (see map_meta_cap()).
+		return ! ( defined( 'DISALLOW_FILE_EDIT' ) && DISALLOW_FILE_EDIT ) && wp_is_file_mod_allowed( 'capability_edit_themes' );
 	}
 
 	/**
@@ -244,7 +245,8 @@ final class CustomCode {
 	 */
 	public static function syntax_error( string $code ): ?string {
 		try {
-			token_get_all( "<?php\n" . $code, TOKEN_PARSE );
+			// Only the ParseError matters: the tokens are discarded.
+			$tokens = token_get_all( "<?php\n" . $code, TOKEN_PARSE );
 		} catch ( \ParseError $error ) {
 			/* translators: 1: PHP error message, 2: line number. */
 			return sprintf( __( '%1$s on line %2$d', 'easyrankly' ), $error->getMessage(), max( 1, $error->getLine() - 1 ) );
