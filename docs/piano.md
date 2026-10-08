@@ -191,7 +191,8 @@ gestire l'IVA in proprio, come con Freemius, Lemon Squeezy o Paddle, che erano l
   Su $10 sono $0,35 più la commissione della carta. Ai consumatori UE il prezzo si mostra IVA inclusa: con l'IVA
   italiana al 22%, da $10 restano circa $8,20 prima delle commissioni.
 - **Vincoli**: solo prodotti digitali (il SaaS rientra), solo Checkout Sessions e Payment Links, verifica di idoneità
-  da parte di Stripe ([idoneità](https://docs.stripe.com/payments/managed-payments/eligibility)).
+  da parte di Stripe ([idoneità](https://docs.stripe.com/payments/managed-payments/eligibility),
+  [changelog](https://docs.stripe.com/payments/managed-payments/changelog)).
 - **Licenze**: Stripe non emette licenze, le emette il Cloud.
   1. L'utente si abbona con Stripe Checkout.
   2. I webhook di Stripe (abbonamento creato, aggiornato o cancellato, pagamento fallito) arrivano al backend del Cloud.
@@ -206,9 +207,10 @@ gestire l'IVA in proprio, come con Freemius, Lemon Squeezy o Paddle, che erano l
 - **WordPress.org**: vietato il *trialware* (funzioni nel codice bloccate finché non paghi); consentito il *serviceware*
   (servizio esterno a pagamento), dichiarato nel readme con link a termini e privacy.
 - **Termini di DataForSEO** sulla rivendita dei dati.
-- **Idoneità a Stripe Managed Payments** del paese in cui ha sede l'attività (Italia non ancora confermata) e
-  risultato della verifica di Stripe. Se l'esito è negativo, si torna a Paddle o Lemon Squeezy: nel plugin non
-  cambia nulla, perché la licenza resta una chiave emessa dal Cloud.
+- **Verifica di idoneità di Stripe Managed Payments**. L'Italia è tra i paesi ammessi e l'AI come servizio ha codici
+  fiscali idonei (es. `txcd_10105002`, AIaaS per uso aziendale), ma Stripe esamina ogni account. Se l'esito è
+  negativo, si torna a Paddle o Lemon Squeezy: nel plugin non cambia nulla, perché la licenza resta una chiave
+  emessa dal Cloud.
 - **GDPR**: evitare provider che trattano dati fuori da UE/USA senza garanzie (es. DeepSeek); far scegliere il modello.
 
 ### Modelli decisionali
