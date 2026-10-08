@@ -5,6 +5,7 @@
  */
 import General from './general';
 import Robots from './robots';
+import Social from './social';
 import Templates from './templates';
 
-export default [ General, Templates, Robots ];
+export default [ General, Templates, Robots, Social ];

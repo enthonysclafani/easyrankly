@@ -77,6 +77,18 @@ final class Settings {
 				'maxLength'   => 10,
 				'default'     => '-',
 			),
+			'social_image'    => array(
+				'description' => __( 'Attachment ID of the image shared when a page has no image of its own.', 'easyrankly' ),
+				'type'        => 'integer',
+				'minimum'     => 0,
+				'default'     => 0,
+			),
+			'x_username'      => array(
+				'description' => __( 'X (Twitter) username of the site, without @.', 'easyrankly' ),
+				'type'        => 'string',
+				'pattern'     => '^[A-Za-z0-9_]{0,15}$',
+				'default'     => '',
+			),
 			'noindex'         => array(
 				'description' => __( 'Contexts whose pages ask search engines not to index them (same keys as the templates).', 'easyrankly' ),
 				'type'        => 'array',
