@@ -64,6 +64,8 @@ final class Page {
 	 */
 	public function enqueue(): void {
 		if ( Assets::enqueue( 'settings' ) ) {
+			// Media library modal for the default social image.
+			wp_enqueue_media();
 			// The option may predate settings added later: the app fills the gaps from the defaults.
 			wp_add_inline_script( 'easyrankly-settings', 'window.easyrankly = ' . wp_json_encode( array( 'defaults' => Settings::defaults() ) ) . ';', 'before' );
 		}

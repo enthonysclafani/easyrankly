@@ -26,6 +26,7 @@ final class Plugin {
 		( new Titles\Titles() )->register();
 		( new Robots\Robots() )->register();
 		( new Canonical\Canonical() )->register();
+		( new Social\Social() )->register();
 
 		if ( is_admin() ) {
 			( new Settings\Admin\Page() )->register();

@@ -30,7 +30,7 @@ Riferimenti Alpha: `includes/title-description.php`, `includes/meta*.php`, `incl
       pannello nell'editor a blocchi e campi nelle schermate dei termini
 - [x] 1.3 Title e meta description: template con variabili, override per contenuto, `document_title_parts`
 - [x] 1.4 Robots e canonical: filtro `wp_robots`, `get_canonical_url`, regole noindex per archivi, ricerca e allegati
-- [ ] 1.5 Open Graph e X
+- [x] 1.5 Open Graph e X
 - [ ] 1.6 Schema JSON-LD: Organization/Person, WebSite, WebPage, Article, BreadcrumbList in un unico grafo
 - [ ] 1.7 Breadcrumb: filtri del blocco `core/breadcrumbs` e coerenza con BreadcrumbList
 - [ ] 1.8 robots.txt tramite filtro `robots_txt`
