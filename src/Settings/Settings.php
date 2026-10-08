@@ -70,45 +70,45 @@ final class Settings {
 	 */
 	private static function properties(): array {
 		return array(
-			'title_separator' => array(
+			'title_separator'       => array(
 				'description' => __( 'Separator used by the {{sep}} template variable.', 'easyrankly' ),
 				'type'        => 'string',
 				'format'      => 'text-field',
 				'maxLength'   => 10,
 				'default'     => '-',
 			),
-			'social_image'    => array(
+			'social_image'          => array(
 				'description' => __( 'Attachment ID of the image shared when a page has no image of its own.', 'easyrankly' ),
 				'type'        => 'integer',
 				'minimum'     => 0,
 				'default'     => 0,
 			),
-			'x_username'      => array(
+			'x_username'            => array(
 				'description' => __( 'X (Twitter) username of the site, without @.', 'easyrankly' ),
 				'type'        => 'string',
 				'pattern'     => '^[A-Za-z0-9_]{0,15}$',
 				'default'     => '',
 			),
-			'identity_type'   => array(
+			'identity_type'         => array(
 				'description' => __( 'Whether the site represents an organization or a person (schema.org).', 'easyrankly' ),
 				'type'        => 'string',
 				'enum'        => array( 'organization', 'person' ),
 				'default'     => 'organization',
 			),
-			'identity_name'   => array(
+			'identity_name'         => array(
 				'description' => __( 'Name of the organization or person. Empty uses the site title.', 'easyrankly' ),
 				'type'        => 'string',
 				'format'      => 'text-field',
 				'maxLength'   => 200,
 				'default'     => '',
 			),
-			'identity_logo'   => array(
+			'identity_logo'         => array(
 				'description' => __( 'Attachment ID of the logo (organization) or photo (person).', 'easyrankly' ),
 				'type'        => 'integer',
 				'minimum'     => 0,
 				'default'     => 0,
 			),
-			'same_as'         => array(
+			'same_as'               => array(
 				'description' => __( 'Profiles of the organization or person on other sites (schema.org sameAs).', 'easyrankly' ),
 				'type'        => 'array',
 				'items'       => array(
@@ -120,7 +120,26 @@ final class Settings {
 				'uniqueItems' => true,
 				'default'     => array(),
 			),
-			'noindex'         => array(
+			'breadcrumb_home_label' => array(
+				'description' => __( 'Label of the first item of the breadcrumb block. Empty keeps the WordPress label.', 'easyrankly' ),
+				'type'        => 'string',
+				'format'      => 'text-field',
+				'maxLength'   => 60,
+				'default'     => '',
+			),
+			'breadcrumb_taxonomies' => array(
+				'description'          => __( 'Taxonomy used in the breadcrumb of each post type (post type => taxonomy).', 'easyrankly' ),
+				'type'                 => 'object',
+				'patternProperties'    => array(
+					'^[a-z0-9_-]{1,20}$' => array(
+						'type'    => 'string',
+						'pattern' => '^[a-z0-9_-]{1,32}$',
+					),
+				),
+				'additionalProperties' => false,
+				'default'              => array(),
+			),
+			'noindex'               => array(
 				'description' => __( 'Contexts whose pages ask search engines not to index them (same keys as the templates).', 'easyrankly' ),
 				'type'        => 'array',
 				'items'       => array(
@@ -130,7 +149,7 @@ final class Settings {
 				'uniqueItems' => true,
 				'default'     => array(),
 			),
-			'templates'       => array(
+			'templates'             => array(
 				'description'          => __( 'Title and description templates per context. Keys: home, single, archive, term, author, date, search, 404, or single-{post type}, archive-{post type}, term-{taxonomy}.', 'easyrankly' ),
 				'type'                 => 'object',
 				'patternProperties'    => array(
