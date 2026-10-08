@@ -89,6 +89,37 @@ final class Settings {
 				'pattern'     => '^[A-Za-z0-9_]{0,15}$',
 				'default'     => '',
 			),
+			'identity_type'   => array(
+				'description' => __( 'Whether the site represents an organization or a person (schema.org).', 'easyrankly' ),
+				'type'        => 'string',
+				'enum'        => array( 'organization', 'person' ),
+				'default'     => 'organization',
+			),
+			'identity_name'   => array(
+				'description' => __( 'Name of the organization or person. Empty uses the site title.', 'easyrankly' ),
+				'type'        => 'string',
+				'format'      => 'text-field',
+				'maxLength'   => 200,
+				'default'     => '',
+			),
+			'identity_logo'   => array(
+				'description' => __( 'Attachment ID of the logo (organization) or photo (person).', 'easyrankly' ),
+				'type'        => 'integer',
+				'minimum'     => 0,
+				'default'     => 0,
+			),
+			'same_as'         => array(
+				'description' => __( 'Profiles of the organization or person on other sites (schema.org sameAs).', 'easyrankly' ),
+				'type'        => 'array',
+				'items'       => array(
+					'type'    => 'string',
+					'format'  => 'uri',
+					'pattern' => '^https?://[^\\s]+$',
+				),
+				'maxItems'    => 20,
+				'uniqueItems' => true,
+				'default'     => array(),
+			),
 			'noindex'         => array(
 				'description' => __( 'Contexts whose pages ask search engines not to index them (same keys as the templates).', 'easyrankly' ),
 				'type'        => 'array',

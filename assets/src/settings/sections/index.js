@@ -4,8 +4,9 @@
  * Each section receives `settings` (the whole option) and `update( key, value )`.
  */
 import General from './general';
+import Identity from './identity';
 import Robots from './robots';
 import Social from './social';
 import Templates from './templates';
 
-export default [ General, Templates, Robots, Social ];
+export default [ General, Templates, Robots, Social, Identity ];
