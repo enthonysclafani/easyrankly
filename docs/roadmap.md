@@ -54,7 +54,7 @@ Riferimenti Alpha: `includes/multilingual/singlesite/`, `includes/hreflang.php`,
 - [x] 2.3 Editor: scelta della lingua e collegamento delle traduzioni
 - [x] 2.4 hreflang e x-default; sitemap per lingua. Le sitemap del core elencano i contenuti di ogni lingua con il
       loro URL e `wp-sitemap-languages-1.xml` le home delle lingue: niente file separati per lingua, che non aggiungono nulla
-- [ ] 2.5 Blocco selettore di lingua renderizzato lato server (solo `editorScript`, nessun asset nel frontend)
+- [x] 2.5 Blocco selettore di lingua renderizzato lato server (solo `editorScript`, nessun asset nel frontend)
 - [ ] 2.6 Template SEO per lingua
 - [ ] Decisione aperta: anche menu e stringhe del tema, o solo SEO e collegamento delle traduzioni?
 
