@@ -51,6 +51,20 @@
 		<exclude-pattern>/tests/*</exclude-pattern>
 	</rule>
 
+	<!-- Tests fire core hooks (rest_api_init, load-*) and reset core globals ($menu, $wp_rest_server) on purpose. -->
+	<rule ref="WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound">
+		<exclude-pattern>/tests/*</exclude-pattern>
+	</rule>
+	<rule ref="WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound">
+		<exclude-pattern>/tests/*</exclude-pattern>
+	</rule>
+	<rule ref="WordPress.NamingConventions.ValidHookName">
+		<exclude-pattern>/tests/*</exclude-pattern>
+	</rule>
+	<rule ref="WordPress.WP.GlobalVariablesOverride">
+		<exclude-pattern>/tests/*</exclude-pattern>
+	</rule>
+
 	<!-- CLI tools and the test bootstrap run before WordPress loads: no WP_Filesystem, no escaping context. -->
 	<rule ref="WordPress.WP.AlternativeFunctions">
 		<exclude-pattern>/tools/*</exclude-pattern>

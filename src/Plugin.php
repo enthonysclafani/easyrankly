@@ -21,5 +21,10 @@ final class Plugin {
 	 * Registers the hooks of every feature.
 	 */
 	public function register(): void {
+		( new Settings\Settings() )->register();
+
+		if ( is_admin() ) {
+			( new Settings\Admin\Page() )->register();
+		}
 	}
 }

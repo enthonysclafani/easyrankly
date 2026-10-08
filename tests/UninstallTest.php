@@ -27,6 +27,8 @@ final class UninstallTest extends WP_UnitTestCase {
 			define( 'WP_UNINSTALL_PLUGIN', 'easyrankly/easyrankly.php' );
 		}
 
+		update_option( 'easyrankly_settings', array( 'title_separator' => '|' ) );
+
 		require dirname( __DIR__ ) . '/uninstall.php';
 
 		$left = $wpdb->get_col( $wpdb->prepare( "SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE %s", $wpdb->esc_like( 'easyrankly_' ) . '%' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Tests inspect the raw table on purpose.

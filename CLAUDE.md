@@ -267,7 +267,8 @@ composer test           # PHPUnit sulla suite WordPress (serve WP_TESTS_DIR, ved
 composer check          # tutto quanto sopra: deve passare prima di dire "fatto"
 ```
 
-- Gli asset admin si compilano con `npm run build` (`@wordpress/scripts`), da introdurre con il primo asset admin.
+- Gli asset admin (`assets/src/<nome>/index.js`) si compilano con `npm run build` (`@wordpress/scripts`) in `build/`,
+  che non si committa; `npm run lint:js` ne controlla lo stile. Ogni nuovo entry point va aggiunto agli script di `package.json`.
 - Se un controllo non si può eseguire nell'ambiente in cui sei, dillo nel resoconto: la CI su GitHub resta il
   controllo finale. Nel cloud PHPStan non si può installare (il proxy di GitHub non serve il suo pacchetto):
   `composer analyse` lo dichiara e il risultato va letto nella CI della pull request, prima di dire "fatto".
