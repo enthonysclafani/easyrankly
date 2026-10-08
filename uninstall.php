@@ -9,3 +9,5 @@
  */
 
 defined( 'WP_UNINSTALL_PLUGIN' ) || exit;
+
+delete_option( 'easyrankly_settings' );

@@ -9,7 +9,7 @@ Regola: zero tabelle custom. Solo Options API, post meta, term meta, user meta, 
 
 | Nome | Autoload | Contenuto | Introdotta in |
 |---|---|---|---|
-| _(nessuna per ora)_ | | | |
+| `easyrankly_settings` | sì | Oggetto con tutte le impostazioni; schema in `src/Settings/Settings.php` (`Settings::schema()`), letto e scritto da `/wp/v2/settings`. Chiavi: `title_separator` (stringa, max 10, default `-`) | 1.1 |
 
 ## Post meta e term meta
 

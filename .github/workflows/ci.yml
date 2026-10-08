@@ -31,6 +31,22 @@ jobs:
       - run: composer lint
       - run: composer analyse
 
+  js:
+    name: Admin assets (lint and build)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # https://github.com/actions/setup-node/releases (v6, stable since Oct 2025).
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+
+      - run: npm ci --no-audit --no-fund
+      - run: npm run lint:js
+      - run: npm run build
+
   test:
     name: PHPUnit (PHP ${{ matrix.php }}${{ matrix.multisite && ', multisite' || '' }})
     runs-on: ubuntu-latest
@@ -83,12 +99,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+
       - name: Build the distributable
         run: |
           tools/build-dist.sh
           mkdir -p dist-extracted
           unzip -q .dist/easyrankly.zip -d dist-extracted
           test -f dist-extracted/easyrankly/easyrankly.php
+          test -f dist-extracted/easyrankly/build/settings.js
+          test ! -e dist-extracted/easyrankly/assets/src
           test ! -e dist-extracted/easyrankly/tests
           test ! -e dist-extracted/easyrankly/tools
 

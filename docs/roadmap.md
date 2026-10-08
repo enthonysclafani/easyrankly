@@ -24,7 +24,7 @@ Riferimenti Alpha: `includes/title-description.php`, `includes/meta*.php`, `incl
 `includes/sitemap/`, `includes/class-erankly-*-sitemaps-provider.php`, `includes/redirects/`,
 `includes/custom-code.php`, `admin/meta-box*`, `admin/settings*`.
 
-- [ ] 1.1 Impostazioni: option `easyrankly_settings` con `register_setting()` e schema; pagina admin con
+- [x] 1.1 Impostazioni: option `easyrankly_settings` con `register_setting()` e schema; pagina admin con
       `@wordpress/components`; introduzione di `@wordpress/scripts` e `npm run build`
 - [ ] 1.2 Dati per contenuto: `register_post_meta()` / `register_term_meta()` con schema e `auth_callback`;
       pannello nell'editor a blocchi e campi nelle schermate dei termini
