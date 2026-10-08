@@ -260,7 +260,7 @@ final class Abilities {
 		);
 
 		$items = array();
-		foreach ( $query->posts as $post ) {
+		foreach ( (array) $query->posts as $post ) {
 			if ( $post instanceof \WP_Post ) {
 				$items[] = self::summary( $post );
 			}
