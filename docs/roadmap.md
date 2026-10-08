@@ -56,7 +56,8 @@ Riferimenti Alpha: `includes/multilingual/singlesite/`, `includes/hreflang.php`,
       loro URL e `wp-sitemap-languages-1.xml` le home delle lingue: niente file separati per lingua, che non aggiungono nulla
 - [x] 2.5 Blocco selettore di lingua renderizzato lato server (solo `editorScript`, nessun asset nel frontend)
 - [x] 2.6 Template SEO per lingua
-- [ ] Decisione aperta: anche menu e stringhe del tema, o solo SEO e collegamento delle traduzioni?
+- Decisione rimandata (ottobre 2026): anche menu e stringhe del tema, o solo SEO e collegamento delle traduzioni?
+  Per ora la Fase 2 copre solo SEO e collegamento delle traduzioni (vedi `docs/piano.md`, sezione 7).
 
 ## Fase 3 — Agente AI nel plugin (chiavi dell'utente)
 
@@ -84,7 +85,7 @@ Il backend vive in un repository separato. Qui solo la parte del plugin.
 
 ## Decisioni aperte
 
-- Multilingua: profondità (vedi Fase 2).
+- Multilingua: profondità (vedi Fase 2 e `docs/piano.md`, sezione 7).
 - Import da Yoast e Rank Math: solo meta e redirect, a lotti dall'admin? (riferimento Alpha: `includes/migrations/`)
 - Schema extra: Local Business, Product per WooCommerce.
 - IndexNow.
