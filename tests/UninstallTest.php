@@ -35,4 +35,28 @@ final class UninstallTest extends WP_UnitTestCase {
 
 		$this->assertSame( array(), $left );
 	}
+
+	/**
+	 * SEO meta of posts and terms is removed too.
+	 */
+	public function test_uninstall_removes_seo_meta(): void {
+		if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
+			define( 'WP_UNINSTALL_PLUGIN', 'easyrankly/easyrankly.php' );
+		}
+
+		$post_id = self::factory()->post->create();
+		$term_id = self::factory()->term->create();
+
+		update_post_meta( $post_id, '_easyrankly_title', 'x' );
+		update_post_meta( $post_id, '_easyrankly_noindex', true );
+		update_term_meta( $term_id, '_easyrankly_title', 'x' );
+		update_term_meta( $term_id, '_easyrankly_noindex', true );
+
+		require dirname( __DIR__ ) . '/uninstall.php';
+
+		$this->assertSame( '', get_post_meta( $post_id, '_easyrankly_title', true ) );
+		$this->assertFalse( metadata_exists( 'post', $post_id, '_easyrankly_noindex' ) );
+		$this->assertSame( '', get_term_meta( $term_id, '_easyrankly_title', true ) );
+		$this->assertFalse( metadata_exists( 'term', $term_id, '_easyrankly_noindex' ) );
+	}
 }

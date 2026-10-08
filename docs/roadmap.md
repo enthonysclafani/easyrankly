@@ -26,7 +26,7 @@ Riferimenti Alpha: `includes/title-description.php`, `includes/meta*.php`, `incl
 
 - [x] 1.1 Impostazioni: option `easyrankly_settings` con `register_setting()` e schema; pagina admin con
       `@wordpress/components`; introduzione di `@wordpress/scripts` e `npm run build`
-- [ ] 1.2 Dati per contenuto: `register_post_meta()` / `register_term_meta()` con schema e `auth_callback`;
+- [x] 1.2 Dati per contenuto: `register_post_meta()` / `register_term_meta()` con schema e `auth_callback`;
       pannello nell'editor a blocchi e campi nelle schermate dei termini
 - [ ] 1.3 Title e meta description: template con variabili, override per contenuto, `document_title_parts`
 - [ ] 1.4 Robots e canonical: filtro `wp_robots`, `get_canonical_url`, regole noindex per archivi, ricerca e allegati

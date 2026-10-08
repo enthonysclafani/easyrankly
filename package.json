@@ -4,8 +4,8 @@
 	"description": "Admin assets of the EasyRankly WordPress plugin. Nothing here runs on the frontend.",
 	"license": "GPL-2.0-or-later",
 	"scripts": {
-		"build": "wp-scripts build settings=./assets/src/settings/index.js",
-		"start": "wp-scripts start settings=./assets/src/settings/index.js",
+		"build": "wp-scripts build settings=./assets/src/settings/index.js editor=./assets/src/editor/index.js",
+		"start": "wp-scripts start settings=./assets/src/settings/index.js editor=./assets/src/editor/index.js",
 		"lint:js": "wp-scripts lint-js assets/src"
 	},
 	"devDependencies": {
@@ -13,8 +13,13 @@
 	},
 	"dependencies": {
 		"@wordpress/api-fetch": "7.57.0",
+		"@wordpress/block-editor": "18.1.0",
 		"@wordpress/components": "42.0.0",
+		"@wordpress/core-data": "8.2.0",
+		"@wordpress/data": "10.57.0",
+		"@wordpress/editor": "15.2.0",
 		"@wordpress/element": "9.0.0",
-		"@wordpress/i18n": "6.30.0"
+		"@wordpress/i18n": "6.30.0",
+		"@wordpress/plugins": "7.57.0"
 	}
 }
