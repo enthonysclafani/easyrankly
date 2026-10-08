@@ -77,7 +77,7 @@ Riferimenti Alpha: `includes/multilingual/singlesite/`, `includes/hreflang.php`,
 Decisione e dettagli: `docs/piano.md`, sezione 3, "Interfaccia admin". Viene prima dei punti di estensione perché la
 Fase 5 tocca la dashboard delle proposte: si cambia una volta sola, sulla nuova interfaccia.
 
-- [ ] 4.1 Impostazioni su più pagine brevi con la Settings API del core (Generali, Schema e social, Titoli e
+- [x] 4.1 Impostazioni su più pagine brevi con la Settings API del core (Generali, Schema e social, Titoli e
       descrizioni, Indicizzazione, Lingue), markup `form-table`, nessun JS tranne la scelta dell'immagine. Test: ogni
       pagina salva solo i suoi campi e lascia intatti gli altri (anche le caselle non spuntate e i template delle altre
       lingue), utente senza `manage_options`, nonce, valori fuori schema. Sparisce l'entry point `settings`.
