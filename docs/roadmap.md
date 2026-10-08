@@ -72,17 +72,48 @@ Riferimenti Alpha: `includes/multilingual/singlesite/`, `includes/hreflang.php`,
 - [x] 3.6 Inneschi senza cron: eventi editoriali e apertura della dashboard
 - [x] 3.7 Test dell'agente elencati in `CLAUDE.md`, inclusa la prompt injection nei contenuti
 
-## Fase 4 — EasyRankly Cloud
+## Fase 4 — Interfaccia admin in stile WordPress classico
 
-Il backend vive in un repository separato. Qui solo la parte del plugin.
+Decisione e dettagli: `docs/piano.md`, sezione 3, "Interfaccia admin". Viene prima dei punti di estensione perché la
+Fase 5 tocca la dashboard delle proposte: si cambia una volta sola, sulla nuova interfaccia.
 
-- [ ] 4.1 EasyRankly Cloud registrato come provider dell'AI Client e come connector
-- [ ] 4.2 Search Console via OAuth tramite il Cloud; token cifrato
-- [ ] 4.3 DataForSEO via Cloud; mappa parola chiave → pagina; tassonomia nascosta per i cluster
-- [ ] 4.4 Mappa dei link interni con tassonomia nascosta; suggerimenti con embedding
-- [ ] 4.5 Il plugin scarica le proposte preparate dal Cloud (nessun endpoint pubblico in scrittura)
-- [ ] 4.6 Piano editoriale, brief, bozze, link interni, report mensile
-- [ ] 4.7 Test pratico dei modelli decisionali (es. Jev di typesafe.ai) su 2–3 decisioni reali
+- [ ] 4.1 Impostazioni su più pagine brevi con la Settings API del core (Generali, Schema e social, Titoli e
+      descrizioni, Indicizzazione, Lingue), markup `form-table`, nessun JS tranne la scelta dell'immagine. Test: ogni
+      pagina salva solo i suoi campi e lascia intatti gli altri (anche le caselle non spuntate e i template delle altre
+      lingue), utente senza `manage_options`, nonce, valori fuori schema. Sparisce l'entry point `settings`.
+- [ ] 4.2 Redirect e Custom code con `WP_List_Table` e schermate "Aggiungi" / "Modifica" classiche
+      (`admin-post.php`, nonce, capability); codice degli snippet con `wp_enqueue_code_editor()`. Test: risposte HTTP
+      delle schermate e dei form, permessi (`manage_options`, `unfiltered_html`, `edit_plugins`), nonce, stesse regole
+      di oggi su sorgente, destinazione e sintassi PHP. Spariscono gli entry point `redirects` e `snippets`.
+- [ ] 4.3 Agente AI con markup classico: schede `nav-tab-wrapper`, tabelle `wp-list-table`, "Modifica e accetta" nella
+      riga, nessun `wp-components`.
+- [ ] 4.4 Nessun foglio di stile `wp-components` né CSS nostro sulle schermate del plugin (resta solo nell'editor a
+      blocchi). Test: gli stili accodati su ogni schermata del plugin.
+
+## Fase 5 — Punti di estensione per EasyRankly Pro
+
+EasyRankly Pro è un plugin separato (repository `easyrankly-pro`) con un suo backend: vedi `docs/piano.md`, sezione 6.
+Qui solo il minimo che serve nel gratuito: punti di estensione generici, usabili da qualunque plugin, senza codice,
+nomi o licenze del Pro. Ogni punto aggiunge hook pubblici: il piano del punto li elenca per l'approvazione.
+
+- [ ] 5.1 Azioni proponibili registrabili da un altro plugin: un filtro che aggiunge all'allowlist un'ability con la
+      sua definizione (valori correnti per impronta e "Annulla", oggetto modificato, etichette e tipo dei campi per
+      l'anteprima delle differenze, anche per testi lunghi). Le azioni `destructive` restano rifiutate; tutto il resto
+      passa dalla validazione di oggi. Tocca `src/Agent/Allowlist.php`, `src/Agent/Actions.php` e la dashboard delle proposte.
+- [ ] 5.2 Funzione pubblica per creare una proposta, con le stesse regole di oggi (allowlist, schema, testi, tetto
+      giornaliero, proposte superate). Test di 5.1 e 5.2 con un'azione di prova registrata da un plugin di test.
+
+## EasyRankly Pro (repository separato, da creare)
+
+Promemoria dei punti che erano qui come "Fase 4 — EasyRankly Cloud". La loro roadmap vivrà nel repository del Pro.
+
+- Licenza annuale e attivazione con l'email d'acquisto; aggiornamenti tramite `Update URI`; backend
+  (Cloudflare Workers) con Stripe Managed Payments
+- Search Console via OAuth tramite il backend; token cifrato sul sito
+- DataForSEO tramite il backend, con quote per sito e cache condivisa; mappa parola chiave → pagina; tassonomia
+  nascosta per i cluster
+- Mappa dei link interni con tassonomia nascosta; suggerimenti con embedding (AI dell'utente)
+- Piano editoriale, brief, bozze, link interni, report mensile
 
 ## Decisioni aperte
 
@@ -90,4 +121,6 @@ Il backend vive in un repository separato. Qui solo la parte del plugin.
 - Import da Yoast e Rank Math: solo meta e redirect, a lotti dall'admin? (riferimento Alpha: `includes/migrations/`)
 - Schema extra: Local Business, Product per WooCommerce.
 - IndexNow.
-- Piattaforma di licenze e pagamenti per il Cloud.
+- EasyRankly Pro: prezzo, siti per licenza e quote di DataForSEO (proposta in `docs/piano.md`, sezione 6).
+- Modelli decisionali (es. Jev di typesafe.ai): rimandati. Con l'AI pagata dall'utente, un modello sul backend
+  sarebbe un costo nostro; da rivalutare dopo il lancio del Pro, con un test su 2–3 decisioni reali.
