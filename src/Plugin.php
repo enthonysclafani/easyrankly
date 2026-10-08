@@ -30,6 +30,7 @@ final class Plugin {
 		( new Schema\Schema() )->register();
 		( new Breadcrumbs\Breadcrumbs() )->register();
 		( new RobotsTxt\RobotsTxt() )->register();
+		( new Sitemap\Sitemap() )->register();
 
 		if ( is_admin() ) {
 			( new Settings\Admin\Page() )->register();
