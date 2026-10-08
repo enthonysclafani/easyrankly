@@ -29,6 +29,7 @@ final class Plugin {
 		( new Social\Social() )->register();
 		( new Schema\Schema() )->register();
 		( new Breadcrumbs\Breadcrumbs() )->register();
+		( new RobotsTxt\RobotsTxt() )->register();
 
 		if ( is_admin() ) {
 			( new Settings\Admin\Page() )->register();

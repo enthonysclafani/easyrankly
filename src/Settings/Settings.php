@@ -139,6 +139,13 @@ final class Settings {
 				'additionalProperties' => false,
 				'default'              => array(),
 			),
+			'robots_txt'            => array(
+				'description' => __( 'Extra rules appended to the robots.txt that WordPress generates.', 'easyrankly' ),
+				'type'        => 'string',
+				'format'      => 'textarea-field',
+				'maxLength'   => 5000,
+				'default'     => '',
+			),
 			'noindex'               => array(
 				'description' => __( 'Contexts whose pages ask search engines not to index them (same keys as the templates).', 'easyrankly' ),
 				'type'        => 'array',
