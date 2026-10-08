@@ -29,6 +29,28 @@ do {
 	}
 } while ( $easyrankly_deleted > 0 );
 
+// Languages and translation groups (src/Multilingual/): the plugin is not loaded here, so the
+// taxonomies are registered (if missing) just to delete their terms, which removes the relationships too.
+foreach ( array( 'erankly_language', 'erankly_translation' ) as $easyrankly_taxonomy ) {
+	if ( ! taxonomy_exists( $easyrankly_taxonomy ) ) {
+		register_taxonomy( $easyrankly_taxonomy, array() );
+	}
+	do {
+		$easyrankly_terms   = get_terms(
+			array(
+				'taxonomy'   => $easyrankly_taxonomy,
+				'hide_empty' => false,
+				'fields'     => 'ids',
+				'number'     => 100,
+			)
+		);
+		$easyrankly_deleted = 0;
+		foreach ( is_array( $easyrankly_terms ) ? $easyrankly_terms : array() as $easyrankly_term ) {
+			$easyrankly_deleted += true === wp_delete_term( (int) $easyrankly_term, $easyrankly_taxonomy ) ? 1 : 0;
+		}
+	} while ( $easyrankly_deleted > 0 );
+}
+
 delete_option( 'easyrankly_settings' );
 delete_option( 'easyrankly_redirects_forced' );
 delete_option( 'easyrankly_redirects_regex' );

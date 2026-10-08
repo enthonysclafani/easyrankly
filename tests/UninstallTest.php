@@ -125,4 +125,33 @@ final class UninstallTest extends WP_UnitTestCase {
 		}
 		$this->assertFalse( get_option( 'easyrankly_snippets' ) );
 	}
+
+	/**
+	 * Language and translation terms are removed with their relationships.
+	 */
+	public function test_uninstall_removes_languages_and_groups(): void {
+		if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
+			define( 'WP_UNINSTALL_PLUGIN', 'easyrankly/easyrankly.php' );
+		}
+
+		$post = self::factory()->post->create();
+		wp_set_object_terms( $post, 'en', 'erankly_language' );
+		$group = wp_insert_term( 'group', 'erankly_translation' );
+		wp_set_object_terms( $post, array( (int) $group['term_id'] ), 'erankly_translation' );
+
+		require dirname( __DIR__ ) . '/uninstall.php';
+
+		foreach ( array( 'erankly_language', 'erankly_translation' ) as $taxonomy ) {
+			$this->assertSame(
+				array(),
+				get_terms(
+					array(
+						'taxonomy'   => $taxonomy,
+						'hide_empty' => false,
+					)
+				)
+			);
+			$this->assertSame( array(), wp_get_object_terms( $post, $taxonomy ) );
+		}
+	}
 }
