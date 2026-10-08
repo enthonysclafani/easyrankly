@@ -8,6 +8,7 @@
 namespace EasyRankly\Tests\CustomCode;
 
 use EasyRankly\CustomCode\CustomCode;
+use EasyRankly\CustomCode\PhpRunner;
 use EasyRankly\CustomCode\Runner;
 use WP_REST_Request;
 use WP_UnitTestCase;
@@ -259,5 +260,79 @@ final class CustomCodeTest extends WP_UnitTestCase {
 		$before = $wpdb->num_queries;
 		$this->assertSame( '', $this->output( 'head' ) );
 		$this->assertSame( $before, $wpdb->num_queries );
+	}
+
+	/**
+	 * Outside REST (XML-RPC, importers, code) the type is still locked and PHP still needs edit_plugins.
+	 */
+	public function test_type_guard_on_every_write_path(): void {
+		$html = $this->rest( 'POST', $this->body( 'html', '<i></i>' ) )->get_data()['id'];
+
+		$this->assertFalse( update_post_meta( $html, CustomCode::meta_key( 'type' ), 'php' ) );
+		$this->assertSame( 'html', CustomCode::type( $html ) );
+
+		$new = self::factory()->post->create( array( 'post_type' => CustomCode::POST_TYPE ) );
+		$this->assertFalse( add_post_meta( $new, CustomCode::meta_key( 'type' ), 'js' ) );
+
+		if ( is_multisite() ) {
+			return;
+		}
+
+		wp_get_current_user()->add_cap( 'edit_plugins', false );
+		$this->assertFalse( add_post_meta( $new, CustomCode::meta_key( 'type' ), 'php' ) );
+		$this->assertNotFalse( add_post_meta( $new, CustomCode::meta_key( 'type' ), 'html' ) );
+	}
+
+	/**
+	 * Meta changed outside REST updates the cache; PHP that does not parse is never cached.
+	 */
+	public function test_cache_follows_writes_outside_rest(): void {
+		$id = $this->rest( 'POST', $this->body( 'html', '<i>moved</i>' ) )->get_data()['id'];
+
+		update_post_meta( $id, CustomCode::meta_key( 'position' ), 'footer' );
+		$this->assertSame( '', $this->output( 'head' ) );
+		$this->assertSame( "<i>moved</i>\n", $this->output( 'footer' ) );
+
+		$php = $this->rest( 'POST', $this->body( 'php', "echo 'ok';", 'publish', 'body_open' ) )->get_data()['id'];
+		wp_update_post(
+			array(
+				'ID'           => $php,
+				'post_content' => 'echo (;',
+			)
+		);
+		$this->assertSame( '', $this->output( 'body_open' ) );
+	}
+
+	/**
+	 * A fatal error, which no catch sees, turns off the snippet that was running.
+	 */
+	public function test_fatal_error_disables_running_snippet(): void {
+		$id = $this->rest( 'POST', $this->body( 'php', 'echo 1;', 'publish', 'footer' ) )->get_data()['id'];
+
+		PhpRunner::handle_fatal(
+			array(
+				'type'    => E_WARNING,
+				'message' => 'notice',
+			),
+			$id
+		);
+		PhpRunner::handle_fatal(
+			array(
+				'type'    => E_ERROR,
+				'message' => 'other plugin',
+			),
+			-1
+		);
+		$this->assertSame( 'publish', get_post_status( $id ) );
+
+		PhpRunner::handle_fatal(
+			array(
+				'type'    => E_ERROR,
+				'message' => 'Cannot redeclare get_option()',
+			),
+			$id
+		);
+		$this->assertSame( 'draft', get_post_status( $id ) );
+		$this->assertStringContainsString( 'Cannot redeclare', get_post_meta( $id, CustomCode::meta_key( 'error' ), true ) );
 	}
 }

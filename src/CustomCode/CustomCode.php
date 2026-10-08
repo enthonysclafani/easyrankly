@@ -61,11 +61,17 @@ final class CustomCode {
 		add_filter( 'rest_pre_insert_' . self::POST_TYPE, array( $this, 'validate_rest' ), 10, 2 );
 		add_action( 'rest_after_insert_' . self::POST_TYPE, array( $this, 'after_rest_save' ), 10, 3 );
 		add_action( 'save_post_' . self::POST_TYPE, array( self::class, 'rebuild_cache' ) );
-		add_action( 'deleted_post', array( $this, 'on_change' ) );
+		// After the post cache is cleaned, so the rebuild query does not see the deleted snippet.
+		add_action( 'after_delete_post', array( $this, 'on_delete' ), 10, 2 );
 		add_action( 'trashed_post', array( $this, 'on_change' ) );
 		add_action( 'untrashed_post', array( $this, 'on_change' ) );
 		add_filter( 'rest_' . self::POST_TYPE . '_trashable', '__return_false' );
 		add_filter( 'wp_import_post_data_processed', array( $this, 'import_inactive' ) );
+		add_filter( 'add_post_metadata', array( $this, 'guard_type' ), 10, 4 );
+		add_filter( 'update_post_metadata', array( $this, 'guard_type' ), 10, 4 );
+		add_action( 'added_post_meta', array( $this, 'on_meta_change' ), 10, 3 );
+		add_action( 'updated_post_meta', array( $this, 'on_meta_change' ), 10, 3 );
+		add_action( 'deleted_post_meta', array( $this, 'on_meta_change' ), 10, 3 );
 		add_action( 'admin_notices', array( $this, 'error_notice' ) );
 
 		( new Runner() )->register();
@@ -175,7 +181,9 @@ final class CustomCode {
 
 		$caps = array_merge( map_meta_cap( 'manage_options', (int) $user_id ), map_meta_cap( 'unfiltered_html', (int) $user_id ) );
 
-		if ( self::META_CAPS['read_post'] !== $cap && 'php' === self::type( $post_id ) ) {
+		// Core resolves read_post without this filter for types with map_meta_cap off: reads of
+		// snippets go through RestController, which asks for the edit capability instead.
+		if ( 'php' === self::type( $post_id ) ) {
 			$caps = array_merge( $caps, map_meta_cap( 'edit_plugins', (int) $user_id ) );
 		}
 
@@ -326,12 +334,64 @@ final class CustomCode {
 	}
 
 	/**
-	 * Rebuilds the cache when a snippet is deleted, trashed or restored.
+	 * Rebuilds the cache when a snippet is deleted.
+	 *
+	 * @param mixed $post_id Deleted post ID.
+	 * @param mixed $post    Deleted post.
+	 */
+	public function on_delete( $post_id, $post ): void {
+		if ( $post instanceof \WP_Post && self::POST_TYPE === $post->post_type ) {
+			self::rebuild_cache();
+		}
+	}
+
+	/**
+	 * Rebuilds the cache when a snippet is trashed or restored.
 	 *
 	 * @param mixed $post_id Post ID.
 	 */
 	public function on_change( $post_id ): void {
 		if ( self::POST_TYPE === get_post_type( (int) $post_id ) ) {
+			self::rebuild_cache();
+		}
+	}
+
+	/**
+	 * Keeps the snippet type safe on every write path (REST, XML-RPC, importers, code).
+	 *
+	 * The type never changes once set, and only users who may write PHP snippets can set
+	 * it to `php`: REST checks the same in validate_rest(), the other paths only here.
+	 *
+	 * @param mixed $check   Null to go on with the write.
+	 * @param mixed $post_id Post ID.
+	 * @param mixed $key     Meta key.
+	 * @param mixed $value   New value.
+	 * @return mixed False to refuse the write.
+	 */
+	public function guard_type( $check, $post_id, $key, $value ) {
+		if ( self::meta_key( 'type' ) !== $key || self::POST_TYPE !== get_post_type( (int) $post_id ) ) {
+			return $check;
+		}
+
+		// The registered default ("html") would hide a missing value: read the stored one.
+		$stored  = get_metadata_raw( 'post', (int) $post_id, self::meta_key( 'type' ), true );
+		$current = is_string( $stored ) ? $stored : '';
+		if ( ! in_array( $value, self::TYPES, true ) || ( '' !== $current && $current !== $value ) ) {
+			return false;
+		}
+
+		return 'php' === $value && ! self::can_write_php() ? false : $check;
+	}
+
+	/**
+	 * Rebuilds the cache when a snippet's meta changes outside REST.
+	 *
+	 * @param mixed $meta_id Meta ID.
+	 * @param mixed $post_id Post ID.
+	 * @param mixed $key     Meta key.
+	 */
+	public function on_meta_change( $meta_id, $post_id, $key ): void {
+		if ( is_string( $key ) && str_starts_with( $key, '_easyrankly_snippet_' ) && self::meta_key( 'error' ) !== $key && self::POST_TYPE === get_post_type( (int) $post_id ) ) {
 			self::rebuild_cache();
 		}
 	}
@@ -379,6 +439,11 @@ final class CustomCode {
 
 			$position = (string) get_post_meta( $post->ID, self::meta_key( 'position' ), true );
 			if ( 'publish' !== $post->post_status || ! isset( self::POSITIONS[ $position ] ) ) {
+				continue;
+			}
+
+			// REST refuses active PHP with syntax errors; other write paths do not, so never cache it.
+			if ( 'php' === self::type( $post->ID ) && null !== self::syntax_error( $post->post_content ) ) {
 				continue;
 			}
 
