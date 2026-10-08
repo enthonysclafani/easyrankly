@@ -316,6 +316,19 @@ final class Settings {
 	}
 
 	/**
+	 * Whether a value is valid for one setting, with the same check as REST and sanitize().
+	 *
+	 * @param string $key   Property name from the schema.
+	 * @param mixed  $value Value to check.
+	 * @return bool
+	 */
+	public static function is_valid( string $key, mixed $value ): bool {
+		$properties = self::properties();
+
+		return isset( $properties[ $key ] ) && true === rest_validate_value_from_schema( $value, $properties[ $key ], $key );
+	}
+
+	/**
 	 * Keeps only valid properties; anything invalid falls back to its current value or default.
 	 *
 	 * @param mixed $value Raw value, from REST, options.php or update_option().

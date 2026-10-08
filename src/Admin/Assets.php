@@ -18,12 +18,14 @@ defined( 'ABSPATH' ) || exit;
 final class Assets {
 
 	/**
-	 * Enqueues `build/{entry}.js` as `easyrankly-{entry}`, with translations and the components stylesheet.
+	 * Enqueues `build/{entry}.js` as `easyrankly-{entry}`, with translations and, unless told
+	 * otherwise, the components stylesheet.
 	 *
-	 * @param string $entry Entry point name from package.json (e.g. "settings").
+	 * @param string $entry      Entry point name from package.json (e.g. "agent").
+	 * @param bool   $components Whether the script renders `@wordpress/components` and needs their styles.
 	 * @return bool False when the build is missing; a notice then explains how to build it.
 	 */
-	public static function enqueue( string $entry ): bool {
+	public static function enqueue( string $entry, bool $components = true ): bool {
 		$asset = dirname( PLUGIN_FILE ) . '/build/' . sanitize_key( $entry ) . '.asset.php';
 
 		if ( ! is_readable( $asset ) ) {
@@ -43,7 +45,9 @@ final class Assets {
 			array( 'in_footer' => true )
 		);
 		wp_set_script_translations( $handle, 'easyrankly' );
-		wp_enqueue_style( 'wp-components' );
+		if ( $components ) {
+			wp_enqueue_style( 'wp-components' );
+		}
 
 		return true;
 	}
