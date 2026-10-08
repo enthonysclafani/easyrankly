@@ -8,6 +8,7 @@
 namespace EasyRankly\Agent\Admin;
 
 use EasyRankly\Admin\Assets;
+use EasyRankly\Agent\Analysis;
 use EasyRankly\Settings\Admin\Page as SettingsPage;
 
 defined( 'ABSPATH' ) || exit;
@@ -49,10 +50,13 @@ final class Page {
 	}
 
 	/**
-	 * Runs only on the agent screen.
+	 * Runs only on the agent screen: loads its assets and cleans up old proposals.
 	 */
 	public function on_load(): void {
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue' ) );
+
+		// Old rejected and superseded proposals go away a batch at a time, without cron.
+		Analysis::cleanup();
 	}
 
 	/**

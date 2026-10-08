@@ -23,6 +23,7 @@ import {
 import { __, sprintf } from '@wordpress/i18n';
 import { addQueryArgs } from '@wordpress/url';
 
+import Analysis from './analysis';
 import Memory from './memory';
 
 const PATH = '/easyrankly/v1/proposals';
@@ -297,6 +298,7 @@ function Proposals() {
 
 	return (
 		<Flex direction="column" gap={ 4 }>
+			<Analysis onProposal={ load } />
 			{ error && (
 				<Notice status="error" onRemove={ () => setError( null ) }>
 					{ error }

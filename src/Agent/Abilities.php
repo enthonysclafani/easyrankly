@@ -322,7 +322,7 @@ final class Abilities {
 	 *
 	 * @return list<string>
 	 */
-	private static function content_types(): array {
+	public static function content_types(): array {
 		return array_values(
 			array_filter(
 				get_post_types(),

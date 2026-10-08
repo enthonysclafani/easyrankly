@@ -33,6 +33,7 @@ final class Agent {
 
 		( new Proposals() )->register();
 		( new Memory() )->register();
+		( new Triggers() )->register();
 		( new Rest() )->register();
 	}
 
