@@ -4,5 +4,6 @@
  * Each section receives `settings` (the whole option) and `update( key, value )`.
  */
 import General from './general';
+import Templates from './templates';
 
-export default [ General ];
+export default [ General, Templates ];

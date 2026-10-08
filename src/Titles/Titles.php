@@ -1,0 +1,224 @@
+<?php
+/**
+ * Document title and meta description.
+ *
+ * @package EasyRankly
+ */
+
+namespace EasyRankly\Titles;
+
+use EasyRankly\Meta\Meta;
+use EasyRankly\Settings\Settings;
+
+defined( 'ABSPATH' ) || exit;
+
+/**
+ * Builds the title and description of the current page from the per-object override
+ * or the template of its context, and prints them.
+ *
+ * Everything it reads is already in memory: the queried object with its meta and the
+ * autoloaded settings. No query is added on the frontend.
+ */
+final class Titles {
+
+	/**
+	 * Hooks the title filter and the description tag.
+	 */
+	public function register(): void {
+		add_filter( 'pre_get_document_title', array( $this, 'filter_title' ), 15 );
+		add_action( 'wp_head', array( $this, 'print_description' ), 1 );
+	}
+
+	/**
+	 * Replaces the document title; an empty result leaves the core title.
+	 *
+	 * @param mixed $title Title from earlier filters.
+	 * @return mixed
+	 */
+	public function filter_title( $title ) {
+		if ( is_string( $title ) && '' !== $title ) {
+			return $title;
+		}
+
+		$ours = self::title();
+
+		// pre_get_document_title output is printed as is: escape here.
+		return '' === $ours ? $title : esc_html( $ours );
+	}
+
+	/**
+	 * Prints the meta description, if there is one.
+	 */
+	public function print_description(): void {
+		$description = self::description();
+
+		if ( '' !== $description ) {
+			printf( '<meta name="description" content="%s" />' . "\n", esc_attr( $description ) );
+		}
+	}
+
+	/**
+	 * SEO title of the current page, plain text. Empty when WordPress should decide.
+	 *
+	 * @return string
+	 */
+	public static function title(): string {
+		return self::resolve( 'title' );
+	}
+
+	/**
+	 * Meta description of the current page, plain text. Empty when there is none.
+	 *
+	 * @return string
+	 */
+	public static function description(): string {
+		return self::resolve( 'description' );
+	}
+
+	/**
+	 * Renders the override of the queried object or the template of the context.
+	 *
+	 * @param string $field "title" or "description".
+	 * @return string
+	 */
+	private static function resolve( string $field ): string {
+		$context = self::context();
+		if ( null === $context ) {
+			return '';
+		}
+
+		$settings  = Settings::get();
+		$templates = is_array( $settings['templates'] ) ? $settings['templates'] : array();
+		$template  = self::override( $field );
+
+		if ( '' === $template ) {
+			foreach ( $context['keys'] as $key ) {
+				if ( isset( $templates[ $key ][ $field ] ) && '' !== $templates[ $key ][ $field ] ) {
+					$template = (string) $templates[ $key ][ $field ];
+					break;
+				}
+			}
+		}
+
+		return Template::render( $template, self::variables(), (string) $settings['title_separator'] );
+	}
+
+	/**
+	 * Context of the current request: template keys to try, most specific first.
+	 *
+	 * @return array{keys: list<string>}|null Null on requests without a document title (feeds, admin).
+	 */
+	private static function context(): ?array {
+		$object = get_queried_object();
+
+		if ( is_404() ) {
+			return array( 'keys' => array( '404' ) );
+		}
+		if ( is_search() ) {
+			return array( 'keys' => array( 'search' ) );
+		}
+		if ( is_front_page() ) {
+			return array( 'keys' => array( 'home' ) );
+		}
+		if ( is_home() && $object instanceof \WP_Post ) {
+			// Static posts page: a page, but its template is the archive one.
+			return array( 'keys' => array( 'archive-post', 'archive' ) );
+		}
+		if ( is_home() ) {
+			return array( 'keys' => array( 'home' ) );
+		}
+		if ( is_singular() && $object instanceof \WP_Post ) {
+			return array( 'keys' => array( 'single-' . $object->post_type, 'single' ) );
+		}
+		if ( ( is_category() || is_tag() || is_tax() ) && $object instanceof \WP_Term ) {
+			return array( 'keys' => array( 'term-' . $object->taxonomy, 'term' ) );
+		}
+		if ( is_post_type_archive() ) {
+			$post_type = get_query_var( 'post_type' );
+			$post_type = is_array( $post_type ) ? (string) reset( $post_type ) : (string) $post_type;
+			return array( 'keys' => array( 'archive-' . $post_type, 'archive' ) );
+		}
+		if ( is_author() ) {
+			return array( 'keys' => array( 'author' ) );
+		}
+		if ( is_date() ) {
+			return array( 'keys' => array( 'date' ) );
+		}
+
+		return null;
+	}
+
+	/**
+	 * Per-object override from the post or term meta (also a template).
+	 *
+	 * @param string $field "title" or "description".
+	 * @return string
+	 */
+	private static function override( string $field ): string {
+		$object = get_queried_object();
+
+		if ( $object instanceof \WP_Post && ( is_singular() || is_home() || is_front_page() ) ) {
+			return (string) Meta::post( $object->ID, $field );
+		}
+		if ( $object instanceof \WP_Term ) {
+			return (string) Meta::term( $object->term_id, $field );
+		}
+
+		return '';
+	}
+
+	/**
+	 * Values of the template variables for the current request.
+	 *
+	 * Values that may cost a query (author, categories) or real work (excerpt) are closures,
+	 * evaluated only when a template uses them.
+	 *
+	 * @return array<string, string|\Closure(): string>
+	 */
+	public static function variables(): array {
+		$object = get_queried_object();
+		$paged  = max( (int) get_query_var( 'paged' ), (int) get_query_var( 'page' ), 1 );
+		$max    = (int) ( $GLOBALS['wp_query']->max_num_pages ?? 0 );
+
+		$variables = array(
+			'site_name' => (string) get_bloginfo( 'name', 'display' ),
+			'tagline'   => (string) get_bloginfo( 'description', 'display' ),
+			/* translators: 1: current page number, 2: total pages. */
+			'page'      => $paged > 1 ? sprintf( __( 'Page %1$d of %2$d', 'easyrankly' ), $paged, max( $max, $paged ) ) : '',
+			'title'     => '',
+		);
+
+		if ( is_404() ) {
+			$variables['title'] = __( 'Page not found', 'easyrankly' );
+		} elseif ( is_search() ) {
+			// Encoded so Template::plain() keeps "<b>" typed by the visitor as text instead of stripping it.
+			$variables['search_query'] = esc_html( get_search_query( false ) );
+			/* translators: %s: search query. */
+			$variables['title'] = sprintf( __( 'Search results for “%s”', 'easyrankly' ), $variables['search_query'] );
+		} elseif ( $object instanceof \WP_Post ) {
+			$variables['title']     = get_the_title( $object );
+			$variables['excerpt']   = static fn(): string => Template::excerpt( $object );
+			$variables['author']    = static fn(): string => (string) get_the_author_meta( 'display_name', (int) $object->post_author );
+			$variables['post_type'] = (string) ( get_post_type_object( $object->post_type )->labels->singular_name ?? '' );
+			$variables['date']      = static fn(): string => (string) get_the_date( '', $object );
+			$variables['category']  = static function () use ( $object ): string {
+				$categories = 'post' === $object->post_type ? get_the_category( $object->ID ) : array();
+				return isset( $categories[0] ) ? $categories[0]->name : '';
+			};
+		} elseif ( $object instanceof \WP_Term ) {
+			$variables['title']            = $object->name;
+			$variables['term_description'] = Template::truncate( Template::plain( $object->description ), Template::EXCERPT_LENGTH );
+		} elseif ( $object instanceof \WP_User ) {
+			$variables['title']  = $object->display_name;
+			$variables['author'] = $object->display_name;
+		} elseif ( $object instanceof \WP_Post_Type ) {
+			$variables['title']     = (string) $object->labels->name;
+			$variables['post_type'] = (string) $object->labels->name;
+		} elseif ( is_date() ) {
+			$variables['title'] = wp_strip_all_tags( get_the_archive_title() );
+			$variables['date']  = $variables['title'];
+		}
+
+		return $variables;
+	}
+}
