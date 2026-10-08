@@ -54,7 +54,7 @@ Meta del post type `erankly_proposal` (`src/Agent/Proposals.php`), mai nel REST 
 | `_easyrankly_proposal_ability` | string | Ability che applica la proposta (es. `easyrankly/update-post-seo`). | 3.2 |
 | `_easyrankly_proposal_input` | object | Input dell'ability, validato sul suo schema; dopo "Modifica e accetta" contiene i valori applicati. | 3.2 |
 | `_easyrankly_proposal_previous` | object | Valori sostituiti, con la stessa forma dell'input: "Annulla" esegue l'ability con questi. | 3.2 |
-| `_easyrankly_proposal_fingerprint` | string | md5 dei valori originali al momento della proposta. | 3.2 |
+| `_easyrankly_proposal_fingerprint` | string | md5 dei valori che la proposta sostituisce: se all'accettazione sono cambiati, la proposta diventa superata (3.3). Dopo l'accettazione è l'impronta dei valori applicati: "Annulla" si rifiuta se nel frattempo sono cambiati. | 3.2 |
 | `_easyrankly_proposal_evidence` | string | Dati a supporto, testo semplice. | 3.2 |
 | `_easyrankly_proposal_confidence` | number | Confidenza da 0 a 1. | 3.2 |
 | `_easyrankly_proposal_note` | string | Motivo del rifiuto o errore che ha fatto fallire la proposta. | 3.2 |
