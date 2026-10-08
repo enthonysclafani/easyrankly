@@ -96,6 +96,51 @@ final class Abilities {
 		);
 
 		wp_register_ability(
+			Agent::CATEGORY . '/get-memory',
+			array(
+				'label'               => __( 'Get the project memory', 'easyrankly' ),
+				'description'         => __( 'Returns the facts the site owners asked the agent to keep in mind (tone, audience, brand rules, strategic pages, preferences learned from past decisions), in Markdown, and how proposals of each kind were decided in the last 90 days.', 'easyrankly' ),
+				'category'            => Agent::CATEGORY,
+				'output_schema'       => array(
+					'type'       => 'object',
+					'properties' => array(
+						'entries'    => array(
+							'type'  => 'array',
+							'items' => array(
+								'type'       => 'object',
+								'properties' => array(
+									'id'      => array( 'type' => 'integer' ),
+									'title'   => array( 'type' => 'string' ),
+									'content' => array( 'type' => 'string' ),
+								),
+							),
+						),
+						'acceptance' => array(
+							'type'  => 'array',
+							'items' => array(
+								'type'       => 'object',
+								'properties' => array(
+									'ability'  => array( 'type' => 'string' ),
+									'accepted' => array( 'type' => 'integer' ),
+									'rejected' => array( 'type' => 'integer' ),
+								),
+							),
+						),
+					),
+				),
+				'execute_callback'    => static fn(): array => array(
+					'entries'    => Memory::entries(),
+					'acceptance' => Proposals::acceptance(),
+				),
+				'permission_callback' => static fn(): bool => current_user_can( 'edit_posts' ),
+				'meta'                => array(
+					'annotations'  => self::READONLY,
+					'show_in_rest' => true,
+				),
+			)
+		);
+
+		wp_register_ability(
 			Agent::CATEGORY . '/search-content',
 			array(
 				'label'               => __( 'Search published content', 'easyrankly' ),

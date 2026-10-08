@@ -10,7 +10,7 @@ namespace EasyRankly\Agent;
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Registers the `easyrankly` ability category, the agent's abilities, its proposals and their REST routes.
+ * Registers the `easyrankly` ability category, the agent's abilities, its proposals, its memory and their REST routes.
  *
  * The Abilities API builds its registry lazily, the first time something asks for an
  * ability (REST, AI Client, admin), so nothing here runs on a normal frontend request.
@@ -31,6 +31,7 @@ final class Agent {
 		add_action( 'wp_abilities_api_init', array( Actions::class, 'register_abilities' ) );
 
 		( new Proposals() )->register();
+		( new Memory() )->register();
 		( new Rest() )->register();
 	}
 

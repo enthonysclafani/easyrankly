@@ -61,12 +61,12 @@ final class AbilitiesTest extends WP_UnitTestCase {
 	}
 
 	/**
-	 * The category and the three abilities exist, all read-only and shown in REST.
+	 * The category and the read-only abilities exist, all read-only and shown in REST.
 	 */
 	public function test_abilities_are_registered_read_only(): void {
 		$this->assertTrue( wp_has_ability_category( 'easyrankly' ) );
 
-		foreach ( array( 'get-post-seo', 'get-site-context', 'search-content' ) as $name ) {
+		foreach ( array( 'get-post-seo', 'get-site-context', 'get-memory', 'search-content' ) as $name ) {
 			$ability = wp_get_ability( 'easyrankly/' . $name );
 			$this->assertInstanceOf( \WP_Ability::class, $ability, $name );
 			$this->assertSame( 'easyrankly', $ability->get_category() );

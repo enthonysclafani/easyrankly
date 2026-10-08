@@ -67,7 +67,7 @@ Riferimenti Alpha: `includes/multilingual/singlesite/`, `includes/hreflang.php`,
       (Accetta, Modifica e accetta, Rifiuta, Annulla), anteprima delle differenze. L'elenco usa
       `@wordpress/components` come in 1.10: DataViews nel bundle porta lo script da 7 KB a 1,9 MB
 - [x] 3.3 `src/Agent/Allowlist.php`, validazione sullo schema, rilevamento delle proposte superate, tetto giornaliero
-- [ ] 3.4 Memoria: post type `erankly_memory`, import/export in `.md`, apprendimento da rifiuti e modifiche
+- [x] 3.4 Memoria: post type `erankly_memory`, import/export in `.md`, apprendimento da rifiuti e modifiche
 - [ ] 3.5 Prime proposte: meta e social, testo alternativo, redirect quando un contenuto viene cestinato
 - [ ] 3.6 Inneschi senza cron: eventi editoriali e apertura della dashboard
 - [ ] 3.7 Test dell'agente elencati in `CLAUDE.md`, inclusa la prompt injection nei contenuti
