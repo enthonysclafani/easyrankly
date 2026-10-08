@@ -194,7 +194,7 @@ final class Proposals {
 		);
 
 		if ( ! is_wp_error( $id ) ) {
-			self::supersede_older( $id, $name, $object );
+			self::supersede( $object, $name, __( 'A newer proposal replaced this one.', 'easyrankly' ), $id );
 		}
 
 		return $id;
@@ -342,23 +342,28 @@ final class Proposals {
 	}
 
 	/**
-	 * Marks as superseded the older pending proposals of the same action on the same content.
+	 * Marks as superseded the pending proposals of an action on a content.
 	 *
-	 * @param int    $id      The new proposal.
-	 * @param string $ability Ability name.
 	 * @param int    $content Content ID.
+	 * @param string $ability Ability name.
+	 * @param string $note    Why.
+	 * @param int    $keep    A proposal to leave alone (the newer one).
 	 */
-	private static function supersede_older( int $id, string $ability, int $content ): void {
-		$older = get_posts(
+	public static function supersede( int $content, string $ability, string $note, int $keep = 0 ): void {
+		if ( $content <= 0 ) {
+			return;
+		}
+
+		$pending = get_posts(
 			array(
 				'post_type'              => self::POST_TYPE,
 				'post_status'            => self::STATUSES['pending'],
 				'post_parent'            => $content,
-				'post__not_in'           => array( $id ),
+				'post__not_in'           => array( $keep ),
 				'posts_per_page'         => -1,
 				'fields'                 => 'ids',
 				'update_post_term_cache' => false,
-				'meta_query'             => array( // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- Runs only when a proposal is created, never on the frontend.
+				'meta_query'             => array( // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- Runs only when proposals or their content change, never on the frontend.
 					array(
 						'key'   => self::meta_key( 'ability' ),
 						'value' => $ability,
@@ -367,8 +372,8 @@ final class Proposals {
 			)
 		);
 
-		foreach ( $older as $older_id ) {
-			self::decide( (int) $older_id, 'superseded', __( 'A newer proposal replaced this one.', 'easyrankly' ) );
+		foreach ( $pending as $id ) {
+			self::decide( (int) $id, 'superseded', $note );
 		}
 	}
 

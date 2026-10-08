@@ -62,6 +62,7 @@ delete_option( 'easyrankly_settings' );
 delete_option( 'easyrankly_redirects_forced' );
 delete_option( 'easyrankly_redirects_regex' );
 delete_option( 'easyrankly_snippets' );
+delete_option( 'easyrankly_agent' );
 
 // SEO meta of posts and terms (src/Meta/Meta.php).
 foreach (

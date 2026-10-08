@@ -7,10 +7,13 @@
 
 namespace EasyRankly\Agent;
 
+use EasyRankly\Settings\Settings;
+
 defined( 'ABSPATH' ) || exit;
 
 /**
  * Lists proposals and records decisions: accept (optionally with edited values), reject, undo.
+ * Runs the analysis one step per request, driven by the dashboard.
  * Imports and exports the project memory as Markdown (its entries are edited through the
  * core routes of the `erankly_memory` post type).
  *
@@ -127,6 +130,32 @@ final class Rest {
 
 		register_rest_route(
 			self::NAMESPACE,
+			'/agent',
+			array(
+				'methods'             => \WP_REST_Server::READABLE,
+				'callback'            => array( $this, 'agent_status' ),
+				'permission_callback' => $permission,
+			)
+		);
+
+		register_rest_route(
+			self::NAMESPACE,
+			'/agent/step',
+			array(
+				'methods'             => \WP_REST_Server::CREATABLE,
+				'callback'            => static fn( \WP_REST_Request $request ): \WP_REST_Response => new \WP_REST_Response( Analysis::step( (bool) $request['force'] ) ),
+				'permission_callback' => $permission,
+				'args'                => array(
+					'force' => array(
+						'type'    => 'boolean',
+						'default' => false,
+					),
+				),
+			)
+		);
+
+		register_rest_route(
+			self::NAMESPACE,
 			'/memory/export',
 			array(
 				'methods'             => \WP_REST_Server::READABLE,
@@ -170,6 +199,26 @@ final class Rest {
 				'callback'            => array( $this, 'undo' ),
 				'permission_callback' => $permission,
 				'args'                => array( 'id' => $id ),
+			)
+		);
+	}
+
+	/**
+	 * What the dashboard needs to decide whether to run the analysis.
+	 *
+	 * @return \WP_REST_Response
+	 */
+	public function agent_status(): \WP_REST_Response {
+		$state = Analysis::state();
+
+		return new \WP_REST_Response(
+			array(
+				'ai'         => Suggestions::ai_available(),
+				'auto'       => (bool) Settings::value( 'agent_auto' ),
+				'recent'     => count( $state['recent'] ),
+				'due'        => Analysis::due(),
+				'scanned_at' => $state['scanned_at'] > 0 ? gmdate( 'c', $state['scanned_at'] ) : '',
+				'limit'      => Allowlist::daily_limit_reached(),
 			)
 		);
 	}
