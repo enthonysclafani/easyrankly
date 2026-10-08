@@ -10,8 +10,27 @@ Un punto della roadmap per sessione: le sessioni corte restano precise.
 ```text
 Fai `git fetch origin Refactory` e passa al branch Refactory se non ci sei già.
 Leggi CLAUDE.md, poi verifica che l'ambiente sia pronto: controlla l'output di tools/cloud-setup.sh e lancia
-`composer check`. Se qualcosa fallisce, correggi lo script di setup (non le regole), apri una pull request verso
-Refactory e spunta "Prima sessione Claude Code nel cloud" in docs/roadmap.md. Dimmi cosa hai verificato.
+`composer check`. Fai lanciare `composer check` anche al subagente `verificatore`, per confermare che i subagenti
+su Haiku 5.5 funzionano. Se qualcosa fallisce, correggi lo script di setup o la configurazione dei subagenti (non le
+regole), apri una pull request verso Refactory e spunta "Prima sessione Claude Code nel cloud" in docs/roadmap.md.
+Dimmi cosa hai verificato.
+```
+
+## Una fase intera (Opus come responsabile, Haiku 5.5 per il lavoro meccanico)
+
+Sostituisci `<F>` con il numero della fase (es. `1`). Si ferma da solo davanti alle decisioni aperte.
+
+```text
+Porta a completamento la Fase <F> di docs/roadmap.md, un punto alla volta, seguendo CLAUDE.md.
+Per ogni punto segui la sezione "Prompt di lavoro" di docs/prompt.md, con una differenza: non aspettare il mio ok
+sul piano, scrivilo nella descrizione della pull request.
+
+- Parti dal branch Refactory aggiornato (`git fetch origin Refactory`).
+- Tu sei il responsabile tecnico. Delega ai subagenti di .claude/agents (ricercatore, esecutore, verificatore)
+  il lavoro lungo e meccanico, come descritto in "Delega ai subagenti" di CLAUDE.md, e rivedi tutto ciò che producono.
+- Non serve il mio ok tra un punto e l'altro: apri una pull request verso Refactory per ogni punto.
+- Fermati e chiedimi solo davanti a una decisione aperta di docs/piano.md o a un'eccezione alle invarianti.
+- Alla fine dimmi, per ogni punto: cosa hai fatto, cosa hai delegato, cosa hai verificato e cosa no.
 ```
 
 ## Prompt di lavoro
