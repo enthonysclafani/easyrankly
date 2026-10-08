@@ -20,6 +20,18 @@ final class PluginTest extends WP_UnitTestCase {
 	 */
 	public function test_plugin_is_loaded(): void {
 		$this->assertTrue( class_exists( Plugin::class ) );
-		$this->assertSame( '3.0.0-dev', \EasyRankly\VERSION );
+		$this->assertSame( '3.0.0', \EasyRankly\VERSION );
+	}
+
+	/**
+	 * Header version, VERSION constant and readme Stable tag match, as WordPress.org requires.
+	 */
+	public function test_versions_match(): void {
+		$root   = dirname( __DIR__ );
+		$header = get_file_data( $root . '/easyrankly.php', array( 'version' => 'Version' ) );
+		$readme = get_file_data( $root . '/readme.txt', array( 'stable' => 'Stable tag' ) );
+
+		$this->assertSame( \EasyRankly\VERSION, $header['version'] );
+		$this->assertSame( \EasyRankly\VERSION, $readme['stable'] );
 	}
 }
