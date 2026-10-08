@@ -10,11 +10,12 @@
 
 defined( 'WP_UNINSTALL_PLUGIN' ) || exit;
 
-// Redirects (src/Redirects/Redirects.php): posts with their meta first, then the lists built from them.
+// Redirects (src/Redirects/Redirects.php) and snippets (src/CustomCode/CustomCode.php): posts with
+// their meta and revisions first, then the caches built from them.
 do {
 	$easyrankly_ids     = get_posts(
 		array(
-			'post_type'        => 'erankly_redirect',
+			'post_type'        => array( 'erankly_redirect', 'erankly_snippet' ),
 			'post_status'      => array_keys( get_post_stati() ),
 			'posts_per_page'   => 100,
 			'fields'           => 'ids',
@@ -31,6 +32,7 @@ do {
 delete_option( 'easyrankly_settings' );
 delete_option( 'easyrankly_redirects_forced' );
 delete_option( 'easyrankly_redirects_regex' );
+delete_option( 'easyrankly_snippets' );
 
 // SEO meta of posts and terms (src/Meta/Meta.php).
 foreach (

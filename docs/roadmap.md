@@ -39,7 +39,7 @@ Riferimenti Alpha: `includes/title-description.php`, `includes/meta*.php`, `incl
       "forzati", regex, 301/302/307/410, elenco admin con DataViews, redirect per cambio slug di pagine e termini
       (i post li gestisce già il core). Elenco fatto con una tabella di `@wordpress/components`: DataViews nel bundle
       pesava 1,9 MB contro 7 KB
-- [ ] 1.11 Custom code: post type `erankly_snippet`, HTML e PHP, `src/CustomCode/PhpRunner.php` con tutte le regole
+- [x] 1.11 Custom code: post type `erankly_snippet`, HTML e PHP, `src/CustomCode/PhpRunner.php` con tutte le regole
       della sezione "Custom code" di `CLAUDE.md`
 
 Criterio di uscita: su un articolo singolo Query Monitor non mostra query in più rispetto a WordPress senza plugin.

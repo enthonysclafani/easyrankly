@@ -90,4 +90,39 @@ final class UninstallTest extends WP_UnitTestCase {
 		$this->assertFalse( get_option( 'easyrankly_redirects_forced' ) );
 		$this->assertFalse( get_option( 'easyrankly_redirects_regex' ) );
 	}
+
+	/**
+	 * Snippets, their revisions and meta, and their cache are removed.
+	 */
+	public function test_uninstall_removes_snippets(): void {
+		if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
+			define( 'WP_UNINSTALL_PLUGIN', 'easyrankly/easyrankly.php' );
+		}
+
+		$id = self::factory()->post->create(
+			array(
+				'post_type'    => 'erankly_snippet',
+				'post_content' => '<i>1</i>',
+				'meta_input'   => array( '_easyrankly_snippet_type' => 'html' ),
+			)
+		);
+		wp_update_post(
+			array(
+				'ID'           => $id,
+				'post_content' => '<i>2</i>',
+			)
+		);
+		$revisions = array_keys( wp_get_post_revisions( $id ) );
+		update_option( 'easyrankly_snippets', array( 'positions' => array() ) );
+
+		require dirname( __DIR__ ) . '/uninstall.php';
+
+		$this->assertNull( get_post( $id ) );
+		$this->assertFalse( metadata_exists( 'post', $id, '_easyrankly_snippet_type' ) );
+		$this->assertNotEmpty( $revisions );
+		foreach ( $revisions as $revision ) {
+			$this->assertNull( get_post( $revision ) );
+		}
+		$this->assertFalse( get_option( 'easyrankly_snippets' ) );
+	}
 }
