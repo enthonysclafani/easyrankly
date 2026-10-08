@@ -34,6 +34,7 @@ final class Plugin {
 		( new Redirects\Redirects() )->register();
 		( new CustomCode\CustomCode() )->register();
 		( new Multilingual\Multilingual() )->register();
+		( new Agent\Agent() )->register();
 
 		if ( is_admin() ) {
 			( new Settings\Admin\Page() )->register();
