@@ -194,6 +194,13 @@ Va integrato **solo sul Cloud, dietro un'interfaccia nostra**, dopo un test prat
 ## 7. Decisioni aperte
 
 - Multilingua: solo SEO e collegamento delle traduzioni, o anche menu e stringhe del tema?
+  Rimandata a dopo la Fase 2, che copre solo SEO e collegamento delle traduzioni. Stato attuale:
+  - menu, titolo e descrizione del sito sono gli stessi in tutte le lingue (quelli della lingua predefinita);
+  - le stringhe del tema e di WordPress seguono il locale della pagina, se il pacchetto di lingua è installato;
+  - categorie e tag non si traducono: valgono per tutte le lingue e i loro archivi mostrano i contenuti della lingua corrente.
+
+  Prima di decidere, valutare come restare senza tabelle né moduli: per esempio un menu per lingua scelto con
+  il filtro `wp_nav_menu_args` e la navigazione dei blocchi, e titolo e descrizione per lingua nelle impostazioni.
 - Import da Yoast e Rank Math: solo meta e redirect, a lotti dall'admin?
 - Schema extra: Local Business, Product per WooCommerce.
 - IndexNow.
