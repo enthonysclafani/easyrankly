@@ -133,7 +133,7 @@ final class ProposalsTest extends WP_UnitTestCase {
 		$base = array( 'title' => 'x' );
 
 		$this->assertSame(
-			'easyrankly_unknown_action',
+			'easyrankly_not_allowed',
 			Proposals::create(
 				$base + array(
 					'ability' => 'core/get-site-info',

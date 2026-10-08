@@ -19,8 +19,10 @@ defined( 'ABSPATH' ) || exit;
  * - meta: ability and input, previous values (same shape as the input, used by "Undo"),
  *   fingerprint of the original values, evidence, confidence, note, deciding user.
  *
- * Accepting runs the ability through the Abilities API as the current user, so the input is
- * validated again on its schema and the permission check is the one of whoever accepts.
+ * Every input passes Allowlist::validate() when the proposal is created and again when it is
+ * accepted. Accepting runs the ability through the Abilities API as the current user, so the
+ * permission check is the one of whoever accepts; if the content changed since the proposal
+ * was made (fingerprint of the values it replaces), the proposal is superseded instead.
  */
 final class Proposals {
 
@@ -144,16 +146,20 @@ final class Proposals {
 	}
 
 	/**
-	 * Creates a pending proposal after validating its input on the ability schema.
+	 * Creates a pending proposal after the allowlist checks, superseding older ones on the same content.
 	 *
 	 * @param array{ability: string, input: array<string, mixed>, title: string, motivation?: string, evidence?: string, confidence?: float|int} $args Proposal.
 	 * @return int|\WP_Error Proposal ID.
 	 */
 	public static function create( array $args ) {
 		$name  = $args['ability'];
-		$input = self::validate( $name, $args['input'] );
+		$input = Allowlist::validate( $name, $args['input'] );
 		if ( is_wp_error( $input ) ) {
 			return $input;
+		}
+
+		if ( Allowlist::daily_limit_reached() ) {
+			return new \WP_Error( 'easyrankly_daily_limit', __( 'The agent reached the daily limit of proposals.', 'easyrankly' ), array( 'status' => 429 ) );
 		}
 
 		$previous = Actions::snapshot( $name, $input );
@@ -186,6 +192,10 @@ final class Proposals {
 			true
 		);
 
+		if ( ! is_wp_error( $id ) ) {
+			self::supersede_older( $id, $name, Actions::object_id( $input ) );
+		}
+
 		return $id;
 	}
 
@@ -210,10 +220,17 @@ final class Proposals {
 			$input[ $field ] = $value;
 		}
 
-		$input = self::validate( $proposal['ability'], $input );
+		$input = Allowlist::validate( $proposal['ability'], $input );
 		if ( is_wp_error( $input ) ) {
 			$input->add_data( array( 'status' => 400 ) );
 			return $input;
+		}
+
+		// The content changed since the proposal was made: applying it would overwrite newer work.
+		$current = Actions::snapshot( $proposal['ability'], $input );
+		if ( is_wp_error( $current ) || self::fingerprint( $current ) !== $proposal['fingerprint'] ) {
+			self::decide( $id, 'superseded', __( 'The content changed after this proposal was made.', 'easyrankly' ) );
+			return new \WP_Error( 'easyrankly_proposal_superseded', __( 'The content changed after this proposal was made, so it was not applied.', 'easyrankly' ), array( 'status' => 409 ) );
 		}
 
 		$result = self::run( $proposal['ability'], $input );
@@ -226,7 +243,10 @@ final class Proposals {
 			return $result;
 		}
 
+		// From now on the fingerprint is the one of the applied values: "Undo" checks it.
+		$applied = Actions::snapshot( $proposal['ability'], $input );
 		update_post_meta( $id, self::meta_key( 'input' ), $input );
+		update_post_meta( $id, self::meta_key( 'fingerprint' ), is_wp_error( $applied ) ? '' : self::fingerprint( $applied ) );
 		self::decide( $id, 'accepted' );
 
 		return true;
@@ -262,6 +282,11 @@ final class Proposals {
 			return $proposal;
 		}
 
+		$current = Actions::snapshot( $proposal['ability'], $proposal['input'] );
+		if ( is_wp_error( $current ) || self::fingerprint( $current ) !== $proposal['fingerprint'] ) {
+			return new \WP_Error( 'easyrankly_proposal_changed', __( 'The content changed after this proposal was applied: undoing it would overwrite newer changes.', 'easyrankly' ), array( 'status' => 409 ) );
+		}
+
 		$result = self::run( $proposal['ability'], $proposal['previous'] );
 		if ( is_wp_error( $result ) ) {
 			return $result;
@@ -277,7 +302,7 @@ final class Proposals {
 	 *
 	 * @param int    $id     Proposal ID.
 	 * @param string $status Status key the proposal must have, or empty for any.
-	 * @return array{id: int, ability: string, input: array<string, mixed>, previous: array<string, mixed>, status: string, object: int}|\WP_Error
+	 * @return array{id: int, ability: string, input: array<string, mixed>, previous: array<string, mixed>, fingerprint: string, status: string, object: int}|\WP_Error
 	 */
 	public static function get( int $id, string $status = '' ) {
 		$post = get_post( $id );
@@ -294,39 +319,45 @@ final class Proposals {
 		$previous = get_post_meta( $id, self::meta_key( 'previous' ), true );
 
 		return array(
-			'id'       => $id,
-			'ability'  => (string) get_post_meta( $id, self::meta_key( 'ability' ), true ),
-			'input'    => is_array( $input ) ? $input : array(),
-			'previous' => is_array( $previous ) ? $previous : array(),
-			'status'   => $key,
-			'object'   => (int) $post->post_parent,
+			'id'          => $id,
+			'ability'     => (string) get_post_meta( $id, self::meta_key( 'ability' ), true ),
+			'input'       => is_array( $input ) ? $input : array(),
+			'previous'    => is_array( $previous ) ? $previous : array(),
+			'fingerprint' => (string) get_post_meta( $id, self::meta_key( 'fingerprint' ), true ),
+			'status'      => $key,
+			'object'      => (int) $post->post_parent,
 		);
 	}
 
 	/**
-	 * Validates an input on the schema of an agent action.
+	 * Marks as superseded the older pending proposals of the same action on the same content.
 	 *
-	 * @param string $name  Ability name.
-	 * @param mixed  $input Raw input.
-	 * @return array<string, mixed>|\WP_Error Normalized input.
+	 * @param int    $id      The new proposal.
+	 * @param string $ability Ability name.
+	 * @param int    $content Content ID.
 	 */
-	private static function validate( string $name, $input ) {
-		$ability = Actions::POST_SEO === $name ? wp_get_ability( $name ) : null;
-		if ( null === $ability ) {
-			return new \WP_Error( 'easyrankly_unknown_action', __( 'This action is not supported.', 'easyrankly' ) );
-		}
+	private static function supersede_older( int $id, string $ability, int $content ): void {
+		$older = get_posts(
+			array(
+				'post_type'              => self::POST_TYPE,
+				'post_status'            => self::STATUSES['pending'],
+				'post_parent'            => $content,
+				'post__not_in'           => array( $id ),
+				'posts_per_page'         => -1,
+				'fields'                 => 'ids',
+				'update_post_term_cache' => false,
+				'meta_query'             => array( // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- Runs only when a proposal is created, never on the frontend.
+					array(
+						'key'   => self::meta_key( 'ability' ),
+						'value' => $ability,
+					),
+				),
+			)
+		);
 
-		$input = $ability->normalize_input( $input );
-		if ( is_wp_error( $input ) ) {
-			return $input;
+		foreach ( $older as $older_id ) {
+			self::decide( (int) $older_id, 'superseded', __( 'A newer proposal replaced this one.', 'easyrankly' ) );
 		}
-
-		$valid = $ability->validate_input( $input );
-		if ( is_wp_error( $valid ) ) {
-			return $valid;
-		}
-
-		return is_array( $input ) ? $input : array();
 	}
 
 	/**
