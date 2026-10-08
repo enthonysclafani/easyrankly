@@ -1,0 +1,5 @@
+{
+	"name": "fixture/switcher",
+	"editorScript": "file:./index.js",
+	"viewScript": "file:./view.js"
+}

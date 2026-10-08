@@ -1,0 +1,101 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  static:
+    name: Architecture, PHPCS, PHPStan (PHP ${{ matrix.php }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.1', '8.4']
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: none
+
+      - uses: ramsey/composer-install@v3
+
+      - run: composer architecture
+      - run: composer lint
+      - run: composer analyse
+
+  test:
+    name: PHPUnit (PHP ${{ matrix.php }}${{ matrix.multisite && ', multisite: no conflicts' || '' }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - php: '8.1'
+            multisite: false
+          - php: '8.4'
+            multisite: false
+          - php: '8.4'
+            multisite: true
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: yes
+          MYSQL_DATABASE: wordpress_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping --silent"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: dom, intl, mbstring, mysqli, xml
+          coverage: none
+
+      - uses: ramsey/composer-install@v3
+
+      - name: Install the WordPress test suite
+        run: tools/install-wp-tests.sh wordpress_test root '' 127.0.0.1 7.1.0
+
+      - name: Run tests
+        env:
+          WP_TESTS_DIR: /tmp/wordpress-develop/tests/phpunit
+          WP_MULTISITE: ${{ matrix.multisite && '1' || '' }}
+        run: composer test -- --testdox
+
+  plugin-check:
+    name: Plugin Check (distributable)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build the distributable
+        run: |
+          tools/build-dist.sh
+          mkdir -p dist-extracted
+          unzip -q .dist/easyrankly.zip -d dist-extracted
+          test -f dist-extracted/easyrankly/easyrankly.php
+          test ! -e dist-extracted/easyrankly/tests
+          test ! -e dist-extracted/easyrankly/tools
+
+      - uses: wordpress/plugin-check-action@v1
+        with:
+          build-dir: ./dist-extracted/easyrankly
+          slug: easyrankly
+          ignore-warnings: true
+          categories: |
+            plugin_repo

@@ -1,0 +1,10 @@
+parameters:
+	level: 8
+	paths:
+		- easyrankly.php
+		- uninstall.php
+		- src
+		- tools
+	excludePaths:
+		- tests/fixtures
+	treatPhpDocTypesAsCertain: false

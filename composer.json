@@ -1,0 +1,49 @@
+{
+	"name": "easyrankly/easyrankly",
+	"description": "Development tooling for the EasyRankly WordPress plugin. Nothing here ships at runtime.",
+	"type": "wordpress-plugin",
+	"license": "GPL-2.0-or-later",
+	"require": {
+		"php": ">=8.1"
+	},
+	"require-dev": {
+		"dealerdirect/phpcodesniffer-composer-installer": "^1.0",
+		"phpcompatibility/phpcompatibility-wp": "^2.1",
+		"phpstan/extension-installer": "^1.4",
+		"phpstan/phpstan": "^2.1",
+		"phpunit/phpunit": "^9.6",
+		"szepeviktor/phpstan-wordpress": "^2.0",
+		"wp-coding-standards/wpcs": "^3.1",
+		"yoast/phpunit-polyfills": "^1.1"
+	},
+	"scripts": {
+		"architecture": "@php tools/check-architecture.php",
+		"lint": "phpcs",
+		"lint:fix": "phpcbf",
+		"analyse": "phpstan analyse --memory-limit=1G --no-progress",
+		"test": "phpunit",
+		"check": [
+			"@architecture",
+			"@lint",
+			"@analyse",
+			"@test"
+		]
+	},
+	"scripts-descriptions": {
+		"architecture": "Fails on custom tables, cron, frontend assets, direct DB access and other invariants from CLAUDE.md.",
+		"lint": "WordPress Coding Standards and PHP compatibility.",
+		"analyse": "PHPStan level 8 with WordPress stubs.",
+		"test": "PHPUnit against the WordPress test suite (needs WP_TESTS_DIR).",
+		"check": "Everything above. Must pass before a task is done."
+	},
+	"config": {
+		"allow-plugins": {
+			"dealerdirect/phpcodesniffer-composer-installer": true,
+			"phpstan/extension-installer": true
+		},
+		"platform": {
+			"php": "8.1.0"
+		},
+		"sort-packages": true
+	}
+}
