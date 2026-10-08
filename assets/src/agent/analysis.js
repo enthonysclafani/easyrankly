@@ -124,8 +124,9 @@ export default function Analysis( { onProposal } ) {
 						{ __( 'Analyze now', 'easyrankly' ) }
 					</button>
 				) }{ ' ' }
-				<label>
+				<label htmlFor="easyrankly-agent-auto">
 					<input
+						id="easyrankly-agent-auto"
 						type="checkbox"
 						checked={ !! status.auto }
 						onChange={ toggle }

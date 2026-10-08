@@ -450,9 +450,7 @@ function Proposals() {
 			type="button"
 			className="button-link"
 			onClick={ toggle( item, mode ) }
-			aria-expanded={
-				open?.item.id === item.id && open.mode === mode
-			}
+			aria-expanded={ open?.item.id === item.id && open.mode === mode }
 		>
 			{ label }
 		</button>
@@ -461,7 +459,10 @@ function Proposals() {
 		const links = [];
 		if ( item.status === 'pending' ) {
 			links.push(
-				[ 'accept', action( item, 'accept', __( 'Accept', 'easyrankly' ) ) ],
+				[
+					'accept',
+					action( item, 'accept', __( 'Accept', 'easyrankly' ) ),
+				],
 				[
 					'edit',
 					action(
@@ -470,7 +471,10 @@ function Proposals() {
 						__( 'Edit and accept', 'easyrankly' )
 					),
 				],
-				[ 'trash', action( item, 'reject', __( 'Reject', 'easyrankly' ) ) ]
+				[
+					'trash',
+					action( item, 'reject', __( 'Reject', 'easyrankly' ) ),
+				]
 			);
 		}
 		if ( item.status === 'accepted' ) {
@@ -535,7 +539,10 @@ function Proposals() {
 									<div className="row-actions visible">
 										{ actions( item ).map(
 											( [ key, link ], index ) => (
-												<span key={ key } className={ key }>
+												<span
+													key={ key }
+													className={ key }
+												>
 													{ index > 0 && ' | ' }
 													{ link }
 												</span>
@@ -568,6 +575,8 @@ function Proposals() {
 								<tr key={ `${ item.id }-decision` }>
 									<td colSpan="4">
 										<Decision
+											// A new form for each mode, so no error or reason of another stays.
+											key={ open.mode }
 											item={ open.item }
 											mode={ open.mode }
 											onClose={ () => setOpen( null ) }

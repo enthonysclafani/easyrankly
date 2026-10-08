@@ -1,19 +1,9 @@
 /**
  * Memory tab: edits `erankly_memory` entries through `/wp/v2/easyrankly-memory`,
  * imports and exports them as one Markdown file through `/easyrankly/v1/memory`.
+ * Markup and classes of the core admin screens, no components.
  */
 import apiFetch from '@wordpress/api-fetch';
-import {
-	Button,
-	Flex,
-	FormFileUpload,
-	Modal,
-	Notice,
-	Spinner,
-	TextareaControl,
-	TextControl,
-	ToggleControl,
-} from '@wordpress/components';
 import { useCallback, useEffect, useState } from '@wordpress/element';
 import { __, sprintf } from '@wordpress/i18n';
 import { addQueryArgs } from '@wordpress/url';
@@ -95,80 +85,110 @@ function EntryForm( { entry, onClose, onSaved } ) {
 		);
 
 	return (
-		<Modal
-			title={
-				entry.id
+		<form onSubmit={ submit }>
+			<h2>
+				{ entry.id
 					? __( 'Edit memory entry', 'easyrankly' )
-					: __( 'Add memory entry', 'easyrankly' )
-			}
-			size="large"
-			onRequestClose={ onClose }
-		>
-			<form onSubmit={ submit }>
-				<Flex direction="column" gap={ 4 }>
-					{ error && (
-						<Notice status="error" isDismissible={ false }>
-							{ error }
-						</Notice>
-					) }
-					<TextControl
-						__next40pxDefaultSize
-						__nextHasNoMarginBottom
-						label={ __( 'Name', 'easyrankly' ) }
-						value={ values.title }
-						onChange={ set( 'title' ) }
-						required
-					/>
-					<TextareaControl
-						__nextHasNoMarginBottom
-						label={ __( 'Fact', 'easyrankly' ) }
-						help={ __(
-							'One fact per entry, in Markdown: tone, audience, brand rules, strategic pages, decisions.',
-							'easyrankly'
-						) }
-						rows={ 10 }
-						value={ values.content }
-						onChange={ set( 'content' ) }
-					/>
-					<ToggleControl
-						__nextHasNoMarginBottom
-						label={ __(
-							'The agent uses this entry',
-							'easyrankly'
-						) }
-						checked={ values.active }
-						onChange={ set( 'active' ) }
-					/>
-					<Flex justify="space-between">
-						<div>
-							{ entry.id > 0 && (
-								<Button
-									variant="tertiary"
-									isDestructive
-									disabled={ busy }
-									onClick={ remove }
-								>
-									{ __( 'Delete', 'easyrankly' ) }
-								</Button>
-							) }
-						</div>
-						<Flex justify="flex-end" expanded={ false }>
-							<Button variant="tertiary" onClick={ onClose }>
-								{ __( 'Cancel', 'easyrankly' ) }
-							</Button>
-							<Button
-								variant="primary"
-								type="submit"
-								isBusy={ busy }
-								disabled={ busy }
-							>
-								{ __( 'Save', 'easyrankly' ) }
-							</Button>
-						</Flex>
-					</Flex>
-				</Flex>
-			</form>
-		</Modal>
+					: __( 'Add memory entry', 'easyrankly' ) }
+			</h2>
+			{ error && (
+				<div className="notice notice-error inline">
+					<p>{ error }</p>
+				</div>
+			) }
+			<table className="form-table" role="presentation">
+				<tbody>
+					<tr>
+						<th scope="row">
+							<label htmlFor="easyrankly-memory-title">
+								{ __( 'Name', 'easyrankly' ) }
+							</label>
+						</th>
+						<td>
+							<input
+								id="easyrankly-memory-title"
+								type="text"
+								className="regular-text"
+								value={ values.title }
+								onChange={ ( event ) =>
+									set( 'title' )( event.target.value )
+								}
+								required
+							/>
+						</td>
+					</tr>
+					<tr>
+						<th scope="row">
+							<label htmlFor="easyrankly-memory-content">
+								{ __( 'Fact', 'easyrankly' ) }
+							</label>
+						</th>
+						<td>
+							<textarea
+								id="easyrankly-memory-content"
+								className="large-text"
+								rows={ 10 }
+								value={ values.content }
+								onChange={ ( event ) =>
+									set( 'content' )( event.target.value )
+								}
+							/>
+							<p className="description">
+								{ __(
+									'One fact per entry, in Markdown: tone, audience, brand rules, strategic pages, decisions.',
+									'easyrankly'
+								) }
+							</p>
+						</td>
+					</tr>
+					<tr>
+						<th scope="row">{ __( 'Used', 'easyrankly' ) }</th>
+						<td>
+							<label htmlFor="easyrankly-memory-active">
+								<input
+									id="easyrankly-memory-active"
+									type="checkbox"
+									checked={ values.active }
+									onChange={ ( event ) =>
+										set( 'active' )( event.target.checked )
+									}
+								/>{ ' ' }
+								{ __(
+									'The agent uses this entry',
+									'easyrankly'
+								) }
+							</label>
+						</td>
+					</tr>
+				</tbody>
+			</table>
+			<p className="submit">
+				<button
+					type="submit"
+					className="button button-primary"
+					disabled={ busy }
+				>
+					{ __( 'Save', 'easyrankly' ) }
+				</button>{ ' ' }
+				<button type="button" className="button" onClick={ onClose }>
+					{ __( 'Cancel', 'easyrankly' ) }
+				</button>
+				{ entry.id > 0 && (
+					<>
+						{ ' ' }
+						<button
+							type="button"
+							className="button-link button-link-delete"
+							disabled={ busy }
+							onClick={ remove }
+						>
+							{ __( 'Delete', 'easyrankly' ) }
+						</button>
+					</>
+				) }
+				{ busy && <span className="spinner is-active" /> }
+			</p>
+		</form>
 	);
 }
 
@@ -215,6 +235,7 @@ export default function Memory() {
 		setImporting( true );
 		setNotice( null );
 		const markdown = await file.text();
+		event.target.value = '';
 		const totals = { created: 0, skipped: 0, errors: [] };
 		try {
 			let offset = 0;
@@ -253,7 +274,7 @@ export default function Memory() {
 	};
 
 	return (
-		<Flex direction="column" gap={ 4 }>
+		<>
 			<p>
 				{ __(
 					'Facts the agent keeps in mind. Reasons for rejected proposals and your edits to accepted ones are added here too: change or delete them freely.',
@@ -261,59 +282,74 @@ export default function Memory() {
 				) }
 			</p>
 			{ notice && (
-				<Notice
-					status={ notice.status }
-					onRemove={ () => setNotice( null ) }
-				>
-					{ notice.text }
-				</Notice>
+				<div className={ `notice notice-${ notice.status } inline` }>
+					<p>{ notice.text }</p>
+				</div>
 			) }
-			<Flex justify="flex-start">
-				<Button variant="primary" onClick={ () => setEditing( EMPTY ) }>
+			<p>
+				<button
+					type="button"
+					className="button button-primary"
+					onClick={ () => setEditing( EMPTY ) }
+				>
 					{ __( 'Add entry', 'easyrankly' ) }
-				</Button>
-				<Button variant="secondary" onClick={ exportFile }>
+				</button>{ ' ' }
+				<button type="button" className="button" onClick={ exportFile }>
 					{ __( 'Export .md', 'easyrankly' ) }
-				</Button>
-				<FormFileUpload
-					__next40pxDefaultSize
-					accept=".md,text/markdown,text/plain"
-					onChange={ importFile }
-					render={ ( { openFileDialog } ) => (
-						<Button
-							variant="secondary"
-							isBusy={ importing }
-							disabled={ importing }
-							onClick={ openFileDialog }
-						>
-							{ __( 'Import .md', 'easyrankly' ) }
-						</Button>
-					) }
+				</button>{ ' ' }
+				<label htmlFor="easyrankly-memory-import" className="button">
+					{ __( 'Import .md', 'easyrankly' ) }
+					<input
+						id="easyrankly-memory-import"
+						type="file"
+						className="screen-reader-text"
+						accept=".md,text/markdown,text/plain"
+						disabled={ importing }
+						onChange={ importFile }
+					/>
+				</label>
+				{ importing && <span className="spinner is-active" /> }
+			</p>
+			{ editing && (
+				<EntryForm
+					// A new form for each entry, so no value of the previous one stays.
+					key={ editing.id }
+					entry={ editing }
+					onClose={ () => setEditing( null ) }
+					onSaved={ () => {
+						setEditing( null );
+						load();
+					} }
 				/>
-			</Flex>
-			{ loading && <Spinner /> }
+			) }
+			{ loading && <span className="spinner is-active" /> }
 			{ ! loading && entries.length === 0 && (
 				<p>{ __( 'The memory is empty.', 'easyrankly' ) }</p>
 			) }
 			{ ! loading && entries.length > 0 && (
-				<table className="widefat striped">
+				<table className="wp-list-table widefat fixed striped">
 					<thead>
 						<tr>
-							<th>{ __( 'Name', 'easyrankly' ) }</th>
-							<th>{ __( 'Fact', 'easyrankly' ) }</th>
-							<th>{ __( 'Used', 'easyrankly' ) }</th>
+							<th scope="col">{ __( 'Name', 'easyrankly' ) }</th>
+							<th scope="col">{ __( 'Fact', 'easyrankly' ) }</th>
+							<th scope="col">{ __( 'Used', 'easyrankly' ) }</th>
 						</tr>
 					</thead>
 					<tbody>
 						{ entries.map( ( entry ) => (
 							<tr key={ entry.id }>
 								<td>
-									<Button
-										variant="link"
-										onClick={ () => setEditing( entry ) }
-									>
-										{ entry.title }
-									</Button>
+									<strong>
+										<button
+											type="button"
+											className="button-link row-title"
+											onClick={ () =>
+												setEditing( entry )
+											}
+										>
+											{ entry.title }
+										</button>
+									</strong>
 								</td>
 								<td>
 									{ entry.content.length > PREVIEW
@@ -333,16 +369,6 @@ export default function Memory() {
 					</tbody>
 				</table>
 			) }
-			{ editing && (
-				<EntryForm
-					entry={ editing }
-					onClose={ () => setEditing( null ) }
-					onSaved={ () => {
-						setEditing( null );
-						load();
-					} }
-				/>
-			) }
-		</Flex>
+		</>
 	);
 }
