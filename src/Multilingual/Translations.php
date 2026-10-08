@@ -169,6 +169,96 @@ final class Translations {
 	}
 
 	/**
+	 * Creates a draft copy of a post in another language and links it to the post's group.
+	 *
+	 * The copy keeps title, content, excerpt, template, featured image, order and terms
+	 * (terms are shared by all languages); its parent is the translation of the source's
+	 * parent, if there is one. SEO fields are not copied: they need translating.
+	 * Content passes the same filters as if the current user had typed it.
+	 *
+	 * @param int    $source_id Post to translate.
+	 * @param string $language  Language of the copy.
+	 * @return int|\WP_Error ID of the new draft.
+	 */
+	public static function create_translation( int $source_id, string $language ) {
+		$source = self::translatable_post( $source_id );
+		if ( is_wp_error( $source ) ) {
+			return $source;
+		}
+		if ( ! Languages::exists( $language ) ) {
+			return new \WP_Error( 'easyrankly_invalid_language', __( 'The language is not configured.', 'easyrankly' ) );
+		}
+
+		$map = self::of( $source->ID );
+		if ( isset( $map[ $language ] ) ) {
+			return new \WP_Error( 'easyrankly_language_taken', __( 'Another translation of this content already has that language.', 'easyrankly' ) );
+		}
+
+		$id = wp_insert_post(
+			wp_slash(
+				array(
+					'post_type'      => $source->post_type,
+					'post_status'    => 'draft',
+					'post_author'    => get_current_user_id(),
+					'post_title'     => $source->post_title,
+					'post_content'   => $source->post_content,
+					'post_excerpt'   => $source->post_excerpt,
+					'post_parent'    => $source->post_parent > 0 ? ( self::of( $source->post_parent )[ $language ] ?? 0 ) : 0,
+					'menu_order'     => $source->menu_order,
+					'comment_status' => $source->comment_status,
+					'ping_status'    => $source->ping_status,
+					'page_template'  => (string) get_page_template_slug( $source ),
+				)
+			),
+			true
+		);
+		if ( is_wp_error( $id ) ) {
+			return $id;
+		}
+
+		$thumbnail = (int) get_post_thumbnail_id( $source );
+		if ( $thumbnail > 0 ) {
+			set_post_thumbnail( $id, $thumbnail );
+		}
+
+		foreach ( array_diff( get_object_taxonomies( $source->post_type ), array( self::LANGUAGE, self::GROUP ) ) as $taxonomy ) {
+			$terms = wp_get_object_terms( $source->ID, $taxonomy, array( 'fields' => 'ids' ) );
+			if ( is_array( $terms ) && array() !== $terms ) {
+				wp_set_object_terms( $id, array_map( 'intval', $terms ), $taxonomy );
+			}
+		}
+
+		$map[ $language ] = $id;
+		$linked           = self::link( $map );
+		if ( is_wp_error( $linked ) ) {
+			wp_delete_post( $id, true );
+			return $linked;
+		}
+
+		return $id;
+	}
+
+	/**
+	 * Tax query clause selecting the content of a language.
+	 *
+	 * Content without a language, or with a language no longer configured, belongs to the
+	 * default language, so the default language is "none of the other languages".
+	 *
+	 * @param string $language Configured language slug.
+	 * @return array<string, mixed>
+	 */
+	public static function query_clause( string $language ): array {
+		$default = Languages::default();
+
+		return array(
+			'taxonomy' => self::LANGUAGE,
+			'field'    => 'slug',
+			'terms'    => $default === $language ? array_values( array_diff( array_keys( Languages::all() ), array( $default ) ) ) : array( $language ),
+			'operator' => $default === $language ? 'NOT IN' : 'IN',
+		);
+	}
+
+	/**
 	 * Deletes the group of a post that is about to be deleted, if only one post would remain.
 	 *
 	 * @param mixed $post_id Post ID.

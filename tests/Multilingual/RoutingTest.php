@@ -197,6 +197,24 @@ final class RoutingTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * A query that already picks a language is left as it is.
+	 */
+	public function test_explicit_language_query_is_kept(): void {
+		$en = $this->post( 'en' );
+		$this->post( 'it' );
+
+		$this->go_to( 'http://example.org/' );
+		$query = new \WP_Query(
+			array(
+				'post_type' => 'post',
+				'tax_query' => array( Translations::query_clause( 'en' ) ), // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query -- Test.
+			)
+		);
+
+		$this->assertSame( array( $en ), array_map( 'intval', wp_list_pluck( $query->posts, 'ID' ) ) );
+	}
+
+	/**
 	 * A custom taxonomy archive keeps its own term as the queried object.
 	 */
 	public function test_custom_taxonomy_archive_keeps_its_term(): void {

@@ -353,16 +353,13 @@ final class Routing {
 			$query->get_queried_object();
 		}
 
-		$current = self::current();
-		$default = Languages::default();
-		$clause  = array(
-			'taxonomy' => Translations::LANGUAGE,
-			'field'    => 'slug',
-			'terms'    => $current === $default ? array_values( array_diff( array_keys( Languages::all() ), array( $default ) ) ) : array( $current ),
-			'operator' => $current === $default ? 'NOT IN' : 'IN',
-		);
-
+		// A query that already picks a language keeps its choice.
 		$existing = $query->get( 'tax_query' );
+		if ( is_array( $existing ) && in_array( Translations::LANGUAGE, array_column( array_filter( $existing, 'is_array' ), 'taxonomy' ), true ) ) {
+			return;
+		}
+
+		$clause = Translations::query_clause( self::current() );
 		$query->set(
 			'tax_query', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query -- The only native way to filter content by language.
 			is_array( $existing ) && array() !== $existing

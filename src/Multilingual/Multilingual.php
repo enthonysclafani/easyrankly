@@ -26,6 +26,7 @@ final class Multilingual {
 		add_action( 'before_delete_post', array( Translations::class, 'on_delete_post' ) );
 
 		( new Routing() )->register();
+		( new Rest() )->register();
 	}
 
 	/**
