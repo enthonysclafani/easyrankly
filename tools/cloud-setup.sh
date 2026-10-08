@@ -5,6 +5,13 @@
 # Runs from the SessionStart hook in .claude/settings.json. Does nothing outside
 # the cloud (CLAUDE_CODE_REMOTE is "true" only in cloud sessions). Idempotent:
 # on resume it only restarts MariaDB, which does not survive the VM snapshot.
+#
+# Cloud constraints (https://code.claude.com/docs/en/cloud-environments):
+# - The session runs as root, so Composer needs COMPOSER_ALLOW_SUPERUSER=1 to load its
+#   plugins (also set for every command in .claude/settings.json).
+# - The GitHub proxy serves API requests, including the zipballs Composer downloads, only
+#   for the session's own repository; plain git clones of public repositories work, so
+#   packages are installed from git (--prefer-source).
 set -uo pipefail
 
 if [ "${CLAUDE_CODE_REMOTE:-}" != "true" ]; then
@@ -17,7 +24,9 @@ log() {
 	echo "[cloud-setup] $*"
 }
 
-composer install --no-interaction --no-progress --quiet || log "composer install failed: run it manually."
+export COMPOSER_ALLOW_SUPERUSER=1
+
+composer install --prefer-source --no-interaction --no-progress --quiet || log "composer install failed: run it manually."
 
 if ! command -v mariadbd >/dev/null 2>&1 && ! command -v mysqld >/dev/null 2>&1; then
 	log "Installing MariaDB..."

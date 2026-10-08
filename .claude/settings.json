@@ -1,4 +1,7 @@
 {
+	"env": {
+		"COMPOSER_ALLOW_SUPERUSER": "1"
+	},
 	"hooks": {
 		"SessionStart": [
 			{

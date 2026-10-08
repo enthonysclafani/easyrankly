@@ -31,6 +31,8 @@ git ls-tree -r --name-only origin/Alpha includes/   # elenco dei file
 - **Cloud (Claude Code)**: all'avvio, `tools/cloud-setup.sh` (hook `SessionStart` in `.claude/settings.json`) installa
   dipendenze Composer, MariaDB e la suite di test di WordPress. Se all'avvio vedi un messaggio `[cloud-setup] ... failed`,
   risolvi quello prima di tutto il resto.
+- Se un download, una richiesta di rete o un comando viene bloccato dal proxy o dal sistema dei permessi, **non
+  aggirarlo** con strade alternative: fermati, riferisci cosa è bloccato e proponi opzioni all'utente.
 - **Locale**: il sito di sviluppo è in WordPress Studio; i comandi WP-CLI si lanciano come `studio wp ...` dalla
   radice del sito.
 
