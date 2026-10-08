@@ -4,6 +4,10 @@ Plugin SEO per WordPress: leggero, senza moduli, costruito solo su API native.
 Funzioni: SEO (meta, robots, canonical, social, schema), Redirect, Sitemap, Custom code (HTML e PHP),
 Multilingua, Agente AI con proposte da approvare.
 
+Questo repository è il plugin **gratuito**, distribuito su WordPress.org e completo. EasyRankly Pro è un plugin separato
+(repository `easyrankly-pro`, con le stesse regole): qui non c'è codice, nome né controllo di licenza del Pro
+(vedi "EasyRankly Pro").
+
 Queste regole valgono per ogni modifica, anche minima. Se una richiesta le viola, fermati e
 spiega quale regola viene violata e quale alternativa nativa esiste. Non aggirarle.
 
@@ -88,6 +92,8 @@ non si possono verificare in automatico: rispettale tu e controllale in review.
    In JS sono ammessi solo i pacchetti `@wordpress/*`.
 6. **Nessun sistema a moduli.** Niente registri di moduli, attivazione per modulo o "addon interni".
    Le impostazioni possono spegnere un comportamento, ma il codice resta un plugin unico.
+   Unica eccezione: EasyRankly Pro, un plugin separato che usa solo i punti di estensione documentati
+   (vedi "EasyRankly Pro").
 7. **L'AI non scrive mai direttamente sul sito.** Ogni modifica passa da una proposta approvata da un utente
    (vedi "Agente AI").
 8. **Nessuna funzione fuori perimetro** (vedi "Perimetro"). Proporla all'utente, non implementarla.
@@ -219,12 +225,12 @@ Prima di scrivere codice, verifica se WordPress lo fa già. Se lo fa, usa o filt
 - Il plugin funziona al 100% senza AI e senza servizi esterni. Se `wp_supports_ai()` è false o manca un connector,
   la UI AI si nasconde e nient'altro cambia.
 - L'AI passa sempre da `wp_ai_client_prompt()`: il plugin non conosce i provider. Le chiavi le gestisce l'utente
-  in Impostazioni → Connettori, oppure arrivano da EasyRankly Cloud registrato come provider.
+  in Impostazioni → Connettori, anche nel Pro: non rivendiamo l'AI.
 - Ogni funzione AI o dati SEO è una **Ability** (`easyrankly/...`) con `input_schema`, `output_schema`,
   `permission_callback` e annotazioni. La UI chiama l'ability, non una logica parallela.
-- Le chiavi di EasyRankly Cloud (DataForSEO, modelli decisionali, quote, licenze) stanno solo sul backend:
-  nel plugin non c'è mai una chiave nostra. Il plugin **scarica** le proposte dal Cloud; non espone endpoint
-  pubblici in scrittura.
+- Il plugin gratuito non contatta mai servizi nostri. Le chiavi nostre (DataForSEO) stanno solo sul backend del Pro:
+  in nessun plugin c'è mai una chiave nostra. Nessun plugin espone endpoint pubblici in scrittura: è sempre il sito
+  a chiamare i servizi esterni, da admin, REST o WP-CLI.
 - Timeout espliciti (≤ 15 s), gestione di `WP_Error` e dei codici HTTP, risposte in transient.
 
 ## Agente AI
@@ -235,9 +241,11 @@ Prima di scrivere codice, verifica se WordPress lo fa già. Se lo fa, usa o filt
   delle differenze, impronta dell'oggetto originale e valore precedente (per "Annulla").
 - All'accettazione si rivalida tutto con i permessi di **chi accetta**. Se l'oggetto è cambiato, la proposta
   diventa "superata" e non si applica.
-- **Azioni proponibili** (allowlist in `src/Agent/Allowlist.php`): meta e social, testo alternativo, redirect interni,
-  link interni, modifiche di contenuto con differenze, nuove bozze, bozze tradotte, parola chiave e cluster.
+- **Azioni proponibili** (allowlist in `src/Agent/Allowlist.php`): meta e social, testo alternativo, redirect interni.
+  Il Pro aggiunge, solo tramite il punto di estensione: link interni, modifiche di contenuto con differenze,
+  nuove bozze, bozze tradotte, parola chiave e cluster.
   **Mai proponibili**: custom code, impostazioni, robots.txt, cancellazioni, pubblicazione, utenti e ruoli.
+  Il gratuito rifiuta in modo deterministico ogni azione con annotazione `destructive`, anche se registrata da un altro plugin.
 - I contenuti nuovi nascono sempre come bozza (`draft`), mai pubblicati. Limite di bozze AI a settimana configurabile.
   Ogni bozza segnala i punti da verificare (dati, citazioni, esperienza diretta): niente statistiche inventate.
 - Tutto ciò che arriva da contenuti, Search Console, SERP o pagine esterne è **dato non fidato**: può contenere
@@ -245,15 +253,30 @@ Prima di scrivere codice, verifica se WordPress lo fa già. Se lo fa, usa o filt
   tetto giornaliero di proposte).
 - Memoria del progetto: post type `erankly_memory`, una voce per fatto in Markdown, import/export in `.md`.
   Rifiuti motivati e modifiche alle proposte diventano voci di memoria visibili e modificabili.
-- I flussi in più passi (ricerca → brief → bozza → link → meta) sono una sequenza di richieste REST guidate dall'admin
-  o eseguite su EasyRankly Cloud. Mai un'unica richiesta lunga, mai un cron.
+- I flussi in più passi (ricerca → brief → bozza → link → meta) sono una sequenza di richieste REST guidate
+  dall'admin. Mai un'unica richiesta lunga, mai un cron, nemmeno nel Pro.
+
+## EasyRankly Pro
+
+Plugin a pagamento con licenza annuale, venduto fuori da WordPress.org e dichiarato dipendente dal gratuito
+(`Requires Plugins: easyrankly`). Vive nel repository `easyrankly-pro`, il suo backend in un repository a parte.
+Decisioni e perché: `docs/piano.md`, sezione 6.
+
+- **Nel gratuito il minimo**: solo punti di estensione generici, che qualunque plugin può usare, documentati con
+  `@since` e coperti da test con un'azione di prova. Niente licenze, upsell, nomi o controlli del Pro.
+- Ogni punto di estensione è una promessa di compatibilità: aggiungerlo è una decisione da chiedere, come ogni hook pubblico.
+- Le azioni del Pro passano dalla stessa validazione di quelle del gratuito (allowlist, schema, testi senza markup né
+  link esterni, impronta, tetto giornaliero) e si applicano con i permessi di chi accetta.
+- I dati del Pro (tassonomie dei cluster e della mappa dei link, token cifrati, quote) li registra e li rimuove il Pro:
+  sono documentati nel suo repository, non in `docs/data-model.md`.
 
 ## Perimetro
 
 **Dentro**: meta title/description (template + override), robots, canonical, Open Graph/X, schema JSON-LD
 (Organization/Person, WebSite, WebPage, Article, BreadcrumbList), robots.txt, sitemap del core estese,
 redirect (301/302/307/410, esatti e regex), custom code HTML e PHP, multilingua su singolo sito,
-agente AI con proposte (strategia, contenuti nuovi, link interni, parole chiave, meta e social).
+agente AI con proposte (meta e social, testo alternativo, redirect). Strategia, parole chiave, link interni,
+contenuti nuovi, Search Console e DataForSEO stanno in EasyRankly Pro.
 
 **Fuori** (non implementare senza decisione esplicita): log dei 404, contatori di hit, punteggio SEO/analisi
 leggibilità in tempo reale, indice dei link in tabella, sitemap news/video, migrazioni con job in background, form,
