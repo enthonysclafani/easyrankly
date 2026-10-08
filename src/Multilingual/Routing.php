@@ -172,7 +172,7 @@ final class Routing {
 		$slugs = implode( '|', array_map( static fn( string $slug ): string => preg_quote( $slug, '#' ), array_keys( Languages::all() ) ) );
 		$path  = (string) preg_replace( '#^(' . $slugs . ')(/|$|(?=[?\#]))#', '', ltrim( $matches[2] ?? '', '/' ) );
 
-		return $matches[1] . $base . '/' . ( $prefixed ? $language . '/' : '' ) . $path;
+		return ( $matches[1] ?? '' ) . $base . '/' . ( $prefixed ? $language . '/' : '' ) . $path;
 	}
 
 	/**
