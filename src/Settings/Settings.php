@@ -188,24 +188,7 @@ final class Settings {
 			'templates'             => array(
 				'description'          => __( 'Title and description templates per context. Keys: home, single, archive, term, author, date, search, 404, or single-{post type}, archive-{post type}, term-{taxonomy}.', 'easyrankly' ),
 				'type'                 => 'object',
-				'patternProperties'    => array(
-					Context::KEY_PATTERN => array(
-						'type'                 => 'object',
-						'additionalProperties' => false,
-						'properties'           => array(
-							'title'       => array(
-								'type'      => 'string',
-								'format'    => 'text-field',
-								'maxLength' => 200,
-							),
-							'description' => array(
-								'type'      => 'string',
-								'format'    => 'text-field',
-								'maxLength' => 400,
-							),
-						),
-					),
-				),
+				'patternProperties'    => array( Context::KEY_PATTERN => self::template_schema() ),
 				'additionalProperties' => false,
 				'default'              => array(
 					'home'    => array(
@@ -240,6 +223,44 @@ final class Settings {
 						'title'       => '{{title}} {{sep}} {{site_name}}',
 						'description' => '',
 					),
+				),
+			),
+			'language_templates'    => array(
+				'description'          => __( 'Title and description templates of one language (language slug => context => template). Empty fields use the templates of all languages.', 'easyrankly' ),
+				'type'                 => 'object',
+				'patternProperties'    => array(
+					Languages::SLUG_PATTERN => array(
+						'type'                 => 'object',
+						'patternProperties'    => array( Context::KEY_PATTERN => self::template_schema() ),
+						'additionalProperties' => false,
+					),
+				),
+				'additionalProperties' => false,
+				'maxProperties'        => 20,
+				'default'              => array(),
+			),
+		);
+	}
+
+	/**
+	 * Schema of the title and description templates of one context.
+	 *
+	 * @return array<string, mixed>
+	 */
+	private static function template_schema(): array {
+		return array(
+			'type'                 => 'object',
+			'additionalProperties' => false,
+			'properties'           => array(
+				'title'       => array(
+					'type'      => 'string',
+					'format'    => 'text-field',
+					'maxLength' => 200,
+				),
+				'description' => array(
+					'type'      => 'string',
+					'format'    => 'text-field',
+					'maxLength' => 400,
 				),
 			),
 		);

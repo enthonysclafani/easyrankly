@@ -9,6 +9,7 @@ namespace EasyRankly\Titles;
 
 use EasyRankly\Context\Context;
 use EasyRankly\Meta\Meta;
+use EasyRankly\Multilingual\Routing;
 use EasyRankly\Settings\Settings;
 
 defined( 'ABSPATH' ) || exit;
@@ -88,15 +89,22 @@ final class Titles {
 			return '';
 		}
 
-		$settings  = Settings::get();
-		$templates = is_array( $settings['templates'] ) ? $settings['templates'] : array();
-		$template  = self::override( $field );
+		$settings = Settings::get();
+		$template = self::override( $field );
 
-		if ( '' === $template ) {
+		// Templates of the language being viewed come first, even generic ones: their text is
+		// in the right language. Then the templates of all languages.
+		$sets     = array();
+		$language = Routing::current();
+		if ( '' !== $language && isset( $settings['language_templates'][ $language ] ) && is_array( $settings['language_templates'][ $language ] ) ) {
+			$sets[] = $settings['language_templates'][ $language ];
+		}
+		$sets[] = is_array( $settings['templates'] ) ? $settings['templates'] : array();
+
+		foreach ( $sets as $templates ) {
 			foreach ( $keys as $key ) {
-				if ( isset( $templates[ $key ][ $field ] ) && '' !== $templates[ $key ][ $field ] ) {
+				if ( '' === $template && isset( $templates[ $key ][ $field ] ) && '' !== $templates[ $key ][ $field ] ) {
 					$template = (string) $templates[ $key ][ $field ];
-					break;
 				}
 			}
 		}
