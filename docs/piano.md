@@ -53,6 +53,35 @@ Search Console tiene già 16 mesi.
 | Google Indexing API | Google la consente solo per offerte di lavoro e dirette |
 | Pubblicazione automatica | Rischio "scaled content abuse": i contenuti AI nascono bozze |
 
+### Interfaccia admin: stile WordPress classico
+
+Decisione di ottobre 2026. Le prime schermate (impostazioni, redirect, custom code, agente) sono app React con i
+componenti di `@wordpress/components`: una pagina di impostazioni lunga, a schede grandi, e un aspetto diverso da
+quello del resto dell'admin. Si torna allo stile delle schermate di WordPress, per uniformità e leggerezza.
+
+- **Impostazioni su più pagine brevi**, come Impostazioni → Generali, Lettura, Permalink. Proposta:
+  - *Generali*: separatore del titolo, breadcrumb (etichetta della home, tassonomia per tipo di contenuto);
+  - *Schema e social*: identità (organizzazione o persona, nome, logo, profili), immagine social predefinita, utente X;
+  - *Titoli e descrizioni*: template per contesto, una lingua per volta (scelta con un selettore che ricarica la pagina);
+  - *Indicizzazione*: noindex per contesto, regole aggiunte a robots.txt;
+  - *Lingue*: elenco delle lingue, una riga per lingua più una riga vuota per aggiungerne una.
+- **Impostazioni con la Settings API del core**: `add_settings_section()`, `add_settings_field()`, `settings_fields()`,
+  form inviato a `options.php`, markup `form-table` e `submit_button()`. Nessun JS, tranne la scelta di un'immagine
+  dalla libreria media. Resta una sola option, `easyrankly_settings`: ogni pagina invia solo i suoi campi e
+  `Settings::sanitize()` li unisce a quelli salvati (lo fa già). `/wp/v2/settings` resta com'è.
+- **Redirect e Custom code** come Articoli e Utenti: elenco con `WP_List_Table` (azioni di riga, ricerca,
+  paginazione, azioni di gruppo) e una schermata "Aggiungi" / "Modifica" con un form classico (`admin-post.php`,
+  nonce, capability). Il codice degli snippet si scrive con l'editor del core (`wp_enqueue_code_editor()`, lo stesso
+  dell'editor dei temi), che rispetta la preferenza dell'utente di disattivare l'evidenziazione.
+- **Agente AI**: resta in JS, perché l'analisi a lotti la guida il browser e le proposte si accettano senza ricaricare,
+  ma con markup classico (`nav-tab-wrapper` per Proposte e Memoria, `wp-list-table`, `notice`, `button`).
+  "Modifica e accetta" si apre nella riga, come la Modifica rapida degli articoli.
+- **Editor a blocchi e schermate dei termini** non cambiano: il pannello nell'editor usa già i componenti che l'editor
+  carica comunque; i campi dei termini sono già PHP classico.
+- **CSS**: nessun foglio di stile del plugin e niente `wp-components` sulle schermate del plugin, solo le classi
+  dell'admin del core. Una regola CSS nostra va motivata. Gli entry point `settings`, `redirects` e `snippets`
+  spariscono da `package.json`: meno JS da compilare e da caricare.
+
 ## 4. Dove vivono i dati
 
 | Dato | Dove |

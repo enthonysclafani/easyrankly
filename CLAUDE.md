@@ -122,7 +122,8 @@ Prima di scrivere codice, verifica se WordPress lo fa già. Se lo fa, usa o filt
 | Azioni riusabili (UI, AI, agenti) | Abilities API (`wp_register_ability()` su `wp_abilities_api_init`, annotazioni `readonly`/`destructive`) | logica duplicata tra REST e UI |
 | AI (testo, immagini, function calling) | `wp_ai_client_prompt()` + `using_abilities()`, controllando prima `wp_supports_ai()` | SDK o chiamate dirette ai provider |
 | Credenziali di servizi esterni | Connectors API (`wp_connectors_init`) | campi API key fatti a mano |
-| UI admin | `@wordpress/components`, `@wordpress/dataviews`, pannelli dell'editor (`PluginDocumentSettingPanel`) | jQuery, librerie UI esterne |
+| Schermate admin | Stile WordPress classico: Settings API (`add_settings_section()`, `add_settings_field()`, `options.php`) su più pagine brevi, `WP_List_Table` per gli elenchi, markup e classi del core (`wrap`, `form-table`, `wp-list-table`, `notice`, `nav-tab-wrapper`); JS solo dove serve interazione (agente, editor a blocchi) | pagine lunghe a schede, `wp-components` e CSS nostri sulle schermate del plugin, jQuery, librerie UI esterne |
+| Editor a blocchi | `@wordpress/components` nei pannelli dell'editor (`PluginDocumentSettingPanel`) | meta box classiche |
 | Build JS | `@wordpress/scripts` (`wp-scripts build`), dipendenze da `*.asset.php` | bundler custom |
 | Traduzioni | `__()`, `_x()`, `_n()`, `wp_set_script_translations()` | stringhe fisse |
 
