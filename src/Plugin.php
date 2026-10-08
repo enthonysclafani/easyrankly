@@ -24,6 +24,8 @@ final class Plugin {
 		( new Settings\Settings() )->register();
 		( new Meta\Meta() )->register();
 		( new Titles\Titles() )->register();
+		( new Robots\Robots() )->register();
+		( new Canonical\Canonical() )->register();
 
 		if ( is_admin() ) {
 			( new Settings\Admin\Page() )->register();

@@ -7,6 +7,8 @@
 
 namespace EasyRankly\Settings;
 
+use EasyRankly\Context\Context;
+
 defined( 'ABSPATH' ) || exit;
 
 /**
@@ -75,11 +77,21 @@ final class Settings {
 				'maxLength'   => 10,
 				'default'     => '-',
 			),
+			'noindex'         => array(
+				'description' => __( 'Contexts whose pages ask search engines not to index them (same keys as the templates).', 'easyrankly' ),
+				'type'        => 'array',
+				'items'       => array(
+					'type'    => 'string',
+					'pattern' => Context::KEY_PATTERN,
+				),
+				'uniqueItems' => true,
+				'default'     => array(),
+			),
 			'templates'       => array(
 				'description'          => __( 'Title and description templates per context. Keys: home, single, archive, term, author, date, search, 404, or single-{post type}, archive-{post type}, term-{taxonomy}.', 'easyrankly' ),
 				'type'                 => 'object',
 				'patternProperties'    => array(
-					'^(home|single|archive|term|author|date|search|404|(single|archive)-[a-z0-9_-]{1,20}|term-[a-z0-9_-]{1,32})$' => array(
+					Context::KEY_PATTERN => array(
 						'type'                 => 'object',
 						'additionalProperties' => false,
 						'properties'           => array(
