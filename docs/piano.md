@@ -70,16 +70,17 @@ quello del resto dell'admin. Si torna allo stile delle schermate di WordPress, p
   dalla libreria media. Resta una sola option, `easyrankly_settings`: ogni pagina invia solo i suoi campi e
   `Settings::sanitize()` li unisce a quelli salvati (lo fa già). `/wp/v2/settings` resta com'è.
 - **Redirect e Custom code** come Articoli e Utenti: elenco con `WP_List_Table` (azioni di riga, ricerca,
-  paginazione, azioni di gruppo) e una schermata "Aggiungi" / "Modifica" con un form classico (`admin-post.php`,
-  nonce, capability). Il codice degli snippet si scrive con l'editor del core (`wp_enqueue_code_editor()`, lo stesso
-  dell'editor dei temi), che rispetta la preferenza dell'utente di disattivare l'evidenziazione.
+  paginazione, azioni di gruppo) e una schermata "Aggiungi" / "Modifica" con un form classico inviato alla
+  schermata stessa (nonce, capability), che salva tramite le route REST esistenti con `rest_do_request()`.
+  Il codice degli snippet si scrive con l'editor del core (`wp_enqueue_code_editor()`, lo stesso dell'editor dei
+  temi), che rispetta la preferenza dell'utente di disattivare l'evidenziazione.
 - **Agente AI**: resta in JS, perché l'analisi a lotti la guida il browser e le proposte si accettano senza ricaricare,
   ma con markup classico (`nav-tab-wrapper` per Proposte e Memoria, `wp-list-table`, `notice`, `button`).
   "Modifica e accetta" si apre nella riga, come la Modifica rapida degli articoli.
 - **Editor a blocchi e schermate dei termini** non cambiano: il pannello nell'editor usa già i componenti che l'editor
   carica comunque; i campi dei termini sono già PHP classico.
-- **CSS**: nessun foglio di stile del plugin e niente `wp-components` sulle schermate del plugin, solo le classi
-  dell'admin del core. Una regola CSS nostra va motivata. Gli entry point `settings`, `redirects` e `snippets`
+- **CSS**: nessun foglio di stile del plugin e il plugin non accoda `wp-components` sulle sue schermate, solo le classi
+  dell'admin del core (il core carica comunque `wp-components` in tutto l'admin per la palette dei comandi). Una regola CSS nostra va motivata. Gli entry point `settings`, `redirects` e `snippets`
   spariscono da `package.json`: meno JS da compilare e da caricare.
 
 ## 4. Dove vivono i dati
