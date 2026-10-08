@@ -11,6 +11,8 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * Lists proposals and records decisions: accept (optionally with edited values), reject, undo.
+ * Imports and exports the project memory as Markdown (its entries are edited through the
+ * core routes of the `erankly_memory` post type).
  *
  * There is no route that creates a proposal: only the plugin's own code does, after validation.
  * Every route needs manage_options; accepting and undoing also run the ability's own
@@ -118,6 +120,43 @@ final class Rest {
 						'maxLength'         => 1000,
 						'default'           => '',
 						'sanitize_callback' => 'sanitize_textarea_field',
+					),
+				),
+			)
+		);
+
+		register_rest_route(
+			self::NAMESPACE,
+			'/memory/export',
+			array(
+				'methods'             => \WP_REST_Server::READABLE,
+				'callback'            => static fn(): \WP_REST_Response => new \WP_REST_Response(
+					array(
+						'filename' => 'easyrankly-memory.md',
+						'markdown' => Memory::export(),
+					)
+				),
+				'permission_callback' => $permission,
+			)
+		);
+
+		register_rest_route(
+			self::NAMESPACE,
+			'/memory/import',
+			array(
+				'methods'             => \WP_REST_Server::CREATABLE,
+				'callback'            => static fn( \WP_REST_Request $request ): \WP_REST_Response => new \WP_REST_Response( Memory::import( (string) $request['markdown'], (int) $request['offset'] ) ),
+				'permission_callback' => $permission,
+				'args'                => array(
+					'markdown' => array(
+						'type'      => 'string',
+						'required'  => true,
+						'maxLength' => 1000000,
+					),
+					'offset'   => array(
+						'type'    => 'integer',
+						'minimum' => 0,
+						'default' => 0,
 					),
 				),
 			)

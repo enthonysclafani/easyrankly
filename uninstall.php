@@ -16,12 +16,13 @@ foreach ( array( 'erankly_pending', 'erankly_accepted', 'erankly_rejected', 'era
 	register_post_status( $easyrankly_status, array( 'internal' => true ) );
 }
 
-// Redirects (src/Redirects/Redirects.php), snippets (src/CustomCode/CustomCode.php) and proposals
-// (src/Agent/Proposals.php): posts with their meta and revisions first, then the caches built from them.
+// Redirects (src/Redirects/Redirects.php), snippets (src/CustomCode/CustomCode.php), proposals
+// (src/Agent/Proposals.php) and memory (src/Agent/Memory.php): posts with their meta and revisions
+// first, then the caches built from them.
 do {
 	$easyrankly_ids     = get_posts(
 		array(
-			'post_type'        => array( 'erankly_redirect', 'erankly_snippet', 'erankly_proposal' ),
+			'post_type'        => array( 'erankly_redirect', 'erankly_snippet', 'erankly_proposal', 'erankly_memory' ),
 			'post_status'      => array_keys( get_post_stati() ),
 			'posts_per_page'   => 100,
 			'fields'           => 'ids',

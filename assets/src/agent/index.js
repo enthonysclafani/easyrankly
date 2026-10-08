@@ -1,5 +1,6 @@
 /**
- * Agent dashboard: lists the proposals through `/easyrankly/v1/proposals` and records decisions.
+ * Agent dashboard: lists the proposals through `/easyrankly/v1/proposals` and records decisions;
+ * the Memory tab edits the project memory.
  */
 import apiFetch from '@wordpress/api-fetch';
 import {
@@ -9,6 +10,7 @@ import {
 	Notice,
 	SelectControl,
 	Spinner,
+	TabPanel,
 	TextareaControl,
 	TextControl,
 } from '@wordpress/components';
@@ -20,6 +22,8 @@ import {
 } from '@wordpress/element';
 import { __, sprintf } from '@wordpress/i18n';
 import { addQueryArgs } from '@wordpress/url';
+
+import Memory from './memory';
 
 const PATH = '/easyrankly/v1/proposals';
 const STATUSES = [
@@ -249,7 +253,7 @@ function Decision( { item, mode, onClose, onDone } ) {
 	);
 }
 
-function App() {
+function Proposals() {
 	const [ status, setStatus ] = useState( 'pending' );
 	const [ page, setPage ] = useState( 1 );
 	const [ items, setItems ] = useState( [] );
@@ -466,6 +470,21 @@ function App() {
 				</Modal>
 			) }
 		</Flex>
+	);
+}
+
+function App() {
+	return (
+		<TabPanel
+			tabs={ [
+				{ name: 'proposals', title: __( 'Proposals', 'easyrankly' ) },
+				{ name: 'memory', title: __( 'Memory', 'easyrankly' ) },
+			] }
+		>
+			{ ( tab ) =>
+				tab.name === 'memory' ? <Memory /> : <Proposals />
+			}
+		</TabPanel>
 	);
 }
 

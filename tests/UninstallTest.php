@@ -188,4 +188,42 @@ final class UninstallTest extends WP_UnitTestCase {
 			$this->assertFalse( metadata_exists( 'post', $id, '_easyrankly_proposal_ability' ) );
 		}
 	}
+
+	/**
+	 * Memory entries and their revisions are removed.
+	 */
+	public function test_uninstall_removes_memory(): void {
+		if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
+			define( 'WP_UNINSTALL_PLUGIN', 'easyrankly/easyrankly.php' );
+		}
+
+		$id = self::factory()->post->create(
+			array(
+				'post_type'    => 'erankly_memory',
+				'post_content' => 'First',
+			)
+		);
+		wp_update_post(
+			array(
+				'ID'           => $id,
+				'post_content' => 'Second',
+			)
+		);
+		$draft     = self::factory()->post->create(
+			array(
+				'post_type'   => 'erankly_memory',
+				'post_status' => 'draft',
+			)
+		);
+		$revisions = array_keys( wp_get_post_revisions( $id ) );
+
+		require dirname( __DIR__ ) . '/uninstall.php';
+
+		$this->assertNull( get_post( $id ) );
+		$this->assertNull( get_post( $draft ) );
+		$this->assertNotEmpty( $revisions );
+		foreach ( $revisions as $revision ) {
+			$this->assertNull( get_post( $revision ) );
+		}
+	}
 }

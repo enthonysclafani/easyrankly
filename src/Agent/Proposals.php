@@ -249,6 +249,11 @@ final class Proposals {
 		update_post_meta( $id, self::meta_key( 'fingerprint' ), is_wp_error( $applied ) ? '' : self::fingerprint( $applied ) );
 		self::decide( $id, 'accepted' );
 
+		$post = get_post( $id );
+		if ( array() !== $changes && $post instanceof \WP_Post ) {
+			Memory::learn_edit( $post, $proposal['input'], $input );
+		}
+
 		return true;
 	}
 
@@ -265,7 +270,13 @@ final class Proposals {
 			return $proposal;
 		}
 
-		self::decide( $id, 'rejected', sanitize_textarea_field( $reason ) );
+		$reason = sanitize_textarea_field( $reason );
+		self::decide( $id, 'rejected', $reason );
+
+		$post = get_post( $id );
+		if ( '' !== trim( $reason ) && $post instanceof \WP_Post ) {
+			Memory::learn_rejection( $post, $reason );
+		}
 
 		return true;
 	}
@@ -406,6 +417,44 @@ final class Proposals {
 		if ( '' !== $note ) {
 			update_post_meta( $id, self::meta_key( 'note' ), $note );
 		}
+	}
+
+	/**
+	 * How proposals of each allowed action were decided in the last 90 days.
+	 *
+	 * The agent reads this to propose more of what is accepted and less of what is rejected.
+	 *
+	 * @return list<array{ability: string, accepted: int, rejected: int}>
+	 */
+	public static function acceptance(): array {
+		$stats = array();
+
+		foreach ( Allowlist::ACTIONS as $ability ) {
+			$row = array( 'ability' => $ability );
+			foreach ( array( 'accepted', 'rejected' ) as $status ) {
+				$query          = new \WP_Query(
+					array(
+						'post_type'              => self::POST_TYPE,
+						'post_status'            => 'accepted' === $status ? array( self::STATUSES['accepted'], self::STATUSES['reverted'] ) : self::STATUSES['rejected'],
+						'date_query'             => array( array( 'after' => '90 days ago' ) ),
+						'fields'                 => 'ids',
+						'posts_per_page'         => 1,
+						'update_post_meta_cache' => false,
+						'update_post_term_cache' => false,
+						'meta_query'             => array( // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- Read only by the agent, never on the frontend.
+							array(
+								'key'   => self::meta_key( 'ability' ),
+								'value' => $ability,
+							),
+						),
+					)
+				);
+				$row[ $status ] = (int) $query->found_posts;
+			}
+			$stats[] = $row;
+		}
+
+		return $stats;
 	}
 
 	/**
