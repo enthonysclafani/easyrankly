@@ -74,7 +74,7 @@ final class AllowlistTest extends WP_UnitTestCase {
 			$this->assertSame( 'easyrankly_not_allowed', $result->get_error_code(), $name );
 		}
 
-		$this->assertSame( array( Actions::POST_SEO ), Allowlist::ACTIONS );
+		$this->assertSame( array( Actions::POST_SEO, Actions::IMAGE_ALT, Actions::REDIRECT ), Allowlist::ACTIONS );
 	}
 
 	/**

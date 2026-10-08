@@ -29,6 +29,7 @@ final class Agent {
 		add_action( 'wp_abilities_api_categories_init', array( $this, 'register_category' ) );
 		add_action( 'wp_abilities_api_init', array( Abilities::class, 'register_abilities' ) );
 		add_action( 'wp_abilities_api_init', array( Actions::class, 'register_abilities' ) );
+		add_action( 'wp_abilities_api_init', array( Suggestions::class, 'register_abilities' ) );
 
 		( new Proposals() )->register();
 		( new Memory() )->register();
