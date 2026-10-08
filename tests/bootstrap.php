@@ -9,7 +9,10 @@
  */
 
 $easyrankly_tests_dir = getenv( 'WP_TESTS_DIR' );
-$easyrankly_tests_dir = is_string( $easyrankly_tests_dir ) && '' !== $easyrankly_tests_dir ? $easyrankly_tests_dir : '/tmp/wordpress-tests-lib';
+if ( ! is_string( $easyrankly_tests_dir ) || '' === $easyrankly_tests_dir ) {
+	// Default location used by tools/install-wp-tests.sh (local, CI and cloud sessions).
+	$easyrankly_tests_dir = '/tmp/wordpress-develop/tests/phpunit';
+}
 
 $easyrankly_polyfills = getenv( 'WP_TESTS_PHPUNIT_POLYFILLS_PATH' );
 if ( ! defined( 'WP_TESTS_PHPUNIT_POLYFILLS_PATH' ) ) {

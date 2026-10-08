@@ -2,7 +2,7 @@
 # Installs the WordPress PHPUnit test suite for local runs of `composer test`.
 #
 # Usage: tools/install-wp-tests.sh [db-name] [db-user] [db-pass] [db-host] [wp-ref]
-# Then:  export WP_TESTS_DIR=/tmp/wordpress-develop/tests/phpunit
+# tests/bootstrap.php finds the suite in /tmp/wordpress-develop by default.
 #
 # Needs a MySQL/MariaDB server. The test database is wiped on every run.
 set -euo pipefail
@@ -27,4 +27,4 @@ sed -i.bak \
 	"$DEST/wp-tests-config.php"
 rm -f "$DEST/wp-tests-config.php.bak"
 
-echo "WordPress test suite ready. Run: export WP_TESTS_DIR=$DEST/tests/phpunit"
+echo "WordPress test suite ready in $DEST."

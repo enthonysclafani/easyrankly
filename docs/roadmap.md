@@ -3,8 +3,8 @@
 Fonte di verità su cosa è fatto e cosa no. Spunta una casella solo quando il punto rispetta la
 "Definizione di fatto" di `CLAUDE.md`. Un punto = un commit (o pochi commit coerenti).
 
-I riferimenti ad Alpha indicano file del vecchio plugin (`../easyrankly`, branch `Alpha`) da **leggere** per
-capire la logica già testata. Il codice si riscrive secondo `CLAUDE.md`: niente tabelle, job o moduli.
+I riferimenti ad Alpha indicano file del vecchio plugin (branch `Alpha` di questo repository, da leggere con
+`git show origin/Alpha:<percorso>`) per capire la logica già testata. Il codice si riscrive secondo `CLAUDE.md`: niente tabelle, job o moduli.
 
 ## Fase 0 — Fondamenta
 
@@ -14,6 +14,8 @@ capire la logica già testata. Il codice si riscrive secondo `CLAUDE.md`: niente
 - [x] CI su GitHub: controlli statici su PHP 8.1 e 8.4, test anche su multisite (solo anti-conflitto), Plugin Check
 - [x] `composer.lock` generato e committato
 - [x] Primo run verde della CI su GitHub (branch `Refactory`)
+- [x] Branch autonomo: piano in `docs/piano.md`, preparazione automatica delle sessioni cloud (`tools/cloud-setup.sh`)
+- [ ] Prima sessione Claude Code nel cloud con `composer check` verde
 
 ## Fase 1 — SEO di base
 

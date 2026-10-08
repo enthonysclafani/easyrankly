@@ -7,12 +7,32 @@ Multilingua, Agente AI con proposte da approvare.
 Queste regole valgono per ogni modifica, anche minima. Se una richiesta le viola, fermati e
 spiega quale regola viene violata e quale alternativa nativa esiste. Non aggirarle.
 
-Documenti di riferimento:
+Documenti di riferimento (tutti in questo branch):
+- `docs/piano.md`: visione del prodotto e decisioni prese, con il loro perché. Leggilo prima di proporre funzioni.
 - `docs/roadmap.md`: fasi, cosa è fatto e cosa no. È la fonte di verità su cosa fare dopo.
 - `docs/data-model.md`: ogni dato salvato dal plugin. Se non è lì, il plugin non lo crea.
-- `docs/prompt.md`: come si avvia e si chiude il lavoro su una fase.
-- Il vecchio EasyRankly (`../easyrankly`, branch `Alpha`) è **solo un riferimento**: leggilo per capire la logica,
-  poi riscrivi secondo queste regole. Non copiare file, tabelle, job o strutture a moduli.
+- `docs/prompt.md`: come si avvia e si chiude il lavoro su un punto della roadmap.
+
+Il vecchio EasyRankly vive nel branch `Alpha` di questo stesso repository ed è **solo un riferimento**: leggilo per
+capire la logica, poi riscrivi secondo queste regole. Non copiare file, tabelle, job o strutture a moduli.
+Per leggerlo senza cambiare branch:
+
+```bash
+git fetch origin Alpha
+git show origin/Alpha:includes/canonical.php        # un file
+git ls-tree -r --name-only origin/Alpha includes/   # elenco dei file
+```
+
+## Branch e ambienti
+
+- `Refactory` è il branch del nuovo plugin ed è autonomo: non dipende da file fuori dal repository.
+- Ogni sessione lavora su un branch proprio e apre una pull request verso `Refactory` (mai verso `main`, che contiene
+  il vecchio plugin). La CI gira su ogni pull request.
+- **Cloud (Claude Code)**: all'avvio, `tools/cloud-setup.sh` (hook `SessionStart` in `.claude/settings.json`) installa
+  dipendenze Composer, MariaDB e la suite di test di WordPress. Se all'avvio vedi un messaggio `[cloud-setup] ... failed`,
+  risolvi quello prima di tutto il resto.
+- **Locale**: il sito di sviluppo è in WordPress Studio; i comandi WP-CLI si lanciano come `studio wp ...` dalla
+  radice del sito.
 
 ## Invarianti architetturali (non negoziabili)
 
@@ -214,10 +234,8 @@ composer check          # tutto quanto sopra: deve passare prima di dire "fatto"
 ```
 
 - Gli asset admin si compilano con `npm run build` (`@wordpress/scripts`), da introdurre con il primo asset admin.
-- Sito locale: WordPress Studio. I comandi WP-CLI si lanciano sempre come `studio wp ...` dalla radice del sito
-  (`/Users/enthonysclafani/Studio/my-easyrankly`).
-- Se PHP o Composer non sono disponibili in locale, dillo nel resoconto: la CI su GitHub resta il controllo finale.
-
+- Se un controllo non si può eseguire nell'ambiente in cui sei, dillo nel resoconto: la CI su GitHub resta il
+  controllo finale.
 
 - Ogni bug corretto ha un test di regressione che fallisce prima della correzione.
 - Ogni funzionalità ha test di integrazione sul comportamento visibile (HTML in `<head>`, risposta HTTP, XML della sitemap),
@@ -232,7 +250,8 @@ composer check          # tutto quanto sopra: deve passare prima di dire "fatto"
 Un task è finito solo quando:
 1. `composer check` passa (e `npm run build`, se ci sono asset admin) senza errori né warning nuovi.
 2. Le invarianti architetturali sono rispettate (nessuna eccezione aggiunta all'allowlist senza approvazione).
-3. Il comportamento è verificato sul sito locale (`studio wp ...` o browser), non solo nei test.
+3. Il comportamento visibile è coperto da test di integrazione (HTML in `<head>`, risposte HTTP, XML della sitemap).
+   In locale verificalo anche sul sito Studio; nel cloud i test di integrazione sono la verifica.
 4. `docs/data-model.md` e `readme.txt` sono aggiornati se cambiano dati o servizi esterni; `uninstall.php` e
    `tests/UninstallTest.php` coprono ogni nuovo dato.
 5. La casella del punto in `docs/roadmap.md` è spuntata.
