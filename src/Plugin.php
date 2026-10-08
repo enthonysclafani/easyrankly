@@ -28,6 +28,7 @@ final class Plugin {
 		( new Canonical\Canonical() )->register();
 		( new Social\Social() )->register();
 		( new Schema\Schema() )->register();
+		( new Breadcrumbs\Breadcrumbs() )->register();
 
 		if ( is_admin() ) {
 			( new Settings\Admin\Page() )->register();
