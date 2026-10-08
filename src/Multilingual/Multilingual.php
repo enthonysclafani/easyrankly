@@ -18,12 +18,14 @@ defined( 'ABSPATH' ) || exit;
 final class Multilingual {
 
 	/**
-	 * Hooks the registrations and the cleanup of groups.
+	 * Hooks the registrations, the cleanup of groups and the routing by language.
 	 */
 	public function register(): void {
 		// Late priority: every viewable post type must exist.
 		add_action( 'init', array( $this, 'register_taxonomies' ), 99 );
 		add_action( 'before_delete_post', array( Translations::class, 'on_delete_post' ) );
+
+		( new Routing() )->register();
 	}
 
 	/**
