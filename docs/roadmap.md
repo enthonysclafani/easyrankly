@@ -89,7 +89,7 @@ Fase 5 tocca la dashboard delle proposte: si cambia una volta sola, sulla nuova 
 - [x] 4.3 Agente AI con markup classico: schede `nav-tab-wrapper` (link, una per pagina), stati e pagine delle proposte
       come link, tabelle `wp-list-table`, decisioni ("Accetta", "Modifica e accetta", "Rifiuta", "Annulla") nella riga,
       memoria con form sopra l'elenco, nessun componente di `@wordpress/components`.
-- [ ] 4.4 Il plugin non accoda `wp-components` né CSS suoi sulle schermate del plugin (restano solo nell'editor a
+- [x] 4.4 Il plugin non accoda `wp-components` né CSS suoi sulle schermate del plugin (restano solo nell'editor a
       blocchi). Il core li carica comunque in tutto l'admin per la palette dei comandi (`wp_enqueue_command_palette_assets`,
       WordPress 7.0): conta ciò che accodiamo noi. Test: gli stili accodati dal plugin su ogni sua schermata.
 

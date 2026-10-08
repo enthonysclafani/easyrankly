@@ -64,7 +64,7 @@ final class Page {
 	 * Enqueues the agent app built by `npm run build`.
 	 */
 	public function enqueue(): void {
-		Assets::enqueue( 'agent', false );
+		Assets::enqueue( 'agent' );
 	}
 
 	/**

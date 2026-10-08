@@ -112,7 +112,7 @@ final class Page {
 	 */
 	public function enqueue_media(): void {
 		wp_enqueue_media();
-		Assets::enqueue( 'media-field', false );
+		Assets::enqueue( 'media-field' );
 	}
 
 	/**
