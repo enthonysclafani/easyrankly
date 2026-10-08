@@ -41,6 +41,7 @@ final class Plugin {
 			( new Meta\Admin\TermFields() )->register();
 			( new Redirects\Admin\Page() )->register();
 			( new CustomCode\Admin\Page() )->register();
+			( new Multilingual\Admin\EditorPanel() )->register();
 		}
 	}
 }
