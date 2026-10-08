@@ -35,9 +35,10 @@ Riferimenti Alpha: `includes/title-description.php`, `includes/meta*.php`, `incl
 - [x] 1.7 Breadcrumb: filtri del blocco `core/breadcrumbs` e coerenza con BreadcrumbList
 - [x] 1.8 robots.txt tramite filtro `robots_txt`
 - [x] 1.9 Sitemap: estensione delle sitemap del core (esclusione dei noindex, lastmod, tipi esclusi)
-- [ ] 1.10 Redirect: post type `erankly_redirect`, hash della sorgente in `post_name`, ricerca solo su 404 più lista
+- [x] 1.10 Redirect: post type `erankly_redirect`, hash della sorgente in `post_name`, ricerca solo su 404 più lista
       "forzati", regex, 301/302/307/410, elenco admin con DataViews, redirect per cambio slug di pagine e termini
-      (i post li gestisce già il core)
+      (i post li gestisce già il core). Elenco fatto con una tabella di `@wordpress/components`: DataViews nel bundle
+      pesava 1,9 MB contro 7 KB
 - [ ] 1.11 Custom code: post type `erankly_snippet`, HTML e PHP, `src/CustomCode/PhpRunner.php` con tutte le regole
       della sezione "Custom code" di `CLAUDE.md`
 

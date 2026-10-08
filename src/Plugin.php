@@ -31,11 +31,13 @@ final class Plugin {
 		( new Breadcrumbs\Breadcrumbs() )->register();
 		( new RobotsTxt\RobotsTxt() )->register();
 		( new Sitemap\Sitemap() )->register();
+		( new Redirects\Redirects() )->register();
 
 		if ( is_admin() ) {
 			( new Settings\Admin\Page() )->register();
 			( new Meta\Admin\EditorPanel() )->register();
 			( new Meta\Admin\TermFields() )->register();
+			( new Redirects\Admin\Page() )->register();
 		}
 	}
 }

@@ -10,6 +10,8 @@ Regola: zero tabelle custom. Solo Options API, post meta, term meta, user meta, 
 | Nome | Autoload | Contenuto | Introdotta in |
 |---|---|---|---|
 | `easyrankly_settings` | sì | Oggetto con tutte le impostazioni; schema in `src/Settings/Settings.php` (`Settings::schema()`), letto e scritto da `/wp/v2/settings`. Chiavi: `title_separator` (stringa, max 10, default `-`, 1.1); `social_image` (ID allegato dell'immagine social di default, 1.5); `x_username` (utente X senza @, 1.5); `identity_type` (`organization` o `person`), `identity_name`, `identity_logo` (ID allegato), `same_as` (lista di URL http/https, max 20) per lo schema, 1.6; `breadcrumb_home_label` (etichetta della prima voce del blocco breadcrumb, vuota = quella di WordPress) e `breadcrumb_taxonomies` (oggetto tipo di contenuto → tassonomia del percorso), 1.7; `robots_txt` (regole aggiunte al robots.txt virtuale, max 5000 caratteri, 1.8); `noindex` (lista di chiavi di contesto con noindex, default vuota, 1.4); `templates` (oggetto contesto → `{title, description}`; contesti `home`, `single`, `archive`, `term`, `author`, `date`, `search`, `404` e `single-{tipo}`, `archive-{tipo}`, `term-{tassonomia}`, 1.3) | 1.1 |
+| `easyrankly_redirects_forced` | sì | Lista dei redirect attivi marcati "applica sempre" (`source`, `regex`, `target`, `code`), max 50. Letta a ogni richiesta frontend; ricostruita da `Redirects::rebuild_lists()` quando un redirect cambia. | 1.10 |
+| `easyrankly_redirects_regex` | no | Lista dei redirect regex attivi non forzati, stessi campi. Letta solo su 404. | 1.10 |
 
 ## Post meta e term meta
 
@@ -26,11 +28,20 @@ Regola: zero tabelle custom. Solo Options API, post meta, term meta, user meta, 
 
 Registrate con `register_post_meta( '', ... )` e `register_term_meta( '', ... )` in `src/Meta/Meta.php`; nel REST solo con `edit_post` / `edit_term` sull'oggetto.
 
+Meta del post type `erankly_redirect` (`src/Redirects/Redirects.php`), nel REST solo con `manage_options`:
+
+| Chiave | Tipo | Contenuto | Introdotta in |
+|---|---|---|---|
+| `_easyrankly_redirect_target` | string | Destinazione: percorso che inizia con `/` o URL http/https. Vuota per 410. Con regex può contenere `$1`, `$2`… | 1.10 |
+| `_easyrankly_redirect_code` | integer | 301, 302, 307 o 410. Default 301. | 1.10 |
+| `_easyrankly_redirect_regex` | boolean | La sorgente è un'espressione regolare. | 1.10 |
+| `_easyrankly_redirect_forced` | boolean | Applica anche se la pagina esiste (non solo su 404). | 1.10 |
+
 ## Post type non pubblici
 
 | Nome | Contenuto | Stati custom | Introdotto in |
 |---|---|---|---|
-| _(nessuno per ora)_ | | | |
+| `erankly_redirect` | Un redirect per post. `post_title` = sorgente normalizzata (percorso relativo alla home, minuscolo, senza query string né slash finale) o regex; `post_name` = md5 della sorgente esatta (colonna indicizzata, usata per la ricerca su 404) o `regex-{md5}`; `post_status` `publish` = attivo, `draft` = disattivo. Non pubblico, senza UI core, REST `/wp/v2/easyrankly-redirects` solo con `manage_options`. | nessuno | 1.10 |
 
 ## Tassonomie nascoste
 
