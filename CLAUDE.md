@@ -157,6 +157,8 @@ Prima di scrivere codice, verifica se WordPress lo fa già. Se lo fa, usa o filt
   l'errore viene salvato sullo snippet e l'admin vede un avviso.
 - Modalità sicura: con la costante `EASYRANKLY_SAFE_MODE` nessuno snippet viene eseguito. Mai attivabile da URL.
 - Gli snippet attivi stanno in cache in un'unica option autoload, aggiornata al salvataggio: zero query nel frontend.
+- Plugin Check (CI) esclude solo `src/CustomCode/PhpRunner.php`, perché segnala ogni `eval` come errore: eccezione
+  approvata l'8 ottobre 2026. Gli altri controlli (PHPCS, PHPStan, `composer architecture`) continuano a leggerlo.
 - Gli snippet importati arrivano sempre disattivati. L'AI non può mai creare, proporre o modificare snippet.
 
 ## Prestazioni

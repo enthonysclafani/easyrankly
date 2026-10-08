@@ -120,5 +120,7 @@ jobs:
           build-dir: ./dist-extracted/easyrankly
           slug: easyrankly
           ignore-warnings: true
+          # The only eval allowed by CLAUDE.md ("Custom code"); composer architecture keeps it in this file.
+          exclude-files: src/CustomCode/PhpRunner.php
           categories: |
             plugin_repo
