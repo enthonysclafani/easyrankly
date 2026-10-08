@@ -1,6 +1,6 @@
 <?php
 /**
- * AI agent: abilities the agent reads with and, later, the proposals it makes.
+ * AI agent: abilities the agent reads with, and the proposals it makes.
  *
  * @package EasyRankly
  */
@@ -10,7 +10,7 @@ namespace EasyRankly\Agent;
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Registers the `easyrankly` ability category and the agent's abilities.
+ * Registers the `easyrankly` ability category, the agent's abilities, its proposals and their REST routes.
  *
  * The Abilities API builds its registry lazily, the first time something asks for an
  * ability (REST, AI Client, admin), so nothing here runs on a normal frontend request.
@@ -28,6 +28,10 @@ final class Agent {
 	public function register(): void {
 		add_action( 'wp_abilities_api_categories_init', array( $this, 'register_category' ) );
 		add_action( 'wp_abilities_api_init', array( Abilities::class, 'register_abilities' ) );
+		add_action( 'wp_abilities_api_init', array( Actions::class, 'register_abilities' ) );
+
+		( new Proposals() )->register();
+		( new Rest() )->register();
 	}
 
 	/**

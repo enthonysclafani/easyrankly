@@ -43,6 +43,7 @@ final class Plugin {
 			( new Redirects\Admin\Page() )->register();
 			( new CustomCode\Admin\Page() )->register();
 			( new Multilingual\Admin\EditorPanel() )->register();
+			( new Agent\Admin\Page() )->register();
 		}
 	}
 }

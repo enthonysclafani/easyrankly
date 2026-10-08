@@ -10,12 +10,18 @@
 
 defined( 'WP_UNINSTALL_PLUGIN' ) || exit;
 
-// Redirects (src/Redirects/Redirects.php) and snippets (src/CustomCode/CustomCode.php): posts with
-// their meta and revisions first, then the caches built from them.
+// Proposal statuses (src/Agent/Proposals.php): the plugin is not loaded here, and queries ignore
+// unregistered statuses, so they are registered just to find the proposals.
+foreach ( array( 'erankly_pending', 'erankly_accepted', 'erankly_rejected', 'erankly_superseded', 'erankly_failed', 'erankly_reverted' ) as $easyrankly_status ) {
+	register_post_status( $easyrankly_status, array( 'internal' => true ) );
+}
+
+// Redirects (src/Redirects/Redirects.php), snippets (src/CustomCode/CustomCode.php) and proposals
+// (src/Agent/Proposals.php): posts with their meta and revisions first, then the caches built from them.
 do {
 	$easyrankly_ids     = get_posts(
 		array(
-			'post_type'        => array( 'erankly_redirect', 'erankly_snippet' ),
+			'post_type'        => array( 'erankly_redirect', 'erankly_snippet', 'erankly_proposal' ),
 			'post_status'      => array_keys( get_post_stati() ),
 			'posts_per_page'   => 100,
 			'fields'           => 'ids',
