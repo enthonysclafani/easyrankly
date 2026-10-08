@@ -7,6 +7,7 @@
 
 namespace EasyRankly\Titles;
 
+use EasyRankly\Context\Context;
 use EasyRankly\Meta\Meta;
 use EasyRankly\Settings\Settings;
 
@@ -82,8 +83,8 @@ final class Titles {
 	 * @return string
 	 */
 	private static function resolve( string $field ): string {
-		$context = self::context();
-		if ( null === $context ) {
+		$keys = Context::keys();
+		if ( array() === $keys ) {
 			return '';
 		}
 
@@ -92,7 +93,7 @@ final class Titles {
 		$template  = self::override( $field );
 
 		if ( '' === $template ) {
-			foreach ( $context['keys'] as $key ) {
+			foreach ( $keys as $key ) {
 				if ( isset( $templates[ $key ][ $field ] ) && '' !== $templates[ $key ][ $field ] ) {
 					$template = (string) $templates[ $key ][ $field ];
 					break;
@@ -101,51 +102,6 @@ final class Titles {
 		}
 
 		return Template::render( $template, self::variables(), (string) $settings['title_separator'] );
-	}
-
-	/**
-	 * Context of the current request: template keys to try, most specific first.
-	 *
-	 * @return array{keys: list<string>}|null Null on requests without a document title (feeds, admin).
-	 */
-	private static function context(): ?array {
-		$object = get_queried_object();
-
-		if ( is_404() ) {
-			return array( 'keys' => array( '404' ) );
-		}
-		if ( is_search() ) {
-			return array( 'keys' => array( 'search' ) );
-		}
-		if ( is_front_page() ) {
-			return array( 'keys' => array( 'home' ) );
-		}
-		if ( is_home() && $object instanceof \WP_Post ) {
-			// Static posts page: a page, but its template is the archive one.
-			return array( 'keys' => array( 'archive-post', 'archive' ) );
-		}
-		if ( is_home() ) {
-			return array( 'keys' => array( 'home' ) );
-		}
-		if ( is_singular() && $object instanceof \WP_Post ) {
-			return array( 'keys' => array( 'single-' . $object->post_type, 'single' ) );
-		}
-		if ( ( is_category() || is_tag() || is_tax() ) && $object instanceof \WP_Term ) {
-			return array( 'keys' => array( 'term-' . $object->taxonomy, 'term' ) );
-		}
-		if ( is_post_type_archive() ) {
-			$post_type = get_query_var( 'post_type' );
-			$post_type = is_array( $post_type ) ? (string) reset( $post_type ) : (string) $post_type;
-			return array( 'keys' => array( 'archive-' . $post_type, 'archive' ) );
-		}
-		if ( is_author() ) {
-			return array( 'keys' => array( 'author' ) );
-		}
-		if ( is_date() ) {
-			return array( 'keys' => array( 'date' ) );
-		}
-
-		return null;
 	}
 
 	/**

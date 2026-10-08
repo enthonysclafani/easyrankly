@@ -9,7 +9,7 @@ Regola: zero tabelle custom. Solo Options API, post meta, term meta, user meta, 
 
 | Nome | Autoload | Contenuto | Introdotta in |
 |---|---|---|---|
-| `easyrankly_settings` | sì | Oggetto con tutte le impostazioni; schema in `src/Settings/Settings.php` (`Settings::schema()`), letto e scritto da `/wp/v2/settings`. Chiavi: `title_separator` (stringa, max 10, default `-`, 1.1); `templates` (oggetto contesto → `{title, description}`; contesti `home`, `single`, `archive`, `term`, `author`, `date`, `search`, `404` e `single-{tipo}`, `archive-{tipo}`, `term-{tassonomia}`, 1.3) | 1.1 |
+| `easyrankly_settings` | sì | Oggetto con tutte le impostazioni; schema in `src/Settings/Settings.php` (`Settings::schema()`), letto e scritto da `/wp/v2/settings`. Chiavi: `title_separator` (stringa, max 10, default `-`, 1.1); `noindex` (lista di chiavi di contesto con noindex, default vuota, 1.4); `templates` (oggetto contesto → `{title, description}`; contesti `home`, `single`, `archive`, `term`, `author`, `date`, `search`, `404` e `single-{tipo}`, `archive-{tipo}`, `term-{tassonomia}`, 1.3) | 1.1 |
 
 ## Post meta e term meta
 
