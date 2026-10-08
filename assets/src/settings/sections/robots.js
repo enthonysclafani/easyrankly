@@ -36,7 +36,7 @@ export default function Robots( { settings, update } ) {
 			<CardBody>
 				<p>
 					{ __(
-						'Ask search engines not to index these pages (noindex). Search results are never indexed. A single post or term can also be excluded from its own SEO settings.',
+						'Ask search engines not to index these pages (noindex) and leave them out of the sitemaps. Search results are never indexed. A single post or term can also be excluded from its own SEO settings.',
 						'easyrankly'
 					) }
 				</p>
