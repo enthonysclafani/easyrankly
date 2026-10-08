@@ -70,7 +70,7 @@ Riferimenti Alpha: `includes/multilingual/singlesite/`, `includes/hreflang.php`,
 - [x] 3.4 Memoria: post type `erankly_memory`, import/export in `.md`, apprendimento da rifiuti e modifiche
 - [x] 3.5 Prime proposte: meta e social, testo alternativo, redirect quando un contenuto viene cestinato
 - [x] 3.6 Inneschi senza cron: eventi editoriali e apertura della dashboard
-- [ ] 3.7 Test dell'agente elencati in `CLAUDE.md`, inclusa la prompt injection nei contenuti
+- [x] 3.7 Test dell'agente elencati in `CLAUDE.md`, inclusa la prompt injection nei contenuti
 
 ## Fase 4 — EasyRankly Cloud
 
