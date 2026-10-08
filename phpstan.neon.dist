@@ -7,4 +7,5 @@ parameters:
 		- tools
 	excludePaths:
 		- tests/fixtures
+		- tools/phpstan
 	treatPhpDocTypesAsCertain: false

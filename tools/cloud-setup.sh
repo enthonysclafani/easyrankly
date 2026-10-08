@@ -28,6 +28,11 @@ export COMPOSER_ALLOW_SUPERUSER=1
 
 composer install --prefer-source --no-interaction --no-progress --quiet || log "composer install failed: run it manually."
 
+# PHPStan lives in tools/phpstan because it is distributed only as a GitHub zipball, which the
+# proxy does not serve here. Try once; if it fails, `composer analyse` says so and CI runs it.
+composer install --working-dir=tools/phpstan --no-interaction --no-progress --quiet >/dev/null 2>&1 \
+	|| log "PHPStan is not installable in this cloud session (GitHub proxy): CI runs it on the pull request."
+
 if ! command -v mariadbd >/dev/null 2>&1 && ! command -v mysqld >/dev/null 2>&1; then
 	log "Installing MariaDB..."
 	export DEBIAN_FRONTEND=noninteractive

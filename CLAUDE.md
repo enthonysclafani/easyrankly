@@ -262,14 +262,16 @@ pulizia "bloat", qualsiasi funzione dedicata a multisite, Google Indexing API, p
 ```bash
 composer architecture   # invarianti architetturali (veloce, lancialo spesso)
 composer lint           # PHPCS (composer lint:fix corregge in automatico)
-composer analyse        # PHPStan
+composer analyse        # PHPStan (installato a parte in tools/phpstan; nel cloud lo esegue la CI)
 composer test           # PHPUnit sulla suite WordPress (serve WP_TESTS_DIR, vedi README.md)
 composer check          # tutto quanto sopra: deve passare prima di dire "fatto"
 ```
 
 - Gli asset admin si compilano con `npm run build` (`@wordpress/scripts`), da introdurre con il primo asset admin.
 - Se un controllo non si può eseguire nell'ambiente in cui sei, dillo nel resoconto: la CI su GitHub resta il
-  controllo finale.
+  controllo finale. Nel cloud PHPStan non si può installare (il proxy di GitHub non serve il suo pacchetto):
+  `composer analyse` lo dichiara e il risultato va letto nella CI della pull request, prima di dire "fatto".
+- Le dipendenze di PHPStan stanno in `tools/phpstan/composer.json`, separate dalle altre: aggiornale lì.
 
 - Ogni bug corretto ha un test di regressione che fallisce prima della correzione.
 - Ogni funzionalità ha test di integrazione sul comportamento visibile (HTML in `<head>`, risposta HTTP, XML della sitemap),
