@@ -148,7 +148,7 @@ final class Proposals {
 	/**
 	 * Creates a pending proposal after the allowlist checks, superseding older ones on the same content.
 	 *
-	 * @param array{ability: string, input: array<string, mixed>, title: string, motivation?: string, evidence?: string, confidence?: float|int} $args Proposal.
+	 * @param array{ability: string, input: array<string, mixed>, title: string, motivation?: string, evidence?: string, confidence?: float|int, object?: int} $args Proposal; `object` names the content when the input has no `id` (redirects).
 	 * @return int|\WP_Error Proposal ID.
 	 */
 	public static function create( array $args ) {
@@ -167,7 +167,8 @@ final class Proposals {
 			return $previous;
 		}
 
-		$title = sanitize_text_field( $args['title'] );
+		$object = (int) ( $args['object'] ?? Actions::object_id( $input ) );
+		$title  = sanitize_text_field( $args['title'] );
 		if ( '' === $title ) {
 			return new \WP_Error( 'easyrankly_proposal_title', __( 'A proposal needs a summary.', 'easyrankly' ) );
 		}
@@ -178,7 +179,7 @@ final class Proposals {
 				'post_status'  => self::STATUSES['pending'],
 				'post_title'   => $title,
 				'post_content' => sanitize_textarea_field( $args['motivation'] ?? '' ),
-				'post_parent'  => Actions::object_id( $input ),
+				'post_parent'  => $object,
 				'post_author'  => get_current_user_id(),
 				'meta_input'   => array(
 					self::meta_key( 'ability' )     => $name,
@@ -193,7 +194,7 @@ final class Proposals {
 		);
 
 		if ( ! is_wp_error( $id ) ) {
-			self::supersede_older( $id, $name, Actions::object_id( $input ) );
+			self::supersede_older( $id, $name, $object );
 		}
 
 		return $id;

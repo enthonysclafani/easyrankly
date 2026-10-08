@@ -18,6 +18,7 @@ defined( 'ABSPATH' ) || exit;
  *   publishing, users or roles);
  * - its input is valid on the ability's schema;
  * - its texts carry no markup and no links to other sites;
+ * - a redirect goes from a path of this site to another path of this site;
  * - fewer than DAILY_LIMIT proposals were created today.
  */
 final class Allowlist {
@@ -27,6 +28,8 @@ final class Allowlist {
 	 */
 	public const ACTIONS = array(
 		Actions::POST_SEO,
+		Actions::IMAGE_ALT,
+		Actions::REDIRECT,
 	);
 
 	/**
@@ -71,6 +74,13 @@ final class Allowlist {
 			}
 		}
 
+		if ( Actions::REDIRECT === $name ) {
+			$redirect = self::check_redirect( $input );
+			if ( is_wp_error( $redirect ) ) {
+				return $redirect;
+			}
+		}
+
 		return $input;
 	}
 
@@ -99,6 +109,26 @@ final class Allowlist {
 		);
 
 		return $query->found_posts >= self::DAILY_LIMIT;
+	}
+
+	/**
+	 * A proposed redirect: both ends are paths on this site, and it redirects somewhere.
+	 *
+	 * An empty target (turning a redirect off) is how "Undo" works, never something to propose.
+	 *
+	 * @param array<string, mixed> $input Validated input.
+	 * @return true|\WP_Error
+	 */
+	private static function check_redirect( array $input ) {
+		foreach ( array( 'source', 'target' ) as $field ) {
+			$value = is_string( $input[ $field ] ?? null ) ? $input[ $field ] : '';
+			if ( ! str_starts_with( $value, '/' ) || str_starts_with( $value, '//' ) ) {
+				/* translators: %s: field name. */
+				return new \WP_Error( 'easyrankly_redirect_external', sprintf( __( 'The field %s must be a path on this site.', 'easyrankly' ), $field ) );
+			}
+		}
+
+		return true;
 	}
 
 	/**
