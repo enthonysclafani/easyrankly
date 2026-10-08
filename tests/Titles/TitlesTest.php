@@ -22,6 +22,8 @@ final class TitlesTest extends WP_UnitTestCase {
 	public function set_up(): void {
 		parent::set_up();
 		( new Meta() )->register_meta();
+		// Multisite test installs start with pretty permalinks; each test chooses its own.
+		$this->set_permalink_structure( '' );
 		update_option( 'blogname', 'Site' );
 		update_option( 'blogdescription', 'Tagline' );
 		delete_option( Settings::OPTION );
