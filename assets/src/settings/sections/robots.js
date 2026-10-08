@@ -3,6 +3,7 @@ import {
 	CardBody,
 	CardHeader,
 	CheckboxControl,
+	TextareaControl,
 } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 
@@ -48,6 +49,18 @@ export default function Robots( { settings, update } ) {
 						onChange={ toggle( key ) }
 					/>
 				) ) }
+				<TextareaControl
+					__nextHasNoMarginBottom
+					className="code"
+					label={ __( 'Extra robots.txt rules', 'easyrankly' ) }
+					help={ __(
+						'Appended to the robots.txt WordPress generates (which already lists the sitemap). Ignored while the site discourages search engines.',
+						'easyrankly'
+					) }
+					rows={ 6 }
+					value={ settings.robots_txt ?? '' }
+					onChange={ ( value ) => update( 'robots_txt', value ) }
+				/>
 			</CardBody>
 		</Card>
 	);
