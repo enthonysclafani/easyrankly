@@ -8,6 +8,7 @@
 namespace EasyRankly\Settings\Admin;
 
 use EasyRankly\Admin\Assets;
+use EasyRankly\Settings\Settings;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -62,7 +63,10 @@ final class Page {
 	 * Enqueues the settings app built by `npm run build`.
 	 */
 	public function enqueue(): void {
-		Assets::enqueue( 'settings' );
+		if ( Assets::enqueue( 'settings' ) ) {
+			// The option may predate settings added later: the app fills the gaps from the defaults.
+			wp_add_inline_script( 'easyrankly-settings', 'window.easyrankly = ' . wp_json_encode( array( 'defaults' => Settings::defaults() ) ) . ';', 'before' );
+		}
 	}
 
 	/**

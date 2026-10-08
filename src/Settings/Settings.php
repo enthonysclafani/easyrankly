@@ -75,6 +75,63 @@ final class Settings {
 				'maxLength'   => 10,
 				'default'     => '-',
 			),
+			'templates'       => array(
+				'description'          => __( 'Title and description templates per context. Keys: home, single, archive, term, author, date, search, 404, or single-{post type}, archive-{post type}, term-{taxonomy}.', 'easyrankly' ),
+				'type'                 => 'object',
+				'patternProperties'    => array(
+					'^(home|single|archive|term|author|date|search|404|(single|archive)-[a-z0-9_-]{1,20}|term-[a-z0-9_-]{1,32})$' => array(
+						'type'                 => 'object',
+						'additionalProperties' => false,
+						'properties'           => array(
+							'title'       => array(
+								'type'      => 'string',
+								'format'    => 'text-field',
+								'maxLength' => 200,
+							),
+							'description' => array(
+								'type'      => 'string',
+								'format'    => 'text-field',
+								'maxLength' => 400,
+							),
+						),
+					),
+				),
+				'additionalProperties' => false,
+				'default'              => array(
+					'home'    => array(
+						'title'       => '{{site_name}} {{sep}} {{tagline}}',
+						'description' => '{{tagline}}',
+					),
+					'single'  => array(
+						'title'       => '{{title}} {{page}} {{sep}} {{site_name}}',
+						'description' => '{{excerpt}}',
+					),
+					'archive' => array(
+						'title'       => '{{title}} {{page}} {{sep}} {{site_name}}',
+						'description' => '',
+					),
+					'term'    => array(
+						'title'       => '{{title}} {{page}} {{sep}} {{site_name}}',
+						'description' => '{{term_description}}',
+					),
+					'author'  => array(
+						'title'       => '{{title}} {{page}} {{sep}} {{site_name}}',
+						'description' => '',
+					),
+					'date'    => array(
+						'title'       => '{{title}} {{page}} {{sep}} {{site_name}}',
+						'description' => '',
+					),
+					'search'  => array(
+						'title'       => '{{title}} {{page}} {{sep}} {{site_name}}',
+						'description' => '',
+					),
+					'404'     => array(
+						'title'       => '{{title}} {{sep}} {{site_name}}',
+						'description' => '',
+					),
+				),
+			),
 		);
 	}
 
@@ -98,9 +155,18 @@ final class Settings {
 	 * @return array<string, mixed>
 	 */
 	public static function get(): array {
-		$stored = get_option( self::OPTION, array() );
+		$defaults = self::defaults();
+		$stored   = get_option( self::OPTION, array() );
+		$settings = array_replace( $defaults, is_array( $stored ) ? array_intersect_key( $stored, $defaults ) : array() );
 
-		return array_replace( self::defaults(), is_array( $stored ) ? array_intersect_key( $stored, self::defaults() ) : array() );
+		// Object settings merge one level deep, so a stored map only overrides the keys it has.
+		foreach ( $defaults as $key => $default ) {
+			if ( is_array( $default ) && is_array( $settings[ $key ] ) ) {
+				$settings[ $key ] = array_replace( $default, $settings[ $key ] );
+			}
+		}
+
+		return $settings;
 	}
 
 	/**

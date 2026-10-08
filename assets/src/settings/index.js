@@ -10,6 +10,30 @@ import sections from './sections';
 
 const OPTION = 'easyrankly_settings';
 
+/**
+ * Fills settings missing from the stored option with the defaults, one level deep.
+ *
+ * @param {Object} stored Option value from REST.
+ * @return {Object} Complete settings.
+ */
+function withDefaults( stored ) {
+	const defaults = window.easyrankly?.defaults ?? {};
+	const merged = { ...defaults, ...stored };
+	Object.keys( defaults ).forEach( ( key ) => {
+		if (
+			defaults[ key ] &&
+			typeof defaults[ key ] === 'object' &&
+			! Array.isArray( defaults[ key ] )
+		) {
+			merged[ key ] = {
+				...defaults[ key ],
+				...( stored?.[ key ] ?? {} ),
+			};
+		}
+	} );
+	return merged;
+}
+
 function App() {
 	const [ settings, setSettings ] = useState( null );
 	const [ saving, setSaving ] = useState( false );
@@ -17,7 +41,9 @@ function App() {
 
 	useEffect( () => {
 		apiFetch( { path: '/wp/v2/settings' } )
-			.then( ( response ) => setSettings( response[ OPTION ] ?? {} ) )
+			.then( ( response ) =>
+				setSettings( withDefaults( response[ OPTION ] ?? {} ) )
+			)
 			.catch( ( error ) =>
 				setNotice( { status: 'error', message: error.message } )
 			);
@@ -35,7 +61,7 @@ function App() {
 			data: { [ OPTION ]: settings },
 		} )
 			.then( ( response ) => {
-				setSettings( response[ OPTION ] );
+				setSettings( withDefaults( response[ OPTION ] ) );
 				setNotice( {
 					status: 'success',
 					message: __( 'Settings saved.', 'easyrankly' ),

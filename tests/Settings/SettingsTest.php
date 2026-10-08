@@ -51,7 +51,9 @@ final class SettingsTest extends WP_UnitTestCase {
 			)
 		);
 
-		$this->assertSame( array( 'title_separator' => '|' ), get_option( Settings::OPTION ) );
+		$stored = get_option( Settings::OPTION );
+		$this->assertSame( '|', $stored['title_separator'] );
+		$this->assertArrayNotHasKey( 'unknown', $stored );
 	}
 
 	/**

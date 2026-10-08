@@ -23,6 +23,7 @@ final class Plugin {
 	public function register(): void {
 		( new Settings\Settings() )->register();
 		( new Meta\Meta() )->register();
+		( new Titles\Titles() )->register();
 
 		if ( is_admin() ) {
 			( new Settings\Admin\Page() )->register();
