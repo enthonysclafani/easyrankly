@@ -90,4 +90,4 @@ Il backend vive in un repository separato. Qui solo la parte del plugin.
 - Import da Yoast e Rank Math: solo meta e redirect, a lotti dall'admin? (riferimento Alpha: `includes/migrations/`)
 - Schema extra: Local Business, Product per WooCommerce.
 - IndexNow.
-- Piattaforma di licenze e pagamenti per il Cloud.
+- Prezzo del Cloud: abbonamento fisso o con crediti inclusi (la piattaforma è Stripe Managed Payments, vedi `docs/piano.md`, sezione 6).

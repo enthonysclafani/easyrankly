@@ -150,9 +150,13 @@ o eseguite sul Cloud: mai un'unica richiesta lunga.
 
 - **Gratuito (chiavi dell'utente)**: l'utente configura i suoi provider AI nei Connectors del core.
   L'agente lavora sugli eventi e all'apertura della dashboard.
-- **EasyRankly Cloud (abbonamento a crediti)**: zero configurazione, analisi continua, Search Console, DataForSEO,
-  eventuali modelli decisionali. Esempio di prezzo: N crediti al mese, 1 ricerca keyword = 5 crediti, 1 testo AI = 2 crediti.
+- **EasyRankly Cloud (abbonamento mensile)**: zero configurazione, analisi continua, Search Console, DataForSEO,
+  eventuali modelli decisionali. Ipotesi di prezzo: $10 al mese. Ancora da decidere se a prezzo fisso o con crediti
+  inclusi (es. N crediti al mese, 1 ricerca keyword = 5 crediti, 1 testo AI = 2 crediti): il costo dell'AI cresce
+  con l'uso, quindi senza crediti servono comunque limiti per sito.
   Il Cloud è registrato come provider dell'AI Client, quindi il plugin usa le stesse funzioni in entrambi i casi.
+- L'abbonamento vende **solo il servizio Cloud**: l'agente con le chiavi dell'utente resta gratuito e completo
+  (vedi "Da verificare prima di vendere", trialware).
 
 ### Regole
 
@@ -174,13 +178,37 @@ o eseguite sul Cloud: mai un'unica richiesta lunga.
 
 - **Backend**: Cloudflare Workers con D1 (database), KV (cache) e cron trigger (sul backend i cron sono ammessi).
   Repository separato.
-- **Pagamenti e licenze**: un *merchant of record* (Freemius, Lemon Squeezy o Paddle) che gestisce IVA UE, fatture e rimborsi.
+- **Pagamenti e licenze**: Stripe Managed Payments (vedi sotto).
+
+### Pagamenti e licenze: Stripe Managed Payments
+
+Decisione di ottobre 2026. Managed Payments è il *merchant of record* di Stripe: il venditore legale è Stripe, che
+gestisce IVA UE, sales tax e GST (oltre 80 paesi), frodi e contestazioni. Così non serve registrarsi all'OSS né
+gestire l'IVA in proprio, come con Freemius, Lemon Squeezy o Paddle, che erano le alternative considerate.
+
+- **Costo**: 3,5% per transazione riuscita, calcolato sull'importo IVA inclusa, più le commissioni di pagamento di
+  Stripe ([prezzi di Managed Payments](https://support.stripe.com/questions/managed-payments-pricing)).
+  Su $10 sono $0,35 più la commissione della carta. Ai consumatori UE il prezzo si mostra IVA inclusa: con l'IVA
+  italiana al 22%, da $10 restano circa $8,20 prima delle commissioni.
+- **Vincoli**: solo prodotti digitali (il SaaS rientra), solo Checkout Sessions e Payment Links, verifica di idoneità
+  da parte di Stripe ([idoneità](https://docs.stripe.com/payments/managed-payments/eligibility)).
+- **Licenze**: Stripe non emette licenze, le emette il Cloud.
+  1. L'utente si abbona con Stripe Checkout.
+  2. I webhook di Stripe (abbonamento creato, aggiornato o cancellato, pagamento fallito) arrivano al backend del Cloud.
+  3. Il Cloud crea una chiave per sito e la attiva o la sospende secondo lo stato dell'abbonamento.
+  4. L'utente incolla la chiave in Impostazioni → Connettori (metodo `api_key` dei Connectors del core).
+  5. A ogni richiesta il Cloud verifica la chiave e l'abbonamento.
+- **Il plugin non parla mai con Stripe**: nessuna chiave Stripe, nessun webhook, nessun controllo di licenza nel
+  codice PHP. Se la chiave del Cloud non è valida, le funzioni del Cloud rispondono con un errore e nient'altro cambia.
 
 ### Da verificare prima di vendere
 
 - **WordPress.org**: vietato il *trialware* (funzioni nel codice bloccate finché non paghi); consentito il *serviceware*
   (servizio esterno a pagamento), dichiarato nel readme con link a termini e privacy.
 - **Termini di DataForSEO** sulla rivendita dei dati.
+- **Idoneità a Stripe Managed Payments** del paese in cui ha sede l'attività (Italia non ancora confermata) e
+  risultato della verifica di Stripe. Se l'esito è negativo, si torna a Paddle o Lemon Squeezy: nel plugin non
+  cambia nulla, perché la licenza resta una chiave emessa dal Cloud.
 - **GDPR**: evitare provider che trattano dati fuori da UE/USA senza garanzie (es. DeepSeek); far scegliere il modello.
 
 ### Modelli decisionali
@@ -204,5 +232,5 @@ Va integrato **solo sul Cloud, dietro un'interfaccia nostra**, dopo un test prat
 - Import da Yoast e Rank Math: solo meta e redirect, a lotti dall'admin?
 - Schema extra: Local Business, Product per WooCommerce.
 - IndexNow.
-- Piattaforma di licenze e pagamenti.
+- Prezzo del Cloud: abbonamento fisso ($10 al mese) o con crediti inclusi.
 - Requisiti minimi: WordPress 7.0 e PHP 8.1 (assunti in `CLAUDE.md`).
