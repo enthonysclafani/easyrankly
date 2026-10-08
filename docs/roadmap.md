@@ -61,7 +61,7 @@ Riferimenti Alpha: `includes/multilingual/singlesite/`, `includes/hreflang.php`,
 
 ## Fase 3 — Agente AI nel plugin (chiavi dell'utente)
 
-- [ ] 3.1 Categoria di ability `easyrankly` e ability di sola lettura: dati SEO di un contenuto, contesto del sito,
+- [x] 3.1 Categoria di ability `easyrankly` e ability di sola lettura: dati SEO di un contenuto, contesto del sito,
       ricerca nei contenuti
 - [ ] 3.2 Proposte: post type `erankly_proposal`, stati con `register_post_status()`, REST, dashboard con DataViews
       (Accetta, Modifica e accetta, Rifiuta, Annulla), anteprima delle differenze
