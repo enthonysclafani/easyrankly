@@ -4,8 +4,8 @@
 	"description": "Admin assets of the EasyRankly WordPress plugin. Nothing here runs on the frontend.",
 	"license": "GPL-2.0-or-later",
 	"scripts": {
-		"build": "wp-scripts build settings=./assets/src/settings/index.js editor=./assets/src/editor/index.js redirects=./assets/src/redirects/index.js snippets=./assets/src/snippets/index.js languages=./assets/src/languages/index.js language-switcher=./assets/src/language-switcher/index.js",
-		"start": "wp-scripts start settings=./assets/src/settings/index.js editor=./assets/src/editor/index.js redirects=./assets/src/redirects/index.js snippets=./assets/src/snippets/index.js languages=./assets/src/languages/index.js language-switcher=./assets/src/language-switcher/index.js",
+		"build": "wp-scripts build settings=./assets/src/settings/index.js editor=./assets/src/editor/index.js redirects=./assets/src/redirects/index.js snippets=./assets/src/snippets/index.js languages=./assets/src/languages/index.js language-switcher=./assets/src/language-switcher/index.js agent=./assets/src/agent/index.js",
+		"start": "wp-scripts start settings=./assets/src/settings/index.js editor=./assets/src/editor/index.js redirects=./assets/src/redirects/index.js snippets=./assets/src/snippets/index.js languages=./assets/src/languages/index.js language-switcher=./assets/src/language-switcher/index.js agent=./assets/src/agent/index.js",
 		"lint:js": "wp-scripts lint-js assets/src"
 	},
 	"devDependencies": {

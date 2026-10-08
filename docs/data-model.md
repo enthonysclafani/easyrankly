@@ -47,12 +47,26 @@ Meta del post type `erankly_snippet` (`src/CustomCode/CustomCode.php`), nel REST
 | `_easyrankly_snippet_priority` | integer | Ordine nella posizione, 0–1000, default 10. | 1.11 |
 | `_easyrankly_snippet_error` | string | Ultimo errore in esecuzione, che ha disattivato lo snippet. Sola lettura nel REST; cancellato al salvataggio successivo. | 1.11 |
 
+Meta del post type `erankly_proposal` (`src/Agent/Proposals.php`), mai nel REST del core (le legge solo `/easyrankly/v1/proposals`, con `manage_options`):
+
+| Chiave | Tipo | Contenuto | Introdotta in |
+|---|---|---|---|
+| `_easyrankly_proposal_ability` | string | Ability che applica la proposta (es. `easyrankly/update-post-seo`). | 3.2 |
+| `_easyrankly_proposal_input` | object | Input dell'ability, validato sul suo schema; dopo "Modifica e accetta" contiene i valori applicati. | 3.2 |
+| `_easyrankly_proposal_previous` | object | Valori sostituiti, con la stessa forma dell'input: "Annulla" esegue l'ability con questi. | 3.2 |
+| `_easyrankly_proposal_fingerprint` | string | md5 dei valori originali al momento della proposta. | 3.2 |
+| `_easyrankly_proposal_evidence` | string | Dati a supporto, testo semplice. | 3.2 |
+| `_easyrankly_proposal_confidence` | number | Confidenza da 0 a 1. | 3.2 |
+| `_easyrankly_proposal_note` | string | Motivo del rifiuto o errore che ha fatto fallire la proposta. | 3.2 |
+| `_easyrankly_proposal_user` | integer | Utente che ha preso l'ultima decisione. | 3.2 |
+
 ## Post type non pubblici
 
 | Nome | Contenuto | Stati custom | Introdotto in |
 |---|---|---|---|
 | `erankly_redirect` | Un redirect per post. `post_title` = sorgente normalizzata (percorso relativo alla home, minuscolo, senza query string né slash finale) o regex; `post_name` = md5 della sorgente esatta (colonna indicizzata, usata per la ricerca su 404) o `regex-{md5}`; `post_status` `publish` = attivo, `draft` = disattivo. Non pubblico, senza UI core, REST `/wp/v2/easyrankly-redirects` solo con `manage_options`. | nessuno | 1.10 |
 | `erankly_snippet` | Uno snippet per post. `post_title` = nome, `post_content` = codice (le revisioni native ne tengono la cronologia), `post_status` `publish` = attivo, `draft` = disattivo. Serve `manage_options` più `unfiltered_html`; per il PHP anche `edit_plugins`. REST `/wp/v2/easyrankly-snippets`. | nessuno | 1.11 |
+| `erankly_proposal` | Una proposta dell'agente per post. `post_title` = riassunto, `post_content` = motivazione (testo semplice), `post_parent` = contenuto da modificare, `post_author` = utente attivo quando è nata (0 se nessuno). Non pubblico, senza UI né REST del core; tutte le capability mappate su `manage_options`. Nessuna route crea proposte: le crea solo il codice del plugin dopo la validazione. | `erankly_pending` (in attesa), `erankly_accepted` (accettata), `erankly_rejected` (rifiutata), `erankly_superseded` (superata), `erankly_failed` (fallita), `erankly_reverted` (annullata): registrati con `register_post_status()`, `internal`, esclusi da ricerche ed elenchi admin | 3.2 |
 
 ## Tassonomie nascoste
 

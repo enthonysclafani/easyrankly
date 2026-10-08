@@ -71,7 +71,7 @@ final class Abilities {
 				),
 				'output_schema'       => self::post_schema(),
 				'execute_callback'    => array( self::class, 'get_post_seo' ),
-				'permission_callback' => array( self::class, 'can_read_post' ),
+				'permission_callback' => array( self::class, 'can_edit_post' ),
 				'meta'                => array(
 					'annotations'  => self::READONLY,
 					'show_in_rest' => true,
@@ -147,7 +147,7 @@ final class Abilities {
 	 * @param mixed $input Validated input.
 	 * @return bool
 	 */
-	public static function can_read_post( $input ): bool {
+	public static function can_edit_post( $input ): bool {
 		$id = is_array( $input ) && isset( $input['id'] ) ? (int) $input['id'] : 0;
 
 		return $id > 0 && current_user_can( 'edit_post', $id );
