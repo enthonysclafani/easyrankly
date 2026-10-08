@@ -96,10 +96,9 @@ final class Translations {
 	 * @return true|\WP_Error
 	 */
 	public static function set_language( int $post_id, string $slug ) {
-		$post = get_post( $post_id );
-		$ok   = self::check_post( $post );
-		if ( is_wp_error( $ok ) ) {
-			return $ok;
+		$post = self::translatable_post( $post_id );
+		if ( is_wp_error( $post ) ) {
+			return $post;
 		}
 		if ( ! Languages::exists( $slug ) ) {
 			return new \WP_Error( 'easyrankly_invalid_language', __( 'The language is not configured.', 'easyrankly' ) );
@@ -249,10 +248,9 @@ final class Translations {
 				return new \WP_Error( 'easyrankly_invalid_language', __( 'The language is not configured.', 'easyrankly' ) );
 			}
 
-			$post = get_post( is_numeric( $id ) ? (int) $id : 0 );
-			$ok   = self::check_post( $post );
-			if ( is_wp_error( $ok ) ) {
-				return $ok;
+			$post = self::translatable_post( is_numeric( $id ) ? (int) $id : 0 );
+			if ( is_wp_error( $post ) ) {
+				return $post;
 			}
 
 			$posts[ $slug ] = $post;
@@ -275,21 +273,21 @@ final class Translations {
 	}
 
 	/**
-	 * Checks that a post exists and its type has languages.
+	 * A post that exists and whose type has languages.
 	 *
-	 * @param \WP_Post|null $post Post.
-	 * @return true|\WP_Error
-	 *
-	 * @phpstan-assert-if-true \WP_Post $post
+	 * @param int $post_id Post ID.
+	 * @return \WP_Post|\WP_Error
 	 */
-	private static function check_post( ?\WP_Post $post ) {
-		if ( null === $post ) {
+	private static function translatable_post( int $post_id ) {
+		$post = get_post( $post_id );
+
+		if ( ! $post instanceof \WP_Post ) {
 			return new \WP_Error( 'easyrankly_invalid_post', __( 'The content does not exist.', 'easyrankly' ) );
 		}
 		if ( ! is_object_in_taxonomy( $post->post_type, self::LANGUAGE ) ) {
 			return new \WP_Error( 'easyrankly_untranslatable', __( 'This content type has no languages.', 'easyrankly' ) );
 		}
 
-		return true;
+		return $post;
 	}
 }
