@@ -59,4 +59,35 @@ final class UninstallTest extends WP_UnitTestCase {
 		$this->assertSame( '', get_term_meta( $term_id, '_easyrankly_title', true ) );
 		$this->assertFalse( metadata_exists( 'term', $term_id, '_easyrankly_noindex' ) );
 	}
+
+	/**
+	 * Redirects, their meta and the lists built from them are removed.
+	 */
+	public function test_uninstall_removes_redirects(): void {
+		if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
+			define( 'WP_UNINSTALL_PLUGIN', 'easyrankly/easyrankly.php' );
+		}
+
+		$ids = array();
+		foreach ( array( 'publish', 'draft', 'trash' ) as $status ) {
+			$ids[] = self::factory()->post->create(
+				array(
+					'post_type'   => 'erankly_redirect',
+					'post_status' => $status,
+					'meta_input'  => array( '_easyrankly_redirect_target' => '/new' ),
+				)
+			);
+		}
+		update_option( 'easyrankly_redirects_forced', array( array( 'source' => '/a' ) ) );
+		update_option( 'easyrankly_redirects_regex', array( array( 'source' => '^/b' ) ), false );
+
+		require dirname( __DIR__ ) . '/uninstall.php';
+
+		foreach ( $ids as $id ) {
+			$this->assertNull( get_post( $id ) );
+			$this->assertFalse( metadata_exists( 'post', $id, '_easyrankly_redirect_target' ) );
+		}
+		$this->assertFalse( get_option( 'easyrankly_redirects_forced' ) );
+		$this->assertFalse( get_option( 'easyrankly_redirects_regex' ) );
+	}
 }
