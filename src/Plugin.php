@@ -33,6 +33,7 @@ final class Plugin {
 		( new Sitemap\Sitemap() )->register();
 		( new Redirects\Redirects() )->register();
 		( new CustomCode\CustomCode() )->register();
+		( new Multilingual\Multilingual() )->register();
 
 		if ( is_admin() ) {
 			( new Settings\Admin\Page() )->register();

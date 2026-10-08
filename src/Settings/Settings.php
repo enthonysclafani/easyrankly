@@ -8,6 +8,7 @@
 namespace EasyRankly\Settings;
 
 use EasyRankly\Context\Context;
+use EasyRankly\Multilingual\Languages;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -155,6 +156,34 @@ final class Settings {
 				),
 				'uniqueItems' => true,
 				'default'     => array(),
+			),
+			'languages'             => array(
+				'description'          => __( 'Languages of the content, keyed by URL prefix, in display order. The first one is the default: its URLs have no prefix. Multilingual features start with two languages.', 'easyrankly' ),
+				'type'                 => 'object',
+				'patternProperties'    => array(
+					Languages::SLUG_PATTERN => array(
+						'type'                 => 'object',
+						'additionalProperties' => false,
+						'required'             => array( 'locale', 'name' ),
+						'properties'           => array(
+							'locale' => array(
+								'description' => __( 'WordPress locale of the language, e.g. en_US.', 'easyrankly' ),
+								'type'        => 'string',
+								'pattern'     => Languages::LOCALE_PATTERN,
+							),
+							'name'   => array(
+								'description' => __( 'Name of the language shown to visitors.', 'easyrankly' ),
+								'type'        => 'string',
+								'format'      => 'text-field',
+								'minLength'   => 1,
+								'maxLength'   => 50,
+							),
+						),
+					),
+				),
+				'additionalProperties' => false,
+				'maxProperties'        => 20,
+				'default'              => array(),
 			),
 			'templates'             => array(
 				'description'          => __( 'Title and description templates per context. Keys: home, single, archive, term, author, date, search, 404, or single-{post type}, archive-{post type}, term-{taxonomy}.', 'easyrankly' ),

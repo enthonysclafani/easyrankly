@@ -48,7 +48,7 @@ Criterio di uscita: su un articolo singolo Query Monitor non mostra query in pi√
 
 Riferimenti Alpha: `includes/multilingual/singlesite/`, `includes/hreflang.php`, `MULTILINGUAL.md`.
 
-- [ ] 2.1 Lingue in option; tassonomie nascoste `erankly_language` (lingua del contenuto) e `erankly_translation`
+- [x] 2.1 Lingue in option; tassonomie nascoste `erankly_language` (lingua del contenuto) e `erankly_translation`
       (gruppo di traduzioni)
 - [ ] 2.2 URL con prefisso di lingua (rewrite), home per lingua, filtro delle query per lingua
 - [ ] 2.3 Editor: scelta della lingua e collegamento delle traduzioni
