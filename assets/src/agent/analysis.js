@@ -3,7 +3,6 @@
  * only while this page is open. Hidden when no AI provider is available.
  */
 import apiFetch from '@wordpress/api-fetch';
-import { Button, Flex, Notice, ToggleControl } from '@wordpress/components';
 import { useEffect, useRef, useState } from '@wordpress/element';
 import { __, sprintf } from '@wordpress/i18n';
 
@@ -84,16 +83,19 @@ export default function Analysis( { onProposal } ) {
 
 	if ( ! status.ai ) {
 		return (
-			<Notice status="info" isDismissible={ false }>
-				{ __(
-					'Connect an AI provider in Settings → Connectors to get proposals for titles, descriptions and image texts. Redirect proposals for trashed content work without AI.',
-					'easyrankly'
-				) }
-			</Notice>
+			<div className="notice notice-info inline">
+				<p>
+					{ __(
+						'Connect an AI provider in Settings → Connectors to get proposals for titles, descriptions and image texts. Redirect proposals for trashed content work without AI.',
+						'easyrankly'
+					) }
+				</p>
+			</div>
 		);
 	}
 
-	const toggle = ( value ) => {
+	const toggle = ( event ) => {
+		const value = event.target.checked;
 		setStatus( ( previous ) => ( { ...previous, auto: value } ) );
 		apiFetch( {
 			path: '/wp/v2/settings',
@@ -103,36 +105,47 @@ export default function Analysis( { onProposal } ) {
 	};
 
 	return (
-		<Flex direction="column" gap={ 2 }>
-			<Flex justify="flex-start" align="center" wrap>
+		<>
+			<p>
 				{ running ? (
-					<Button
-						variant="secondary"
+					<button
+						type="button"
+						className="button"
 						onClick={ () => ( stop.current = true ) }
 					>
 						{ __( 'Pause', 'easyrankly' ) }
-					</Button>
+					</button>
 				) : (
-					<Button variant="secondary" onClick={ () => run( true ) }>
+					<button
+						type="button"
+						className="button"
+						onClick={ () => run( true ) }
+					>
 						{ __( 'Analyze now', 'easyrankly' ) }
-					</Button>
-				) }
-				<ToggleControl
-					__nextHasNoMarginBottom
-					label={ __(
+					</button>
+				) }{ ' ' }
+				<label htmlFor="easyrankly-agent-auto">
+					<input
+						id="easyrankly-agent-auto"
+						type="checkbox"
+						checked={ !! status.auto }
+						onChange={ toggle }
+					/>{ ' ' }
+					{ __(
 						'Analyze automatically when this page opens',
 						'easyrankly'
 					) }
-					help={ __(
-						'The agent sends content to your AI provider only while this page is open.',
-						'easyrankly'
-					) }
-					checked={ !! status.auto }
-					onChange={ toggle }
-				/>
-			</Flex>
+				</label>
+			</p>
+			<p className="description">
+				{ __(
+					'The agent sends content to your AI provider only while this page is open.',
+					'easyrankly'
+				) }
+			</p>
 			{ running && current && (
 				<p>
+					<span className="spinner is-active" />
 					{ sprintf(
 						/* translators: 1: content or image title, 2: proposals created so far. */
 						__(
@@ -145,6 +158,6 @@ export default function Analysis( { onProposal } ) {
 				</p>
 			) }
 			{ message && <p>{ message }</p> }
-		</Flex>
+		</>
 	);
 }

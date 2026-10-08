@@ -86,8 +86,9 @@ Fase 5 tocca la dashboard delle proposte: si cambia una volta sola, sulla nuova 
       REST esistenti con `rest_do_request()`); codice degli snippet con `wp_enqueue_code_editor()`. Test: risposte HTTP
       delle schermate e dei form, permessi (`manage_options`, `unfiltered_html`, `edit_plugins`), nonce, stesse regole
       di oggi su sorgente, destinazione e sintassi PHP. Spariscono gli entry point `redirects` e `snippets`.
-- [ ] 4.3 Agente AI con markup classico: schede `nav-tab-wrapper`, tabelle `wp-list-table`, "Modifica e accetta" nella
-      riga, nessun `wp-components`.
+- [x] 4.3 Agente AI con markup classico: schede `nav-tab-wrapper` (link, una per pagina), stati e pagine delle proposte
+      come link, tabelle `wp-list-table`, decisioni ("Accetta", "Modifica e accetta", "Rifiuta", "Annulla") nella riga,
+      memoria con form sopra l'elenco, nessun componente di `@wordpress/components`.
 - [ ] 4.4 Il plugin non accoda `wp-components` né CSS suoi sulle schermate del plugin (restano solo nell'editor a
       blocchi). Il core li carica comunque in tutto l'admin per la palette dei comandi (`wp_enqueue_command_palette_assets`,
       WordPress 7.0): conta ciò che accodiamo noi. Test: gli stili accodati dal plugin su ogni sua schermata.
