@@ -50,7 +50,7 @@ Riferimenti Alpha: `includes/multilingual/singlesite/`, `includes/hreflang.php`,
 
 - [x] 2.1 Lingue in option; tassonomie nascoste `erankly_language` (lingua del contenuto) e `erankly_translation`
       (gruppo di traduzioni)
-- [ ] 2.2 URL con prefisso di lingua (rewrite), home per lingua, filtro delle query per lingua
+- [x] 2.2 URL con prefisso di lingua (rewrite), home per lingua, filtro delle query per lingua
 - [ ] 2.3 Editor: scelta della lingua e collegamento delle traduzioni
 - [ ] 2.4 hreflang e x-default; sitemap per lingua
 - [ ] 2.5 Blocco selettore di lingua renderizzato lato server (solo `editorScript`, nessun asset nel frontend)

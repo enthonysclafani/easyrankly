@@ -33,12 +33,14 @@ final class Languages {
 	/**
 	 * Configured languages, keyed by slug, in display order.
 	 *
-	 * The option is autoloaded, so this costs no query.
+	 * The option is autoloaded, so this costs no query. It is read directly, without the
+	 * defaults of Settings::get(): those are translated, and the locale filter reads this.
 	 *
 	 * @return array<string, array{locale: string, name: string}>
 	 */
 	public static function all(): array {
-		$languages = Settings::value( 'languages' );
+		$settings  = get_option( Settings::OPTION, array() );
+		$languages = is_array( $settings ) ? ( $settings['languages'] ?? array() ) : array();
 		$clean     = array();
 
 		foreach ( is_array( $languages ) ? $languages : array() as $slug => $language ) {
