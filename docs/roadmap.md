@@ -15,7 +15,7 @@ I riferimenti ad Alpha indicano file del vecchio plugin (branch `Alpha` di quest
 - [x] `composer.lock` generato e committato
 - [x] Primo run verde della CI su GitHub (branch `Refactory`)
 - [x] Branch autonomo: piano in `docs/piano.md`, preparazione automatica delle sessioni cloud (`tools/cloud-setup.sh`)
-- [ ] Prima sessione Claude Code nel cloud con `composer check` verde
+- [x] Prima sessione Claude Code nel cloud con `composer check` verde
 
 ## Fase 1 — SEO di base
 
