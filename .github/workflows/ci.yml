@@ -32,7 +32,7 @@ jobs:
       - run: composer analyse
 
   test:
-    name: PHPUnit (PHP ${{ matrix.php }}${{ matrix.multisite && ', multisite: no conflicts' || '' }})
+    name: PHPUnit (PHP ${{ matrix.php }}${{ matrix.multisite && ', multisite' || '' }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
