@@ -22,9 +22,12 @@ final class Plugin {
 	 */
 	public function register(): void {
 		( new Settings\Settings() )->register();
+		( new Meta\Meta() )->register();
 
 		if ( is_admin() ) {
 			( new Settings\Admin\Page() )->register();
+			( new Meta\Admin\EditorPanel() )->register();
+			( new Meta\Admin\TermFields() )->register();
 		}
 	}
 }

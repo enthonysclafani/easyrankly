@@ -7,7 +7,7 @@
 
 namespace EasyRankly\Settings\Admin;
 
-use const EasyRankly\PLUGIN_FILE;
+use EasyRankly\Admin\Assets;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -23,11 +23,6 @@ final class Page {
 	 * Menu slug, shared by the top-level menu and the Settings submenu.
 	 */
 	public const SLUG = 'easyrankly';
-
-	/**
-	 * Script and style handle.
-	 */
-	private const HANDLE = 'easyrankly-settings';
 
 	/**
 	 * Hooks the menu.
@@ -67,37 +62,7 @@ final class Page {
 	 * Enqueues the settings app built by `npm run build`.
 	 */
 	public function enqueue(): void {
-		$dir   = dirname( PLUGIN_FILE ) . '/build/';
-		$asset = $dir . 'settings.asset.php';
-
-		if ( ! is_readable( $asset ) ) {
-			add_action( 'admin_notices', array( $this, 'missing_build_notice' ) );
-			return;
-		}
-
-		$info = require $asset;
-		$info = is_array( $info ) ? $info : array();
-		$url  = plugins_url( 'build/', PLUGIN_FILE );
-
-		wp_enqueue_script(
-			self::HANDLE,
-			$url . 'settings.js',
-			isset( $info['dependencies'] ) && is_array( $info['dependencies'] ) ? $info['dependencies'] : array(),
-			isset( $info['version'] ) && is_string( $info['version'] ) ? $info['version'] : \EasyRankly\VERSION,
-			array( 'in_footer' => true )
-		);
-		wp_set_script_translations( self::HANDLE, 'easyrankly' );
-		wp_enqueue_style( 'wp-components' );
-	}
-
-	/**
-	 * Explains an unbuilt development checkout instead of showing an empty screen.
-	 */
-	public function missing_build_notice(): void {
-		printf(
-			'<div class="notice notice-error"><p>%s</p></div>',
-			esc_html__( 'EasyRankly admin assets are missing. Run `npm install && npm run build` in the plugin folder.', 'easyrankly' )
-		);
+		Assets::enqueue( 'settings' );
 	}
 
 	/**

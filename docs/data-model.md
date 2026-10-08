@@ -15,7 +15,16 @@ Regola: zero tabelle custom. Solo Options API, post meta, term meta, user meta, 
 
 | Chiave | Oggetto | Tipo | Contenuto | Introdotta in |
 |---|---|---|---|---|
-| _(nessuna per ora)_ | | | | |
+| `_easyrankly_title` | post e termini | string | Titolo SEO. Vuoto = default (template del titolo). | 1.2 |
+| `_easyrankly_description` | post e termini | string | Meta description. Vuoto = default (template della descrizione). | 1.2 |
+| `_easyrankly_canonical` | post e termini | string (URL) | URL canonico, solo http/https. Vuoto = URL costruito da WordPress. | 1.2 |
+| `_easyrankly_noindex` | post e termini | boolean | Chiede ai motori di non indicizzare. false = default. | 1.2 |
+| `_easyrankly_nofollow` | post e termini | boolean | Chiede ai motori di non seguire i link. false = default. | 1.2 |
+| `_easyrankly_og_title` | post e termini | string | Titolo per la condivisione social. Vuoto = titolo SEO. | 1.2 |
+| `_easyrankly_og_description` | post e termini | string | Descrizione per la condivisione social. Vuoto = meta description. | 1.2 |
+| `_easyrankly_og_image` | post e termini | integer | ID dell'allegato per la condivisione social. 0 = default. | 1.2 |
+
+Registrate con `register_post_meta( '', ... )` e `register_term_meta( '', ... )` in `src/Meta/Meta.php`; nel REST solo con `edit_post` / `edit_term` sull'oggetto.
 
 ## Post type non pubblici
 

@@ -70,7 +70,7 @@ final class PageTest extends WP_UnitTestCase {
 			$this->assertContains( 'wp-components', wp_scripts()->registered['easyrankly-settings']->deps );
 		} else {
 			$this->assertFalse( wp_script_is( 'easyrankly-settings', 'enqueued' ) );
-			$this->assertSame( 10, has_action( 'admin_notices', array( $page, 'missing_build_notice' ) ) );
+			$this->assertSame( 10, has_action( 'admin_notices', array( \EasyRankly\Admin\Assets::class, 'missing_build_notice' ) ) );
 		}
 	}
 
