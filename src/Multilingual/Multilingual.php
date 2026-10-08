@@ -27,6 +27,8 @@ final class Multilingual {
 
 		( new Routing() )->register();
 		( new Rest() )->register();
+		( new Hreflang() )->register();
+		add_action( 'wp_sitemaps_init', array( $this, 'register_sitemap' ) );
 	}
 
 	/**
@@ -76,5 +78,16 @@ final class Multilingual {
 				),
 			)
 		);
+	}
+
+	/**
+	 * Adds the sitemap of the language homes to the core sitemaps.
+	 *
+	 * @param mixed $sitemaps Core sitemaps server.
+	 */
+	public function register_sitemap( $sitemaps ): void {
+		if ( $sitemaps instanceof \WP_Sitemaps ) {
+			$sitemaps->registry->add_provider( HomesSitemap::NAME, new HomesSitemap() );
+		}
 	}
 }
