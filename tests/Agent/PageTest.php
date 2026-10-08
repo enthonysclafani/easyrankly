@@ -24,6 +24,7 @@ final class PageTest extends WP_UnitTestCase {
 		$menu              = array();
 		$submenu           = array();
 		$_registered_pages = array();
+		unset( $_GET['tab'] );
 		wp_dequeue_script( 'easyrankly-agent' );
 
 		parent::tear_down();
@@ -62,5 +63,34 @@ final class PageTest extends WP_UnitTestCase {
 		ob_start();
 		( new Page() )->render();
 		$this->assertStringContainsString( 'id="easyrankly-agent"', (string) ob_get_clean() );
+	}
+
+	/**
+	 * Proposals and Memory are tabs of the core screens, chosen in the URL.
+	 */
+	public function test_tabs_are_classic_links(): void {
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
+
+		$html = get_echo( array( new Page(), 'render' ) );
+		$this->assertStringContainsString( '<nav class="nav-tab-wrapper">', $html );
+		$this->assertMatchesRegularExpression( '/class="nav-tab nav-tab-active" aria-current="page">Proposals</', $html );
+		$this->assertStringContainsString( 'data-tab="proposals"', $html );
+
+		$_GET['tab'] = 'memory';
+		$this->assertStringContainsString( 'data-tab="memory"', get_echo( array( new Page(), 'render' ) ) );
+
+		$_GET['tab'] = '<script>';
+		$this->assertStringContainsString( 'data-tab="proposals"', get_echo( array( new Page(), 'render' ) ) );
+	}
+
+	/**
+	 * The app renders the markup of the core: it does not load the components styles.
+	 */
+	public function test_app_does_not_load_components_styles(): void {
+		( new Page() )->enqueue();
+
+		$built = is_readable( dirname( __DIR__, 2 ) . '/build/agent.asset.php' );
+		$this->assertSame( $built, wp_script_is( 'easyrankly-agent', 'enqueued' ) );
+		$this->assertFalse( wp_style_is( 'wp-components', 'enqueued' ) );
 	}
 }
