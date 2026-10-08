@@ -92,13 +92,14 @@ final class Meta {
 				'description'       => $field['description'],
 				'default'           => $field['default'],
 				'single'            => true,
-				'sanitize_callback' => array( self::class, 'sanitize_' . $field['type'] ),
+				'sanitize_callback' => match ( true ) {
+					'canonical' === $name => array( self::class, 'sanitize_url' ),
+					'boolean' === $field['type'] => array( self::class, 'sanitize_boolean' ),
+					'integer' === $field['type'] => array( self::class, 'sanitize_integer' ),
+					default => array( self::class, 'sanitize_string' ),
+				},
 				'show_in_rest'      => true,
 			);
-
-			if ( 'canonical' === $name ) {
-				$args['sanitize_callback'] = array( self::class, 'sanitize_url' );
-			}
 
 			register_post_meta( '', self::PREFIX . $name, $args + array( 'auth_callback' => array( self::class, 'can_edit_post' ) ) );
 			register_term_meta( '', self::PREFIX . $name, $args + array( 'auth_callback' => array( self::class, 'can_edit_term' ) ) );
@@ -186,7 +187,7 @@ final class Meta {
 	 * @return bool
 	 */
 	public static function sanitize_boolean( $value ): bool {
-		return rest_sanitize_boolean( $value );
+		return is_bool( $value ) ? $value : ( is_scalar( $value ) && rest_sanitize_boolean( (string) $value ) );
 	}
 
 	/**
