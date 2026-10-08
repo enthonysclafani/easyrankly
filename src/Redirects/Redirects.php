@@ -161,8 +161,8 @@ final class Redirects {
 		$target = is_scalar( $target ) ? (string) $target : '';
 		$code   = $meta[ self::meta_key( 'code' ) ] ?? $existing['code'] ?? 301;
 		$code   = is_numeric( $code ) ? (int) $code : 0;
-		$regex  = rest_sanitize_boolean( $meta[ self::meta_key( 'regex' ) ] ?? $existing['regex'] ?? false );
-		$forced = rest_sanitize_boolean( $meta[ self::meta_key( 'forced' ) ] ?? $existing['forced'] ?? false );
+		$regex  = self::flag( $meta[ self::meta_key( 'regex' ) ] ?? $existing['regex'] ?? false );
+		$forced = self::flag( $meta[ self::meta_key( 'forced' ) ] ?? $existing['forced'] ?? false );
 
 		$valid = self::check( $source, $target, $code, $regex, $id );
 		if ( is_wp_error( $valid ) ) {
@@ -187,6 +187,16 @@ final class Redirects {
 		$prepared->post_status = $status;
 
 		return $prepared;
+	}
+
+	/**
+	 * A boolean flag from REST input, as rest_sanitize_boolean() reads it.
+	 *
+	 * @param mixed $value Raw value.
+	 * @return bool
+	 */
+	private static function flag( $value ): bool {
+		return is_bool( $value ) ? $value : rest_sanitize_boolean( is_scalar( $value ) ? (string) $value : '' );
 	}
 
 	/**
@@ -338,7 +348,7 @@ final class Redirects {
 			)
 		);
 
-		foreach ( $query->posts as $post ) {
+		foreach ( (array) $query->posts as $post ) {
 			$rule = $post instanceof \WP_Post ? self::rule( $post->ID ) : null;
 			if ( null === $rule ) {
 				continue;
