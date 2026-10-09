@@ -8,6 +8,7 @@
 namespace EasyRankly\Settings\Admin;
 
 use EasyRankly\Multilingual\Languages;
+use EasyRankly\Multilingual\Menus;
 use EasyRankly\Settings\Settings;
 
 defined( 'ABSPATH' ) || exit;
@@ -46,6 +47,12 @@ final class Fields {
 				break;
 			case 'easyrankly-languages':
 				add_settings_section( 'languages', '', array( self::class, 'languages_table' ), $slug );
+				if ( Languages::enabled() ) {
+					add_settings_section( 'menus', __( 'Menus', 'easyrankly' ), array( self::class, 'menus_section' ), $slug );
+				}
+				if ( Languages::enabled() && wp_is_block_theme() ) {
+					add_settings_section( 'template_parts', __( 'Template parts', 'easyrankly' ), array( self::class, 'template_parts_section' ), $slug );
+				}
 				break;
 		}
 	}
@@ -589,8 +596,15 @@ final class Fields {
 
 		$rows   = Languages::all();
 		$rows[] = array(
-			'locale' => '',
-			'name'   => '',
+			'locale'     => '',
+			'name'       => '',
+			'site_title' => '',
+			'tagline'    => '',
+		);
+		// Empty fields use the site title and tagline of Settings > General: shown as placeholders.
+		$general = array(
+			'site_title' => wp_specialchars_decode( (string) get_option( 'blogname' ), ENT_QUOTES ),
+			'tagline'    => wp_specialchars_decode( (string) get_option( 'blogdescription' ), ENT_QUOTES ),
 		);
 
 		echo '<table class="widefat striped"><thead><tr>';
@@ -599,6 +613,8 @@ final class Fields {
 			__( 'Name', 'easyrankly' ),
 			__( 'URL prefix', 'easyrankly' ),
 			__( 'Locale', 'easyrankly' ),
+			__( 'Site Title', 'easyrankly' ),
+			__( 'Tagline', 'easyrankly' ),
 			__( 'Remove', 'easyrankly' ),
 		) as $heading ) {
 			printf( '<th scope="col">%s</th>', esc_html( $heading ) );
@@ -619,23 +635,40 @@ final class Fields {
 				esc_attr( sprintf( __( 'Order of %s', 'easyrankly' ), $label ) )
 			);
 			$fields = array(
-				'name'   => array(
-					'value'     => $language['name'],
-					'maxlength' => 50,
+				'name'       => array(
+					'value'       => $language['name'],
+					'maxlength'   => 50,
+					'placeholder' => '',
 					/* translators: %s: language name. */
-					'aria'      => sprintf( __( 'Name of %s', 'easyrankly' ), $label ),
+					'aria'        => sprintf( __( 'Name of %s', 'easyrankly' ), $label ),
 				),
-				'slug'   => array(
-					'value'     => $is_new ? '' : (string) $slug,
-					'maxlength' => 12,
+				'slug'       => array(
+					'value'       => $is_new ? '' : (string) $slug,
+					'maxlength'   => 12,
+					'placeholder' => '',
 					/* translators: %s: language name. */
-					'aria'      => sprintf( __( 'URL prefix of %s', 'easyrankly' ), $label ),
+					'aria'        => sprintf( __( 'URL prefix of %s', 'easyrankly' ), $label ),
 				),
-				'locale' => array(
-					'value'     => $language['locale'],
-					'maxlength' => 20,
+				'locale'     => array(
+					'value'       => $language['locale'],
+					'maxlength'   => 20,
+					'placeholder' => 'en_US',
 					/* translators: %s: language name. */
-					'aria'      => sprintf( __( 'Locale of %s', 'easyrankly' ), $label ),
+					'aria'        => sprintf( __( 'Locale of %s', 'easyrankly' ), $label ),
+				),
+				'site_title' => array(
+					'value'       => $language['site_title'],
+					'maxlength'   => 200,
+					'placeholder' => $general['site_title'],
+					/* translators: %s: language name. */
+					'aria'        => sprintf( __( 'Site title of %s', 'easyrankly' ), $label ),
+				),
+				'tagline'    => array(
+					'value'       => $language['tagline'],
+					'maxlength'   => 400,
+					'placeholder' => $general['tagline'],
+					/* translators: %s: language name. */
+					'aria'        => sprintf( __( 'Tagline of %s', 'easyrankly' ), $label ),
 				),
 			);
 			foreach ( $fields as $field => $input ) {
@@ -644,7 +677,7 @@ final class Fields {
 					esc_attr( self::name( 'languages', (string) $index, $field ) ),
 					esc_attr( $input['value'] ),
 					(int) $input['maxlength'],
-					esc_attr( 'locale' === $field ? 'en_US' : '' ),
+					esc_attr( $input['placeholder'] ),
 					esc_attr( $input['aria'] )
 				);
 			}
@@ -665,6 +698,108 @@ final class Fields {
 		printf(
 			'<p class="description">%s</p>',
 			esc_html__( 'The locale (for example en_US or it_IT) sets the language of the pages and their hreflang code. Content without a language belongs to the default language. The language with the lowest order is the default one.', 'easyrankly' )
+		);
+		printf(
+			'<p class="description">%s</p>',
+			esc_html__( 'Site title and tagline replace those of Settings > General on the pages of the language. Leave them empty to use the same ones in every language.', 'easyrankly' )
+		);
+	}
+
+	/**
+	 * Menus of each language: the language locations of classic themes live in Appearance > Menus;
+	 * the navigation menus of block themes are chosen here, one per language.
+	 */
+	public static function menus_section(): void {
+		$locations = array_filter(
+			array_keys( get_registered_nav_menus() ),
+			static fn( $location ): bool => ! str_contains( (string) $location, Menus::SEPARATOR )
+		);
+		if ( array() !== $locations ) {
+			printf(
+				'<p>%1$s <a href="%2$s">%3$s</a></p>',
+				esc_html__( 'Every menu location of the theme has one location per language. A language location without a menu shows the menu of the default language.', 'easyrankly' ),
+				esc_url( admin_url( 'nav-menus.php?action=locations' ) ),
+				esc_html__( 'Manage menu locations', 'easyrankly' )
+			);
+		}
+
+		$navigations = get_posts(
+			array(
+				'post_type'      => 'wp_navigation',
+				'post_status'    => 'publish',
+				'posts_per_page' => 50,
+				'orderby'        => 'title',
+				'order'          => 'ASC',
+				'no_found_rows'  => true,
+			)
+		);
+		if ( array() === $navigations ) {
+			if ( array() === $locations ) {
+				printf( '<p>%s</p>', esc_html__( 'The theme has no menu locations and the site has no navigation menus yet.', 'easyrankly' ) );
+			}
+			return;
+		}
+
+		printf(
+			'<p>%s</p>',
+			esc_html__( 'Navigation blocks show, on the pages of a language, the navigation menu chosen for it. "Same menu" keeps the menu of the block.', 'easyrankly' )
+		);
+
+		$languages = array_diff_key( Languages::all(), array( Languages::default() => true ) );
+		$current   = (array) Settings::value( Menus::SETTING );
+		$titles    = array();
+		foreach ( $navigations as $navigation ) {
+			$titles[ $navigation->ID ] = '' !== $navigation->post_title ? $navigation->post_title : __( '(no title)', 'easyrankly' );
+		}
+
+		echo '<table class="widefat striped"><thead><tr>';
+		printf( '<th scope="col">%s</th>', esc_html__( 'Navigation menu', 'easyrankly' ) );
+		foreach ( $languages as $language ) {
+			printf( '<th scope="col">%s</th>', esc_html( $language['name'] ) );
+		}
+		echo '</tr></thead><tbody>';
+
+		foreach ( $titles as $id => $title ) {
+			printf( '<tr><th scope="row">%s</th>', esc_html( $title ) );
+			foreach ( $languages as $slug => $language ) {
+				$chosen = (int) ( ( (array) ( $current[ $slug ] ?? array() ) )[ $id ] ?? 0 );
+				printf(
+					'<td><select name="%1$s" aria-label="%2$s"><option value="">%3$s</option>',
+					esc_attr( self::name( Menus::SETTING, $slug, (string) $id ) ),
+					/* translators: 1: navigation menu title, 2: language name. */
+					esc_attr( sprintf( __( '%1$s in %2$s', 'easyrankly' ), $title, $language['name'] ) ),
+					esc_html__( 'Same menu', 'easyrankly' )
+				);
+				foreach ( $titles as $option => $option_title ) {
+					if ( $option !== $id ) {
+						printf( '<option value="%1$d"%2$s>%3$s</option>', (int) $option, selected( $option, $chosen, false ), esc_html( $option_title ) );
+					}
+				}
+				echo '</select></td>';
+			}
+			echo '</tr>';
+		}
+
+		echo '</tbody></table>';
+	}
+
+	/**
+	 * How template parts get a version per language: a naming rule, nothing to save here.
+	 */
+	public static function template_parts_section(): void {
+		$example = (string) array_key_first( array_diff_key( Languages::all(), array( Languages::default() => true ) ) );
+
+		printf(
+			'<p>%1$s <a href="%2$s">%3$s</a></p>',
+			esc_html(
+				sprintf(
+					/* translators: 1: language URL prefix, e.g. "en". */
+					__( 'To change a template part on the pages of a language, create a template part with the same name followed by a hyphen and the URL prefix of the language, for example header-%1$s for header. Without it, the pages of the language show the template part of the default language.', 'easyrankly' ),
+					$example
+				)
+			),
+			esc_url( admin_url( 'site-editor.php?postType=wp_template_part' ) ),
+			esc_html__( 'Edit template parts', 'easyrankly' )
 		);
 	}
 

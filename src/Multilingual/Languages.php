@@ -33,10 +33,12 @@ final class Languages {
 	/**
 	 * Configured languages, keyed by slug, in display order.
 	 *
+	 * `site_title` and `tagline` are empty when the language uses those of Settings > General.
+	 *
 	 * The option is autoloaded, so this costs no query. It is read directly, without the
 	 * defaults of Settings::get(): those are translated, and the locale filter reads this.
 	 *
-	 * @return array<string, array{locale: string, name: string}>
+	 * @return array<string, array{locale: string, name: string, site_title: string, tagline: string}>
 	 */
 	public static function all(): array {
 		$settings  = get_option( Settings::OPTION, array() );
@@ -46,8 +48,10 @@ final class Languages {
 		foreach ( is_array( $languages ) ? $languages : array() as $slug => $language ) {
 			if ( is_string( $slug ) && is_array( $language ) && isset( $language['locale'], $language['name'] ) ) {
 				$clean[ $slug ] = array(
-					'locale' => (string) $language['locale'],
-					'name'   => (string) $language['name'],
+					'locale'     => (string) $language['locale'],
+					'name'       => (string) $language['name'],
+					'site_title' => (string) ( $language['site_title'] ?? '' ),
+					'tagline'    => (string) ( $language['tagline'] ?? '' ),
 				);
 			}
 		}
