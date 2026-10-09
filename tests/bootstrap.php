@@ -30,8 +30,6 @@ tests_add_filter(
 	'muplugins_loaded',
 	static function (): void {
 		require dirname( __DIR__ ) . '/easyrankly.php';
-		// Another plugin that registers proposable actions through the extension points (Fase 5).
-		require __DIR__ . '/fixtures/plugins/easyrankly-test-action.php';
 	}
 );
 

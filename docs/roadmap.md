@@ -116,7 +116,7 @@ Decisione e perché: `docs/piano.md`, sezioni 5 e 6. L'agente vive tutto in Easy
 `easyrankly-pro`); nessuna migrazione, perché la versione 3 non è ancora pubblicata. Il codice da portare resta nella
 storia di `Refactory` (ultimo commit con l'agente prima di 6.1).
 
-- [ ] 6.1 Togliere l'agente: `src/Agent/`, l'entry point JS, la voce di menu "AI agent", la chiave `agent_auto` di
+- [x] 6.1 Togliere l'agente: `src/Agent/`, l'entry point JS, la voce di menu "AI agent", la chiave `agent_auto` di
       `easyrankly_settings`, l'option `easyrankly_agent`, i post type `erankly_proposal` ed `erankly_memory` con i
       loro stati e meta, la pulizia in `uninstall.php`, i test, le voci di `docs/data-model.md` e la parte AI di `readme.txt`
 - [ ] 6.2 Togliere i punti di estensione della Fase 5 (`easyrankly_agent_actions`, `easyrankly_create_proposal()`,

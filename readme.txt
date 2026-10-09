@@ -1,6 +1,6 @@
 === EasyRankly ===
 Contributors: easyrankly
-Tags: seo, redirects, sitemap, multilingual, ai
+Tags: seo, redirects, sitemap, multilingual
 Requires at least: 7.0
 Tested up to: 7.1
 Requires PHP: 8.1
@@ -20,14 +20,7 @@ EasyRankly is in active development. This version is not ready for production si
 
 == External services ==
 
-EasyRankly never contacts an AI service on its own and holds no API key. Its AI agent works only through the AI Client built into WordPress, with the provider a site administrator connects in Settings → Connectors. Without a connected provider, the AI features stay hidden and the rest of the plugin works the same.
-
-The agent sends a request to that provider only when an administrator asks for a suggestion, or while the agent dashboard is open if "Analyze automatically when this page opens" is switched on (it is off by default). Each request contains:
-
-* for the SEO texts of a post: the site name, address and language, the project memory written by the site administrators, and the post's title, address, excerpt, current SEO texts and up to 6,000 characters of its text;
-* for the alternative text of an image: the same site details and memory, the image file (a resized copy when available), its file name, title and caption, and the title of the post it belongs to.
-
-What the provider does with this data is governed by its own terms of service and privacy policy, which you accept when you connect it in WordPress. Redirect suggestions for trashed content are made on your site, without any external service.
+EasyRankly does not connect to any external service.
 
 == Changelog ==
 

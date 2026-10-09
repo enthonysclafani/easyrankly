@@ -10,19 +10,12 @@
 
 defined( 'WP_UNINSTALL_PLUGIN' ) || exit;
 
-// Proposal statuses (src/Agent/Proposals.php): the plugin is not loaded here, and queries ignore
-// unregistered statuses, so they are registered just to find the proposals.
-foreach ( array( 'erankly_pending', 'erankly_accepted', 'erankly_rejected', 'erankly_superseded', 'erankly_failed', 'erankly_reverted' ) as $easyrankly_status ) {
-	register_post_status( $easyrankly_status, array( 'internal' => true ) );
-}
-
-// Redirects (src/Redirects/Redirects.php), snippets (src/CustomCode/CustomCode.php), proposals
-// (src/Agent/Proposals.php) and memory (src/Agent/Memory.php): posts with their meta and revisions
-// first, then the caches built from them.
+// Redirects (src/Redirects/Redirects.php) and snippets (src/CustomCode/CustomCode.php): posts with
+// their meta and revisions first, then the caches built from them.
 do {
 	$easyrankly_ids     = get_posts(
 		array(
-			'post_type'        => array( 'erankly_redirect', 'erankly_snippet', 'erankly_proposal', 'erankly_memory' ),
+			'post_type'        => array( 'erankly_redirect', 'erankly_snippet' ),
 			'post_status'      => array_keys( get_post_stati() ),
 			'posts_per_page'   => 100,
 			'fields'           => 'ids',
@@ -62,7 +55,6 @@ delete_option( 'easyrankly_settings' );
 delete_option( 'easyrankly_redirects_forced' );
 delete_option( 'easyrankly_redirects_regex' );
 delete_option( 'easyrankly_snippets' );
-delete_option( 'easyrankly_agent' );
 
 // SEO meta of posts and terms (src/Meta/Meta.php).
 foreach (
