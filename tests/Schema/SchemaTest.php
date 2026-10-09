@@ -102,6 +102,29 @@ final class SchemaTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * An author archive is a ProfilePage about the author, as Google requires mainEntity.
+	 */
+	public function test_author_archive_is_profile_page_with_main_entity(): void {
+		$author = self::factory()->user->create( array( 'display_name' => 'Ann' ) );
+		self::factory()->post->create( array( 'post_author' => $author ) );
+		$url = get_author_posts_url( $author );
+
+		$this->go_to( $url );
+		$nodes = $this->nodes( new Schema() );
+
+		$this->assertSame( $url . '#webpage', $nodes['ProfilePage']['@id'] );
+		$this->assertSame(
+			array(
+				'@type' => 'Person',
+				'@id'   => $url . '#author',
+				'name'  => 'Ann',
+				'url'   => $url,
+			),
+			$nodes['ProfilePage']['mainEntity']
+		);
+	}
+
+	/**
 	 * A person identity with logo and profiles replaces the organization.
 	 */
 	public function test_person_identity_from_settings(): void {
