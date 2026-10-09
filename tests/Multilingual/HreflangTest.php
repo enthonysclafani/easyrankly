@@ -141,6 +141,17 @@ final class HreflangTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * A canonical equal to the page's own URL keeps the page in its translation group.
+	 */
+	public function test_self_canonical_keeps_alternates(): void {
+		$map = $this->group();
+		update_post_meta( $map['en'], '_easyrankly_canonical', 'http://example.org/en/post-en/' );
+
+		$this->go_to( 'http://example.org/fr/post-fr/' );
+		$this->assertSame( array( 'it-IT', 'en-US', 'fr-FR', 'x-default' ), array_keys( Hreflang::alternates() ) );
+	}
+
+	/**
 	 * A page that is noindex, or not its own canonical, gets no alternates.
 	 */
 	public function test_non_indexable_page_has_no_alternates(): void {

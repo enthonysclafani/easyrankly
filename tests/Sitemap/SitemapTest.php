@@ -74,6 +74,24 @@ final class SitemapTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * A canonical equal to the page's own URL is dropped on save, so the page stays in the sitemap.
+	 */
+	public function test_self_canonical_keeps_posts_and_terms_listed(): void {
+		$post_id = self::factory()->post->create();
+		$term_id = self::factory()->category->create();
+		self::factory()->post->create( array( 'post_category' => array( $term_id ) ) );
+
+		// Another scheme is still the same page.
+		update_post_meta( $post_id, '_easyrankly_canonical', set_url_scheme( get_permalink( $post_id ), 'https' ) );
+		update_term_meta( $term_id, '_easyrankly_canonical', get_category_link( $term_id ) . '/' );
+
+		$this->assertSame( '', get_post_meta( $post_id, '_easyrankly_canonical', true ) );
+		$this->assertSame( '', get_term_meta( $term_id, '_easyrankly_canonical', true ) );
+		$this->assertContains( get_permalink( $post_id ), $this->urls( 'posts', 'post' ) );
+		$this->assertContains( get_category_link( $term_id ), $this->urls( 'taxonomies', 'category' ) );
+	}
+
+	/**
 	 * Terms with their own noindex are left out.
 	 */
 	public function test_noindex_terms_are_left_out(): void {
