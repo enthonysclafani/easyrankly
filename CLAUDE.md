@@ -75,8 +75,10 @@ complesso). Usali per il lavoro lungo e meccanico:
 ## Invarianti architetturali (non negoziabili)
 
 `composer architecture` (`tools/check-architecture.php`) verifica in automatico le regole 1, 2, 3 e 5, più `$wpdb`,
-`eval`, scritture su disco e la guardia di accesso diretto. Una violazione blocca la CI. Le regole 4, 6, 7 e 8
-non si possono verificare in automatico: rispettale tu e controllale in review.
+`eval`, scritture su disco e la guardia di accesso diretto. Della regola 7 verifica le funzioni e gli hook di AI Client,
+Abilities API e Connectors API e i nomi dell'agente e del Pro (`erankly_proposal`, `easyrankly_agent…`, `erankly-pro`…).
+Una violazione blocca la CI. Le regole 4, 6 e 8 e il resto della 7 non si possono verificare in automatico:
+rispettale tu e controllale in review.
 
 1. **Zero tabelle custom.** Mai `CREATE TABLE`, `dbDelta()`, `ALTER TABLE`.
    I dati vanno in: Options API, post meta, term meta, user meta, post type non pubblici, tassonomie nascoste.

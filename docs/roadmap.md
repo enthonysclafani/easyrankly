@@ -122,7 +122,7 @@ storia di `Refactory` (ultimo commit con l'agente prima di 6.1).
 - [x] 6.2 Togliere i punti di estensione della Fase 5 (`easyrankly_agent_actions`, `easyrankly_create_proposal()`,
       `src/functions.php` se resta vuoto, il plugin di prova) e aggiornare `CLAUDE.md` (sezioni "Agente AI",
       "EasyRankly Pro", "Perimetro", invarianti 6 e 7)
-- [ ] 6.3 Verifica: nessun riferimento ad agente, proposte, AI o Pro nel codice (`composer architecture` può
+- [x] 6.3 Verifica: nessun riferimento ad agente, proposte, AI o Pro nel codice (`composer architecture` può
       controllarlo); il plugin funziona uguale senza un provider AI
 
 ## Fase 7 — Multilingua: menu e stringhe del tema

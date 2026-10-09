@@ -27,5 +27,11 @@ final class Feature {
 	}
 
 	private function copy(): void {
+		// Names that only look like the agent's, and a method named like an AI function.
+		update_option( 'easyrankly_settings', array( 'progress' => 'easyrankly-promo' ) );
+		$this->wp_get_ability();
+	}
+
+	private function wp_get_ability(): void {
 	}
 }

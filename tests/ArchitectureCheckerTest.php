@@ -23,7 +23,8 @@ final class ArchitectureCheckerTest extends TestCase {
 	}
 
 	/**
-	 * Allowed patterns (admin assets, hooks from callbacks, interpolated strings) are not reported.
+	 * Allowed patterns (admin assets, hooks from callbacks, interpolated strings, names that only look like the
+	 * agent's) are not reported.
 	 */
 	public function test_clean_fixture_has_no_violations(): void {
 		$this->assertSame( array(), $this->violations( __DIR__ . '/fixtures/architecture/clean' ) );
@@ -47,6 +48,10 @@ final class ArchitectureCheckerTest extends TestCase {
 			'src/Bad.php:16:forbidden-php',
 			'src/Bad.php:17:no-disk-writes',
 			'src/Bad.php:18:no-frontend-assets',
+			'src/Bad.php:19:no-ai',
+			'src/Bad.php:20:no-ai',
+			'src/Bad.php:21:no-pro-code',
+			'src/Bad.php:22:no-pro-code',
 		);
 
 		$this->assertEqualsCanonicalizing( $expected, $this->violations( __DIR__ . '/fixtures/architecture/violations' ) );
