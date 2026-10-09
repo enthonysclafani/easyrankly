@@ -188,6 +188,44 @@ final class PageTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * With languages, the Languages page explains how theme texts change language: by name in block themes,
+	 * not at all in classic themes.
+	 */
+	public function test_languages_page_explains_theme_texts(): void {
+		$this->login( 'administrator' );
+		update_option(
+			Settings::OPTION,
+			array(
+				'languages' => array(
+					'it' => array(
+						'locale' => 'it_IT',
+						'name'   => 'Italiano',
+					),
+					'en' => array(
+						'locale' => 'en_US',
+						'name'   => 'English',
+					),
+				),
+			)
+		);
+
+		$this->assertFalse( wp_is_block_theme() );
+		$classic = $this->page( 'easyrankly-languages' );
+		$this->assertStringContainsString( 'Classic themes are not supported for theme texts', $classic );
+		$this->assertStringNotContainsString( 'Banner - EN', $classic );
+
+		$GLOBALS['wp_settings_sections'] = array();
+		$GLOBALS['wp_settings_fields']   = array();
+		switch_theme( 'twentytwentyfive' );
+		$block = $this->page( 'easyrankly-languages' );
+
+		$this->assertStringContainsString( 'header-en for header', $block );
+		$this->assertStringContainsString( '&quot;Banner - EN&quot; replaces &quot;Banner&quot;', $block );
+		$this->assertStringContainsString( 'site-editor.php?p=/pattern', $block );
+		$this->assertStringNotContainsString( 'Classic themes are not supported', $block );
+	}
+
+	/**
 	 * Only the page with image fields loads a script, and no page loads the components styles.
 	 */
 	public function test_only_the_schema_page_loads_a_script(): void {

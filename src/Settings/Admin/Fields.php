@@ -50,8 +50,8 @@ final class Fields {
 				if ( Languages::enabled() ) {
 					add_settings_section( 'menus', __( 'Menus', 'easyrankly' ), array( self::class, 'menus_section' ), $slug );
 				}
-				if ( Languages::enabled() && wp_is_block_theme() ) {
-					add_settings_section( 'template_parts', __( 'Template parts', 'easyrankly' ), array( self::class, 'template_parts_section' ), $slug );
+				if ( Languages::enabled() ) {
+					add_settings_section( 'theme_texts', __( 'Theme texts', 'easyrankly' ), array( self::class, 'theme_texts_section' ), $slug );
 				}
 				break;
 		}
@@ -784,22 +784,42 @@ final class Fields {
 	}
 
 	/**
-	 * How template parts get a version per language: a naming rule, nothing to save here.
+	 * How the texts of the theme get a version per language: a naming rule in block themes, nothing to save
+	 * here; classic themes keep widgets and Customizer texts in every language.
 	 */
-	public static function template_parts_section(): void {
+	public static function theme_texts_section(): void {
+		if ( ! wp_is_block_theme() ) {
+			printf(
+				'<p>%s</p>',
+				esc_html__( 'Classic themes are not supported for theme texts: widgets and texts set in the Customizer show the same text in every language. Contents, menus, site title and tagline, and the texts the theme translates itself change with the language.', 'easyrankly' )
+			);
+			return;
+		}
+
 		$example = (string) array_key_first( array_diff_key( Languages::all(), array( Languages::default() => true ) ) );
 
 		printf(
-			'<p>%1$s <a href="%2$s">%3$s</a></p>',
+			'<p>%s</p>',
 			esc_html(
 				sprintf(
 					/* translators: 1: language URL prefix, e.g. "en". */
 					__( 'To change a template part on the pages of a language, create a template part with the same name followed by a hyphen and the URL prefix of the language, for example header-%1$s for header. Without it, the pages of the language show the template part of the default language.', 'easyrankly' ),
 					$example
 				)
+			)
+		);
+		printf(
+			'<p>%1$s <a href="%2$s">%3$s</a></p>',
+			esc_html(
+				sprintf(
+					/* translators: 1: language URL prefix in capitals, e.g. "EN". */
+					__( 'Synced patterns work the same way: a synced pattern named "Banner - %1$s" replaces "Banner" on the pages of that language. Unsynced patterns become a copy where they are inserted: translate them in the page of each language, or move their text into a template part or a synced pattern.', 'easyrankly' ),
+					strtoupper( $example )
+				)
 			),
-			esc_url( admin_url( 'site-editor.php?postType=wp_template_part' ) ),
-			esc_html__( 'Edit template parts', 'easyrankly' )
+			// Template parts and patterns share this screen of the Site Editor.
+			esc_url( admin_url( 'site-editor.php?p=/pattern' ) ),
+			esc_html__( 'Edit template parts and patterns', 'easyrankly' )
 		);
 	}
 
