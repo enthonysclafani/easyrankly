@@ -263,6 +263,10 @@ Plugin a pagamento con licenza annuale, venduto fuori da WordPress.org e dichiar
 (`Requires Plugins: easyrankly`). Vive nel repository `easyrankly-pro`, il suo backend in un repository a parte.
 Decisioni e perché: `docs/piano.md`, sezione 6.
 
+Decisione di ottobre 2026: l'agente AI e i punti di estensione qui sotto passano tutti al Pro, che diventa autonomo;
+nel gratuito non resterà nulla per il Pro (Fase 6 della roadmap). Fino ad allora queste regole valgono per il codice
+che c'è: non aggiungere funzioni all'agente né nuovi punti di estensione.
+
 - **Nel gratuito il minimo**: solo punti di estensione generici, che qualunque plugin può usare, documentati con
   `@since` e coperti da test con un'azione di prova. Niente licenze, upsell, nomi o controlli del Pro.
 - Ogni punto di estensione è una promessa di compatibilità: aggiungerlo è una decisione da chiedere, come ogni hook pubblico.

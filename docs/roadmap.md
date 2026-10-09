@@ -56,9 +56,11 @@ Riferimenti Alpha: `includes/multilingual/singlesite/`, `includes/hreflang.php`,
       loro URL e `wp-sitemap-languages-1.xml` le home delle lingue: niente file separati per lingua, che non aggiungono nulla
 - [x] 2.5 Blocco selettore di lingua renderizzato lato server (solo `editorScript`, nessun asset nel frontend)
 - [x] 2.6 Template SEO per lingua
-- Decisione di ottobre 2026: il multilingua copre anche menu e stringhe del tema, senza tabelle. Lo fa la Fase 6.
+- Decisione di ottobre 2026: il multilingua copre anche menu e stringhe del tema, senza tabelle. Lo fa la Fase 7.
 
 ## Fase 3 — Agente AI nel plugin (chiavi dell'utente)
+
+Decisione di ottobre 2026: l'agente passa tutto a EasyRankly Pro e si toglie da qui con la Fase 6.
 
 - [x] 3.1 Categoria di ability `easyrankly` e ability di sola lettura: dati SEO di un contenuto, contesto del sito,
       ricerca nei contenuti
@@ -94,6 +96,9 @@ Fase 5 tocca la dashboard delle proposte: si cambia una volta sola, sulla nuova 
 
 ## Fase 5 — Punti di estensione per EasyRankly Pro
 
+Decisione di ottobre 2026: il Pro è autonomo e nel gratuito non resta nessun punto di estensione per lui. Questi due
+si tolgono con l'agente nella Fase 6.
+
 EasyRankly Pro è un plugin separato (repository `easyrankly-pro`) con un suo backend: vedi `docs/piano.md`, sezione 6.
 Qui solo il minimo che serve nel gratuito: punti di estensione generici, usabili da qualunque plugin, senza codice,
 nomi o licenze del Pro. Ogni punto aggiunge hook pubblici: il piano del punto li elenca per l'approvazione.
@@ -105,28 +110,47 @@ nomi o licenze del Pro. Ogni punto aggiunge hook pubblici: il piano del punto li
 - [x] 5.2 Funzione pubblica per creare una proposta, con le stesse regole di oggi (allowlist, schema, testi, tetto
       giornaliero, proposte superate). Test di 5.1 e 5.2 con un'azione di prova registrata da un plugin di test.
 
-## Fase 6 — Multilingua: menu e stringhe del tema
+## Fase 6 — Agente AI fuori dal gratuito
+
+Decisione e perché: `docs/piano.md`, sezioni 5 e 6. L'agente vive tutto in EasyRankly Pro (repository
+`easyrankly-pro`); nessuna migrazione, perché la versione 3 non è ancora pubblicata. Il codice da portare resta nella
+storia di `Refactory` (ultimo commit con l'agente prima di 6.1).
+
+- [ ] 6.1 Togliere l'agente: `src/Agent/`, l'entry point JS, la voce di menu "AI agent", la chiave `agent_auto` di
+      `easyrankly_settings`, l'option `easyrankly_agent`, i post type `erankly_proposal` ed `erankly_memory` con i
+      loro stati e meta, la pulizia in `uninstall.php`, i test, le voci di `docs/data-model.md` e la parte AI di `readme.txt`
+- [ ] 6.2 Togliere i punti di estensione della Fase 5 (`easyrankly_agent_actions`, `easyrankly_create_proposal()`,
+      `src/functions.php` se resta vuoto, il plugin di prova) e aggiornare `CLAUDE.md` (sezioni "Agente AI",
+      "EasyRankly Pro", "Perimetro", invarianti 6 e 7)
+- [ ] 6.3 Verifica: nessun riferimento ad agente, proposte, AI o Pro nel codice (`composer architecture` può
+      controllarlo); il plugin funziona uguale senza un provider AI
+
+## Fase 7 — Multilingua: menu e stringhe del tema
 
 Decisione e strada proposta: `docs/piano.md`, sezione 7. Niente tabelle né moduli; option e meta nuovi si
 approvano nel piano di ogni punto.
 
-- [ ] 6.1 Titolo e descrizione del sito per lingua (pagina Lingue), letti con `option_blogname` e
+- [ ] 7.1 Titolo e descrizione del sito per lingua (pagina Lingue), letti con `option_blogname` e
       `option_blogdescription` sulle pagine di quella lingua
-- [ ] 6.2 Menu per lingua: per ogni posizione del tema un menu per lingua (`theme_mod_nav_menu_locations`) e, nei temi
+- [ ] 7.2 Menu per lingua: per ogni posizione del tema un menu per lingua (`theme_mod_nav_menu_locations`) e, nei temi
       a blocchi, la navigazione per lingua del blocco `core/navigation`
-- [ ] 6.3 Altre stringhe del tema: da definire (vedi "Decisioni aperte")
+- [ ] 7.3 Altre stringhe del tema: da definire (vedi "Decisioni aperte")
 
 ## Requisiti minimi
 
 Decisione di ottobre 2026: il più bassi possibile senza peggiorare il codice (vedi `docs/piano.md`, sezione 7).
 
 - [ ] Confermare il minimo di PHP con PHPCompatibility (`testVersion` in `phpcs.xml.dist`) e la CI; oggi è 8.1
-- [ ] Minimo di WordPress: elenco delle API del core usate con la versione che le introduce, dopo la decisione
-      sull'agente in un plugin dedicato (oggi 7.0, per AI Client e Connectors)
+- [ ] Minimo di WordPress: elenco delle API del core usate con la versione che le introduce, dopo la Fase 6
+      (oggi 7.0, per AI Client e Connectors dell'agente, che passa al Pro)
 
-## EasyRankly Pro (repository separato, da creare)
+## EasyRankly Pro (repository `easyrankly-pro`)
 
-Promemoria dei punti che erano qui come "Fase 4 — EasyRankly Cloud". La loro roadmap vivrà nel repository del Pro.
+Promemoria dei punti che erano qui come "Fase 4 — EasyRankly Cloud", più l'agente. La loro roadmap vive nel
+repository del Pro. Nome nel codice: `erankly-pro`; richiede il gratuito (`Requires Plugins: easyrankly`).
+
+- Agente AI portato dalle Fasi 3 e 5 (proposte, memoria, dashboard, allowlist con la validazione), prima funzione del
+  Pro; struttura per funzioni, pronta ad accoglierne altre senza un sistema a moduli
 
 - Licenza annuale e attivazione con l'email d'acquisto; aggiornamenti tramite `Update URI`; backend
   (Cloudflare Workers) con Stripe Managed Payments
@@ -139,14 +163,14 @@ Promemoria dei punti che erano qui come "Fase 4 — EasyRankly Cloud". La loro r
 
 ## Decisioni aperte
 
-- Agente AI in un plugin dedicato, senza niente dell'agente nel plugin principale: da definire (`docs/piano.md`,
-  sezione 8). Tocca le Fasi 3 e 5, il Pro e i requisiti minimi.
-- Multilingua: quali altre stringhe del tema (punto 6.3).
+- EasyRankly Pro: come gestire vendita, download e licenze (backend nostro con Stripe Managed Payments, come in
+  `docs/piano.md` sezione 6, oppure SureCart, WooCommerce o altro).
+- Multilingua: quali altre stringhe del tema (punto 7.3).
 - Import da Yoast e Rank Math: solo meta e redirect, a lotti dall'admin? (riferimento Alpha: `includes/migrations/`)
 - Schema extra: Local Business, Product per WooCommerce.
 - Modelli decisionali (es. Jev di typesafe.ai): rimandati. Con l'AI pagata dall'utente, un modello sul backend
   sarebbe un costo nostro; da rivalutare dopo il lancio del Pro, con un test su 2–3 decisioni reali.
 
 Decise a ottobre 2026 (dettagli in `docs/piano.md`, sezione 7): niente IndexNow; prezzi del Pro confermati; multilingua
-anche per menu e stringhe del tema (Fase 6); requisiti minimi il più bassi possibile; noindex su pagine povere
-proponibile nel Pro.
+anche per menu e stringhe del tema (Fase 7); requisiti minimi il più bassi possibile; noindex su pagine povere
+proponibile nel Pro; agente AI tutto nel Pro (Fase 6).
