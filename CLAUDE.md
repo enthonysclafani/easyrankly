@@ -185,7 +185,7 @@ Prima di scrivere codice, verifica se WordPress lo fa già. Se lo fa, usa o filt
 
 ## PHP: stile e struttura
 
-- PHP minimo 8.1, WordPress minimo 7.0. Namespace `EasyRankly\`, autoload PSR-4 senza Composer (`src/autoload.php`).
+- PHP minimo 8.0, WordPress minimo 7.0. Namespace `EasyRankly\`, autoload PSR-4 senza Composer (`src/autoload.php`).
 - Standard: WordPress Coding Standards (`WordPress-Extra`, `WordPress-Docs`), PHPCompatibilityWP, PHPStan livello 8
   con `szepeviktor/phpstan-wordpress`. Zero errori, zero `phpcs:ignore` senza motivazione nella stessa riga.
 - Una funzionalità = una cartella in `src/` con una classe che espone `register(): void`.

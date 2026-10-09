@@ -5,7 +5,7 @@
  * Description:       Lightweight SEO built only on native WordPress APIs: metadata, redirects, sitemaps, custom code and multilingual.
  * Version:           3.0.0
  * Requires at least: 7.0
- * Requires PHP:      8.1
+ * Requires PHP:      8.0
  * Author:            EasyRankly
  * Author URI:        https://easyrankly.com/
  * License:           GPL-2.0-or-later

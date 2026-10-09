@@ -142,7 +142,9 @@ approvano nel piano di ogni punto.
 
 Decisione di ottobre 2026: il più bassi possibile senza peggiorare il codice (vedi `docs/piano.md`, sezione 7).
 
-- [ ] Confermare il minimo di PHP con PHPCompatibility (`testVersion` in `phpcs.xml.dist`) e la CI; oggi è 8.1
+- [x] Minimo di PHP: 8.0 (`testVersion` in `phpcs.xml.dist`, intestazioni, Composer, CI su 8.0 e 8.4). Sotto non si
+      scende senza riscrivere codice: `match`, operatore `?->` e tipo `mixed` sono di PHP 8.0. PHPCompatibility 9.3.5 non
+      conosce le novità di PHP 8: la conferma vera sono PHPStan e PHPUnit della CI su PHP 8.0
 - [ ] Minimo di WordPress: elenco delle API del core usate con la versione che le introduce, dopo la Fase 6
       (oggi 7.0, per AI Client e Connectors dell'agente, che passa al Pro)
 
