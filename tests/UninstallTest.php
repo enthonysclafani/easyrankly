@@ -7,7 +7,6 @@
 
 namespace EasyRankly\Tests;
 
-use EasyRankly\Agent\Proposals;
 use WP_UnitTestCase;
 
 /**
@@ -29,7 +28,6 @@ final class UninstallTest extends WP_UnitTestCase {
 		}
 
 		update_option( 'easyrankly_settings', array( 'title_separator' => '|' ) );
-		update_option( 'easyrankly_agent', array( 'recent' => array( 1 ) ), false );
 
 		require dirname( __DIR__ ) . '/uninstall.php';
 
@@ -154,77 +152,6 @@ final class UninstallTest extends WP_UnitTestCase {
 				)
 			);
 			$this->assertSame( array(), wp_get_object_terms( $post, $taxonomy ) );
-		}
-	}
-
-	/**
-	 * Proposals in every status are removed with their meta.
-	 */
-	public function test_uninstall_removes_proposals(): void {
-		if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
-			define( 'WP_UNINSTALL_PLUGIN', 'easyrankly/easyrankly.php' );
-		}
-
-		$ids = array();
-		foreach ( Proposals::STATUSES as $status ) {
-			$ids[] = self::factory()->post->create(
-				array(
-					'post_type'   => 'erankly_proposal',
-					'post_status' => $status,
-					'meta_input'  => array( '_easyrankly_proposal_ability' => 'easyrankly/update-post-seo' ),
-				)
-			);
-		}
-
-		// Uninstall runs without the plugin, so without its statuses.
-		foreach ( Proposals::STATUSES as $status ) {
-			_unregister_post_status( $status );
-		}
-
-		require dirname( __DIR__ ) . '/uninstall.php';
-		( new Proposals() )->register_post_type();
-
-		foreach ( $ids as $id ) {
-			$this->assertNull( get_post( $id ) );
-			$this->assertFalse( metadata_exists( 'post', $id, '_easyrankly_proposal_ability' ) );
-		}
-	}
-
-	/**
-	 * Memory entries and their revisions are removed.
-	 */
-	public function test_uninstall_removes_memory(): void {
-		if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
-			define( 'WP_UNINSTALL_PLUGIN', 'easyrankly/easyrankly.php' );
-		}
-
-		$id = self::factory()->post->create(
-			array(
-				'post_type'    => 'erankly_memory',
-				'post_content' => 'First',
-			)
-		);
-		wp_update_post(
-			array(
-				'ID'           => $id,
-				'post_content' => 'Second',
-			)
-		);
-		$draft     = self::factory()->post->create(
-			array(
-				'post_type'   => 'erankly_memory',
-				'post_status' => 'draft',
-			)
-		);
-		$revisions = array_keys( wp_get_post_revisions( $id ) );
-
-		require dirname( __DIR__ ) . '/uninstall.php';
-
-		$this->assertNull( get_post( $id ) );
-		$this->assertNull( get_post( $draft ) );
-		$this->assertNotEmpty( $revisions );
-		foreach ( $revisions as $revision ) {
-			$this->assertNull( get_post( $revision ) );
 		}
 	}
 }

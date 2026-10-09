@@ -239,11 +239,6 @@ final class Settings {
 				'maxProperties'        => 20,
 				'default'              => array(),
 			),
-			'agent_auto'            => array(
-				'description' => __( 'Let the AI agent analyze the site when the agent dashboard opens. Off: it runs only when asked.', 'easyrankly' ),
-				'type'        => 'boolean',
-				'default'     => false,
-			),
 		);
 	}
 

@@ -7,7 +7,6 @@
 
 namespace EasyRankly\Tests\Admin;
 
-use EasyRankly\Agent\Admin\Page as AgentPage;
 use EasyRankly\CustomCode\Admin\Page as SnippetsPage;
 use EasyRankly\CustomCode\CustomCode;
 use EasyRankly\Redirects\Admin\Page as RedirectsPage;
@@ -76,8 +75,6 @@ final class AssetsTest extends WP_UnitTestCase {
 			'snippets'       => array( SnippetsPage::SLUG, array() ),
 			'snippets, new'  => array( SnippetsPage::SLUG, array( 'action' => 'new' ) ),
 			'snippets, edit' => array( SnippetsPage::SLUG, array( 'action' => 'edit' ) ),
-			'agent'          => array( AgentPage::SLUG, array() ),
-			'agent, memory'  => array( AgentPage::SLUG, array( 'tab' => 'memory' ) ),
 		);
 	}
 
@@ -94,7 +91,6 @@ final class AssetsTest extends WP_UnitTestCase {
 		( new SettingsPage() )->add_menu();
 		( new RedirectsPage() )->add_menu();
 		( new SnippetsPage() )->add_menu();
-		( new AgentPage() )->add_menu();
 
 		if ( isset( $args['action'] ) && 'edit' === $args['action'] ) {
 			$id = self::factory()->post->create( array( 'post_type' => CustomCode::POST_TYPE ) );
