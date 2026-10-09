@@ -397,7 +397,7 @@ final class Rest {
 	 */
 	private static function lines( string $before, string $after ): array {
 		if ( ! class_exists( 'Text_Diff', false ) ) {
-			require_once ABSPATH . WPINC . '/Text/Diff.php';
+			require_once ABSPATH . 'wp-includes/Text/Diff.php';
 		}
 
 		$split = static fn( string $text ): array => '' === $text ? array() : explode( "\n", str_replace( array( "\r\n", "\r" ), "\n", $text ) );
