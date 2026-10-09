@@ -16,6 +16,7 @@ Documenti di riferimento (tutti in questo branch):
 - `docs/roadmap.md`: fasi, cosa è fatto e cosa no. È la fonte di verità su cosa fare dopo.
 - `docs/data-model.md`: ogni dato salvato dal plugin. Se non è lì, il plugin non lo crea.
 - `docs/prompt.md`: come si avvia e si chiude il lavoro su un punto della roadmap.
+- `docs/sicurezza.md`: piano del controllo di sicurezza (snippet HTML e PHP per primi).
 
 Il vecchio EasyRankly vive nel branch `Alpha` di questo stesso repository ed è **solo un riferimento**: leggilo per
 capire la logica, poi riscrivi secondo queste regole. Non copiare file, tabelle, job o strutture a moduli.
