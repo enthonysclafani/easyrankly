@@ -33,9 +33,10 @@ final class Page extends RecordsPage {
 	 */
 	private static function positions(): array {
 		return array(
-			'head'      => __( 'Head', 'easyrankly' ),
-			'body_open' => __( 'After the opening body tag', 'easyrankly' ),
-			'footer'    => __( 'Footer', 'easyrankly' ),
+			'head'       => __( 'Head', 'easyrankly' ),
+			'body_open'  => __( 'After the opening body tag', 'easyrankly' ),
+			'footer'     => __( 'Footer', 'easyrankly' ),
+			'everywhere' => __( 'Everywhere, like functions.php (PHP only)', 'easyrankly' ),
 		);
 	}
 
@@ -331,7 +332,10 @@ final class Page extends RecordsPage {
 		foreach ( self::positions() as $position => $label ) {
 			printf( '<option value="%1$s"%2$s>%3$s</option>', esc_attr( $position ), selected( $values['position'], $position, false ), esc_html( $label ) );
 		}
-		echo '</select></td></tr>';
+		printf(
+			'</select><p class="description">%s</p></td></tr>',
+			esc_html__( 'Everywhere runs the PHP as soon as the plugins are loaded, on every request, admin included, but never on this screen. What it prints is dropped: use it to add or remove hooks. If it locks you out, add define( \'EASYRANKLY_SAFE_MODE\', true ); to wp-config.php.', 'easyrankly' )
+		);
 
 		printf(
 			'<tr><th scope="row"><label for="easyrankly-priority">%1$s</label></th><td><input type="number" id="easyrankly-priority" name="priority" value="%2$d" min="0" max="1000" class="small-text" /><p class="description">%3$s</p></td></tr>',

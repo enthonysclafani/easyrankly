@@ -28,6 +28,10 @@ In block themes, create a template part or a synced pattern with the same name f
 
 Contents, menus, site title and tagline, and the texts the theme translates itself change with the language. Widgets and texts set in the Customizer do not: they show the same text in every language. Block themes are supported first.
 
+= What does the "Everywhere" position of Custom code do? =
+
+It runs a PHP snippet as soon as the plugins are loaded, on every request, admin included, like the functions.php of a theme: use it to add or remove hooks. It never runs on the Custom code screen, so a broken snippet can always be fixed there. What the snippet prints at that moment is dropped. If a snippet locks you out, add `define( 'EASYRANKLY_SAFE_MODE', true );` to wp-config.php: no snippet runs until you remove it.
+
 == External services ==
 
 EasyRankly does not connect to any external service.

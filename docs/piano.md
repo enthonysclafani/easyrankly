@@ -37,7 +37,7 @@ Search Console tiene già 16 mesi.
 | Breadcrumb | Usa il blocco `core/breadcrumbs` del core; il plugin aggiunge BreadcrumbList | Filtro `block_core_breadcrumbs_items` |
 | Sitemap | Estende le sitemap del core | `wp_sitemaps_*`, nessun generatore proprio |
 | Redirect | 301/302/307/410, esatti e regex | Post type `erankly_redirect`; hash della sorgente in `post_name` (indicizzato); ricerca solo su 404 più una piccola lista di "forzati" |
-| Custom code | Snippet HTML e PHP in head, apertura del body, footer | Post type `erankly_snippet`; PHP solo con `edit_plugins`, controllo della sintassi senza esecuzione, disattivazione automatica in caso di errore, modalità sicura |
+| Custom code | Snippet HTML e PHP in head, apertura del body, footer; PHP anche "ovunque", come `functions.php` | Post type `erankly_snippet`; PHP solo con `edit_plugins`, controllo della sintassi senza esecuzione, disattivazione automatica in caso di errore, modalità sicura |
 | Multilingua | Singolo sito: lingua per contenuto, gruppi di traduzioni, prefisso nella URL, hreflang, sitemap per lingua; menu e stringhe del tema per lingua (Fase 7) | Tassonomie nascoste (come Polylang); blocco selettore renderizzato lato server; menu e testi per lingua nella option e nei filtri del core, senza tabelle |
 | EasyRankly Pro (plugin a parte) | Agente AI con proposte da approvare (sezione 5) e lavoro operativo di un SEO di agenzia: Search Console, parole chiave e cluster, link interni, contenuti, report | Plugin separato e autonomo, fuori da WordPress.org; usa solo ciò che il gratuito espone già (sezione 6) |
 
@@ -395,6 +395,9 @@ nostro non coperto: da rivalutare dopo il lancio del Pro, con un test su 2–3 d
   PHP richiede PHP 8.0 (`match`, `?->`, `mixed`): è il minimo dal 9 ottobre 2026, verificato dalla CI su PHP 8.0.
 - **Agente AI**: tutto in EasyRankly Pro, niente nel gratuito, nessuna migrazione (sezione 5 e Fase 6 della roadmap).
   Il Pro sta nel repository `easyrankly-pro`, si scarica dal sito di EasyRankly e richiede il gratuito.
+- **Custom code "Ovunque"** (9 ottobre 2026): una posizione in più, solo per snippet PHP, che gira su
+  `plugins_loaded` in ogni richiesta come il `functions.php` di un tema, tranne sulla schermata Custom code. Serve a
+  togliere o cambiare hook senza modificare file. Ogni problema possibile è in `docs/custom-code.md`.
 - **Vendita, download e licenze del Pro**: backend nostro con Stripe Managed Payments, come nella sezione 6. Managed
   Payments incassa e gestisce le tasse ma non le licenze: licenze, attivazione e download degli aggiornamenti li
   gestisce il backend, che serve comunque per DataForSEO e Search Console. Scartate SureCart e WooCommerce (con
