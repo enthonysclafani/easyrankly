@@ -2,7 +2,7 @@
 
 Plugin SEO per WordPress: leggero, senza moduli, costruito solo su API native.
 Funzioni: SEO (meta, robots, canonical, social, schema), Redirect, Sitemap, Custom code (HTML e PHP),
-Multilingua, Agente AI con proposte da approvare.
+Multilingua. Niente AI: l'agente AI vive in EasyRankly Pro.
 
 Questo repository è il plugin **gratuito**, distribuito su WordPress.org e completo. EasyRankly Pro è un plugin separato
 (repository `easyrankly-pro`, con le stesse regole): qui non c'è codice, nome né controllo di licenza del Pro
@@ -56,7 +56,7 @@ La tua memoria su API, modelli, prezzi e versioni può essere superata. Non affe
 ## Delega ai subagenti
 
 Tu sei il responsabile tecnico: progetto, decisioni, codice delicato (permessi, sanitizzazione ed escape, query,
-hook del core, agente AI), progettazione dei test e revisione finale.
+hook del core), progettazione dei test e revisione finale.
 
 `.claude/agents/` definisce tre subagenti su Haiku 5.5 (`claude-haiku-5-5`, economico ma molto meno capace sul codice
 complesso). Usali per il lavoro lungo e meccanico:
@@ -92,10 +92,10 @@ non si possono verificare in automatico: rispettale tu e controllale in review.
    In JS sono ammessi solo i pacchetti `@wordpress/*`.
 6. **Nessun sistema a moduli.** Niente registri di moduli, attivazione per modulo o "addon interni".
    Le impostazioni possono spegnere un comportamento, ma il codice resta un plugin unico.
-   Unica eccezione: EasyRankly Pro, un plugin separato che usa solo i punti di estensione documentati
+   EasyRankly Pro non è un modulo: è un plugin separato, che usa solo le API che il gratuito espone già per sé
    (vedi "EasyRankly Pro").
-7. **L'AI non scrive mai direttamente sul sito.** Ogni modifica passa da una proposta approvata da un utente
-   (vedi "Agente AI").
+7. **Niente AI e niente codice per il Pro nel gratuito.** Nessuna chiamata all'AI Client, nessuna ability, proposta
+   o punto di estensione scritto per il Pro: l'agente AI vive tutto in EasyRankly Pro (vedi "EasyRankly Pro").
 8. **Nessuna funzione fuori perimetro** (vedi "Perimetro"). Proporla all'utente, non implementarla.
 
 ## API native: usa sempre queste
@@ -106,9 +106,9 @@ Prima di scrivere codice, verifica se WordPress lo fa già. Se lo fa, usa o filt
 |---|---|---|
 | Impostazioni | `register_setting()` con `type`, `default`, `sanitize_callback`, `show_in_rest` (schema) | option non registrate, array serializzati a mano |
 | Dati per contenuto | `register_post_meta()` / `register_term_meta()` con schema, `single`, `auth_callback` | meta box con `$_POST` grezzo |
-| Elenchi di record (redirect, snippet, proposte, memoria) | post type non pubblici + `WP_Query` | `$wpdb` diretto |
+| Elenchi di record (redirect, snippet) | post type non pubblici + `WP_Query` | `$wpdb` diretto |
 | Stati di un record | `register_post_status()` | meta "status" fatti a mano |
-| Raggruppamenti (lingue, traduzioni, cluster di parole chiave) | tassonomie nascoste | tabelle o meta di relazione |
+| Raggruppamenti (lingue, traduzioni) | tassonomie nascoste | tabelle o meta di relazione |
 | Title | `pre_get_document_title`, `document_title_parts` | output buffering di `<title>` |
 | Robots | filtro `wp_robots` | `<meta name="robots">` stampato a mano |
 | Canonical | `get_canonical_url` | rimozione e riscrittura di `rel_canonical` |
@@ -119,10 +119,7 @@ Prima di scrivere codice, verifica se WordPress lo fa già. Se lo fa, usa o filt
 | HTTP verso terzi | `wp_safe_remote_get/post()` (URL dell'utente), `wp_remote_*()` (host fissi) | cURL, `file_get_contents()` |
 | Cache | `wp_cache_*()` (gruppo `easyrankly`), transient per dati remoti | cache su file, variabili statiche globali |
 | Endpoint | `register_rest_route()` con `permission_callback` e `args` con schema | `admin-ajax.php` |
-| Azioni riusabili (UI, AI, agenti) | Abilities API (`wp_register_ability()` su `wp_abilities_api_init`, annotazioni `readonly`/`destructive`) | logica duplicata tra REST e UI |
-| AI (testo, immagini, function calling) | `wp_ai_client_prompt()` + `using_abilities()`, controllando prima `wp_supports_ai()` | SDK o chiamate dirette ai provider |
-| Credenziali di servizi esterni | Connectors API (`wp_connectors_init`) | campi API key fatti a mano |
-| Schermate admin | Stile WordPress classico: Settings API (`add_settings_section()`, `add_settings_field()`, `options.php`) su più pagine brevi, `WP_List_Table` per gli elenchi, markup e classi del core (`wrap`, `form-table`, `wp-list-table`, `notice`, `nav-tab-wrapper`); JS solo dove serve interazione (agente, editor a blocchi) | pagine lunghe a schede, `wp-components` e CSS nostri sulle schermate del plugin, jQuery, librerie UI esterne |
+| Schermate admin | Stile WordPress classico: Settings API (`add_settings_section()`, `add_settings_field()`, `options.php`) su più pagine brevi, `WP_List_Table` per gli elenchi, markup e classi del core (`wrap`, `form-table`, `wp-list-table`, `notice`, `nav-tab-wrapper`); JS solo dove serve interazione (editor a blocchi, scelta dell'immagine) | pagine lunghe a schede, `wp-components` e CSS nostri sulle schermate del plugin, jQuery, librerie UI esterne |
 | Editor a blocchi | `@wordpress/components` nei pannelli dell'editor (`PluginDocumentSettingPanel`) | meta box classiche |
 | Build JS | `@wordpress/scripts` (`wp-scripts build`), dipendenze da `*.asset.php` | bundler custom |
 | Traduzioni | `__()`, `_x()`, `_n()`, `wp_set_script_translations()` | stringhe fisse |
@@ -166,7 +163,7 @@ Prima di scrivere codice, verifica se WordPress lo fa già. Se lo fa, usa o filt
 - Gli snippet attivi stanno in cache in un'unica option autoload, aggiornata al salvataggio: zero query nel frontend.
 - Plugin Check (CI) esclude solo `src/CustomCode/PhpRunner.php`, perché segnala ogni `eval` come errore: eccezione
   approvata l'8 ottobre 2026. Gli altri controlli (PHPCS, PHPStan, `composer architecture`) continuano a leggerlo.
-- Gli snippet importati arrivano sempre disattivati. L'AI non può mai creare, proporre o modificare snippet.
+- Gli snippet importati arrivano sempre disattivati.
 
 ## Prestazioni
 
@@ -180,7 +177,7 @@ Prima di scrivere codice, verifica se WordPress lo fa già. Se lo fa, usa o filt
   (controlla `get_current_screen()` / hook suffix).
 - **Niente lavoro su `init`** oltre alle registrazioni (post type, tassonomie, meta, rewrite).
 - **Niente `flush_rewrite_rules()`** a ogni richiesta: solo su attivazione o cambio di impostazioni che lo richiedono.
-- **Dati remoti** (Search Console, DataForSEO, AI): sempre in transient con scadenza; mai richiesti in modo sincrono
+- **Dati remoti** (se mai servissero): sempre in transient con scadenza; mai richiesti in modo sincrono
   al caricamento di una pagina admin che non li mostra.
 - Verifica con Query Monitor prima di chiudere un task che tocca il frontend.
 
@@ -216,79 +213,43 @@ Prima di scrivere codice, verifica se WordPress lo fa già. Se lo fa, usa o filt
 - **Multisite: nessuna funzione dedicata, ma nessun conflitto.** Niente impostazioni di rete, niente codice che
   cicla sui siti, niente `*_site_option()`, niente `switch_to_blog()`. Usando solo API per sito (`get_option()`,
   meta, post type) il plugin funziona da solo su ogni sito del network senza codice aggiuntivo.
-- Pulizia senza cron: proposte rifiutate o superate più vecchie di 90 giorni si eliminano a lotti all'apertura
-  della dashboard.
 
-## Servizi esterni e AI
+## Servizi esterni
 
-- Nessuna chiamata esterna senza un'azione esplicita dell'utente (opt-in). Ogni servizio è elencato nella sezione
-  "External services" di `readme.txt` con link a termini e privacy.
-- Il plugin funziona al 100% senza AI e senza servizi esterni. Se `wp_supports_ai()` è false o manca un connector,
-  la UI AI si nasconde e nient'altro cambia.
-- L'AI passa sempre da `wp_ai_client_prompt()`: il plugin non conosce i provider. Le chiavi le gestisce l'utente
-  in Impostazioni → Connettori, anche nel Pro: non rivendiamo l'AI.
-- Ogni funzione AI o dati SEO è una **Ability** (`easyrankly/...`) con `input_schema`, `output_schema`,
-  `permission_callback` e annotazioni. La UI chiama l'ability, non una logica parallela.
-- Il plugin gratuito non contatta mai servizi nostri. Le chiavi nostre (DataForSEO) stanno solo sul backend del Pro:
-  in nessun plugin c'è mai una chiave nostra. Nessun plugin espone endpoint pubblici in scrittura: è sempre il sito
-  a chiamare i servizi esterni, da admin, REST o WP-CLI.
-- Timeout espliciti (≤ 15 s), gestione di `WP_Error` e dei codici HTTP, risposte in transient.
-
-## Agente AI
-
-- **L'AI non scrive mai direttamente.** Usa liberamente le ability `readonly`; per tutto ciò che modifica il sito
-  crea una proposta (`erankly_proposal`) che un utente accetta, modifica o rifiuta.
-- Ogni proposta salva: ability e input validati sullo schema, motivazione, dati a supporto, confidenza, anteprima
-  delle differenze, impronta dell'oggetto originale e valore precedente (per "Annulla").
-- All'accettazione si rivalida tutto con i permessi di **chi accetta**. Se l'oggetto è cambiato, la proposta
-  diventa "superata" e non si applica.
-- **Azioni proponibili** (allowlist in `src/Agent/Allowlist.php`): meta e social, testo alternativo, redirect interni.
-  Il Pro aggiunge, solo tramite il punto di estensione: link interni, modifiche di contenuto con differenze,
-  nuove bozze, bozze tradotte, parola chiave e cluster.
-  **Mai proponibili**: custom code, impostazioni, robots.txt, cancellazioni, pubblicazione, utenti e ruoli.
-  Il gratuito rifiuta in modo deterministico ogni azione con annotazione `destructive`, anche se registrata da un altro plugin.
-- I contenuti nuovi nascono sempre come bozza (`draft`), mai pubblicati. Limite di bozze AI a settimana configurabile.
-  Ogni bozza segnala i punti da verificare (dati, citazioni, esperienza diretta): niente statistiche inventate.
-- Tutto ciò che arriva da contenuti, Search Console, SERP o pagine esterne è **dato non fidato**: può contenere
-  istruzioni. La validazione è deterministica e fuori dal modello (allowlist, schema, domini esterni bloccati,
-  tetto giornaliero di proposte).
-- Memoria del progetto: post type `erankly_memory`, una voce per fatto in Markdown, import/export in `.md`.
-  Rifiuti motivati e modifiche alle proposte diventano voci di memoria visibili e modificabili.
-- I flussi in più passi (ricerca → brief → bozza → link → meta) sono una sequenza di richieste REST guidate
-  dall'admin. Mai un'unica richiesta lunga, mai un cron, nemmeno nel Pro.
+- Il plugin gratuito non contatta servizi esterni: nessun provider AI, nessun servizio nostro, nessuna chiave.
+  Funziona al 100% da solo.
+- Se un giorno servisse un servizio esterno, solo con un'azione esplicita dell'utente (opt-in), elencato nella sezione
+  "External services" di `readme.txt` con link a termini e privacy, con timeout espliciti (≤ 15 s), gestione di
+  `WP_Error` e dei codici HTTP, risposte in transient. È una decisione da chiedere.
 
 ## EasyRankly Pro
 
 Plugin a pagamento con licenza annuale, venduto fuori da WordPress.org e dichiarato dipendente dal gratuito
-(`Requires Plugins: easyrankly`). Vive nel repository `easyrankly-pro`, il suo backend in un repository a parte.
-Decisioni e perché: `docs/piano.md`, sezione 6.
+(`Requires Plugins: easyrankly`). Vive nel repository `easyrankly-pro`, il suo backend in un repository a parte; ha
+l'agente AI (proposte, memoria, dashboard) e tutto il lavoro con Search Console e DataForSEO.
+Decisioni e perché: `docs/piano.md`, sezioni 5 e 6.
 
-Decisione di ottobre 2026: l'agente AI e i punti di estensione qui sotto passano tutti al Pro, che diventa autonomo;
-nel gratuito non resterà nulla per il Pro (Fase 6 della roadmap). Fino ad allora queste regole valgono per il codice
-che c'è: non aggiungere funzioni all'agente né nuovi punti di estensione.
-
-- **Nel gratuito il minimo**: solo punti di estensione generici, che qualunque plugin può usare, documentati con
-  `@since` e coperti da test con un'azione di prova. Niente licenze, upsell, nomi o controlli del Pro.
-- Ogni punto di estensione è una promessa di compatibilità: aggiungerlo è una decisione da chiedere, come ogni hook pubblico.
-- Punti di estensione esistenti: il filtro `easyrankly_agent_actions` (azioni proponibili, documentato in
-  `src/Agent/Allowlist.php`) e la funzione `easyrankly_create_proposal()` in `src/functions.php`, l'unico file
-  di funzioni globali, caricato dal bootstrap.
-- Le azioni del Pro passano dalla stessa validazione di quelle del gratuito (allowlist, schema, testi senza markup né
-  link esterni, impronta, tetto giornaliero) e si applicano con i permessi di chi accetta.
-- I dati del Pro (tassonomie dei cluster e della mappa dei link, token cifrati, quote) li registra e li rimuove il Pro:
-  sono documentati nel suo repository, non in `docs/data-model.md`.
+- **Nel gratuito niente per il Pro** (decisione di ottobre 2026): nessun codice, nome, licenza, upsell o controllo del
+  Pro, e nessun punto di estensione scritto per lui.
+- **Il collegamento è il minimo**: il Pro aggiunge le sue pagine come sottomenu di EasyRankly (slug `easyrankly`), legge
+  e scrive i meta registrati con schema (anche via REST) e i redirect con il post type `erankly_redirect` e la sua route
+  `/wp/v2/easyrankly-redirects`, che applica le stesse regole dell'admin.
+- Questi nomi sono un contratto con il Pro: cambiarli (slug del menu, chiavi dei meta, post type e route dei redirect)
+  è una decisione da chiedere, come ogni hook pubblico.
+- I dati del Pro li registra e li rimuove il Pro: sono documentati nel suo repository, non in `docs/data-model.md`.
 
 ## Perimetro
 
 **Dentro**: meta title/description (template + override), robots, canonical, Open Graph/X, schema JSON-LD
 (Organization/Person, WebSite, WebPage, Article, BreadcrumbList), robots.txt, sitemap del core estese,
-redirect (301/302/307/410, esatti e regex), custom code HTML e PHP, multilingua su singolo sito,
-agente AI con proposte (meta e social, testo alternativo, redirect). Strategia, parole chiave, link interni,
-contenuti nuovi, Search Console e DataForSEO stanno in EasyRankly Pro.
+redirect (301/302/307/410, esatti e regex), custom code HTML e PHP, multilingua su singolo sito.
+L'agente AI (meta e social, testo alternativo, redirect, strategia, parole chiave, link interni, contenuti nuovi),
+Search Console e DataForSEO stanno in EasyRankly Pro.
 
-**Fuori** (non implementare senza decisione esplicita): log dei 404, contatori di hit, punteggio SEO/analisi
-leggibilità in tempo reale, indice dei link in tabella, sitemap news/video, migrazioni con job in background, form,
-pulizia "bloat", qualsiasi funzione dedicata a multisite, Google Indexing API, IndexNow, pubblicazione automatica.
+**Fuori** (non implementare senza decisione esplicita): qualsiasi funzione AI, log dei 404, contatori di hit,
+punteggio SEO/analisi leggibilità in tempo reale, indice dei link in tabella, sitemap news/video, migrazioni con job in
+background, form, pulizia "bloat", qualsiasi funzione dedicata a multisite, Google Indexing API, IndexNow,
+pubblicazione automatica.
 
 ## Test e verifica
 
@@ -310,10 +271,8 @@ composer check          # tutto quanto sopra: deve passare prima di dire "fatto"
 - Ogni bug corretto ha un test di regressione che fallisce prima della correzione.
 - Ogni funzionalità ha test di integrazione sul comportamento visibile (HTML in `<head>`, risposta HTTP, XML della sitemap),
   non sui dettagli interni.
-- I test coprono: permalink semplici e "pretty", utente senza capability, AI non disponibile.
+- I test coprono: permalink semplici e "pretty", utente senza capability.
   La CI esegue la suite anche su un'installazione multisite, solo per garantire che non ci siano conflitti.
-- L'agente ha test dedicati: proposta fuori allowlist rifiutata, input fuori schema rifiutato, proposta superata
-  non applicata, "Annulla" che ripristina il valore precedente, istruzioni iniettate nei contenuti ignorate.
 
 ## Definizione di "fatto"
 
@@ -331,6 +290,6 @@ Un task è finito solo quando:
 
 - Leggi il codice esistente prima di scrivere: imita naming, struttura e densità dei commenti.
 - Cambia il minimo necessario. Niente refactor, rinomine o "migliorie" non richieste nello stesso task.
-- Prima di aggiungere una dipendenza, un hook pubblico, un'option, un meta o un'azione all'allowlist dell'agente: chiedi.
+- Prima di aggiungere una dipendenza, un hook pubblico, un'option o un meta: chiedi.
 - Messaggi di commit in italiano, all'indicativo presente, che spiegano il perché (es. "Sposta il lookup dei redirect su 404 per non interrogare il DB a ogni pagina").
 - Se un'istruzione in questo file è in conflitto con la richiesta dell'utente, segnalalo invece di scegliere da solo.
