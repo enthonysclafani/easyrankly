@@ -212,8 +212,15 @@ final class Form {
 			$slug   = strtolower( trim( is_string( $row['slug'] ?? null ) ? $row['slug'] : '' ) );
 			$locale = trim( is_string( $row['locale'] ?? null ) ? $row['locale'] : '' );
 			$name   = trim( is_string( $row['name'] ?? null ) ? $row['name'] : '' );
+			$texts  = array();
+			foreach ( array( 'site_title', 'tagline' ) as $key ) {
+				$text = trim( is_string( $row[ $key ] ?? null ) ? $row[ $key ] : '' );
+				if ( '' !== $text ) {
+					$texts[ $key ] = $text;
+				}
+			}
 
-			if ( '' === $slug && '' === $locale && '' === $name ) {
+			if ( '' === $slug && '' === $locale && '' === $name && array() === $texts ) {
 				continue;
 			}
 
@@ -223,6 +230,7 @@ final class Form {
 				'slug'   => $slug,
 				'locale' => $locale,
 				'name'   => $name,
+				'texts'  => $texts,
 			);
 		}
 
@@ -248,10 +256,11 @@ final class Form {
 
 		$languages = array();
 		foreach ( $rows as $row ) {
+			// Site title and tagline only when set: empty means those of Settings > General.
 			$languages[ $row['slug'] ] = array(
 				'locale' => $row['locale'],
 				'name'   => $row['name'],
-			);
+			) + $row['texts'];
 		}
 
 		return array( 'languages' => $languages );

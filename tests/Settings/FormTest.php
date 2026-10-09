@@ -298,6 +298,52 @@ final class FormTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Site title and tagline are saved trimmed, and only when filled in.
+	 */
+	public function test_languages_page_saves_site_title_and_tagline(): void {
+		$stored = $this->save(
+			'easyrankly-languages',
+			array(
+				'languages' => array(
+					array(
+						'order'      => '1',
+						'slug'       => 'it',
+						'locale'     => 'it_IT',
+						'name'       => 'Italiano',
+						'site_title' => '',
+						'tagline'    => ' ',
+					),
+					array(
+						'order'      => '2',
+						'slug'       => 'en',
+						'locale'     => 'en_US',
+						'name'       => 'English',
+						'site_title' => ' My <b>site</b> ',
+						'tagline'    => 'Just another site',
+					),
+				),
+			)
+		);
+
+		$this->assertSame(
+			array(
+				'locale' => 'it_IT',
+				'name'   => 'Italiano',
+			),
+			$stored['languages']['it']
+		);
+		$this->assertSame(
+			array(
+				'locale'     => 'en_US',
+				'name'       => 'English',
+				'site_title' => 'My site',
+				'tagline'    => 'Just another site',
+			),
+			$stored['languages']['en']
+		);
+	}
+
+	/**
 	 * A row that cannot be saved leaves every language as it was.
 	 *
 	 * @dataProvider invalid_language_rows

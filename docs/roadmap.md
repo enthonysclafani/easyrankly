@@ -130,7 +130,7 @@ storia di `Refactory` (ultimo commit con l'agente prima di 6.1).
 Decisione e strada proposta: `docs/piano.md`, sezione 7. Niente tabelle né moduli; option e meta nuovi si
 approvano nel piano di ogni punto.
 
-- [ ] 7.1 Titolo e descrizione del sito per lingua (pagina Lingue), letti con `option_blogname` e
+- [x] 7.1 Titolo e descrizione del sito per lingua (pagina Lingue), letti con `option_blogname` e
       `option_blogdescription` sulle pagine di quella lingua
 - [ ] 7.2 Menu per lingua: per ogni posizione del tema un menu per lingua (`theme_mod_nav_menu_locations`) e, nei temi
       a blocchi, la navigazione per lingua del blocco `core/navigation`

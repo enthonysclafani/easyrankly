@@ -589,8 +589,15 @@ final class Fields {
 
 		$rows   = Languages::all();
 		$rows[] = array(
-			'locale' => '',
-			'name'   => '',
+			'locale'     => '',
+			'name'       => '',
+			'site_title' => '',
+			'tagline'    => '',
+		);
+		// Empty fields use the site title and tagline of Settings > General: shown as placeholders.
+		$general = array(
+			'site_title' => wp_specialchars_decode( (string) get_option( 'blogname' ), ENT_QUOTES ),
+			'tagline'    => wp_specialchars_decode( (string) get_option( 'blogdescription' ), ENT_QUOTES ),
 		);
 
 		echo '<table class="widefat striped"><thead><tr>';
@@ -599,6 +606,8 @@ final class Fields {
 			__( 'Name', 'easyrankly' ),
 			__( 'URL prefix', 'easyrankly' ),
 			__( 'Locale', 'easyrankly' ),
+			__( 'Site Title', 'easyrankly' ),
+			__( 'Tagline', 'easyrankly' ),
 			__( 'Remove', 'easyrankly' ),
 		) as $heading ) {
 			printf( '<th scope="col">%s</th>', esc_html( $heading ) );
@@ -619,23 +628,40 @@ final class Fields {
 				esc_attr( sprintf( __( 'Order of %s', 'easyrankly' ), $label ) )
 			);
 			$fields = array(
-				'name'   => array(
-					'value'     => $language['name'],
-					'maxlength' => 50,
+				'name'       => array(
+					'value'       => $language['name'],
+					'maxlength'   => 50,
+					'placeholder' => '',
 					/* translators: %s: language name. */
-					'aria'      => sprintf( __( 'Name of %s', 'easyrankly' ), $label ),
+					'aria'        => sprintf( __( 'Name of %s', 'easyrankly' ), $label ),
 				),
-				'slug'   => array(
-					'value'     => $is_new ? '' : (string) $slug,
-					'maxlength' => 12,
+				'slug'       => array(
+					'value'       => $is_new ? '' : (string) $slug,
+					'maxlength'   => 12,
+					'placeholder' => '',
 					/* translators: %s: language name. */
-					'aria'      => sprintf( __( 'URL prefix of %s', 'easyrankly' ), $label ),
+					'aria'        => sprintf( __( 'URL prefix of %s', 'easyrankly' ), $label ),
 				),
-				'locale' => array(
-					'value'     => $language['locale'],
-					'maxlength' => 20,
+				'locale'     => array(
+					'value'       => $language['locale'],
+					'maxlength'   => 20,
+					'placeholder' => 'en_US',
 					/* translators: %s: language name. */
-					'aria'      => sprintf( __( 'Locale of %s', 'easyrankly' ), $label ),
+					'aria'        => sprintf( __( 'Locale of %s', 'easyrankly' ), $label ),
+				),
+				'site_title' => array(
+					'value'       => $language['site_title'],
+					'maxlength'   => 200,
+					'placeholder' => $general['site_title'],
+					/* translators: %s: language name. */
+					'aria'        => sprintf( __( 'Site title of %s', 'easyrankly' ), $label ),
+				),
+				'tagline'    => array(
+					'value'       => $language['tagline'],
+					'maxlength'   => 400,
+					'placeholder' => $general['tagline'],
+					/* translators: %s: language name. */
+					'aria'        => sprintf( __( 'Tagline of %s', 'easyrankly' ), $label ),
 				),
 			);
 			foreach ( $fields as $field => $input ) {
@@ -644,7 +670,7 @@ final class Fields {
 					esc_attr( self::name( 'languages', (string) $index, $field ) ),
 					esc_attr( $input['value'] ),
 					(int) $input['maxlength'],
-					esc_attr( 'locale' === $field ? 'en_US' : '' ),
+					esc_attr( $input['placeholder'] ),
 					esc_attr( $input['aria'] )
 				);
 			}
@@ -665,6 +691,10 @@ final class Fields {
 		printf(
 			'<p class="description">%s</p>',
 			esc_html__( 'The locale (for example en_US or it_IT) sets the language of the pages and their hreflang code. Content without a language belongs to the default language. The language with the lowest order is the default one.', 'easyrankly' )
+		);
+		printf(
+			'<p class="description">%s</p>',
+			esc_html__( 'Site title and tagline replace those of Settings > General on the pages of the language. Leave them empty to use the same ones in every language.', 'easyrankly' )
 		);
 	}
 
