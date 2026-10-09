@@ -377,6 +377,10 @@ nostro non coperto: da rivalutare dopo il lancio del Pro, con un test su 2–3 d
   `option_blogname` e `option_blogdescription`); un menu per lingua e per posizione, scelto con il filtro
   `theme_mod_nav_menu_locations` per i temi classici e con il filtro sugli attributi del blocco `core/navigation` per i
   temi a blocchi. Ogni option o meta nuovo va approvato nel piano del punto.
+  Stringhe del tema (deciso il 9 ottobre 2026): nei temi a blocchi i testi scritti a mano stanno nei template part, e
+  ogni template part può avere una versione per lingua con il prefisso della lingua dopo un trattino (`header-en`),
+  creata nell'Editor del sito; il blocco `core/template-part` la usa sulle pagine di quella lingua, senza dati nuovi.
+  I widget dei temi classici restano uguali in tutte le lingue: servirebbe un dato dentro le option dei widget del core.
 - **Requisiti minimi**: il minimo è quello che il codice richiede davvero, il più basso possibile senza peggiorare il
   codice né aggiungere compatibilità a mano. WordPress resta 7.0 (decisione del 9 ottobre 2026): uscito l'agente, lo
   richiede solo il breadcrumb (blocco `core/breadcrumbs` e i suoi filtri), mentre il resto delle API usate scende fino
@@ -391,7 +395,5 @@ nostro non coperto: da rivalutare dopo il lancio del Pro, con un test su 2–3 d
 
 ## 8. Decisioni aperte
 
-- **Multilingua**: quali "stringhe del tema" oltre a menu, titolo e descrizione del sito (testi scritti nel tema o
-  nei template parts, widget). Le stringhe tradotte dai file `.mo` seguono già il locale.
 - Import da Yoast e Rank Math: solo meta e redirect, a lotti dall'admin?
 - Schema extra: Local Business, Product per WooCommerce.
