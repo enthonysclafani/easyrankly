@@ -23,5 +23,6 @@ const VERSION     = '3.0.0';
 const PLUGIN_FILE = __FILE__;
 
 require_once __DIR__ . '/src/autoload.php';
+require_once __DIR__ . '/src/functions.php';
 
 ( new Plugin() )->register();
