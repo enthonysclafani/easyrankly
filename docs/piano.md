@@ -383,13 +383,13 @@ nostro non coperto: da rivalutare dopo il lancio del Pro, con un test su 2–3 d
   PHP non sembra usare nulla oltre PHP 8.0 (da confermare con PHPCompatibility).
 - **Agente AI**: tutto in EasyRankly Pro, niente nel gratuito, nessuna migrazione (sezione 5 e Fase 6 della roadmap).
   Il Pro sta nel repository `easyrankly-pro`, si scarica dal sito di EasyRankly e richiede il gratuito.
+- **Vendita, download e licenze del Pro**: backend nostro con Stripe Managed Payments, come nella sezione 6. Managed
+  Payments incassa e gestisce le tasse ma non le licenze: licenze, attivazione e download degli aggiornamenti li
+  gestisce il backend, che serve comunque per DataForSEO e Search Console. Scartate SureCart e WooCommerce (con
+  abbonamenti e un gestore di licenze): legherebbero la vendita a un sito WordPress.
 
 ## 8. Decisioni aperte
 
-- **Vendita, download e licenze del Pro**: backend nostro con Stripe Managed Payments (sezione 6; Managed Payments
-  incassa e gestisce le tasse, le licenze le gestisce il backend), oppure una soluzione su WordPress come SureCart o
-  WooCommerce con abbonamenti e un gestore di licenze, oppure altro. Il backend serve comunque per DataForSEO e
-  Search Console.
 - **Multilingua**: quali "stringhe del tema" oltre a menu, titolo e descrizione del sito (testi scritti nel tema o
   nei template parts, widget). Le stringhe tradotte dai file `.mo` seguono già il locale.
 - Import da Yoast e Rank Math: solo meta e redirect, a lotti dall'admin?

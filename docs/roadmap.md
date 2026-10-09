@@ -163,8 +163,6 @@ repository del Pro. Nome nel codice: `erankly-pro`; richiede il gratuito (`Requi
 
 ## Decisioni aperte
 
-- EasyRankly Pro: come gestire vendita, download e licenze (backend nostro con Stripe Managed Payments, come in
-  `docs/piano.md` sezione 6, oppure SureCart, WooCommerce o altro).
 - Multilingua: quali altre stringhe del tema (punto 7.3).
 - Import da Yoast e Rank Math: solo meta e redirect, a lotti dall'admin? (riferimento Alpha: `includes/migrations/`)
 - Schema extra: Local Business, Product per WooCommerce.
@@ -173,4 +171,5 @@ repository del Pro. Nome nel codice: `erankly-pro`; richiede il gratuito (`Requi
 
 Decise a ottobre 2026 (dettagli in `docs/piano.md`, sezione 7): niente IndexNow; prezzi del Pro confermati; multilingua
 anche per menu e stringhe del tema (Fase 7); requisiti minimi il più bassi possibile; noindex su pagine povere
-proponibile nel Pro; agente AI tutto nel Pro (Fase 6).
+proponibile nel Pro; agente AI tutto nel Pro (Fase 6); vendita e licenze del Pro con il
+backend nostro e Stripe Managed Payments.
