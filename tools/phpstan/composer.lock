@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "afa8897074c97a50e81f257b5fc6fb9c",
+    "content-hash": "af7648939a742bbfa95018cb32cad286",
     "packages": [
         {
             "name": "php-stubs/wordpress-stubs",
@@ -243,7 +243,7 @@
     "platform": {},
     "platform-dev": {},
     "platform-overrides": {
-        "php": "8.1.0"
+        "php": "8.0.0"
     },
-    "plugin-api-version": "2.9.0"
+    "plugin-api-version": "2.6.0"
 }

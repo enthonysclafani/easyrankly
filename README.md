@@ -15,7 +15,7 @@ Il branch `Refactory` è autonomo: contiene tutto il necessario per lavorare in 
 - **Cloud (Claude Code)**: all'avvio della sessione `tools/cloud-setup.sh` (hook in `.claude/settings.json`) installa
   dipendenze, MariaDB e la suite di test di WordPress. Basta lanciare `composer check`. PHPStan nel cloud non si
   può installare: lo esegue la CI sulla pull request.
-- **Locale**: servono PHP 8.1+, Composer, MySQL o MariaDB e Node 22.22.2+ (per gli asset admin).
+- **Locale**: servono PHP 8.0+, Composer, MySQL o MariaDB e Node 22.22.2+ (per gli asset admin).
 
 ```bash
 npm install && npm run build   # asset admin in build/ (non committati)

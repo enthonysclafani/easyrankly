@@ -380,7 +380,7 @@ nostro non coperto: da rivalutare dopo il lancio del Pro, con un test su 2–3 d
 - **Requisiti minimi**: il minimo è quello che il codice richiede davvero, il più basso possibile senza peggiorare il
   codice né aggiungere compatibilità a mano. Oggi WordPress 7.0 serve all'agente (AI Client e Connectors), che passa
   al Pro: il Pro resta su 7.0, il gratuito può scendere a quanto chiedono le API del core che usa davvero. Il codice
-  PHP non sembra usare nulla oltre PHP 8.0 (da confermare con PHPCompatibility).
+  PHP richiede PHP 8.0 (`match`, `?->`, `mixed`): è il minimo dal 9 ottobre 2026, verificato dalla CI su PHP 8.0.
 - **Agente AI**: tutto in EasyRankly Pro, niente nel gratuito, nessuna migrazione (sezione 5 e Fase 6 della roadmap).
   Il Pro sta nel repository `easyrankly-pro`, si scarica dal sito di EasyRankly e richiede il gratuito.
 - **Vendita, download e licenze del Pro**: backend nostro con Stripe Managed Payments, come nella sezione 6. Managed
