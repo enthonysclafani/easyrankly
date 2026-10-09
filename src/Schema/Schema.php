@@ -147,6 +147,10 @@ final class Schema {
 		if ( is_front_page() ) {
 			$page['about'] = array( '@id' => $identity['@id'] );
 		}
+		if ( 'ProfilePage' === $page['@type'] && $object instanceof \WP_User ) {
+			// Google requires mainEntity on a ProfilePage: the person the archive is about.
+			$page['mainEntity'] = $this->profile( $object );
+		}
 
 		$graph[] = array_filter( $page );
 
@@ -223,6 +227,25 @@ final class Schema {
 				'inLanguage'       => get_bloginfo( 'language' ),
 			),
 			static fn( $value ): bool => null !== $value && '' !== $value
+		);
+	}
+
+	/**
+	 * Person an author archive is about.
+	 *
+	 * Only fields of the user row, which core already loaded as the queried object: no user meta, so no query.
+	 *
+	 * @param \WP_User $user Author of the archive.
+	 * @return array<string, mixed>
+	 */
+	private function profile( \WP_User $user ): array {
+		$url = get_author_posts_url( $user->ID, $user->user_nicename );
+
+		return array(
+			'@type' => 'Person',
+			'@id'   => $url . '#author',
+			'name'  => self::text( $user->display_name ),
+			'url'   => $url,
 		);
 	}
 

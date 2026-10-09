@@ -28,6 +28,60 @@ final class Canonical {
 	public function register(): void {
 		add_filter( 'get_canonical_url', array( $this, 'filter_singular' ), 10, 2 );
 		add_action( 'wp_head', array( $this, 'print_archive_canonical' ), 1 );
+
+		foreach ( array( 'added', 'updated' ) as $event ) {
+			add_action( "{$event}_post_meta", array( $this, 'drop_self_post_override' ), 10, 4 );
+			add_action( "{$event}_term_meta", array( $this, 'drop_self_term_override' ), 10, 4 );
+		}
+	}
+
+	/**
+	 * Empties a post override equal to the post's own URL.
+	 *
+	 * An override means "this page is a copy of another one", so the sitemap and hreflang leave the page out.
+	 * Users often paste the page's own URL (a "self-referencing canonical"): it changes nothing in the tag,
+	 * but without this it would silently drop the page from the sitemap and its translation group.
+	 *
+	 * @param mixed $meta_id   Meta ID.
+	 * @param mixed $object_id Post ID.
+	 * @param mixed $meta_key  Meta key.
+	 * @param mixed $value     Saved value.
+	 */
+	public function drop_self_post_override( $meta_id, $object_id, $meta_key, $value ): void {
+		if ( Meta::PREFIX . 'canonical' === $meta_key && is_string( $value ) && self::same_url( $value, (string) get_permalink( (int) $object_id ) ) ) {
+			delete_post_meta( (int) $object_id, Meta::PREFIX . 'canonical' );
+		}
+	}
+
+	/**
+	 * Empties a term override equal to the term's own archive URL (see drop_self_post_override()).
+	 *
+	 * @param mixed $meta_id   Meta ID.
+	 * @param mixed $object_id Term ID.
+	 * @param mixed $meta_key  Meta key.
+	 * @param mixed $value     Saved value.
+	 */
+	public function drop_self_term_override( $meta_id, $object_id, $meta_key, $value ): void {
+		if ( Meta::PREFIX . 'canonical' !== $meta_key || ! is_string( $value ) ) {
+			return;
+		}
+
+		$link = get_term_link( (int) $object_id );
+		if ( is_string( $link ) && self::same_url( $value, $link ) ) {
+			delete_term_meta( (int) $object_id, Meta::PREFIX . 'canonical' );
+		}
+	}
+
+	/**
+	 * Whether two URLs are the same page, ignoring the scheme and the trailing slash.
+	 *
+	 * @param string $a URL.
+	 * @param string $b URL.
+	 * @return bool
+	 */
+	private static function same_url( string $a, string $b ): bool {
+		return '' !== $a && '' !== $b
+			&& untrailingslashit( set_url_scheme( $a, 'https' ) ) === untrailingslashit( set_url_scheme( $b, 'https' ) );
 	}
 
 	/**
