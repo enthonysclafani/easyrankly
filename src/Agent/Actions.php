@@ -45,10 +45,12 @@ final class Actions {
 
 	/**
 	 * Annotations of every write ability: it overwrites values, the same input twice changes nothing more.
+	 * Not destructive: the proposal keeps the values it replaced, and "Undo" puts them back.
+	 * Allowlist::validate() refuses any action annotated as destructive, these included.
 	 */
 	private const WRITE = array(
 		'readonly'    => false,
-		'destructive' => true,
+		'destructive' => false,
 		'idempotent'  => true,
 	);
 

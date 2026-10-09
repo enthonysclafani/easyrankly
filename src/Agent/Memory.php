@@ -320,7 +320,7 @@ final class Memory {
 	 * @return int|\WP_Error|null Entry ID, or null when nothing changed.
 	 */
 	public static function learn_edit( \WP_Post $proposal, array $proposed, array $applied ) {
-		$labels = Actions::labels();
+		$labels = Allowlist::labels( (string) get_post_meta( $proposal->ID, Proposals::meta_key( 'ability' ), true ) );
 		$lines  = array();
 
 		foreach ( $applied as $field => $value ) {
