@@ -166,17 +166,29 @@ final class Settings {
 						'additionalProperties' => false,
 						'required'             => array( 'locale', 'name' ),
 						'properties'           => array(
-							'locale' => array(
+							'locale'     => array(
 								'description' => __( 'WordPress locale of the language, e.g. en_US.', 'easyrankly' ),
 								'type'        => 'string',
 								'pattern'     => Languages::LOCALE_PATTERN,
 							),
-							'name'   => array(
+							'name'       => array(
 								'description' => __( 'Name of the language shown to visitors.', 'easyrankly' ),
 								'type'        => 'string',
 								'format'      => 'text-field',
 								'minLength'   => 1,
 								'maxLength'   => 50,
+							),
+							'site_title' => array(
+								'description' => __( 'Site title on the pages of the language. Empty uses the site title in Settings > General.', 'easyrankly' ),
+								'type'        => 'string',
+								'format'      => 'text-field',
+								'maxLength'   => 200,
+							),
+							'tagline'    => array(
+								'description' => __( 'Tagline on the pages of the language. Empty uses the tagline in Settings > General.', 'easyrankly' ),
+								'type'        => 'string',
+								'format'      => 'text-field',
+								'maxLength'   => 400,
 							),
 						),
 					),
