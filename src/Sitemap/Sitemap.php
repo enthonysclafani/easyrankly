@@ -8,6 +8,8 @@
 namespace EasyRankly\Sitemap;
 
 use EasyRankly\Meta\Meta;
+use EasyRankly\Redirects\Redirects;
+use EasyRankly\Redirects\Rule;
 use EasyRankly\Settings\Settings;
 
 defined( 'ABSPATH' ) || exit;
@@ -18,6 +20,9 @@ defined( 'ABSPATH' ) || exit;
  *
  * - Post types, taxonomies and author archives set to noindex in the settings lose their sitemap.
  * - Single posts and terms with their own noindex or canonical are left out of the queries.
+ * - Posts whose address an exact "forced" redirect sends elsewhere are left out too: they
+ *   would answer with a redirect. Regex forced rules can't be mapped to posts without
+ *   scanning them all, so they are not considered.
  * - lastmod: core already adds it to posts (post_modified_gmt). Terms and users have no
  *   modification date of their own; computing one would cost a query per entry.
  */
@@ -30,7 +35,7 @@ final class Sitemap {
 		add_filter( 'wp_sitemaps_post_types', array( $this, 'filter_post_types' ) );
 		add_filter( 'wp_sitemaps_taxonomies', array( $this, 'filter_taxonomies' ) );
 		add_filter( 'wp_sitemaps_add_provider', array( $this, 'filter_provider' ), 10, 2 );
-		add_filter( 'wp_sitemaps_posts_query_args', array( $this, 'filter_query_args' ) );
+		add_filter( 'wp_sitemaps_posts_query_args', array( $this, 'filter_posts_query_args' ) );
 		add_filter( 'wp_sitemaps_taxonomies_query_args', array( $this, 'filter_query_args' ) );
 	}
 
@@ -114,6 +119,58 @@ final class Sitemap {
 			: $conditions;
 
 		return $args;
+	}
+
+	/**
+	 * Posts query: the common conditions plus the posts redirected by forced rules.
+	 *
+	 * @param mixed $args Query arguments.
+	 * @return mixed
+	 */
+	public function filter_posts_query_args( $args ) {
+		$args = $this->filter_query_args( $args );
+		if ( ! is_array( $args ) ) {
+			return $args;
+		}
+
+		$redirected = self::redirected_post_ids();
+		if ( array() !== $redirected ) {
+			$excluded             = isset( $args['post__not_in'] ) && is_array( $args['post__not_in'] ) ? $args['post__not_in'] : array();
+			$args['post__not_in'] = array_values( array_unique( array_merge( array_map( 'intval', $excluded ), $redirected ) ) );
+		}
+
+		return $args;
+	}
+
+	/**
+	 * IDs of the posts whose address an active exact forced redirect sends elsewhere.
+	 *
+	 * Resolved on each sitemap request (at most Redirects::MAX_FORCED lookups), so a post
+	 * whose slug changed after the rule was saved is not left out by mistake. Never runs
+	 * on normal frontend requests.
+	 *
+	 * @return list<int>
+	 */
+	private static function redirected_post_ids(): array {
+		$rules = get_option( Redirects::FORCED_OPTION, array() );
+		if ( ! is_array( $rules ) ) {
+			return array();
+		}
+
+		$ids = array();
+		foreach ( $rules as $rule ) {
+			if ( ! is_array( $rule ) || ! empty( $rule['regex'] ) || ! isset( $rule['source'] ) || ! is_string( $rule['source'] ) ) {
+				continue;
+			}
+
+			$id = url_to_postid( home_url( $rule['source'] ) );
+			// url_to_postid() is lenient (it ignores extra segments): keep only exact matches.
+			if ( $id > 0 && Rule::normalize( (string) get_permalink( $id ) ) === $rule['source'] ) {
+				$ids[] = $id;
+			}
+		}
+
+		return array_values( array_unique( $ids ) );
 	}
 
 	/**
