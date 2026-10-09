@@ -380,7 +380,14 @@ nostro non coperto: da rivalutare dopo il lancio del Pro, con un test su 2–3 d
   Stringhe del tema (deciso il 9 ottobre 2026): nei temi a blocchi i testi scritti a mano stanno nei template part, e
   ogni template part può avere una versione per lingua con il prefisso della lingua dopo un trattino (`header-en`),
   creata nell'Editor del sito; il blocco `core/template-part` la usa sulle pagine di quella lingua, senza dati nuovi.
-  I widget dei temi classici restano uguali in tutte le lingue: servirebbe un dato dentro le option dei widget del core.
+  Lo stesso vale per i pattern sincronizzati (`wp_block`): "Nome - IT" è la versione italiana di "Nome", e il blocco
+  `core/block` la usa sulle pagine di quella lingua. I pattern non sincronizzati no: inseriti, diventano una copia dei
+  blocchi dentro la pagina o il template, modificabile; sostituirla con un'altra versione cancellerebbe le modifiche.
+  Nelle pagine non serve (ogni lingua ha la sua pagina), i pattern del tema hanno testi tradotti dal locale, e un testo
+  in un template va spostato in un template part o in un pattern sincronizzato.
+  Temi classici (deciso il 9 ottobre 2026): i temi a blocchi hanno la priorità, e nei temi classici widget e testi del
+  Customizer restano uguali in tutte le lingue; il plugin lo dichiara nella pagina Lingue e nel readme. Se un giorno
+  servisse, la strada è la stessa dei menu: un'area widget per lingua (`sidebars_widgets` del core), senza dati nostri.
 - **Requisiti minimi**: il minimo è quello che il codice richiede davvero, il più basso possibile senza peggiorare il
   codice né aggiungere compatibilità a mano. WordPress resta 7.0 (decisione del 9 ottobre 2026): uscito l'agente, lo
   richiede solo il breadcrumb (blocco `core/breadcrumbs` e i suoi filtri), mentre il resto delle API usate scende fino

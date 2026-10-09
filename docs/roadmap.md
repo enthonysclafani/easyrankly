@@ -137,6 +137,15 @@ approvano nel piano di ogni punto.
 - [x] 7.3 Altre stringhe del tema: nei temi a blocchi il blocco `core/template-part` mostra, sulle pagine di una
       lingua, la sua versione `{slug}-{lingua}` (es. `header-en`) se esiste nell'Editor del sito o nel tema; nessun dato
       nuovo. Widget dei temi classici esclusi (decisione di ottobre 2026)
+- [ ] 7.4 Pattern sincronizzati: sulle pagine di una lingua il blocco `core/block` mostra, al posto del pattern
+      sincronizzato (`wp_block`) che richiama, la sua versione con lo slug `{slug}-{lingua}` (es. "Nome - IT" per
+      "Nome") se esiste ed è pubblicata; nessun dato nuovo. I pattern non sincronizzati restano esclusi (vedi
+      `docs/piano.md`, sezione 7)
+- [ ] 7.5 Aiuto nella pagina Lingue e in `readme.txt`: la convenzione `{slug}-{lingua}` per template part e pattern
+      sincronizzati, e l'avviso che nei temi classici i testi del tema (widget, Customizer) non cambiano lingua
+
+I temi a blocchi hanno la priorità: nei temi classici funzionano contenuti, menu, titolo e descrizione del sito e le
+stringhe tradotte del tema, ma non widget né testi del Customizer (decisione del 9 ottobre 2026).
 
 ## Requisiti minimi
 
