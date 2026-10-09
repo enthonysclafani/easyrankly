@@ -17,6 +17,7 @@ Documenti di riferimento (tutti in questo branch):
 - `docs/data-model.md`: ogni dato salvato dal plugin. Se non è lì, il plugin non lo crea.
 - `docs/prompt.md`: come si avvia e si chiude il lavoro su un punto della roadmap.
 - `docs/sicurezza.md`: piano del controllo di sicurezza (snippet HTML e PHP per primi).
+- `docs/custom-code.md`: posizioni degli snippet e problemi noti della posizione "Ovunque".
 
 Il vecchio EasyRankly vive nel branch `Alpha` di questo stesso repository ed è **solo un riferimento**: leggilo per
 capire la logica, poi riscrivi secondo queste regole. Non copiare file, tabelle, job o strutture a moduli.
@@ -163,6 +164,10 @@ Prima di scrivere codice, verifica se WordPress lo fa già. Se lo fa, usa o filt
 - In esecuzione ogni snippet PHP gira in `try { } catch ( \Throwable )`: al primo errore lo snippet si disattiva da solo,
   l'errore viene salvato sullo snippet e l'admin vede un avviso.
 - Modalità sicura: con la costante `EASYRANKLY_SAFE_MODE` nessuno snippet viene eseguito. Mai attivabile da URL.
+- Posizioni: `head`, `body_open`, `footer` (solo frontend, mai in `is_admin()`) ed `everywhere` (solo PHP): gira su
+  `plugins_loaded` in ogni richiesta, admin, REST, AJAX, cron e WP-CLI compresi, come il `functions.php` di un tema,
+  tranne sulla schermata Custom code (`admin.php?page=easyrankly-snippets`), da cui si rimedia sempre a uno snippet
+  rotto. Quello che stampa viene scartato. Problemi noti e rischi accettati: `docs/custom-code.md`.
 - Gli snippet attivi stanno in cache in un'unica option autoload, aggiornata al salvataggio: zero query nel frontend.
 - Plugin Check (CI) esclude solo `src/CustomCode/PhpRunner.php`, perché segnala ogni `eval` come errore: eccezione
   approvata l'8 ottobre 2026. Gli altri controlli (PHPCS, PHPStan, `composer architecture`) continuano a leggerlo.

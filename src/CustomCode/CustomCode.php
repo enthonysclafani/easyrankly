@@ -35,13 +35,20 @@ final class CustomCode {
 	public const TYPES = array( 'html', 'php' );
 
 	/**
-	 * Frontend positions, as hook names.
+	 * Positions, as hook names. `everywhere` runs PHP as soon as the plugins are loaded, on
+	 * every request, like the functions.php of a theme: see Runner.
 	 */
 	public const POSITIONS = array(
-		'head'      => 'wp_head',
-		'body_open' => 'wp_body_open',
-		'footer'    => 'wp_footer',
+		'everywhere' => 'plugins_loaded',
+		'head'       => 'wp_head',
+		'body_open'  => 'wp_body_open',
+		'footer'     => 'wp_footer',
 	);
+
+	/**
+	 * Position that only takes PHP: there is no page yet to print HTML into.
+	 */
+	public const EVERYWHERE = 'everywhere';
 
 	/**
 	 * Per-snippet meta capabilities of the post type.
@@ -268,7 +275,8 @@ final class CustomCode {
 	/**
 	 * Checks a snippet sent to the REST API before it is saved.
 	 *
-	 * PHP needs edit_plugins; code that does not parse can be saved only as inactive.
+	 * PHP needs edit_plugins; code that does not parse can be saved only as inactive; the
+	 * `everywhere` position takes only PHP.
 	 *
 	 * @param mixed $prepared Post about to be inserted (stdClass).
 	 * @param mixed $request  REST request.
@@ -295,6 +303,11 @@ final class CustomCode {
 		// Changing an existing snippet to another type is not allowed: it would bypass the PHP check above.
 		if ( $id > 0 && self::type( $id ) !== $type ) {
 			return new \WP_Error( 'easyrankly_snippet_type', __( 'The type of a snippet cannot change.', 'easyrankly' ), array( 'status' => 400 ) );
+		}
+
+		$position = $meta[ self::meta_key( 'position' ) ] ?? ( $id > 0 ? (string) get_post_meta( $id, self::meta_key( 'position' ), true ) : '' );
+		if ( self::EVERYWHERE === $position && 'php' !== $type ) {
+			return new \WP_Error( 'easyrankly_snippet_position', __( 'Only PHP snippets can run everywhere.', 'easyrankly' ), array( 'status' => 400 ) );
 		}
 
 		$status = isset( $prepared->post_status ) ? (string) $prepared->post_status : ( $id > 0 ? (string) get_post_status( $id ) : 'draft' );
@@ -444,14 +457,16 @@ final class CustomCode {
 				continue;
 			}
 
-			// REST refuses active PHP with syntax errors; other write paths do not, so never cache it.
-			if ( 'php' === self::type( $post->ID ) && null !== self::syntax_error( $post->post_content ) ) {
+			// REST refuses active PHP with syntax errors and HTML that runs everywhere; other write
+			// paths do not, so never cache them.
+			$type = self::type( $post->ID );
+			if ( ( 'php' === $type && null !== self::syntax_error( $post->post_content ) ) || ( 'php' !== $type && self::EVERYWHERE === $position ) ) {
 				continue;
 			}
 
 			$cache['positions'][ $position ][] = array(
 				'id'       => $post->ID,
-				'type'     => self::type( $post->ID ),
+				'type'     => $type,
 				'priority' => (int) get_post_meta( $post->ID, self::meta_key( 'priority' ), true ),
 				'code'     => $post->post_content,
 			);
@@ -469,7 +484,9 @@ final class CustomCode {
 	 * Turns a snippet off after a runtime error and records the error.
 	 *
 	 * Runs on the frontend, usually for a visitor without unfiltered_html: the content
-	 * filters are lifted for the update so the code is not stripped.
+	 * filters are lifted for the update so the code is not stripped. For the `everywhere`
+	 * position it can run before `init`, when the post type is not registered yet: core
+	 * post statuses already are, and nothing here needs the post type object.
 	 *
 	 * @param int    $id      Snippet ID.
 	 * @param string $message Error message.

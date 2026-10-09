@@ -335,4 +335,67 @@ final class CustomCodeTest extends WP_UnitTestCase {
 		$this->assertSame( 'draft', get_post_status( $id ) );
 		$this->assertStringContainsString( 'Cannot redeclare', get_post_meta( $id, CustomCode::meta_key( 'error' ), true ) );
 	}
+
+	/**
+	 * Everywhere runs PHP at load time and drops its output; it never takes HTML.
+	 */
+	public function test_everywhere_runs_php_only(): void {
+		$code = "remove_action( 'wp_head', 'wp_shortlink_wp_head', 10 );\nremove_action( 'template_redirect', 'wp_shortlink_header', 11 );\necho 'dropped';";
+		$this->assertSame( 201, $this->rest( 'POST', $this->body( 'php', $code, 'publish', 'everywhere' ) )->get_status() );
+
+		$this->assertSame( 10, has_action( 'wp_head', 'wp_shortlink_wp_head' ) );
+		$this->assertSame( '', $this->output( 'everywhere' ) );
+		$this->assertFalse( has_action( 'wp_head', 'wp_shortlink_wp_head' ) );
+		$this->assertFalse( has_action( 'template_redirect', 'wp_shortlink_header' ) );
+
+		$html = $this->rest( 'POST', $this->body( 'html', '<i>early</i>', 'publish', 'everywhere' ) );
+		$this->assertSame( 400, $html->get_status() );
+		$this->assertSame( 'easyrankly_snippet_position', $html->get_data()['code'] );
+
+		// Outside REST the position can still be set: HTML there is never cached.
+		$id = $this->rest( 'POST', $this->body( 'html', '<i>early</i>' ) )->get_data()['id'];
+		update_post_meta( $id, CustomCode::meta_key( 'position' ), 'everywhere' );
+		$this->assertSame( '', $this->output( 'everywhere' ) );
+		$this->assertSame( array(), get_option( CustomCode::OPTION )['positions']['head'] );
+	}
+
+	/**
+	 * Everywhere also runs in the admin, except on the Custom code screen; the page positions never do.
+	 */
+	public function test_everywhere_runs_in_admin_but_not_on_its_screen(): void {
+		global $pagenow;
+
+		$this->rest( 'POST', $this->body( 'php', "add_filter( 'easyrankly_test_everywhere', '__return_true' );", 'publish', 'everywhere' ) );
+		$this->rest( 'POST', $this->body( 'php', "add_filter( 'easyrankly_test_head', '__return_true' );" ) );
+
+		set_current_screen( 'dashboard' );
+		$pagenow      = 'admin.php'; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- The screen the request is on.
+		$_GET['page'] = 'easyrankly-snippets';
+		$this->output( 'everywhere' );
+		$this->output( 'head' );
+		$this->assertFalse( apply_filters( 'easyrankly_test_everywhere', false ) );
+
+		$_GET['page'] = 'easyrankly-redirects';
+		$this->output( 'everywhere' );
+		$this->assertTrue( apply_filters( 'easyrankly_test_everywhere', false ) );
+		$this->assertFalse( apply_filters( 'easyrankly_test_head', false ) );
+
+		unset( $_GET['page'] );
+		$pagenow = 'index.php'; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Restores the default.
+		set_current_screen( 'front' );
+	}
+
+	/**
+	 * An error in an everywhere snippet turns it off even before init registers the post type.
+	 */
+	public function test_everywhere_error_before_init(): void {
+		$id = $this->rest( 'POST', $this->body( 'php', "throw new \\RuntimeException( 'early' );", 'publish', 'everywhere' ) )->get_data()['id'];
+
+		unregister_post_type( CustomCode::POST_TYPE );
+		$this->output( 'everywhere' );
+
+		$this->assertSame( 'draft', get_post_status( $id ) );
+		$this->assertStringContainsString( 'early', get_post_meta( $id, CustomCode::meta_key( 'error' ), true ) );
+		$this->assertSame( array(), get_option( CustomCode::OPTION )['positions']['everywhere'] );
+	}
 }

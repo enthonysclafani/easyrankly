@@ -43,7 +43,7 @@ Meta del post type `erankly_snippet` (`src/CustomCode/CustomCode.php`), nel REST
 | Chiave | Tipo | Contenuto | Introdotta in |
 |---|---|---|---|
 | `_easyrankly_snippet_type` | string | `html` o `php`. Non cambia dopo la creazione. | 1.11 |
-| `_easyrankly_snippet_position` | string | `head`, `body_open` o `footer`. | 1.11 |
+| `_easyrankly_snippet_position` | string | `head`, `body_open`, `footer` o `everywhere` (solo PHP, su `plugins_loaded`: vedi `docs/custom-code.md`). | 1.11 |
 | `_easyrankly_snippet_priority` | integer | Ordine nella posizione, 0–1000, default 10. | 1.11 |
 | `_easyrankly_snippet_error` | string | Ultimo errore in esecuzione, che ha disattivato lo snippet. Sola lettura nel REST; cancellato al salvataggio successivo. | 1.11 |
 

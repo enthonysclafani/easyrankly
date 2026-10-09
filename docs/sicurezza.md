@@ -116,11 +116,14 @@ quell'option ottiene esecuzione di PHP. Da verificare:
 
 ### CC-05. Dove girano gli snippet
 
-- Mai in `is_admin()`: verificare `admin-ajax.php`, `admin-post.php`, REST, `wp-login.php`, `wp-cron.php`, feed,
+- Posizioni di pagina mai in `is_admin()`: verificare `admin-ajax.php`, `admin-post.php`, REST, `wp-login.php`, `wp-cron.php`, feed,
   embed (`/embed/`), anteprima del Customizer, iframe dell'editor del sito, sitemap XML, `robots.txt`.
 - Un admin deve **sempre** poter rimediare a uno snippet rotto dall'admin. Provare uno snippet che rompe il frontend
   e uno che fa `wp_redirect()` di tutte le pagine: l'admin resta raggiungibile?
 - Modalità sicura: solo dalla costante. Verificare che nessun parametro, cookie o intestazione la attivi o la spenga.
+- Posizione `everywhere` (su `plugins_loaded`, ovunque tranne la schermata Custom code): verificare l'esclusione della
+  schermata (anche il POST del form e la REST interna), che un HTML non ci arrivi da nessuna strada di scrittura e i
+  problemi elencati in `docs/custom-code.md`.
 
 ### CC-06. Spegnimento automatico avviato da un visitatore
 
