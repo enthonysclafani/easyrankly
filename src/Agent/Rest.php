@@ -333,7 +333,7 @@ final class Rest {
 		$previous = get_post_meta( $post->ID, Proposals::meta_key( 'previous' ), true );
 		$previous = is_array( $previous ) ? $previous : array();
 		$ability  = (string) get_post_meta( $post->ID, Proposals::meta_key( 'ability' ), true );
-		$labels   = Actions::labels();
+		$fields   = Allowlist::definition( $ability )['fields'] ?? array();
 		$status   = (string) array_search( $post->post_status, Proposals::STATUSES, true );
 		$user     = get_userdata( (int) get_post_meta( $post->ID, Proposals::meta_key( 'user' ), true ) );
 		$object   = $post->post_parent > 0 ? get_post( $post->post_parent ) : null;
@@ -355,12 +355,19 @@ final class Rest {
 			if ( 'id' === $field ) {
 				continue;
 			}
-			$diff[] = array(
+			$row = array(
 				'field'  => (string) $field,
-				'label'  => $labels[ $field ] ?? (string) $field,
+				'label'  => $fields[ $field ]['label'] ?? (string) $field,
+				'type'   => $fields[ $field ]['type'] ?? 'text',
 				'before' => $previous[ $field ] ?? '',
 				'after'  => $value,
+				// An empty SEO text means the site templates apply; anywhere else it is just empty.
+				'empty'  => Actions::POST_SEO === $ability ? __( '(template)', 'easyrankly' ) : __( '(empty)', 'easyrankly' ),
 			);
+			if ( 'long_text' === $row['type'] ) {
+				$row['lines'] = self::lines( is_scalar( $row['before'] ) ? (string) $row['before'] : '', is_scalar( $value ) ? (string) $value : '' );
+			}
+			$diff[] = $row;
 		}
 
 		return array(
@@ -379,5 +386,43 @@ final class Rest {
 			'modified'   => (string) get_post_modified_time( 'c', true, $post ),
 			'object'     => $target,
 		);
+	}
+
+	/**
+	 * Line by line comparison of two texts, with the core's Text_Diff (the one of post revisions).
+	 *
+	 * @param string $before Current text.
+	 * @param string $after  Proposed text.
+	 * @return list<array{type: string, text: string}> Lines in order; type is same, removed or added.
+	 */
+	private static function lines( string $before, string $after ): array {
+		if ( ! class_exists( 'Text_Diff', false ) ) {
+			require_once ABSPATH . 'wp-includes/Text/Diff.php';
+		}
+
+		$split = static fn( string $text ): array => '' === $text ? array() : explode( "\n", str_replace( array( "\r\n", "\r" ), "\n", $text ) );
+		$diff  = new \Text_Diff( 'native', array( $split( $before ), $split( $after ) ) );
+		$lines = array();
+
+		foreach ( $diff->getDiff() as $operation ) {
+			$copy = $operation instanceof \Text_Diff_Op_copy;
+			foreach ( is_array( $operation->orig ) ? $operation->orig : array() as $line ) {
+				$lines[] = array(
+					'type' => $copy ? 'same' : 'removed',
+					'text' => (string) $line,
+				);
+			}
+			if ( $copy ) {
+				continue;
+			}
+			foreach ( is_array( $operation->final ) ? $operation->final : array() as $line ) {
+				$lines[] = array(
+					'type' => 'added',
+					'text' => (string) $line,
+				);
+			}
+		}
+
+		return $lines;
 	}
 }

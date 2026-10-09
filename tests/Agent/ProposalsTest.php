@@ -321,14 +321,18 @@ final class ProposalsTest extends WP_UnitTestCase {
 				array(
 					'field'  => 'title',
 					'label'  => 'SEO title',
+					'type'   => 'text',
 					'before' => 'Old title',
 					'after'  => 'New title',
+					'empty'  => '(template)',
 				),
 				array(
 					'field'  => 'description',
 					'label'  => 'Meta description',
+					'type'   => 'text',
 					'before' => '',
 					'after'  => 'New description',
+					'empty'  => '(template)',
 				),
 			),
 			$items[0]['diff']

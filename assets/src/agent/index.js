@@ -28,6 +28,8 @@ const STATUSES = [
 ];
 // Fields longer than this are edited in a textarea.
 const LONG_FIELD = 120;
+// Unchanged lines kept around each change in the preview of long texts.
+const CONTEXT_LINES = 2;
 
 const PER_PAGE = 20;
 
@@ -58,17 +60,85 @@ function decide( id, action, data = {} ) {
 }
 
 /**
- * Shows a value of the preview; empty means "the site templates apply".
+ * Shows a value of the preview, or what an empty value means for the field.
  *
  * @param {Object}  props       Props.
  * @param {?string} props.value Value.
+ * @param {string}  props.empty Placeholder from the REST API.
  * @return {Element} Value or placeholder.
  */
-function Value( { value } ) {
+function Value( { value, empty } ) {
 	if ( value === '' || value === null || value === undefined ) {
-		return <em>{ __( '(template)', 'easyrankly' ) }</em>;
+		return <em>{ empty }</em>;
 	}
 	return String( value );
+}
+
+/**
+ * A long text compared line by line: removed and added lines, with long
+ * runs of unchanged lines shortened to their first and last lines.
+ *
+ * @param {Object} props       Props.
+ * @param {Array}  props.lines Lines from the REST API: type and text.
+ * @return {Element} Lines.
+ */
+function Lines( { lines } ) {
+	const shown = [];
+	let run = [];
+	const flush = () => {
+		if ( run.length > 2 * CONTEXT_LINES + 1 ) {
+			shown.push(
+				...run.slice( 0, CONTEXT_LINES ),
+				{
+					type: 'skipped',
+					key: `skipped-${ run[ 0 ].key }`,
+					text: sprintf(
+						/* translators: %d: number of unchanged lines not shown. */
+						__( '(%d unchanged lines)', 'easyrankly' ),
+						run.length - 2 * CONTEXT_LINES
+					),
+				},
+				...run.slice( -CONTEXT_LINES )
+			);
+		} else {
+			shown.push( ...run );
+		}
+		run = [];
+	};
+	lines.forEach( ( line, index ) => {
+		if ( line.type === 'same' ) {
+			run.push( { ...line, key: index } );
+		} else {
+			flush();
+			shown.push( { ...line, key: index } );
+		}
+	} );
+	flush();
+
+	return shown.map( ( line ) => {
+		if ( line.type === 'removed' ) {
+			return (
+				<div key={ line.key }>
+					<del>{ line.text || '\u00a0' }</del>
+				</div>
+			);
+		}
+		if ( line.type === 'added' ) {
+			return (
+				<div key={ line.key }>
+					<ins>{ line.text || '\u00a0' }</ins>
+				</div>
+			);
+		}
+		if ( line.type === 'skipped' ) {
+			return (
+				<div key={ line.key }>
+					<em>{ line.text }</em>
+				</div>
+			);
+		}
+		return <div key={ line.key }>{ line.text || '\u00a0' }</div>;
+	} );
 }
 
 /**
@@ -92,16 +162,30 @@ function Diff( { diff } ) {
 				{ diff.map( ( row ) => (
 					<tr key={ row.field }>
 						<th scope="row">{ row.label }</th>
-						<td>
-							<del>
-								<Value value={ row.before } />
-							</del>
-						</td>
-						<td>
-							<ins>
-								<Value value={ row.after } />
-							</ins>
-						</td>
+						{ row.lines ? (
+							<td colSpan={ 2 }>
+								<Lines lines={ row.lines } />
+							</td>
+						) : (
+							<>
+								<td>
+									<del>
+										<Value
+											value={ row.before }
+											empty={ row.empty }
+										/>
+									</del>
+								</td>
+								<td>
+									<ins>
+										<Value
+											value={ row.after }
+											empty={ row.empty }
+										/>
+									</ins>
+								</td>
+							</>
+						) }
 					</tr>
 				) ) }
 			</tbody>
@@ -208,6 +292,7 @@ function Decision( { item, mode, onClose, onDone } ) {
 					item.diff.map( ( row ) => {
 						const id = `easyrankly-${ item.id }-${ row.field }`;
 						const long =
+							row.type === 'long_text' ||
 							String( row.after ).length > LONG_FIELD ||
 							row.field.includes( 'description' );
 						const change = ( event ) =>
@@ -223,7 +308,9 @@ function Decision( { item, mode, onClose, onDone } ) {
 									<textarea
 										id={ id }
 										className="large-text"
-										rows={ 3 }
+										rows={
+											row.type === 'long_text' ? 12 : 3
+										}
 										value={ values[ row.field ] ?? '' }
 										onChange={ change }
 									/>

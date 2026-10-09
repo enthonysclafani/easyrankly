@@ -162,12 +162,12 @@ final class Proposals {
 			return new \WP_Error( 'easyrankly_daily_limit', __( 'The agent reached the daily limit of proposals.', 'easyrankly' ), array( 'status' => 429 ) );
 		}
 
-		$previous = Actions::snapshot( $name, $input );
+		$previous = self::snapshot( $name, $input );
 		if ( is_wp_error( $previous ) ) {
 			return $previous;
 		}
 
-		$object = (int) ( $args['object'] ?? Actions::object_id( $input ) );
+		$object = (int) ( $args['object'] ?? self::object( $name, $input ) );
 		$title  = sanitize_text_field( $args['title'] );
 		if ( '' === $title ) {
 			return new \WP_Error( 'easyrankly_proposal_title', __( 'A proposal needs a summary.', 'easyrankly' ) );
@@ -228,7 +228,7 @@ final class Proposals {
 		}
 
 		// The content changed since the proposal was made: applying it would overwrite newer work.
-		$current = Actions::snapshot( $proposal['ability'], $input );
+		$current = self::snapshot( $proposal['ability'], $input );
 		if ( is_wp_error( $current ) || self::fingerprint( $current ) !== $proposal['fingerprint'] ) {
 			self::decide( $id, 'superseded', __( 'The content changed after this proposal was made.', 'easyrankly' ) );
 			return new \WP_Error( 'easyrankly_proposal_superseded', __( 'The content changed after this proposal was made, so it was not applied.', 'easyrankly' ), array( 'status' => 409 ) );
@@ -245,7 +245,7 @@ final class Proposals {
 		}
 
 		// From now on the fingerprint is the one of the applied values: "Undo" checks it.
-		$applied = Actions::snapshot( $proposal['ability'], $input );
+		$applied = self::snapshot( $proposal['ability'], $input );
 		update_post_meta( $id, self::meta_key( 'input' ), $input );
 		update_post_meta( $id, self::meta_key( 'fingerprint' ), is_wp_error( $applied ) ? '' : self::fingerprint( $applied ) );
 		self::decide( $id, 'accepted' );
@@ -294,7 +294,12 @@ final class Proposals {
 			return $proposal;
 		}
 
-		$current = Actions::snapshot( $proposal['ability'], $proposal['input'] );
+		// The action is no longer allowed (the plugin that registered it is gone): nothing runs.
+		if ( null === Allowlist::definition( $proposal['ability'] ) ) {
+			return new \WP_Error( 'easyrankly_not_allowed', __( 'The agent cannot propose this action.', 'easyrankly' ), array( 'status' => 400 ) );
+		}
+
+		$current = self::snapshot( $proposal['ability'], $proposal['input'] );
 		if ( is_wp_error( $current ) || self::fingerprint( $current ) !== $proposal['fingerprint'] ) {
 			return new \WP_Error( 'easyrankly_proposal_changed', __( 'The content changed after this proposal was applied: undoing it would overwrite newer changes.', 'easyrankly' ), array( 'status' => 409 ) );
 		}
@@ -375,6 +380,41 @@ final class Proposals {
 		foreach ( $pending as $id ) {
 			self::decide( (int) $id, 'superseded', $note );
 		}
+	}
+
+	/**
+	 * Current values of the fields an input would change, in the same shape as the input.
+	 *
+	 * @param string               $name  Ability name.
+	 * @param array<string, mixed> $input Validated input.
+	 * @return array<string, mixed>|\WP_Error
+	 */
+	private static function snapshot( string $name, array $input ) {
+		$definition = Allowlist::definition( $name );
+		if ( null === $definition ) {
+			return new \WP_Error( 'easyrankly_not_allowed', __( 'The agent cannot propose this action.', 'easyrankly' ) );
+		}
+
+		$snapshot = call_user_func( $definition['snapshot'], $input );
+		if ( is_wp_error( $snapshot ) || is_array( $snapshot ) ) {
+			return $snapshot;
+		}
+
+		return new \WP_Error( 'easyrankly_snapshot', __( 'The current values of this action could not be read.', 'easyrankly' ) );
+	}
+
+	/**
+	 * ID of the post an input changes, stored as the proposal's post_parent.
+	 *
+	 * @param string               $name  Ability name.
+	 * @param array<string, mixed> $input Validated input.
+	 * @return int
+	 */
+	private static function object( string $name, array $input ): int {
+		$definition = Allowlist::definition( $name );
+		$object     = null === $definition ? 0 : call_user_func( $definition['object'], $input );
+
+		return is_numeric( $object ) ? max( 0, (int) $object ) : 0;
 	}
 
 	/**
