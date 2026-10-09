@@ -16,6 +16,10 @@ final class Bad {
 		eval( '$x = 1;' );
 		file_put_contents( '/tmp/fixture', 'y' );
 		wp_enqueue_script( 'fixture' );
+		wp_ai_client_prompt( 'fixture' );
+		add_action( 'wp_abilities_api_init', array( $this, 'abilities' ) );
+		register_post_type( 'erankly_proposal' );
+		update_option( 'easyrankly_agent_actions', array() );
 		$this->copy( 'a method, not the global function' );
 		// wp_schedule_event() inside a comment is ignored.
 	}

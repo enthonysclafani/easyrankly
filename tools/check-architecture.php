@@ -105,6 +105,29 @@ final class ArchitectureChecker {
 	private const HOOK_FUNCTIONS = array( 'add_action', 'add_filter' );
 
 	/**
+	 * Global functions of the WordPress AI Client, Abilities API and Connectors API: the free plugin has no AI
+	 * (the agent lives in EasyRankly Pro).
+	 *
+	 * @var string
+	 */
+	private const AI_FUNCTION_PATTERN = '/^wp_(ai_|supports_ai$|(register|unregister|get|has)_abilit|\w*connector)/';
+
+	/**
+	 * Hook names of the Abilities API and Connectors API, forbidden for the same reason.
+	 *
+	 * @var string
+	 */
+	private const AI_HOOK_PATTERN = '/^wp_(abilities_api_|connectors_)\w*init$/';
+
+	/**
+	 * Names of the agent and of EasyRankly Pro (post types, options, hooks, slug): nothing in the free plugin
+	 * is written for the Pro.
+	 *
+	 * @var string
+	 */
+	private const PRO_NAME_PATTERN = '/(?<![a-z])e(asy)?rankly[_-](proposal|memory|agent|pro)(?![a-z])/i';
+
+	/**
 	 * Keys of block.json that load assets on the frontend.
 	 *
 	 * @var list<string>
@@ -317,6 +340,11 @@ final class ArchitectureChecker {
 			}
 		}
 
+		if ( preg_match( self::AI_FUNCTION_PATTERN, $function_name ) ) {
+			$this->add( $relative, $line, 'no-ai', "`{$function_name}()` is forbidden: the free plugin has no AI (see CLAUDE.md)." );
+			return;
+		}
+
 		if ( in_array( $function_name, self::ADMIN_ONLY_FUNCTIONS, true ) && ! $is_admin_path ) {
 			$this->add( $relative, $line, 'no-frontend-assets', "`{$function_name}()` is allowed only in admin code (a path under `Admin/`)." );
 			return;
@@ -334,7 +362,7 @@ final class ArchitectureChecker {
 	}
 
 	/**
-	 * Checks a string literal for SQL schema changes and frontend asset hooks.
+	 * Checks a string literal for SQL schema changes, frontend asset hooks, AI hooks and names of the Pro.
 	 *
 	 * @param string $relative Path relative to the root.
 	 * @param int    $line     Line of the string.
@@ -349,6 +377,16 @@ final class ArchitectureChecker {
 		$value = trim( $text, '\'"' );
 		if ( in_array( $value, self::FRONTEND_ASSET_HOOKS, true ) ) {
 			$this->add( $relative, $line, 'no-frontend-assets', "The `{$value}` hook loads frontend assets and is forbidden." );
+			return;
+		}
+
+		if ( preg_match( self::AI_HOOK_PATTERN, $value ) ) {
+			$this->add( $relative, $line, 'no-ai', "The `{$value}` hook is forbidden: the free plugin has no AI (see CLAUDE.md)." );
+			return;
+		}
+
+		if ( preg_match( self::PRO_NAME_PATTERN, $value, $match ) ) {
+			$this->add( $relative, $line, 'no-pro-code', "`{$match[0]}` belongs to the agent or to EasyRankly Pro: nothing in the free plugin is written for the Pro." );
 		}
 	}
 
