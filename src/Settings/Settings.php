@@ -197,6 +197,26 @@ final class Settings {
 				'maxProperties'        => 20,
 				'default'              => array(),
 			),
+			'navigation_menus'      => array(
+				'description'          => __( 'Navigation menus of block themes shown on the pages of one language (language slug => navigation menu ID => ID of the navigation menu shown in its place).', 'easyrankly' ),
+				'type'                 => 'object',
+				'patternProperties'    => array(
+					Languages::SLUG_PATTERN => array(
+						'type'                 => 'object',
+						'patternProperties'    => array(
+							'^[1-9][0-9]*$' => array(
+								'type'    => 'integer',
+								'minimum' => 1,
+							),
+						),
+						'additionalProperties' => false,
+						'maxProperties'        => 50,
+					),
+				),
+				'additionalProperties' => false,
+				'maxProperties'        => 20,
+				'default'              => array(),
+			),
 			'templates'             => array(
 				'description'          => __( 'Title and description templates per context. Keys: home, single, archive, term, author, date, search, 404, or single-{post type}, archive-{post type}, term-{taxonomy}.', 'easyrankly' ),
 				'type'                 => 'object',

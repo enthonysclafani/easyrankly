@@ -8,6 +8,7 @@
 namespace EasyRankly\Settings\Admin;
 
 use EasyRankly\Multilingual\Languages;
+use EasyRankly\Multilingual\Menus;
 use EasyRankly\Settings\Settings;
 
 defined( 'ABSPATH' ) || exit;
@@ -263,7 +264,41 @@ final class Form {
 			) + $row['texts'];
 		}
 
-		return array( 'languages' => $languages );
+		$settings = array( 'languages' => $languages );
+
+		// Navigation menus are posted only when the page lists some: otherwise they stay as they are.
+		if ( is_array( $value[ Menus::SETTING ] ?? null ) ) {
+			$settings[ Menus::SETTING ] = self::navigation_menus( $value[ Menus::SETTING ], $languages );
+		}
+
+		return $settings;
+	}
+
+	/**
+	 * Navigation menus chosen for each language other than the default; "Same menu" is not stored.
+	 *
+	 * @param array<mixed>         $posted    Posted language => navigation menu ID => chosen ID.
+	 * @param array<string, mixed> $languages Languages being saved, default first.
+	 * @return array<string, array<int, int>>
+	 */
+	private static function navigation_menus( array $posted, array $languages ): array {
+		$default = array_key_first( $languages );
+		$menus   = array();
+
+		foreach ( $posted as $language => $chosen ) {
+			if ( ! is_string( $language ) || $default === $language || ! isset( $languages[ $language ] ) || ! is_array( $chosen ) ) {
+				continue;
+			}
+			foreach ( $chosen as $navigation => $target ) {
+				$navigation = (int) $navigation;
+				$target     = is_numeric( $target ) ? (int) $target : 0;
+				if ( $navigation > 0 && $target > 0 && $navigation !== $target ) {
+					$menus[ $language ][ $navigation ] = $target;
+				}
+			}
+		}
+
+		return $menus;
 	}
 
 	/**
@@ -306,6 +341,7 @@ final class Form {
 			'social_image'          => __( 'Default image', 'easyrankly' ),
 			'x_username'            => __( 'X username', 'easyrankly' ),
 			'languages'             => __( 'Languages', 'easyrankly' ),
+			Menus::SETTING          => __( 'Menus', 'easyrankly' ),
 		);
 
 		/* translators: %s: name of a setting. */

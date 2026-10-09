@@ -344,6 +344,46 @@ final class FormTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Navigation menus: only other languages, only real choices; not posted = kept as they are.
+	 */
+	public function test_languages_page_saves_navigation_menus(): void {
+		$rows = array(
+			array(
+				'order'  => '1',
+				'slug'   => 'it',
+				'locale' => 'it_IT',
+				'name'   => 'Italiano',
+			),
+			array(
+				'order'  => '2',
+				'slug'   => 'en',
+				'locale' => 'en_US',
+				'name'   => 'English',
+			),
+		);
+
+		$stored = $this->save(
+			'easyrankly-languages',
+			array(
+				'languages'        => $rows,
+				'navigation_menus' => array(
+					'it' => array( '10' => '11' ),
+					'en' => array(
+						'10' => '12',
+						'11' => '',
+						'12' => '12',
+					),
+					'fr' => array( '10' => '13' ),
+				),
+			)
+		);
+		$this->assertSame( array( 'en' => array( 10 => 12 ) ), $stored['navigation_menus'] );
+
+		$stored = $this->save( 'easyrankly-languages', array( 'languages' => $rows ) );
+		$this->assertSame( array( 'en' => array( 10 => 12 ) ), $stored['navigation_menus'] );
+	}
+
+	/**
 	 * A row that cannot be saved leaves every language as it was.
 	 *
 	 * @dataProvider invalid_language_rows

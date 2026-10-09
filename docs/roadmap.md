@@ -132,7 +132,7 @@ approvano nel piano di ogni punto.
 
 - [x] 7.1 Titolo e descrizione del sito per lingua (pagina Lingue), letti con `option_blogname` e
       `option_blogdescription` sulle pagine di quella lingua
-- [ ] 7.2 Menu per lingua: per ogni posizione del tema un menu per lingua (`theme_mod_nav_menu_locations`) e, nei temi
+- [x] 7.2 Menu per lingua: per ogni posizione del tema un menu per lingua (`theme_mod_nav_menu_locations`) e, nei temi
       a blocchi, la navigazione per lingua del blocco `core/navigation`
 - [ ] 7.3 Altre stringhe del tema: da definire (vedi "Decisioni aperte")
 
