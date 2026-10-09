@@ -141,7 +141,7 @@ approvano nel piano di ogni punto.
       sincronizzato (`wp_block`) che richiama, la sua versione con lo slug `{slug}-{lingua}` (es. "Nome - IT" per
       "Nome") se esiste ed è pubblicata; nessun dato nuovo. I pattern non sincronizzati restano esclusi (vedi
       `docs/piano.md`, sezione 7)
-- [ ] 7.5 Aiuto nella pagina Lingue e in `readme.txt`: la convenzione `{slug}-{lingua}` per template part e pattern
+- [x] 7.5 Aiuto nella pagina Lingue e in `readme.txt`: la convenzione `{slug}-{lingua}` per template part e pattern
       sincronizzati, e l'avviso che nei temi classici i testi del tema (widget, Customizer) non cambiano lingua
 
 I temi a blocchi hanno la priorità: nei temi classici funzionano contenuti, menu, titolo e descrizione del sito e le

@@ -18,6 +18,16 @@ EasyRankly is in active development. This version is not ready for production si
 * **No cron jobs.** Nothing runs in the background on your server.
 * **No frontend scripts.** Your visitors download nothing extra.
 
+== Frequently Asked Questions ==
+
+= How do header, footer and patterns change language? =
+
+In block themes, create a template part or a synced pattern with the same name followed by the language prefix: "header-en" for "header", "Banner - EN" for "Banner". On the English pages it replaces the original. Unsynced patterns become a copy where they are inserted, so they are translated with the page of each language.
+
+= Are classic themes supported? =
+
+Contents, menus, site title and tagline, and the texts the theme translates itself change with the language. Widgets and texts set in the Customizer do not: they show the same text in every language. Block themes are supported first.
+
 == External services ==
 
 EasyRankly does not connect to any external service.
