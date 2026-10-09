@@ -42,7 +42,7 @@ final class PluginTest extends WP_UnitTestCase {
 	public function test_no_agent_is_registered(): void {
 		$this->assertFalse( post_type_exists( 'erankly_proposal' ) );
 		$this->assertFalse( post_type_exists( 'erankly_memory' ) );
-		$this->assertFalse( get_post_status_object( 'erankly_pending' ) );
+		$this->assertNull( get_post_status_object( 'erankly_pending' ) );
 
 		$routes = array_keys( rest_get_server()->get_routes() );
 		$this->assertSame( array(), preg_grep( '#^/easyrankly/v1/(agent|proposals|memory)#', $routes ) );
