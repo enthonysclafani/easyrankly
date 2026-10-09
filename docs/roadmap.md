@@ -103,7 +103,7 @@ nomi o licenze del Pro. Ogni punto aggiunge hook pubblici: il piano del punto li
       sua definizione (valori correnti per impronta e "Annulla", oggetto modificato, etichette e tipo dei campi per
       l'anteprima delle differenze, anche per testi lunghi). Le azioni `destructive` restano rifiutate; tutto il resto
       passa dalla validazione di oggi. Tocca `src/Agent/Allowlist.php`, `src/Agent/Actions.php` e la dashboard delle proposte.
-- [ ] 5.2 Funzione pubblica per creare una proposta, con le stesse regole di oggi (allowlist, schema, testi, tetto
+- [x] 5.2 Funzione pubblica per creare una proposta, con le stesse regole di oggi (allowlist, schema, testi, tetto
       giornaliero, proposte superate). Test di 5.1 e 5.2 con un'azione di prova registrata da un plugin di test.
 
 ## EasyRankly Pro (repository separato, da creare)

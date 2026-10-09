@@ -266,6 +266,9 @@ Decisioni e perché: `docs/piano.md`, sezione 6.
 - **Nel gratuito il minimo**: solo punti di estensione generici, che qualunque plugin può usare, documentati con
   `@since` e coperti da test con un'azione di prova. Niente licenze, upsell, nomi o controlli del Pro.
 - Ogni punto di estensione è una promessa di compatibilità: aggiungerlo è una decisione da chiedere, come ogni hook pubblico.
+- Punti di estensione esistenti: il filtro `easyrankly_agent_actions` (azioni proponibili, documentato in
+  `src/Agent/Allowlist.php`) e la funzione `easyrankly_create_proposal()` in `src/functions.php`, l'unico file
+  di funzioni globali, caricato dal bootstrap.
 - Le azioni del Pro passano dalla stessa validazione di quelle del gratuito (allowlist, schema, testi senza markup né
   link esterni, impronta, tetto giornaliero) e si applicano con i permessi di chi accetta.
 - I dati del Pro (tassonomie dei cluster e della mappa dei link, token cifrati, quote) li registra e li rimuove il Pro:
