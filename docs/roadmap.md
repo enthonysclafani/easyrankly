@@ -145,8 +145,10 @@ Decisione di ottobre 2026: il più bassi possibile senza peggiorare il codice (v
 - [x] Minimo di PHP: 8.0 (`testVersion` in `phpcs.xml.dist`, intestazioni, Composer, CI su 8.0 e 8.4). Sotto non si
       scende senza riscrivere codice: `match`, operatore `?->` e tipo `mixed` sono di PHP 8.0. PHPCompatibility 9.3.5 non
       conosce le novità di PHP 8: la conferma vera sono PHPStan e PHPUnit della CI su PHP 8.0
-- [ ] Minimo di WordPress: elenco delle API del core usate con la versione che le introduce, dopo la Fase 6
-      (oggi 7.0, per AI Client e Connectors dell'agente, che passa al Pro)
+- [x] Minimo di WordPress: resta 7.0 (decisione del 9 ottobre 2026). Lo richiede solo il breadcrumb: blocco
+      `core/breadcrumbs` e filtri `block_core_breadcrumbs_items` e `block_core_breadcrumbs_post_type_settings`. Senza,
+      il minimo sarebbe 6.6 (`PluginDocumentSettingPanel` da `@wordpress/editor`), poi 6.5
+      (`wp_is_serving_rest_request()`) e 6.3 (`wp_cache_set_last_changed()`)
 
 ## EasyRankly Pro (repository `easyrankly-pro`)
 
