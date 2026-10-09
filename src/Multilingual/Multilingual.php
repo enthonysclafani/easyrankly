@@ -32,6 +32,7 @@ final class Multilingual {
 		( new SiteIdentity() )->register();
 		( new Menus() )->register();
 		( new TemplateParts() )->register();
+		( new SyncedPatterns() )->register();
 		add_action( 'wp_sitemaps_init', array( $this, 'register_sitemap' ) );
 	}
 
