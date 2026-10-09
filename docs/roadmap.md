@@ -56,8 +56,7 @@ Riferimenti Alpha: `includes/multilingual/singlesite/`, `includes/hreflang.php`,
       loro URL e `wp-sitemap-languages-1.xml` le home delle lingue: niente file separati per lingua, che non aggiungono nulla
 - [x] 2.5 Blocco selettore di lingua renderizzato lato server (solo `editorScript`, nessun asset nel frontend)
 - [x] 2.6 Template SEO per lingua
-- Decisione rimandata (ottobre 2026): anche menu e stringhe del tema, o solo SEO e collegamento delle traduzioni?
-  Per ora la Fase 2 copre solo SEO e collegamento delle traduzioni (vedi `docs/piano.md`, sezione 7).
+- Decisione di ottobre 2026: il multilingua copre anche menu e stringhe del tema, senza tabelle. Lo fa la Fase 6.
 
 ## Fase 3 — Agente AI nel plugin (chiavi dell'utente)
 
@@ -106,6 +105,25 @@ nomi o licenze del Pro. Ogni punto aggiunge hook pubblici: il piano del punto li
 - [x] 5.2 Funzione pubblica per creare una proposta, con le stesse regole di oggi (allowlist, schema, testi, tetto
       giornaliero, proposte superate). Test di 5.1 e 5.2 con un'azione di prova registrata da un plugin di test.
 
+## Fase 6 — Multilingua: menu e stringhe del tema
+
+Decisione e strada proposta: `docs/piano.md`, sezione 7. Niente tabelle né moduli; option e meta nuovi si
+approvano nel piano di ogni punto.
+
+- [ ] 6.1 Titolo e descrizione del sito per lingua (pagina Lingue), letti con `option_blogname` e
+      `option_blogdescription` sulle pagine di quella lingua
+- [ ] 6.2 Menu per lingua: per ogni posizione del tema un menu per lingua (`theme_mod_nav_menu_locations`) e, nei temi
+      a blocchi, la navigazione per lingua del blocco `core/navigation`
+- [ ] 6.3 Altre stringhe del tema: da definire (vedi "Decisioni aperte")
+
+## Requisiti minimi
+
+Decisione di ottobre 2026: il più bassi possibile senza peggiorare il codice (vedi `docs/piano.md`, sezione 7).
+
+- [ ] Confermare il minimo di PHP con PHPCompatibility (`testVersion` in `phpcs.xml.dist`) e la CI; oggi è 8.1
+- [ ] Minimo di WordPress: elenco delle API del core usate con la versione che le introduce, dopo la decisione
+      sull'agente in un plugin dedicato (oggi 7.0, per AI Client e Connectors)
+
 ## EasyRankly Pro (repository separato, da creare)
 
 Promemoria dei punti che erano qui come "Fase 4 — EasyRankly Cloud". La loro roadmap vivrà nel repository del Pro.
@@ -117,13 +135,18 @@ Promemoria dei punti che erano qui come "Fase 4 — EasyRankly Cloud". La loro r
   nascosta per i cluster
 - Mappa dei link interni con tassonomia nascosta; suggerimenti con embedding (AI dell'utente)
 - Piano editoriale, brief, bozze, link interni, report mensile
+- Noindex su pagine povere tra le azioni proponibili (rischio alto): l'AI propone, l'utente sceglie
 
 ## Decisioni aperte
 
-- Multilingua: profondità (vedi Fase 2 e `docs/piano.md`, sezione 7).
+- Agente AI in un plugin dedicato, senza niente dell'agente nel plugin principale: da definire (`docs/piano.md`,
+  sezione 8). Tocca le Fasi 3 e 5, il Pro e i requisiti minimi.
+- Multilingua: quali altre stringhe del tema (punto 6.3).
 - Import da Yoast e Rank Math: solo meta e redirect, a lotti dall'admin? (riferimento Alpha: `includes/migrations/`)
 - Schema extra: Local Business, Product per WooCommerce.
-- IndexNow.
-- EasyRankly Pro: prezzo, siti per licenza e quote di DataForSEO (proposta in `docs/piano.md`, sezione 6).
 - Modelli decisionali (es. Jev di typesafe.ai): rimandati. Con l'AI pagata dall'utente, un modello sul backend
   sarebbe un costo nostro; da rivalutare dopo il lancio del Pro, con un test su 2–3 decisioni reali.
+
+Decise a ottobre 2026 (dettagli in `docs/piano.md`, sezione 7): niente IndexNow; prezzi del Pro confermati; multilingua
+anche per menu e stringhe del tema (Fase 6); requisiti minimi il più bassi possibile; noindex su pagine povere
+proponibile nel Pro.

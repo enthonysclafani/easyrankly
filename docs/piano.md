@@ -37,7 +37,7 @@ Search Console tiene già 16 mesi.
 | Sitemap | Estende le sitemap del core | `wp_sitemaps_*`, nessun generatore proprio |
 | Redirect | 301/302/307/410, esatti e regex | Post type `erankly_redirect`; hash della sorgente in `post_name` (indicizzato); ricerca solo su 404 più una piccola lista di "forzati" |
 | Custom code | Snippet HTML e PHP in head, apertura del body, footer | Post type `erankly_snippet`; PHP solo con `edit_plugins`, controllo della sintassi senza esecuzione, disattivazione automatica in caso di errore, modalità sicura |
-| Multilingua | Singolo sito: lingua per contenuto, gruppi di traduzioni, prefisso nella URL, hreflang, sitemap per lingua | Tassonomie nascoste (come Polylang); blocco selettore renderizzato lato server |
+| Multilingua | Singolo sito: lingua per contenuto, gruppi di traduzioni, prefisso nella URL, hreflang, sitemap per lingua; menu e stringhe del tema per lingua (Fase 6) | Tassonomie nascoste (come Polylang); blocco selettore renderizzato lato server; menu e testi per lingua nella option e nei filtri del core, senza tabelle |
 | Agente AI | Igiene SEO tramite proposte: meta e social, testo alternativo, redirect per contenuti cestinati; memoria del progetto | Abilities API, AI Client del core con le chiavi dell'utente, post type per proposte e memoria |
 | EasyRankly Pro (plugin a parte) | Lavoro operativo di un SEO di agenzia: Search Console, parole chiave e cluster, link interni, contenuti, report | Plugin separato fuori da WordPress.org; crea proposte tramite i punti di estensione del gratuito (sezione 6) |
 
@@ -51,6 +51,7 @@ Search Console tiene già 16 mesi.
 | Sitemap news e video, form, pulizia "bloat" | Fuori dalla direzione del prodotto |
 | Funzioni multisite | Decisione esplicita: nessun codice dedicato |
 | Google Indexing API | Google la consente solo per offerte di lavoro e dirette |
+| IndexNow | Decisione di ottobre 2026: non interessa. Le sitemap del core bastano per la scoperta dei contenuti |
 | Pubblicazione automatica | Rischio "scaled content abuse": i contenuti AI nascono bozze |
 
 ### Interfaccia admin: stile WordPress classico
@@ -131,7 +132,7 @@ L'AI Client del core sa fare function calling con le ability (`using_abilities()
 | Contenuti | Aggiornamento di sezioni datate, rafforzamento delle pagine in posizione 8–20 | Pro | medio |
 | Contenuti nuovi | Piano editoriale → brief → bozza (mai pubblicata), con i punti da verificare | Pro | medio |
 | Multilingua | Bozza tradotta collegata al gruppo di traduzioni | Pro | medio |
-| Indicizzazione | Noindex su pagine povere | da decidere (Pro) | alto |
+| Indicizzazione | Noindex su pagine povere: l'AI lo propone, l'utente sceglie (decisione di ottobre 2026) | Pro | alto |
 
 **Mai proponibili**: custom code, impostazioni, robots.txt, cancellazioni, pubblicazione, utenti e ruoli.
 
@@ -200,7 +201,10 @@ ricarico. Si vende un plugin, con una licenza annuale che include i dati che cos
   A licenza scaduta il Pro resta installato: si fermano aggiornamenti, Search Console e DataForSEO (passano dal
   backend); ciò che usa solo l'AI dell'utente continua a funzionare.
 
-### Prezzo (proposta)
+### Prezzo
+
+Confermato a ottobre 2026. I prezzi vivono solo sul backend e in Stripe, non nel codice dei plugin: cambiarli
+non richiede un rilascio. Restano da verificare i prezzi e i termini di DataForSEO (vedi "Da verificare prima di vendere").
 
 Licenza annuale con rinnovo automatico, prezzi IVA esclusa (l'IVA la aggiunge e la versa Stripe al checkout):
 
@@ -349,20 +353,31 @@ Rimandati. L'idea era un "sistema 1" sul backend (regole deterministiche → mod
 con candidato Jev di typesafe.ai. Con l'AI pagata dall'utente, un modello decisionale sul backend sarebbe un costo
 nostro non coperto: da rivalutare dopo il lancio del Pro, con un test su 2–3 decisioni reali.
 
-## 7. Decisioni aperte
+## 7. Decisioni di ottobre 2026 (dalle decisioni aperte)
 
-- Multilingua: solo SEO e collegamento delle traduzioni, o anche menu e stringhe del tema?
-  Rimandata a dopo la Fase 2, che copre solo SEO e collegamento delle traduzioni. Stato attuale:
+- **IndexNow**: non si fa (vedi "Fuori perimetro").
+- **Prezzi del Pro**: confermati quelli della sezione 6; si aggiornano sul backend e in Stripe senza toccare i plugin.
+- **Noindex su pagine povere**: azione proponibile del Pro, rischio alto. L'AI la propone con i dati a supporto,
+  l'utente sceglie; nessuna approvazione automatica.
+- **Multilingua**: copre anche menu e stringhe del tema, senza tabelle né moduli (Fase 6 della roadmap). Oggi:
   - menu, titolo e descrizione del sito sono gli stessi in tutte le lingue (quelli della lingua predefinita);
   - le stringhe del tema e di WordPress seguono il locale della pagina, se il pacchetto di lingua è installato;
   - categorie e tag non si traducono: valgono per tutte le lingue e i loro archivi mostrano i contenuti della lingua corrente.
 
-  Prima di decidere, valutare come restare senza tabelle né moduli: per esempio un menu per lingua scelto con
-  il filtro `wp_nav_menu_args` e la navigazione dei blocchi, e titolo e descrizione per lingua nelle impostazioni.
+  Strada proposta: titolo e descrizione del sito per lingua nella option `easyrankly_settings` (filtri
+  `option_blogname` e `option_blogdescription`); un menu per lingua e per posizione, scelto con il filtro
+  `theme_mod_nav_menu_locations` per i temi classici e con il filtro sugli attributi del blocco `core/navigation` per i
+  temi a blocchi. Ogni option o meta nuovo va approvato nel piano del punto.
+- **Requisiti minimi**: il minimo è quello che il codice richiede davvero, il più basso possibile senza peggiorare il
+  codice né aggiungere compatibilità a mano. Oggi WordPress 7.0 serve all'agente (AI Client e Connectors); il codice
+  PHP non sembra usare nulla oltre PHP 8.0 (da confermare con PHPCompatibility). Si rivalutano dopo la decisione
+  sull'agente in un plugin dedicato, che potrebbe abbassare il minimo di WordPress del plugin principale.
+
+## 8. Decisioni aperte
+
+- **Agente AI in un plugin dedicato**, con niente dell'agente nel plugin principale: da definire (domande in corso
+  con Enthony, ottobre 2026). Tocca la Fase 3, i punti di estensione della Fase 5, il Pro e i requisiti minimi.
+- **Multilingua**: quali "stringhe del tema" oltre a menu, titolo e descrizione del sito (testi scritti nel tema o
+  nei template parts, widget). Le stringhe tradotte dai file `.mo` seguono già il locale.
 - Import da Yoast e Rank Math: solo meta e redirect, a lotti dall'admin?
 - Schema extra: Local Business, Product per WooCommerce.
-- IndexNow.
-- EasyRankly Pro: prezzi, siti per licenza e quote di DataForSEO (proposta nella sezione 6, da confermare dopo aver
-  verificato i prezzi e i termini di DataForSEO).
-- EasyRankly Pro: noindex su pagine povere tra le azioni proponibili (rischio alto)?
-- Requisiti minimi: WordPress 7.0 e PHP 8.1 (assunti in `CLAUDE.md`).

@@ -284,7 +284,7 @@ contenuti nuovi, Search Console e DataForSEO stanno in EasyRankly Pro.
 
 **Fuori** (non implementare senza decisione esplicita): log dei 404, contatori di hit, punteggio SEO/analisi
 leggibilità in tempo reale, indice dei link in tabella, sitemap news/video, migrazioni con job in background, form,
-pulizia "bloat", qualsiasi funzione dedicata a multisite, Google Indexing API, pubblicazione automatica.
+pulizia "bloat", qualsiasi funzione dedicata a multisite, Google Indexing API, IndexNow, pubblicazione automatica.
 
 ## Test e verifica
 
