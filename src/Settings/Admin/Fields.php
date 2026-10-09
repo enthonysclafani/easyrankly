@@ -8,6 +8,7 @@
 namespace EasyRankly\Settings\Admin;
 
 use EasyRankly\Multilingual\Languages;
+use EasyRankly\Multilingual\Menus;
 use EasyRankly\Settings\Settings;
 
 defined( 'ABSPATH' ) || exit;
@@ -46,6 +47,9 @@ final class Fields {
 				break;
 			case 'easyrankly-languages':
 				add_settings_section( 'languages', '', array( self::class, 'languages_table' ), $slug );
+				if ( Languages::enabled() ) {
+					add_settings_section( 'menus', __( 'Menus', 'easyrankly' ), array( self::class, 'menus_section' ), $slug );
+				}
 				break;
 		}
 	}
@@ -696,6 +700,84 @@ final class Fields {
 			'<p class="description">%s</p>',
 			esc_html__( 'Site title and tagline replace those of Settings > General on the pages of the language. Leave them empty to use the same ones in every language.', 'easyrankly' )
 		);
+	}
+
+	/**
+	 * Menus of each language: the language locations of classic themes live in Appearance > Menus;
+	 * the navigation menus of block themes are chosen here, one per language.
+	 */
+	public static function menus_section(): void {
+		$locations = array_filter(
+			array_keys( get_registered_nav_menus() ),
+			static fn( $location ): bool => ! str_contains( (string) $location, Menus::SEPARATOR )
+		);
+		if ( array() !== $locations ) {
+			printf(
+				'<p>%1$s <a href="%2$s">%3$s</a></p>',
+				esc_html__( 'Every menu location of the theme has one location per language. A language location without a menu shows the menu of the default language.', 'easyrankly' ),
+				esc_url( admin_url( 'nav-menus.php?action=locations' ) ),
+				esc_html__( 'Manage menu locations', 'easyrankly' )
+			);
+		}
+
+		$navigations = get_posts(
+			array(
+				'post_type'      => 'wp_navigation',
+				'post_status'    => 'publish',
+				'posts_per_page' => 50,
+				'orderby'        => 'title',
+				'order'          => 'ASC',
+				'no_found_rows'  => true,
+			)
+		);
+		if ( array() === $navigations ) {
+			if ( array() === $locations ) {
+				printf( '<p>%s</p>', esc_html__( 'The theme has no menu locations and the site has no navigation menus yet.', 'easyrankly' ) );
+			}
+			return;
+		}
+
+		printf(
+			'<p>%s</p>',
+			esc_html__( 'Navigation blocks show, on the pages of a language, the navigation menu chosen for it. "Same menu" keeps the menu of the block.', 'easyrankly' )
+		);
+
+		$languages = array_diff_key( Languages::all(), array( Languages::default() => true ) );
+		$current   = (array) Settings::value( Menus::SETTING );
+		$titles    = array();
+		foreach ( $navigations as $navigation ) {
+			$titles[ $navigation->ID ] = '' !== $navigation->post_title ? $navigation->post_title : __( '(no title)', 'easyrankly' );
+		}
+
+		echo '<table class="widefat striped"><thead><tr>';
+		printf( '<th scope="col">%s</th>', esc_html__( 'Navigation menu', 'easyrankly' ) );
+		foreach ( $languages as $language ) {
+			printf( '<th scope="col">%s</th>', esc_html( $language['name'] ) );
+		}
+		echo '</tr></thead><tbody>';
+
+		foreach ( $titles as $id => $title ) {
+			printf( '<tr><th scope="row">%s</th>', esc_html( $title ) );
+			foreach ( $languages as $slug => $language ) {
+				$chosen = (int) ( ( (array) ( $current[ $slug ] ?? array() ) )[ $id ] ?? 0 );
+				printf(
+					'<td><select name="%1$s" aria-label="%2$s"><option value="">%3$s</option>',
+					esc_attr( self::name( Menus::SETTING, $slug, (string) $id ) ),
+					/* translators: 1: navigation menu title, 2: language name. */
+					esc_attr( sprintf( __( '%1$s in %2$s', 'easyrankly' ), $title, $language['name'] ) ),
+					esc_html__( 'Same menu', 'easyrankly' )
+				);
+				foreach ( $titles as $option => $option_title ) {
+					if ( $option !== $id ) {
+						printf( '<option value="%1$d"%2$s>%3$s</option>', (int) $option, selected( $option, $chosen, false ), esc_html( $option_title ) );
+					}
+				}
+				echo '</select></td>';
+			}
+			echo '</tr>';
+		}
+
+		echo '</tbody></table>';
 	}
 
 	/**

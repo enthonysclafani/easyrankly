@@ -51,6 +51,24 @@ foreach ( array( 'erankly_language', 'erankly_translation' ) as $easyrankly_taxo
 	} while ( $easyrankly_deleted > 0 );
 }
 
+// Language menu locations (src/Multilingual/Menus.php): the core stores the menus assigned to them in
+// the theme mods of each theme, next to those of the theme locations.
+foreach ( array_unique( array_merge( array( get_stylesheet() ), array_keys( wp_get_themes() ) ) ) as $easyrankly_theme ) {
+	$easyrankly_mods = get_option( 'theme_mods_' . $easyrankly_theme );
+	if ( ! is_array( $easyrankly_mods ) || ! is_array( $easyrankly_mods['nav_menu_locations'] ?? null ) ) {
+		continue;
+	}
+	$easyrankly_locations = array_filter(
+		$easyrankly_mods['nav_menu_locations'],
+		static fn( $location ): bool => ! str_contains( (string) $location, '__erankly_' ),
+		ARRAY_FILTER_USE_KEY
+	);
+	if ( count( $easyrankly_locations ) !== count( $easyrankly_mods['nav_menu_locations'] ) ) {
+		$easyrankly_mods['nav_menu_locations'] = $easyrankly_locations;
+		update_option( 'theme_mods_' . $easyrankly_theme, $easyrankly_mods );
+	}
+}
+
 delete_option( 'easyrankly_settings' );
 delete_option( 'easyrankly_redirects_forced' );
 delete_option( 'easyrankly_redirects_regex' );
