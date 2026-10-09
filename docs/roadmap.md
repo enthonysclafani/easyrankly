@@ -134,7 +134,9 @@ approvano nel piano di ogni punto.
       `option_blogdescription` sulle pagine di quella lingua
 - [x] 7.2 Menu per lingua: per ogni posizione del tema un menu per lingua (`theme_mod_nav_menu_locations`) e, nei temi
       a blocchi, la navigazione per lingua del blocco `core/navigation`
-- [ ] 7.3 Altre stringhe del tema: da definire (vedi "Decisioni aperte")
+- [x] 7.3 Altre stringhe del tema: nei temi a blocchi il blocco `core/template-part` mostra, sulle pagine di una
+      lingua, la sua versione `{slug}-{lingua}` (es. `header-en`) se esiste nell'Editor del sito o nel tema; nessun dato
+      nuovo. Widget dei temi classici esclusi (decisione di ottobre 2026)
 
 ## Requisiti minimi
 
@@ -163,13 +165,12 @@ repository del Pro. Nome nel codice: `erankly-pro`; richiede il gratuito (`Requi
 
 ## Decisioni aperte
 
-- Multilingua: quali altre stringhe del tema (punto 7.3).
 - Import da Yoast e Rank Math: solo meta e redirect, a lotti dall'admin? (riferimento Alpha: `includes/migrations/`)
 - Schema extra: Local Business, Product per WooCommerce.
 - Modelli decisionali (es. Jev di typesafe.ai): rimandati. Con l'AI pagata dall'utente, un modello sul backend
   sarebbe un costo nostro; da rivalutare dopo il lancio del Pro, con un test su 2–3 decisioni reali.
 
 Decise a ottobre 2026 (dettagli in `docs/piano.md`, sezione 7): niente IndexNow; prezzi del Pro confermati; multilingua
-anche per menu e stringhe del tema (Fase 7); requisiti minimi il più bassi possibile; noindex su pagine povere
+anche per menu e stringhe del tema (Fase 7), con i template part per lingua e senza i widget classici; requisiti minimi il più bassi possibile; noindex su pagine povere
 proponibile nel Pro; agente AI tutto nel Pro (Fase 6); vendita e licenze del Pro con il
 backend nostro e Stripe Managed Payments.

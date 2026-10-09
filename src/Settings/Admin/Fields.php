@@ -50,6 +50,9 @@ final class Fields {
 				if ( Languages::enabled() ) {
 					add_settings_section( 'menus', __( 'Menus', 'easyrankly' ), array( self::class, 'menus_section' ), $slug );
 				}
+				if ( Languages::enabled() && wp_is_block_theme() ) {
+					add_settings_section( 'template_parts', __( 'Template parts', 'easyrankly' ), array( self::class, 'template_parts_section' ), $slug );
+				}
 				break;
 		}
 	}
@@ -778,6 +781,26 @@ final class Fields {
 		}
 
 		echo '</tbody></table>';
+	}
+
+	/**
+	 * How template parts get a version per language: a naming rule, nothing to save here.
+	 */
+	public static function template_parts_section(): void {
+		$example = (string) array_key_first( array_diff_key( Languages::all(), array( Languages::default() => true ) ) );
+
+		printf(
+			'<p>%1$s <a href="%2$s">%3$s</a></p>',
+			esc_html(
+				sprintf(
+					/* translators: 1: language URL prefix, e.g. "en". */
+					__( 'To change a template part on the pages of a language, create a template part with the same name followed by a hyphen and the URL prefix of the language, for example header-%1$s for header. Without it, the pages of the language show the template part of the default language.', 'easyrankly' ),
+					$example
+				)
+			),
+			esc_url( admin_url( 'site-editor.php?postType=wp_template_part' ) ),
+			esc_html__( 'Edit template parts', 'easyrankly' )
+		);
 	}
 
 	/**
