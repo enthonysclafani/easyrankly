@@ -9,6 +9,7 @@ namespace EasyRankly\Schema;
 
 use EasyRankly\Canonical\Canonical;
 use EasyRankly\Context\Context;
+use EasyRankly\Meta\Meta;
 use EasyRankly\Settings\Settings;
 use EasyRankly\Titles\Template;
 use EasyRankly\Titles\Titles;
@@ -110,8 +111,8 @@ final class Schema {
 				'@type'       => 'WebSite',
 				'@id'         => $home . '#website',
 				'url'         => $home,
-				'name'        => self::text( (string) get_bloginfo( 'name' ) ),
-				'description' => self::text( (string) get_bloginfo( 'description' ) ),
+				'name'        => Template::plain( (string) get_bloginfo( 'name' ) ),
+				'description' => Template::plain( (string) get_bloginfo( 'description' ) ),
 				'inLanguage'  => get_bloginfo( 'language' ),
 				'publisher'   => array( '@id' => $identity['@id'] ),
 			)
@@ -127,11 +128,12 @@ final class Schema {
 		}
 
 		$breadcrumb = $this->breadcrumb_list( $url );
+		$title      = Titles::title();
 		$page       = array(
 			'@type'       => $this->page_type( $keys ),
 			'@id'         => $url . '#webpage',
 			'url'         => $url,
-			'name'        => '' !== Titles::title() ? Titles::title() : self::text( wp_get_document_title() ),
+			'name'        => '' !== $title ? $title : Template::plain( wp_get_document_title() ),
 			'description' => Titles::description(),
 			'isPartOf'    => array( '@id' => $home . '#website' ),
 			'inLanguage'  => get_bloginfo( 'language' ),
@@ -180,19 +182,13 @@ final class Schema {
 		$node = array(
 			'@type' => $is_person ? 'Person' : 'Organization',
 			'@id'   => $home . ( $is_person ? '#person' : '#organization' ),
-			'name'  => '' !== $name ? $name : self::text( (string) get_bloginfo( 'name' ) ),
+			'name'  => '' !== $name ? $name : Template::plain( (string) get_bloginfo( 'name' ) ),
 			'url'   => $home,
 		);
 
 		if ( null !== $logo ) {
 			// Copied in the settings: no attachment to load on every page.
-			$node[ $is_person ? 'image' : 'logo' ] = array(
-				'@type'  => 'ImageObject',
-				'@id'    => $home . ( $is_person ? '#personimage' : '#logo' ),
-				'url'    => $logo['url'],
-				'width'  => $logo['width'],
-				'height' => $logo['height'],
-			);
+			$node[ $is_person ? 'image' : 'logo' ] = self::image_object( $logo, $home . ( $is_person ? '#personimage' : '#logo' ) );
 		}
 		if ( is_array( $same_as ) && array() !== $same_as ) {
 			$node['sameAs'] = array_values( $same_as );
@@ -219,7 +215,7 @@ final class Schema {
 			array(
 				'@type'            => 'Article',
 				'@id'              => $url . '#article',
-				'headline'         => Template::truncate( self::text( get_the_title( $post ) ), 110 ),
+				'headline'         => Template::truncate( Template::plain( Template::post_title( $post ) ), 110 ),
 				'datePublished'    => (string) get_post_time( 'c', true, $post ),
 				'dateModified'     => (string) get_post_modified_time( 'c', true, $post ),
 				'mainEntityOfPage' => array( '@id' => $url . '#webpage' ),
@@ -251,7 +247,7 @@ final class Schema {
 		return array(
 			'@type' => 'Person',
 			'@id'   => $url . '#author',
-			'name'  => self::text( $user->display_name ),
+			'name'  => Template::plain( $user->display_name ),
 			'url'   => $url,
 		);
 	}
@@ -276,7 +272,7 @@ final class Schema {
 			$element = array(
 				'@type'    => 'ListItem',
 				'position' => $index + 1,
-				'name'     => self::text( $item['label'] ),
+				'name'     => Template::plain( $item['label'] ),
 			);
 
 			$item_url = $item['url'] ?? ( $index === $last ? $url : '' );
@@ -317,31 +313,25 @@ final class Schema {
 	 * @return array<string, mixed>|null
 	 */
 	private function image( int $attachment_id, string $id ): ?array {
-		if ( $attachment_id <= 0 ) {
-			return null;
-		}
+		$image = Meta::image( $attachment_id );
 
-		$source = wp_get_attachment_image_src( $attachment_id, 'full' );
-		if ( false === $source ) {
-			return null;
-		}
-
-		return array(
-			'@type'  => 'ImageObject',
-			'@id'    => $id,
-			'url'    => $source[0],
-			'width'  => (int) $source[1],
-			'height' => (int) $source[2],
-		);
+		return null === $image ? null : self::image_object( $image, $id );
 	}
 
 	/**
-	 * Plain text without tags and entities.
+	 * ImageObject node of an image.
 	 *
-	 * @param string $value Raw value.
-	 * @return string
+	 * @param array{url: string, width: int, height: int, alt: string} $image Image.
+	 * @param string                                                   $id    @id of the node.
+	 * @return array<string, mixed>
 	 */
-	private static function text( string $value ): string {
-		return Template::plain( $value );
+	private static function image_object( array $image, string $id ): array {
+		return array(
+			'@type'  => 'ImageObject',
+			'@id'    => $id,
+			'url'    => $image['url'],
+			'width'  => $image['width'],
+			'height' => $image['height'],
+		);
 	}
 }

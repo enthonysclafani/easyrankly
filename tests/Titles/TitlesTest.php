@@ -74,6 +74,30 @@ final class TitlesTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Protected and private posts keep their own title, without the prefixes of get_the_title().
+	 */
+	public function test_protected_and_private_titles_have_no_prefix(): void {
+		$protected = self::factory()->post->create(
+			array(
+				'post_title'    => 'Locked',
+				'post_password' => 'secret',
+			)
+		);
+		$this->go_to( get_permalink( $protected ) );
+		$this->assertSame( 'Locked - Site', wp_get_document_title() );
+
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
+		$private = self::factory()->post->create(
+			array(
+				'post_title'  => 'Hidden',
+				'post_status' => 'private',
+			)
+		);
+		$this->go_to( get_permalink( $private ) );
+		$this->assertSame( 'Hidden - Site', wp_get_document_title() );
+	}
+
+	/**
 	 * The per-post override wins over the template and may use variables.
 	 */
 	public function test_override_wins_and_uses_variables(): void {

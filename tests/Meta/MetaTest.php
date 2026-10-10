@@ -30,13 +30,61 @@ final class MetaTest extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Every field is registered for posts and terms of any subtype.
+	 * Every field is registered for the content that has a page of its own, and only for it:
+	 * redirects, snippets, navigation menus and menu terms get no SEO fields.
 	 */
-	public function test_fields_are_registered_for_posts_and_terms(): void {
+	public function test_fields_are_registered_for_viewable_posts_and_terms(): void {
 		foreach ( array_keys( Meta::fields() ) as $name ) {
-			$this->assertTrue( registered_meta_key_exists( 'post', Meta::PREFIX . $name ), $name );
-			$this->assertTrue( registered_meta_key_exists( 'term', Meta::PREFIX . $name ), $name );
+			$key = Meta::PREFIX . $name;
+			foreach ( array( 'post', 'page', 'attachment' ) as $post_type ) {
+				$this->assertTrue( registered_meta_key_exists( 'post', $key, $post_type ), "$post_type $name" );
+			}
+			foreach ( array( 'category', 'post_tag' ) as $taxonomy ) {
+				$this->assertTrue( registered_meta_key_exists( 'term', $key, $taxonomy ), "$taxonomy $name" );
+			}
+			foreach ( array( 'erankly_redirect', 'erankly_snippet', 'wp_navigation', 'wp_template' ) as $post_type ) {
+				$this->assertFalse( registered_meta_key_exists( 'post', $key, $post_type ), "$post_type $name" );
+			}
+			$this->assertFalse( registered_meta_key_exists( 'post', $key ), "any post $name" );
+			$this->assertFalse( registered_meta_key_exists( 'term', $key, 'nav_menu' ), "nav_menu $name" );
 		}
+	}
+
+	/**
+	 * The REST response of a redirect carries no SEO fields.
+	 */
+	public function test_redirects_have_no_seo_fields_in_rest(): void {
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
+		$id = self::factory()->post->create( array( 'post_type' => 'erankly_redirect' ) );
+
+		$response = rest_do_request( new WP_REST_Request( 'GET', '/wp/v2/easyrankly-redirects/' . $id ) );
+		$meta     = (array) ( $response->get_data()['meta'] ?? array() );
+
+		$this->assertSame( 200, $response->get_status() );
+		$this->assertArrayNotHasKey( Meta::PREFIX . 'title', $meta );
+	}
+
+	/**
+	 * The fields of the page's own object: a post, the posts page, a term; nothing elsewhere.
+	 */
+	public function test_queried_reads_the_object_of_the_page(): void {
+		$post = self::factory()->post->create();
+		$page = self::factory()->post->create( array( 'post_type' => 'page' ) );
+		$term = self::factory()->category->create();
+		update_post_meta( $post, Meta::PREFIX . 'title', 'Post' );
+		update_post_meta( $page, Meta::PREFIX . 'title', 'Posts page' );
+		update_term_meta( $term, Meta::PREFIX . 'title', 'Term' );
+		update_option( 'show_on_front', 'page' );
+		update_option( 'page_for_posts', $page );
+
+		$this->go_to( get_permalink( $post ) );
+		$this->assertSame( 'Post', Meta::queried( 'title' ) );
+		$this->go_to( get_permalink( $page ) );
+		$this->assertSame( 'Posts page', Meta::queried( 'title' ) );
+		$this->go_to( get_term_link( $term ) );
+		$this->assertSame( 'Term', Meta::queried( 'title' ) );
+		$this->go_to( home_url( '/?s=x' ) );
+		$this->assertNull( Meta::queried( 'title' ) );
 	}
 
 	/**

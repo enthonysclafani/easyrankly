@@ -8,6 +8,7 @@
 namespace EasyRankly\Settings;
 
 use EasyRankly\Context\Context;
+use EasyRankly\Meta\Meta;
 use EasyRankly\Multilingual\Languages;
 
 defined( 'ABSPATH' ) || exit;
@@ -513,15 +514,14 @@ final class Settings {
 	 * @return array{id: int, url: string, width: int, height: int, alt: string}
 	 */
 	private static function copy_image( int $id ): array {
-		$source = $id > 0 ? wp_get_attachment_image_src( $id, 'full' ) : false;
-
-		return array(
-			'id'     => $id,
-			'url'    => false === $source ? '' : (string) $source[0],
-			'width'  => false === $source ? 0 : (int) $source[1],
-			'height' => false === $source ? 0 : (int) $source[2],
-			'alt'    => false === $source ? '' : trim( wp_strip_all_tags( (string) get_post_meta( $id, '_wp_attachment_image_alt', true ) ) ),
+		$image = Meta::image( $id ) ?? array(
+			'url'    => '',
+			'width'  => 0,
+			'height' => 0,
+			'alt'    => '',
 		);
+
+		return array( 'id' => $id ) + $image;
 	}
 
 	/**

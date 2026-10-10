@@ -118,16 +118,7 @@ final class Social {
 	 * @return mixed
 	 */
 	private static function override( string $name ): mixed {
-		$object = get_queried_object();
-
-		if ( $object instanceof \WP_Post && ( is_singular() || is_home() ) ) {
-			return Meta::post( $object->ID, $name );
-		}
-		if ( $object instanceof \WP_Term ) {
-			return Meta::term( $object->term_id, $name );
-		}
-
-		return '';
+		return Meta::queried( $name );
 	}
 
 	/**
@@ -147,21 +138,10 @@ final class Social {
 		}
 
 		foreach ( $candidates as $attachment_id ) {
-			if ( $attachment_id <= 0 ) {
-				continue;
+			$image = Meta::image( $attachment_id );
+			if ( null !== $image ) {
+				return $image;
 			}
-
-			$source = wp_get_attachment_image_src( $attachment_id, 'full' );
-			if ( false === $source ) {
-				continue;
-			}
-
-			return array(
-				'url'    => $source[0],
-				'width'  => (int) $source[1],
-				'height' => (int) $source[2],
-				'alt'    => trim( wp_strip_all_tags( (string) get_post_meta( $attachment_id, '_wp_attachment_image_alt', true ) ) ),
-			);
 		}
 
 		return Settings::image( 'social_image' );

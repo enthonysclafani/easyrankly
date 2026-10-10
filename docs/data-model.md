@@ -16,6 +16,8 @@ Regola: zero tabelle custom. Solo Options API, post meta, term meta, user meta, 
 
 ## Post meta e term meta
 
+Registrati (`src/Meta/Meta.php`) solo sui post type e sulle tassonomie visibili (`is_post_type_viewable()`, `is_taxonomy_viewable()`): contenuti con una pagina propria. Redirect, snippet, menu di navigazione e template non li hanno.
+
 | Chiave | Oggetto | Tipo | Contenuto | Introdotta in |
 |---|---|---|---|---|
 | `_easyrankly_title` | post e termini | string | Titolo SEO. Vuoto = default (template del titolo). | 1.2 |
