@@ -139,6 +139,7 @@ final class Page extends RecordsPage {
 			'target' => __( 'Target', 'easyrankly' ),
 			'code'   => __( 'Type', 'easyrankly' ),
 			'status' => __( 'Status', 'easyrankly' ),
+			'notes'  => __( 'Notes', 'easyrankly' ),
 		);
 	}
 
@@ -180,6 +181,8 @@ final class Page extends RecordsPage {
 				return esc_html( (string) $rule['code'] ) . ( $rule['forced'] ? ' ' . esc_html__( '(always)', 'easyrankly' ) : '' );
 			case 'status':
 				return 'publish' === $post->post_status ? esc_html__( 'Active', 'easyrankly' ) : esc_html__( 'Inactive', 'easyrankly' );
+			case 'notes':
+				return esc_html( wp_trim_words( $post->post_excerpt, 15 ) );
 		}
 
 		return '';
@@ -201,6 +204,7 @@ final class Page extends RecordsPage {
 			'regex'  => $rule['regex'] ?? false,
 			'forced' => $rule['forced'] ?? false,
 			'active' => null === $post || 'publish' === $post->post_status,
+			'notes'  => null === $post ? '' : $post->post_excerpt,
 		);
 	}
 
@@ -226,6 +230,7 @@ final class Page extends RecordsPage {
 			'regex'  => ! empty( $_POST['regex'] ),
 			'forced' => ! empty( $_POST['forced'] ),
 			'active' => ! empty( $_POST['active'] ),
+			'notes'  => isset( $_POST['notes'] ) ? sanitize_textarea_field( wp_unslash( $_POST['notes'] ) ) : '',
 		);
 		// phpcs:enable WordPress.Security.NonceVerification.Missing
 	}
@@ -239,9 +244,10 @@ final class Page extends RecordsPage {
 	 */
 	protected function to_rest( array $values, ?\WP_Post $post ): array {
 		return array(
-			'title'  => (string) $values['source'],
-			'status' => $values['active'] ? 'publish' : 'draft',
-			'meta'   => array(
+			'title'   => (string) $values['source'],
+			'status'  => $values['active'] ? 'publish' : 'draft',
+			'excerpt' => (string) $values['notes'],
+			'meta'    => array(
 				Redirects::meta_key( 'target' ) => in_array( (int) $values['code'], Rule::NO_TARGET, true ) ? '' : (string) $values['target'],
 				Redirects::meta_key( 'code' )   => (int) $values['code'],
 				Redirects::meta_key( 'regex' )  => (bool) $values['regex'],
@@ -267,7 +273,7 @@ final class Page extends RecordsPage {
 			'<p><label><input type="checkbox" name="regex" value="1"%1$s /> %2$s</label></p><p class="description">%3$s</p></td></tr>',
 			checked( (bool) $values['regex'], true, false ),
 			esc_html__( 'Regular expression', 'easyrankly' ),
-			esc_html__( 'Matched against the lowercase path, for example ^/old/(.*)$; the target can use $1, $2…', 'easyrankly' )
+			esc_html__( 'The source becomes a pattern, so one rule covers many addresses. For example ^/blog/(.*)$ with the target /news/$1 sends /blog/any-post to /news/any-post. It is matched against the lowercase path, without the query string.', 'easyrankly' )
 		);
 
 		printf( '<tr><th scope="row"><label for="easyrankly-code">%s</label></th><td><select id="easyrankly-code" name="code">', esc_html__( 'Type', 'easyrankly' ) );
@@ -291,7 +297,14 @@ final class Page extends RecordsPage {
 			checked( (bool) $values['forced'], true, false ),
 			esc_html__( 'Apply even when the page exists', 'easyrankly' ),
 			/* translators: %d: maximum number of forced redirects. */
-			esc_html( sprintf( __( 'Otherwise the redirect applies only to addresses that do not exist (404). At most %d redirects can be forced.', 'easyrankly' ), Redirects::MAX_FORCED ) )
+			esc_html( sprintf( __( 'Without this option the redirect works only when the address does not exist anymore (404), so it never hides a page that is still published. With it, visitors are sent to the target even if the page is still there, for example a page you are replacing but do not want to delete yet. At most %d redirects can be forced.', 'easyrankly' ), Redirects::MAX_FORCED ) )
+		);
+
+		printf(
+			'<tr><th scope="row"><label for="easyrankly-notes">%1$s</label></th><td><textarea id="easyrankly-notes" name="notes" rows="3" class="large-text">%2$s</textarea><p class="description">%3$s</p></td></tr>',
+			esc_html__( 'Notes', 'easyrankly' ),
+			esc_textarea( (string) $values['notes'] ),
+			esc_html__( 'Only for you: why the redirect exists, until when it is needed. Never shown to visitors.', 'easyrankly' )
 		);
 	}
 }

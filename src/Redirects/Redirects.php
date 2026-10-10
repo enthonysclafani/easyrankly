@@ -17,6 +17,7 @@ defined( 'ABSPATH' ) || exit;
  * - post_title: source (normalized path, or regex);
  * - post_name: md5 of the normalized source for exact rules (indexed lookup), "regex-…" otherwise;
  * - post_status: publish = active, draft = inactive;
+ * - post_excerpt: notes, shown only in the admin;
  * - meta: target, status code, regex flag, forced flag.
  *
  * Exact rules are looked up only on 404. Regex rules live in a non-autoloaded option
@@ -103,7 +104,7 @@ final class Redirects {
 				'show_in_rest'          => true,
 				'rest_base'             => 'easyrankly-redirects',
 				'rest_controller_class' => RestController::class,
-				'supports'              => array( 'title', 'custom-fields' ),
+				'supports'              => array( 'title', 'excerpt', 'custom-fields' ),
 				'rewrite'               => false,
 				'query_var'             => false,
 				'can_export'            => true,
