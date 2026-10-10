@@ -84,6 +84,49 @@ final class SitemapTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * The query of a sitemap page joins no meta: joining it to exclude noindex posts took
+	 * seconds per page on large sites. The excluded posts come from a separate query.
+	 */
+	public function test_sitemap_page_query_joins_no_meta(): void {
+		$noindex = self::factory()->post->create();
+		update_post_meta( $noindex, '_easyrankly_noindex', true );
+		self::factory()->post->create();
+
+		$requests = array();
+		$record   = static function ( $sql ) use ( &$requests ) {
+			$requests[] = (string) $sql;
+			return $sql;
+		};
+		add_filter( 'posts_request', $record );
+		$urls = $this->urls( 'posts', 'post' );
+		remove_filter( 'posts_request', $record );
+
+		$pages = array_filter( $requests, static fn( string $sql ): bool => str_contains( $sql, 'LIMIT' ) );
+		$this->assertNotEmpty( $pages );
+		foreach ( $pages as $sql ) {
+			$this->assertStringNotContainsString( $GLOBALS['wpdb']->postmeta, $sql );
+		}
+		$this->assertNotContains( get_permalink( $noindex ), $urls );
+	}
+
+	/**
+	 * Exclusions already in the query arguments are kept.
+	 */
+	public function test_existing_exclusions_are_kept(): void {
+		$noindex = self::factory()->post->create();
+		update_post_meta( $noindex, '_easyrankly_noindex', true );
+
+		$args = ( new Sitemap() )->filter_posts_query_args(
+			array(
+				'post_type'    => 'post',
+				'post__not_in' => array( 7 ),
+			)
+		);
+
+		$this->assertSame( array( 7, $noindex ), $args['post__not_in'] ?? null );
+	}
+
+	/**
 	 * A canonical equal to the page's own URL is dropped on save, so the page stays in the sitemap.
 	 */
 	public function test_self_canonical_keeps_posts_and_terms_listed(): void {
