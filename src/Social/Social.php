@@ -16,11 +16,12 @@ use EasyRankly\Titles\Titles;
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Prints Open Graph tags for sharing, plus the two X tags that Open Graph does not cover.
+ * Prints Open Graph tags for sharing, plus the X (Twitter) card tags.
  *
- * X reads og:title, og:description and og:image itself, so they are not repeated as
- * twitter:* tags. Title and description fall back to the SEO ones (1.3); the image to the
- * featured image and then to the default image of the settings.
+ * X can read og:title, og:description and og:image itself, but validators and other
+ * readers of twitter:* tags report them as missing: the card repeats the Open Graph values,
+ * with no fields of its own. Title and description fall back to the SEO ones (1.3); the
+ * image to the featured image and then to the default image of the settings.
  */
 final class Social {
 
@@ -106,6 +107,17 @@ final class Social {
 		$username = (string) Settings::value( 'x_username' );
 		if ( '' !== $username ) {
 			$tags[] = array( 'name', 'twitter:site', '@' . $username );
+		}
+
+		$tags[] = array( 'name', 'twitter:title', $title );
+		if ( '' !== $description ) {
+			$tags[] = array( 'name', 'twitter:description', $description );
+		}
+		if ( null !== $image ) {
+			$tags[] = array( 'name', 'twitter:image', $image['url'] );
+			if ( '' !== $image['alt'] ) {
+				$tags[] = array( 'name', 'twitter:image:alt', $image['alt'] );
+			}
 		}
 
 		return $tags;

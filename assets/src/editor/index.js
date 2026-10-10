@@ -11,7 +11,7 @@ import {
 	ToggleControl,
 	Flex,
 } from '@wordpress/components';
-import { useEntityProp } from '@wordpress/core-data';
+import { useEntityProp, store as coreStore } from '@wordpress/core-data';
 import { useSelect } from '@wordpress/data';
 import {
 	PluginDocumentSettingPanel,
@@ -28,6 +28,12 @@ function SeoPanel() {
 		[]
 	);
 	const [ meta, setMeta ] = useEntityProp( 'postType', postType, 'meta' );
+	const imageId = meta?.[ `${ PREFIX }og_image` ] || 0;
+	const image = useSelect(
+		( select ) =>
+			imageId ? select( coreStore ).getMedia( imageId ) : undefined,
+		[ imageId ]
+	);
 
 	if ( ! meta || ! ( `${ PREFIX }title` in meta ) ) {
 		return null;
@@ -99,31 +105,53 @@ function SeoPanel() {
 				<MediaUploadCheck>
 					<MediaUpload
 						allowedTypes={ [ 'image' ] }
-						value={ value( 'og_image' ) || undefined }
+						value={ imageId || undefined }
 						onSelect={ ( media ) => set( 'og_image' )( media.id ) }
 						render={ ( { open } ) => (
-							<div>
-								<Button variant="secondary" onClick={ open }>
-									{ value( 'og_image' )
-										? __(
-												'Replace social image',
-												'easyrankly'
-											)
-										: __(
-												'Choose social image',
-												'easyrankly'
-											) }
-								</Button>{ ' ' }
-								{ !! value( 'og_image' ) && (
-									<Button
-										variant="link"
-										isDestructive
-										onClick={ () => set( 'og_image' )( 0 ) }
-									>
-										{ __( 'Remove', 'easyrankly' ) }
-									</Button>
+							<Flex direction="column" gap={ 3 }>
+								{ !! image && (
+									<img
+										src={
+											image.media_details?.sizes?.medium
+												?.source_url ?? image.source_url
+										}
+										alt={ image.alt_text ?? '' }
+										style={ {
+											display: 'block',
+											maxWidth: '100%',
+											height: 'auto',
+										} }
+									/>
 								) }
-							</div>
+								<Flex justify="flex-start" gap={ 3 }>
+									<Button
+										__next40pxDefaultSize
+										variant="secondary"
+										onClick={ open }
+									>
+										{ imageId
+											? __(
+													'Replace social image',
+													'easyrankly'
+												)
+											: __(
+													'Choose social image',
+													'easyrankly'
+												) }
+									</Button>
+									{ !! imageId && (
+										<Button
+											variant="link"
+											isDestructive
+											onClick={ () =>
+												set( 'og_image' )( 0 )
+											}
+										>
+											{ __( 'Remove', 'easyrankly' ) }
+										</Button>
+									) }
+								</Flex>
+							</Flex>
 						) }
 					/>
 				</MediaUploadCheck>

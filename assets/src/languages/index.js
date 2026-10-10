@@ -214,26 +214,35 @@ function LanguagePanel() {
 							}
 
 							return (
-								<div key={ language.slug }>
-									<p>
+								<Flex
+									key={ language.slug }
+									direction="column"
+									gap={ 4 }
+								>
+									<div>
 										<strong>{ language.name }</strong>
 										{ ': ' }
 										{ __( 'no translation', 'easyrankly' ) }
-									</p>
-									<Button
-										variant="secondary"
-										disabled={ busy }
-										onClick={ () => copy( language.slug ) }
-									>
-										{ sprintf(
-											/* translators: %s: language name. */
-											__(
-												'Create %s draft',
-												'easyrankly'
-											),
-											language.name
-										) }
-									</Button>
+									</div>
+									<div>
+										<Button
+											__next40pxDefaultSize
+											variant="secondary"
+											disabled={ busy }
+											onClick={ () =>
+												copy( language.slug )
+											}
+										>
+											{ sprintf(
+												/* translators: %s: language name. */
+												__(
+													'Create %s draft',
+													'easyrankly'
+												),
+												language.name
+											) }
+										</Button>
+									</div>
 									<ExistingPost
 										postType={ postType }
 										language={ language.slug }
@@ -247,7 +256,7 @@ function LanguagePanel() {
 											} )
 										}
 									/>
-								</div>
+								</Flex>
 							);
 						} ) }
 				</Flex>
