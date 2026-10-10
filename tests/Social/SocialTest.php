@@ -84,6 +84,10 @@ final class SocialTest extends WP_UnitTestCase {
 		$this->assertStringContainsString( '<meta property="og:image:alt" content="A &quot;cat&quot;" />', $head );
 		$this->assertStringContainsString( '<meta property="article:published_time"', $head );
 		$this->assertStringContainsString( '<meta name="twitter:card" content="summary_large_image" />', $head );
+		$this->assertStringContainsString( '<meta name="twitter:title" content="Hello - Site" />', $head );
+		$this->assertStringContainsString( '<meta name="twitter:description" content="Summary &amp; more" />', $head );
+		$this->assertMatchesRegularExpression( '#<meta name="twitter:image" content="[^"]*featured\.jpg" />#', $head );
+		$this->assertStringContainsString( '<meta name="twitter:image:alt" content="A &quot;cat&quot;" />', $head );
 	}
 
 	/**
@@ -119,6 +123,8 @@ final class SocialTest extends WP_UnitTestCase {
 		$this->assertStringNotContainsString( 'og:image', $head );
 		$this->assertStringContainsString( '<meta name="twitter:card" content="summary" />', $head );
 		$this->assertStringContainsString( '<meta name="twitter:site" content="@easyrankly" />', $head );
+		$this->assertStringContainsString( '<meta name="twitter:title" content="', $head );
+		$this->assertStringNotContainsString( 'twitter:image', $head );
 	}
 
 	/**

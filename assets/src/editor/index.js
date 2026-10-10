@@ -1,5 +1,6 @@
 /**
- * SEO panel in the block editor: edits the `_easyrankly_*` meta of the current post.
+ * SEO panels in the block editor, "Search appearance" and "Social sharing": they edit the
+ * `_easyrankly_*` meta of the current post.
  *
  * Values are saved with the post through the core REST endpoint.
  */
@@ -11,7 +12,7 @@ import {
 	ToggleControl,
 	Flex,
 } from '@wordpress/components';
-import { useEntityProp } from '@wordpress/core-data';
+import { useEntityProp, store as coreStore } from '@wordpress/core-data';
 import { useSelect } from '@wordpress/data';
 import {
 	PluginDocumentSettingPanel,
@@ -22,12 +23,18 @@ import { registerPlugin } from '@wordpress/plugins';
 
 const PREFIX = '_easyrankly_';
 
-function SeoPanel() {
+function SeoPanels() {
 	const postType = useSelect(
 		( select ) => select( editorStore ).getCurrentPostType(),
 		[]
 	);
 	const [ meta, setMeta ] = useEntityProp( 'postType', postType, 'meta' );
+	const imageId = meta?.[ `${ PREFIX }og_image` ] || 0;
+	const image = useSelect(
+		( select ) =>
+			imageId ? select( coreStore ).getMedia( imageId ) : undefined,
+		[ imageId ]
+	);
 
 	if ( ! meta || ! ( `${ PREFIX }title` in meta ) ) {
 		return null;
@@ -49,87 +56,124 @@ function SeoPanel() {
 	);
 
 	return (
-		<PluginDocumentSettingPanel
-			name="easyrankly-seo"
-			title={ __( 'SEO', 'easyrankly' ) }
-		>
-			<Flex direction="column" gap={ 4 }>
-				{ text(
-					'title',
-					__( 'SEO title', 'easyrankly' ),
-					__( 'Empty uses the title template', 'easyrankly' )
-				) }
-				{ text(
-					'description',
-					__( 'Meta description', 'easyrankly' ),
-					__( 'Empty uses the description template', 'easyrankly' ),
-					TextareaControl
-				) }
-				{ text(
-					'canonical',
-					__( 'Canonical URL', 'easyrankly' ),
-					__( 'Empty uses the permalink', 'easyrankly' )
-				) }
-				<ToggleControl
-					__nextHasNoMarginBottom
-					label={ __( 'Do not index (noindex)', 'easyrankly' ) }
-					checked={ !! value( 'noindex' ) }
-					onChange={ set( 'noindex' ) }
-				/>
-				<ToggleControl
-					__nextHasNoMarginBottom
-					label={ __(
-						'Do not follow links (nofollow)',
-						'easyrankly'
+		<>
+			<PluginDocumentSettingPanel
+				name="easyrankly-search"
+				title={ __( 'Search appearance', 'easyrankly' ) }
+			>
+				<Flex direction="column" gap={ 4 }>
+					{ text(
+						'title',
+						__( 'SEO title', 'easyrankly' ),
+						__( 'Empty uses the title template', 'easyrankly' )
 					) }
-					checked={ !! value( 'nofollow' ) }
-					onChange={ set( 'nofollow' ) }
-				/>
-				{ text(
-					'og_title',
-					__( 'Social title', 'easyrankly' ),
-					__( 'Empty uses the SEO title', 'easyrankly' )
-				) }
-				{ text(
-					'og_description',
-					__( 'Social description', 'easyrankly' ),
-					__( 'Empty uses the meta description', 'easyrankly' ),
-					TextareaControl
-				) }
-				<MediaUploadCheck>
-					<MediaUpload
-						allowedTypes={ [ 'image' ] }
-						value={ value( 'og_image' ) || undefined }
-						onSelect={ ( media ) => set( 'og_image' )( media.id ) }
-						render={ ( { open } ) => (
-							<div>
-								<Button variant="secondary" onClick={ open }>
-									{ value( 'og_image' )
-										? __(
-												'Replace social image',
-												'easyrankly'
-											)
-										: __(
-												'Choose social image',
-												'easyrankly'
-											) }
-								</Button>{ ' ' }
-								{ !! value( 'og_image' ) && (
-									<Button
-										variant="link"
-										isDestructive
-										onClick={ () => set( 'og_image' )( 0 ) }
-									>
-										{ __( 'Remove', 'easyrankly' ) }
-									</Button>
-								) }
-							</div>
-						) }
+					{ text(
+						'description',
+						__( 'Meta description', 'easyrankly' ),
+						__(
+							'Empty uses the description template',
+							'easyrankly'
+						),
+						TextareaControl
+					) }
+					{ text(
+						'canonical',
+						__( 'Canonical URL', 'easyrankly' ),
+						__( 'Empty uses the permalink', 'easyrankly' )
+					) }
+					<ToggleControl
+						__nextHasNoMarginBottom
+						label={ __( 'Do not index (noindex)', 'easyrankly' ) }
+						checked={ !! value( 'noindex' ) }
+						onChange={ set( 'noindex' ) }
 					/>
-				</MediaUploadCheck>
-			</Flex>
-		</PluginDocumentSettingPanel>
+					<ToggleControl
+						__nextHasNoMarginBottom
+						label={ __(
+							'Do not follow links (nofollow)',
+							'easyrankly'
+						) }
+						checked={ !! value( 'nofollow' ) }
+						onChange={ set( 'nofollow' ) }
+					/>
+				</Flex>
+			</PluginDocumentSettingPanel>
+			<PluginDocumentSettingPanel
+				name="easyrankly-social"
+				title={ __( 'Social sharing', 'easyrankly' ) }
+			>
+				<Flex direction="column" gap={ 4 }>
+					{ text(
+						'og_title',
+						__( 'Social title', 'easyrankly' ),
+						__( 'Empty uses the SEO title', 'easyrankly' )
+					) }
+					{ text(
+						'og_description',
+						__( 'Social description', 'easyrankly' ),
+						__( 'Empty uses the meta description', 'easyrankly' ),
+						TextareaControl
+					) }
+					<MediaUploadCheck>
+						<MediaUpload
+							allowedTypes={ [ 'image' ] }
+							value={ imageId || undefined }
+							onSelect={ ( media ) =>
+								set( 'og_image' )( media.id )
+							}
+							render={ ( { open } ) => (
+								<Flex direction="column" gap={ 3 }>
+									{ !! image && (
+										<img
+											src={
+												image.media_details?.sizes
+													?.medium?.source_url ??
+												image.source_url
+											}
+											alt={ image.alt_text ?? '' }
+											style={ {
+												display: 'block',
+												maxWidth: '100%',
+												height: 'auto',
+											} }
+										/>
+									) }
+									<Flex justify="flex-start" gap={ 3 }>
+										<Button
+											__next40pxDefaultSize
+											variant="secondary"
+											onClick={ open }
+										>
+											{ imageId
+												? __(
+														'Replace social image',
+														'easyrankly'
+													)
+												: __(
+														'Choose social image',
+														'easyrankly'
+													) }
+										</Button>
+										{ !! imageId && (
+											<Button
+												variant="link"
+												isDestructive
+												onClick={ () =>
+													set( 'og_image' )( 0 )
+												}
+											>
+												{ __( 'Remove', 'easyrankly' ) }
+											</Button>
+										) }
+									</Flex>
+								</Flex>
+							) }
+						/>
+					</MediaUploadCheck>
+				</Flex>
+			</PluginDocumentSettingPanel>
+		</>
 	);
 }
 
-registerPlugin( 'easyrankly-seo', { render: SeoPanel } );
+registerPlugin( 'easyrankly-seo', { render: SeoPanels } );
