@@ -19,7 +19,8 @@ defined( 'ABSPATH' ) || exit;
  * indexed, or whose canonical points elsewhere, is not listed.
  *
  * - Post types, taxonomies and author archives set to noindex in the settings lose their sitemap.
- * - Single posts and terms with their own noindex or canonical are left out of the queries.
+ * - Single posts and terms with their own noindex or canonical are left out of the queries, and
+ *   so are password-protected posts, which are always noindex.
  * - Posts whose address an exact "forced" redirect sends elsewhere are left out too: they
  *   would answer with a redirect. Regex forced rules can't be mapped to posts without
  *   scanning them all, so they are not considered.
@@ -95,8 +96,8 @@ final class Sitemap {
 	}
 
 	/**
-	 * Posts query: leaves out the posts with their own noindex or a canonical override, and
-	 * the posts redirected by forced rules.
+	 * Posts query: leaves out the password-protected posts (always noindex), the posts with their
+	 * own noindex or a canonical override, and the posts redirected by forced rules.
 	 *
 	 * @param mixed $args Query arguments.
 	 * @return mixed
@@ -105,6 +106,8 @@ final class Sitemap {
 		if ( ! is_array( $args ) || ! isset( $args['post_type'] ) ) {
 			return $args;
 		}
+
+		$args['has_password'] = false;
 
 		$excluded = get_posts(
 			array(

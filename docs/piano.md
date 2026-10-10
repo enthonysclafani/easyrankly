@@ -412,7 +412,11 @@ nostro non coperto: da rivalutare dopo il lancio del Pro, con un test su 2–3 d
   All in One SEO) eventualmente dopo. Riferimento Alpha: `includes/migrations/`.
 - **Schema Product per WooCommerce** (10 ottobre 2026): non si fa. WooCommerce stampa già il suo JSON-LD `Product`
   nella pagina del prodotto e Google lo legge così com'è.
+- **Local Business** (10 ottobre 2026): si fa, come terzo tipo di identità del sito accanto a organizzazione e
+  persona. Una sola sede: tipo schema.org, indirizzo, telefono, coordinate e orari (al massimo due fasce al giorno)
+  nell'option delle impostazioni, stampati nel nodo dell'organizzazione, che tiene l'`@id` `#organization`. Niente
+  sedi multiple, niente post type.
 
 ## 8. Decisioni aperte
 
-- Schema extra: Local Business.
+- Nessuna per ora (Local Business deciso il 10 ottobre 2026, sezione 7).

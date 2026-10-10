@@ -15,7 +15,7 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * Adds noindex and nofollow to the core robots meta tag from the per-object
- * meta and the noindex rules of the settings.
+ * meta and the noindex rules of the settings; password-protected posts are always noindex.
  *
  * It only ever adds restrictions: core keeps its own rules (search results,
  * embeds, sites hidden from search engines) and its other directives.
@@ -54,11 +54,17 @@ final class Robots {
 	}
 
 	/**
-	 * Whether the current page asks not to be indexed: by its own meta or by a context rule.
+	 * Whether the current page asks not to be indexed: by its own meta, by a context rule, or
+	 * because it is a password-protected post, whose text search engines cannot read.
 	 *
 	 * @return bool
 	 */
 	public static function is_noindex(): bool {
+		$object = get_queried_object();
+		if ( is_singular() && $object instanceof \WP_Post && '' !== $object->post_password ) {
+			return true;
+		}
+
 		if ( true === self::object_flag( 'noindex' ) ) {
 			return true;
 		}

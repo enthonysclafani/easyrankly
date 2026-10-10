@@ -73,6 +73,8 @@ final class Template {
 	 * cut to EXCERPT_LENGTH.
 	 *
 	 * Shortcodes are removed without running them; only text blocks are kept (core excerpt rules).
+	 * A password-protected post has none, excerpt included, as in core: its text would reach the
+	 * description, the social tags and the schema of a page anyone can load.
 	 * Title, social tags and schema ask for it on the same page: the summary of the content is
 	 * kept in the object cache, keyed by the content itself, so it is worked out once.
 	 *
@@ -80,6 +82,10 @@ final class Template {
 	 * @return string
 	 */
 	public static function excerpt( \WP_Post $post ): string {
+		if ( '' !== $post->post_password ) {
+			return '';
+		}
+
 		if ( '' !== trim( $post->post_excerpt ) ) {
 			return self::truncate( self::plain( $post->post_excerpt ), self::EXCERPT_LENGTH );
 		}
