@@ -176,7 +176,10 @@ final class Meta {
 
 	/**
 	 * Reads a field of the object the page is about: the post of a single page or of the
-	 * posts page, or the term of a term archive.
+	 * posts page, the page standing for a post type archive, or the term of a term archive.
+	 *
+	 * A post type archive has a page as its queried object when a plugin sets one (WooCommerce
+	 * does for the shop page since 11.0): the SEO fields of that page describe the archive.
 	 *
 	 * @param string $name Field name without prefix.
 	 * @return mixed Null when the page has no such object (other archives, search, 404).
@@ -184,7 +187,7 @@ final class Meta {
 	public static function queried( string $name ): mixed {
 		$object = get_queried_object();
 
-		if ( $object instanceof \WP_Post && ( is_singular() || is_home() ) ) {
+		if ( $object instanceof \WP_Post && ( is_singular() || is_home() || is_post_type_archive() ) ) {
 			return self::post( $object->ID, $name );
 		}
 		if ( $object instanceof \WP_Term ) {

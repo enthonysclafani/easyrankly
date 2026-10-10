@@ -132,8 +132,9 @@ final class Canonical {
 			return '';
 		}
 
-		if ( is_front_page() && $object instanceof \WP_Post ) {
+		if ( is_front_page() && is_singular() ) {
 			// Static front page: core prints the page's canonical through rel_canonical.
+			// A front page that lists content (a shop on the front page) is not singular: it gets ours.
 			return '';
 		}
 
@@ -147,8 +148,15 @@ final class Canonical {
 			$base = home_url( '/' );
 		} elseif ( is_home() && $object instanceof \WP_Post ) {
 			$base = get_permalink( $object );
-		} elseif ( is_post_type_archive() && $object instanceof \WP_Post_Type ) {
-			$base = get_post_type_archive_link( $object->name );
+		} elseif ( is_post_type_archive() ) {
+			// The queried object may be the page standing for the archive (WooCommerce's shop page):
+			// its override counts, but the URL is the archive's.
+			$override = $object instanceof \WP_Post ? (string) Meta::post( $object->ID, 'canonical' ) : '';
+			if ( '' !== $override ) {
+				return $override;
+			}
+			$post_type = get_query_var( 'post_type' );
+			$base      = get_post_type_archive_link( is_array( $post_type ) ? (string) reset( $post_type ) : (string) $post_type );
 		} elseif ( is_author() && $object instanceof \WP_User ) {
 			$base = get_author_posts_url( $object->ID, $object->user_nicename );
 		} elseif ( is_day() ) {
