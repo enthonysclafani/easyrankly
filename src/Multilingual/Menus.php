@@ -44,7 +44,6 @@ final class Menus {
 		// check_theme_switched (init, 99): on a theme switch the core keeps only registered locations.
 		add_action( 'init', array( $this, 'register_locations' ), 98 );
 		add_filter( 'theme_mod_nav_menu_locations', array( $this, 'filter_locations' ) );
-		add_filter( 'render_block_data', array( $this, 'filter_navigation_block' ) );
 	}
 
 	/**
@@ -113,20 +112,17 @@ final class Menus {
 	}
 
 	/**
-	 * On the pages of a language, a navigation block shows the navigation menu of that language.
+	 * Points a navigation block to the navigation menu of a language, when one is chosen.
 	 *
-	 * @param mixed $block Parsed block.
-	 * @return mixed
+	 * Called by Multilingual::filter_block() on the frontend pages of a language.
+	 *
+	 * @param array<string, mixed> $block    Parsed `core/navigation` block.
+	 * @param string               $language Language being viewed.
+	 * @return array<string, mixed>
 	 */
-	public function filter_navigation_block( $block ) {
-		if ( ! is_array( $block ) || 'core/navigation' !== ( $block['blockName'] ?? null ) || ! is_numeric( $block['attrs']['ref'] ?? null ) ) {
-			return $block;
-		}
-		if ( ! Languages::enabled() || ! Routing::is_frontend() ) {
-			return $block;
-		}
-
-		$target = self::navigation( (int) $block['attrs']['ref'], Routing::current() );
+	public static function filter_block( array $block, string $language ): array {
+		$ref    = $block['attrs']['ref'] ?? null;
+		$target = is_numeric( $ref ) ? self::navigation( (int) $ref, $language ) : 0;
 		if ( $target > 0 ) {
 			$block['attrs']['ref'] = $target;
 		}

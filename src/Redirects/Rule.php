@@ -43,7 +43,8 @@ final class Rule {
 		$path = (string) wp_parse_url( $url, PHP_URL_PATH );
 		$path = mb_strtolower( rawurldecode( $path ) );
 		$path = '/' . trim( (string) preg_replace( '#/+#', '/', $path ), '/' );
-		$home = untrailingslashit( (string) wp_parse_url( home_url(), PHP_URL_PATH ) );
+		// The stored home: on the pages of a language home_url() is the home of that language.
+		$home = untrailingslashit( (string) wp_parse_url( (string) get_option( 'home' ), PHP_URL_PATH ) );
 
 		if ( '' !== $home && '/' !== $home ) {
 			$home = mb_strtolower( $home );

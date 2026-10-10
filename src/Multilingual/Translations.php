@@ -48,6 +48,47 @@ final class Translations {
 	}
 
 	/**
+	 * Whether everyone can see a post: published and without a password.
+	 *
+	 * @param \WP_Post $post Post.
+	 * @return bool
+	 */
+	public static function is_public( \WP_Post $post ): bool {
+		return 'publish' === $post->post_status && '' === $post->post_password;
+	}
+
+	/**
+	 * Whether some content has no configured language, so it belongs to the default language.
+	 *
+	 * Drafts, pending and private content count; trash and auto-drafts do not. Admin only.
+	 *
+	 * @return bool
+	 */
+	public static function has_content_without_language(): bool {
+		$query = new \WP_Query(
+			array(
+				'post_type'              => Languages::post_types(),
+				'post_status'            => 'any',
+				'tax_query'              => array( // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query -- One row at most, when the languages are saved.
+					array(
+						'taxonomy' => self::LANGUAGE,
+						'field'    => 'slug',
+						'terms'    => array_keys( Languages::all() ),
+						'operator' => 'NOT IN',
+					),
+				),
+				'posts_per_page'         => 1,
+				'fields'                 => 'ids',
+				'no_found_rows'          => true,
+				'update_post_term_cache' => false,
+				'update_post_meta_cache' => false,
+			)
+		);
+
+		return array() !== $query->posts;
+	}
+
+	/**
 	 * Translation group of a post.
 	 *
 	 * @param int $post_id Post ID.
@@ -167,6 +208,14 @@ final class Translations {
 			}
 		}
 
+		// Languages first: if one cannot be set, every post stays in the group it had.
+		foreach ( $posts as $slug => $post ) {
+			$result = wp_set_object_terms( $post->ID, $slug, self::LANGUAGE );
+			if ( is_wp_error( $result ) ) {
+				return $result;
+			}
+		}
+
 		$target = 0;
 		if ( count( $posts ) > 1 ) {
 			$target = (int) reset( $groups );
@@ -181,13 +230,18 @@ final class Translations {
 			// Members of the reused group that are not listed leave it.
 			$listed = array_map( static fn( \WP_Post $post ): int => $post->ID, $posts );
 			foreach ( array_diff( array_keys( self::members( $target ) ), $listed ) as $displaced ) {
-				wp_remove_object_terms( $displaced, $target, self::GROUP );
+				$result = wp_remove_object_terms( $displaced, $target, self::GROUP );
+				if ( is_wp_error( $result ) ) {
+					return $result;
+				}
 			}
 		}
 
-		foreach ( $posts as $slug => $post ) {
-			wp_set_object_terms( $post->ID, $slug, self::LANGUAGE );
-			wp_set_object_terms( $post->ID, $target > 0 ? array( $target ) : array(), self::GROUP );
+		foreach ( $posts as $post ) {
+			$result = wp_set_object_terms( $post->ID, $target > 0 ? array( $target ) : array(), self::GROUP );
+			if ( is_wp_error( $result ) ) {
+				return $result;
+			}
 		}
 
 		foreach ( $groups as $group_id ) {

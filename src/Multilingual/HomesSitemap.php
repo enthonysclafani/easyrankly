@@ -49,7 +49,7 @@ final class HomesSitemap extends \WP_Sitemaps_Provider {
 		$list = array();
 		foreach ( array_keys( Languages::all() ) as $language ) {
 			if ( Languages::default() !== $language ) {
-				$list[] = array( 'loc' => Routing::url( (string) get_option( 'home' ) . '/', $language ) );
+				$list[] = array( 'loc' => Routing::home( $language ) );
 			}
 		}
 

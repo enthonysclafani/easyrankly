@@ -7,6 +7,7 @@
 
 namespace EasyRankly\Tests\Multilingual;
 
+use EasyRankly\Multilingual\Requests;
 use EasyRankly\Multilingual\Routing;
 use EasyRankly\Multilingual\Translations;
 use EasyRankly\Settings\Settings;
@@ -262,7 +263,7 @@ final class RoutingTest extends WP_UnitTestCase {
 	 * Single content under another language's prefix is sent to its own URL.
 	 */
 	public function test_wrong_language_redirects_to_own_url(): void {
-		$routing = new Routing();
+		$routing = new Requests();
 		$en      = $this->post( 'en', array( 'post_name' => 'hello-en' ) );
 		$it      = $this->post( 'it', array( 'post_name' => 'ciao' ) );
 
@@ -318,7 +319,7 @@ final class RoutingTest extends WP_UnitTestCase {
 		$this->assertSame( $front_en, get_queried_object_id() );
 		$this->assertSame( 'http://example.org/', get_permalink( $front ) );
 		$this->assertSame( 'http://example.org/en/', get_permalink( $front_en ) );
-		$this->assertSame( '', ( new Routing() )->wrong_language_target() );
+		$this->assertSame( '', ( new Requests() )->wrong_language_target() );
 
 		$this->go_to( 'http://example.org/en/blog-en/' );
 		$this->assertTrue( is_home() );

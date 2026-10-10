@@ -9,12 +9,14 @@ namespace EasyRankly\Tests\Redirects;
 
 use EasyRankly\Redirects\Redirects;
 use EasyRankly\Redirects\Runner;
+use EasyRankly\Tests\Multilingual\WithLanguages;
 use WP_UnitTestCase;
 
 /**
  * Exact and regex rules run only on 404, forced rules always, one hop at most.
  */
 final class RunnerTest extends WP_UnitTestCase {
+	use WithLanguages;
 
 	/**
 	 * Pretty permalinks, meta registered, an administrator saving rules, redirects intercepted.
@@ -104,6 +106,19 @@ final class RunnerTest extends WP_UnitTestCase {
 		$this->rule( '/old-page', '/new-page' );
 
 		$this->assertSame( '301 ' . home_url( '/new-page' ), $this->visit( '/Old-Page/?utm_source=x' ) );
+	}
+
+	/**
+	 * On the pages of a language, the source keeps the language prefix: the home of the site
+	 * is still the one of Settings > General, not the home of the language.
+	 */
+	public function test_source_under_language_prefix(): void {
+		$this->set_languages( 'it', 'en' );
+		flush_rewrite_rules( false );
+		$this->rule( '/en/old-page', '/en/new-page' );
+
+		$this->assertSame( '301 http://example.org/en/new-page', $this->visit( '/en/old-page/' ) );
+		$this->assertNull( $this->visit( '/old-page/' ) );
 	}
 
 	/**

@@ -31,16 +31,30 @@ final class Languages {
 	public const LOCALE_PATTERN = '^[a-z]{2,3}(_[A-Z]{2})?(_[a-z0-9]+)?$';
 
 	/**
+	 * Object cache group that lives for one request only (registered as non-persistent).
+	 *
+	 * Links, locale and blocks ask for the languages hundreds of times per page: the list is
+	 * worked out once per request, and a persistent cache never holds it.
+	 */
+	public const CACHE_GROUP = 'easyrankly_request';
+
+	/**
 	 * Configured languages, keyed by slug, in display order.
 	 *
 	 * `site_title` and `tagline` are empty when the language uses those of Settings > General.
 	 *
 	 * The option is autoloaded, so this costs no query. Settings::get() builds nothing
-	 * translated, so the locale filter can read this.
+	 * translated, so the locale filter can read this. Kept for the request until the settings
+	 * change (see forget()).
 	 *
 	 * @return array<string, array{locale: string, name: string, site_title: string, tagline: string}>
 	 */
 	public static function all(): array {
+		$clean = wp_cache_get( 'languages', self::CACHE_GROUP );
+		if ( is_array( $clean ) ) {
+			return $clean;
+		}
+
 		$languages = Settings::value( 'languages' );
 		$clean     = array();
 
@@ -55,7 +69,16 @@ final class Languages {
 			}
 		}
 
+		wp_cache_set( 'languages', $clean, self::CACHE_GROUP );
+
 		return $clean;
+	}
+
+	/**
+	 * Drops the languages kept for the request: the settings changed.
+	 */
+	public static function forget(): void {
+		wp_cache_delete( 'languages', self::CACHE_GROUP );
 	}
 
 	/**

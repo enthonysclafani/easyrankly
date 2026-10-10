@@ -63,11 +63,17 @@ final class LanguageFields {
 
 			echo '<tr>';
 			printf(
-				'<td><input type="number" min="1" max="20" name="%1$s" value="%2$s" class="small-text" aria-label="%3$s" /></td>',
+				'<td><input type="number" min="1" max="20" name="%1$s" value="%2$s" class="small-text" aria-label="%3$s" />',
 				esc_attr( Fields::name( 'languages', (string) $index, 'order' ) ),
 				esc_attr( (string) ( $index + 1 ) ),
 				/* translators: %s: language name. */
 				esc_attr( sprintf( __( 'Order of %s', 'easyrankly' ), $label ) )
+			);
+			// The prefix the row had: a new one renames the language instead of replacing it.
+			printf(
+				'<input type="hidden" name="%1$s" value="%2$s" /></td>',
+				esc_attr( Fields::name( 'languages', (string) $index, 'previous' ) ),
+				esc_attr( $is_new ? '' : (string) $slug )
 			);
 			$fields = array(
 				'name'       => array(
@@ -132,7 +138,11 @@ final class LanguageFields {
 		echo '</tbody></table>';
 		printf(
 			'<p class="description">%s</p>',
-			esc_html__( 'The locale (for example en_US or it_IT) sets the language of the pages and their hreflang code. Content without a language belongs to the default language. The language with the lowest order is the default one.', 'easyrankly' )
+			esc_html__( 'The locale (for example en_US or it_IT) sets the language of the pages and their hreflang code. Content without a language belongs to the default language. The language with the lowest order is the default one: another language can take its place only once every content has its language.', 'easyrankly' )
+		);
+		printf(
+			'<p class="description">%s</p>',
+			esc_html__( 'Changing a URL prefix moves the content, title templates and menus of the language to the new prefix; rename its template parts and synced patterns too (for example header-en). Removing a language deletes its title templates and menu choices, and its content is shown in the default language.', 'easyrankly' )
 		);
 		printf(
 			'<p class="description">%s</p>',

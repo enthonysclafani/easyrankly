@@ -7,6 +7,8 @@
 
 namespace EasyRankly\Multilingual;
 
+use EasyRankly\Settings\Settings;
+
 defined( 'ABSPATH' ) || exit;
 
 /**
@@ -21,18 +23,24 @@ final class Multilingual {
 	 * Hooks the registrations, the cleanup of groups and the routing by language.
 	 */
 	public function register(): void {
+		wp_cache_add_non_persistent_groups( array( Languages::CACHE_GROUP ) );
+		foreach ( array( 'add_option_', 'update_option_', 'delete_option_' ) as $hook ) {
+			add_action( $hook . Settings::OPTION, array( Languages::class, 'forget' ), 1 );
+		}
+
 		// Late priority: every viewable post type must exist.
 		add_action( 'init', array( $this, 'register_taxonomies' ), 99 );
 		add_action( 'before_delete_post', array( Translations::class, 'on_delete_post' ) );
 
-		( new Routing() )->register();
+		$requests = new Requests();
+		$requests->register();
+		( new Links( $requests ) )->register();
 		( new Rest() )->register();
 		( new Hreflang() )->register();
 		( new Switcher() )->register();
 		( new SiteIdentity() )->register();
 		( new Menus() )->register();
-		( new TemplateParts() )->register();
-		( new SyncedPatterns() )->register();
+		add_filter( 'render_block_data', array( $this, 'filter_block' ) );
 		add_action( 'wp_sitemaps_init', array( $this, 'register_sitemap' ) );
 	}
 
@@ -83,6 +91,30 @@ final class Multilingual {
 				),
 			)
 		);
+	}
+
+	/**
+	 * On the pages of a language, points navigation, template part and synced pattern blocks
+	 * to the version of that language (see Menus, TemplateParts and SyncedPatterns).
+	 *
+	 * One filter for the three blocks: every other block leaves after one comparison.
+	 *
+	 * @param mixed $block Parsed block.
+	 * @return mixed
+	 */
+	public function filter_block( $block ) {
+		$name = is_array( $block ) ? ( $block['blockName'] ?? null ) : null;
+		if ( ! in_array( $name, array( 'core/navigation', 'core/template-part', 'core/block' ), true ) || ! Languages::enabled() || ! Routing::is_frontend() ) {
+			return $block;
+		}
+
+		$language = Routing::current();
+
+		return match ( $name ) {
+			'core/navigation'    => Menus::filter_block( $block, $language ),
+			'core/template-part' => TemplateParts::filter_block( $block, $language ),
+			default              => SyncedPatterns::filter_block( $block, $language ),
+		};
 	}
 
 	/**
