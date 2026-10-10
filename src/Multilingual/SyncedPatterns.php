@@ -74,7 +74,7 @@ final class SyncedPatterns {
 		);
 
 		$patterns = array();
-		foreach ( $query->posts as $pattern ) {
+		foreach ( (array) $query->posts as $pattern ) {
 			if ( $pattern instanceof \WP_Post && '' === $pattern->post_password ) {
 				$patterns[ $pattern->post_name ] = $pattern->ID;
 			}

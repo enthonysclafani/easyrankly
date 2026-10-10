@@ -261,7 +261,7 @@ final class CustomCode {
 	 */
 	public static function syntax_error( string $code ): ?string {
 		try {
-			// Only the ParseError matters: the tokens are discarded.
+			// @phpstan-ignore function.resultUnused (Only the ParseError matters: the tokens are discarded.)
 			token_get_all( "<?php\n" . $code, TOKEN_PARSE );
 		} catch ( \ParseError $error ) {
 			/* translators: 1: PHP error message, 2: line number. */

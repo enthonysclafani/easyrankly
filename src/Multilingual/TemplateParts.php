@@ -86,6 +86,6 @@ final class TemplateParts {
 			)
 		);
 
-		return array_values( wp_list_pluck( $query->posts, 'post_name' ) );
+		return array_values( wp_list_pluck( (array) $query->posts, 'post_name' ) );
 	}
 }
