@@ -7,7 +7,6 @@
 
 namespace EasyRankly\Tests\Settings;
 
-use EasyRankly\Multilingual\Menus;
 use EasyRankly\Multilingual\Translations;
 use EasyRankly\Settings\Admin\Form;
 use EasyRankly\Settings\Admin\Page;
@@ -518,7 +517,6 @@ final class FormTest extends WP_UnitTestCase {
 	public function test_languages_page_renames_a_language(): void {
 		$post = self::factory()->post->create();
 		Translations::set_language( $post, 'en' );
-		set_theme_mod( 'nav_menu_locations', array( Menus::location( 'primary', 'en' ) => 7 ) );
 
 		$stored = $this->save(
 			'easyrankly-languages',
@@ -532,7 +530,6 @@ final class FormTest extends WP_UnitTestCase {
 		$this->assertSame( 'en-gb', Translations::language( $post ) );
 		$this->assertSame( array( 'en-gb' ), array_keys( $stored['language_templates'] ) );
 		$this->assertSame( array( 'en-gb' => array( 10 => 12 ) ), $stored['navigation_menus'] );
-		$this->assertSame( array( Menus::location( 'primary', 'en-gb' ) => 7 ), get_theme_mod( 'nav_menu_locations' ) );
 	}
 
 	/**

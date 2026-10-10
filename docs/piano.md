@@ -375,9 +375,8 @@ nostro non coperto: da rivalutare dopo il lancio del Pro, con un test su 2–3 d
   - categorie e tag non si traducono: valgono per tutte le lingue e i loro archivi mostrano i contenuti della lingua corrente.
 
   Strada proposta: titolo e descrizione del sito per lingua nella option `easyrankly_settings` (filtri
-  `option_blogname` e `option_blogdescription`); un menu per lingua e per posizione, scelto con il filtro
-  `theme_mod_nav_menu_locations` per i temi classici e con il filtro sugli attributi del blocco `core/navigation` per i
-  temi a blocchi. Ogni option o meta nuovo va approvato nel piano del punto.
+  `option_blogname` e `option_blogdescription`); un menu per lingua, scelto con il filtro sugli attributi del blocco `core/navigation` (temi a blocchi; le
+  posizioni di menu per lingua dei temi classici sono state tolte il 10 ottobre 2026). Ogni option o meta nuovo va approvato nel piano del punto.
   Stringhe del tema (deciso il 9 ottobre 2026): nei temi a blocchi i testi scritti a mano stanno nei template part, e
   ogni template part può avere una versione per lingua con il prefisso della lingua dopo un trattino (`header-en`),
   creata nell'Editor del sito; il blocco `core/template-part` la usa sulle pagine di quella lingua, senza dati nuovi.
@@ -386,9 +385,14 @@ nostro non coperto: da rivalutare dopo il lancio del Pro, con un test su 2–3 d
   blocchi dentro la pagina o il template, modificabile; sostituirla con un'altra versione cancellerebbe le modifiche.
   Nelle pagine non serve (ogni lingua ha la sua pagina), i pattern del tema hanno testi tradotti dal locale, e un testo
   in un template va spostato in un template part o in un pattern sincronizzato.
-  Temi classici (deciso il 9 ottobre 2026): i temi a blocchi hanno la priorità, e nei temi classici widget e testi del
-  Customizer restano uguali in tutte le lingue; il plugin lo dichiara nella pagina Lingue e nel readme. Se un giorno
-  servisse, la strada è la stessa dei menu: un'area widget per lingua (`sidebars_widgets` del core), senza dati nostri.
+  Temi classici (deciso il 9 ottobre 2026, rivisto il 10 ottobre 2026): il multilingua richiede un tema a blocchi.
+  SEO, sitemap, redirect e custom code funzionano con qualsiasi tema; con un tema classico cambiano lingua contenuti,
+  indirizzi, titolo e motto del sito, ma menu, widget e testi del Customizer restano uguali in tutte le lingue. Le
+  posizioni di menu per lingua dei temi classici (punto 7.2) sono state tolte: coprivano solo i menu e lasciavano il
+  resto del tema in una lingua, quindi un sito classico in più lingue restava comunque a metà. Il plugin lo dichiara
+  con un avviso nella pagina Lingue e nel readme. Perché: il codice solo per i temi classici era circa l'1% del plugin,
+  ma escludere i temi classici da tutto il plugin avrebbe escluso la maggior parte dei siti WordPress (analisi del
+  10 ottobre 2026).
 - **Requisiti minimi**: il minimo è quello che il codice richiede davvero, il più basso possibile senza peggiorare il
   codice né aggiungere compatibilità a mano. WordPress resta 7.0 (decisione del 9 ottobre 2026): uscito l'agente, lo
   richiede solo il breadcrumb (blocco `core/breadcrumbs` e i suoi filtri), mentre il resto delle API usate scende fino

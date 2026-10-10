@@ -45,7 +45,8 @@ final class Fields {
 				break;
 			case Page::LANGUAGES:
 				add_settings_section( 'languages', '', array( LanguageFields::class, 'languages_table' ), $slug );
-				if ( Languages::enabled() ) {
+				// Menus and theme texts change language only in block themes.
+				if ( Languages::enabled() && wp_is_block_theme() ) {
 					add_settings_section( 'menus', self::label( Menus::SETTING ), array( LanguageFields::class, 'menus_section' ), $slug );
 					add_settings_section( 'theme_texts', __( 'Theme texts', 'easyrankly' ), array( LanguageFields::class, 'theme_texts_section' ), $slug );
 				}

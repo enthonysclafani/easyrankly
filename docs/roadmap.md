@@ -134,8 +134,8 @@ approvano nel piano di ogni punto.
 
 - [x] 7.1 Titolo e descrizione del sito per lingua (pagina Lingue), letti con `option_blogname` e
       `option_blogdescription` sulle pagine di quella lingua
-- [x] 7.2 Menu per lingua: per ogni posizione del tema un menu per lingua (`theme_mod_nav_menu_locations`) e, nei temi
-      a blocchi, la navigazione per lingua del blocco `core/navigation`
+- [x] 7.2 Menu per lingua: la navigazione per lingua del blocco `core/navigation` (temi a blocchi). Le posizioni di
+      menu per lingua dei temi classici sono state tolte il 10 ottobre 2026
 - [x] 7.3 Altre stringhe del tema: nei temi a blocchi il blocco `core/template-part` mostra, sulle pagine di una
       lingua, la sua versione `{slug}-{lingua}` (es. `header-en`) se esiste nell'Editor del sito o nel tema; nessun dato
       nuovo. Widget dei temi classici esclusi (decisione di ottobre 2026)
@@ -144,10 +144,11 @@ approvano nel piano di ogni punto.
       "Nome") se esiste ed è pubblicata; nessun dato nuovo. I pattern non sincronizzati restano esclusi (vedi
       `docs/piano.md`, sezione 7)
 - [x] 7.5 Aiuto nella pagina Lingue e in `readme.txt`: la convenzione `{slug}-{lingua}` per template part e pattern
-      sincronizzati, e l'avviso che nei temi classici i testi del tema (widget, Customizer) non cambiano lingua
+      sincronizzati, e l'avviso che il multilingua richiede un tema a blocchi
 
-I temi a blocchi hanno la priorità: nei temi classici funzionano contenuti, menu, titolo e descrizione del sito e le
-stringhe tradotte del tema, ma non widget né testi del Customizer (decisione del 9 ottobre 2026).
+Il multilingua richiede un tema a blocchi (decisione del 10 ottobre 2026): nei temi classici cambiano lingua
+contenuti, indirizzi, titolo e descrizione del sito e le stringhe tradotte del tema, ma non menu, widget né testi del
+Customizer, e la pagina Lingue lo dice con un avviso. SEO, sitemap, redirect e custom code funzionano con ogni tema.
 
 ## Requisiti minimi
 
