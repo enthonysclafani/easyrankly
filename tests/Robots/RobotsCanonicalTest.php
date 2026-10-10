@@ -127,6 +127,74 @@ final class RobotsCanonicalTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * An archive with no posts is noindex without canonical; one with posts, or a term with a
+	 * description of its own, stays indexable.
+	 *
+	 * @dataProvider permalinks
+	 *
+	 * @param string $structure Permalink structure.
+	 */
+	public function test_empty_archives_are_noindex( string $structure ): void {
+		$this->set_permalink_structure( $structure );
+		create_initial_taxonomies(); // Re-adds the category permastruct for the new structure.
+		flush_rewrite_rules();
+		// The factory gives every term a description: these two have none.
+		$empty     = self::factory()->category->create(
+			array(
+				'slug'        => 'empty',
+				'description' => '',
+			)
+		);
+		$described = self::factory()->category->create(
+			array(
+				'slug'        => 'described',
+				'description' => 'A guide to the topic.',
+			)
+		);
+		$full      = self::factory()->category->create(
+			array(
+				'slug'        => 'full',
+				'description' => '',
+			)
+		);
+		self::factory()->post->create( array( 'post_category' => array( $full ) ) );
+
+		$this->go_to( get_category_link( $empty ) );
+		$this->assertTrue( is_category() );
+		$this->assertStringContainsString( 'noindex', $this->robots() );
+		$this->assertSame( '', $this->canonical() );
+
+		$this->go_to( get_category_link( $described ) );
+		$this->assertStringNotContainsString( 'noindex', $this->robots() );
+
+		$this->go_to( get_category_link( $full ) );
+		$this->assertStringNotContainsString( 'noindex', $this->robots() );
+	}
+
+	/**
+	 * Author and posts-page archives with no posts are noindex; the home page is not.
+	 */
+	public function test_other_empty_archives_and_home(): void {
+		$author = self::factory()->user->create( array( 'role' => 'author' ) );
+
+		$this->go_to( get_author_posts_url( $author ) );
+		$this->assertTrue( is_author() );
+		$this->assertStringContainsString( 'noindex', $this->robots() );
+
+		$this->go_to( home_url( '/' ) );
+		$this->assertTrue( is_home() );
+		$this->assertStringNotContainsString( 'noindex', $this->robots() );
+
+		$posts_page = self::factory()->post->create( array( 'post_type' => 'page' ) );
+		update_option( 'show_on_front', 'page' );
+		update_option( 'page_on_front', self::factory()->post->create( array( 'post_type' => 'page' ) ) );
+		update_option( 'page_for_posts', $posts_page );
+		$this->go_to( get_permalink( $posts_page ) );
+		$this->assertTrue( is_home() );
+		$this->assertStringContainsString( 'noindex', $this->robots() );
+	}
+
+	/**
 	 * Context rules from the settings noindex author and date archives, with no canonical.
 	 */
 	public function test_settings_noindex_contexts(): void {
