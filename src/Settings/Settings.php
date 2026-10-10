@@ -11,6 +11,8 @@ use EasyRankly\Context\Context;
 use EasyRankly\Meta\Meta;
 use EasyRankly\Multilingual\Languages;
 
+use const EasyRankly\PLUGIN_FILE;
+
 defined( 'ABSPATH' ) || exit;
 
 /**
@@ -101,11 +103,26 @@ final class Settings {
 	public function register(): void {
 		// Late priority: later sections of the schema list post types and taxonomies.
 		add_action( 'init', array( $this, 'register_setting' ), 99 );
+		register_activation_hook( PLUGIN_FILE, array( self::class, 'create' ) );
+		add_action( 'admin_init', array( self::class, 'create' ) );
 		add_action( 'added_post_meta', array( $this, 'on_attachment_meta' ), 10, 3 );
 		add_action( 'updated_post_meta', array( $this, 'on_attachment_meta' ), 10, 3 );
 		add_action( 'deleted_post_meta', array( $this, 'on_attachment_meta' ), 10, 3 );
 		// wp_delete_attachment() fires deleted_post, never after_delete_post.
 		add_action( 'deleted_post', array( $this, 'on_attachment_deleted' ) );
+	}
+
+	/**
+	 * Stores the default settings when the option does not exist yet.
+	 *
+	 * An option that is not stored is looked for in the database on every page, since only
+	 * stored options are autoloaded: this keeps the settings in the autoloaded options from
+	 * activation on (admin_init covers sites activated before this existed).
+	 */
+	public static function create(): void {
+		if ( false === get_option( self::OPTION, false ) ) {
+			add_option( self::OPTION, array(), '', true );
+		}
 	}
 
 	/**
@@ -450,6 +467,11 @@ final class Settings {
 				$clean[ $key ] = $sanitized;
 			}
 		}
+
+		// Templates and menus of a language that is gone go with it (Form moves those of a renamed one).
+		$languages                   = array_keys( (array) $clean['languages'] );
+		$clean['language_templates'] = array_intersect_key( (array) $clean['language_templates'], array_flip( $languages ) );
+		$clean['navigation_menus']   = array_intersect_key( (array) $clean['navigation_menus'], array_flip( array_slice( $languages, 1 ) ) );
 
 		$clean['images'] = self::copy_images( $clean );
 
