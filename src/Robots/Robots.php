@@ -84,15 +84,8 @@ final class Robots {
 	 * @return bool|null
 	 */
 	private static function object_flag( string $name ): ?bool {
-		$object = get_queried_object();
+		$value = Meta::queried( $name );
 
-		if ( $object instanceof \WP_Post && ( is_singular() || is_home() || is_front_page() ) ) {
-			return (bool) Meta::post( $object->ID, $name );
-		}
-		if ( $object instanceof \WP_Term ) {
-			return (bool) Meta::term( $object->term_id, $name );
-		}
-
-		return null;
+		return null === $value ? null : (bool) $value;
 	}
 }

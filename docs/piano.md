@@ -368,8 +368,9 @@ nostro non coperto: da rivalutare dopo il lancio del Pro, con un test su 2–3 d
 - **Prezzi del Pro**: confermati quelli della sezione 6; si aggiornano sul backend e in Stripe senza toccare i plugin.
 - **Noindex su pagine povere**: azione proponibile del Pro, rischio alto. L'AI la propone con i dati a supporto,
   l'utente sceglie; nessuna approvazione automatica.
-- **Multilingua**: copre anche menu e stringhe del tema, senza tabelle né moduli (Fase 7 della roadmap). Oggi:
-  - menu, titolo e descrizione del sito sono gli stessi in tutte le lingue (quelli della lingua predefinita);
+- **Multilingua**: copre anche menu e stringhe del tema, senza tabelle né moduli (Fase 7 della roadmap).
+  Prima della Fase 7 (stato superato: titolo, motto, menu e testi del tema per lingua sono fatti, punti 7.1–7.5):
+  - menu, titolo e descrizione del sito erano gli stessi in tutte le lingue (quelli della lingua predefinita);
   - le stringhe del tema e di WordPress seguono il locale della pagina, se il pacchetto di lingua è installato;
   - categorie e tag non si traducono: valgono per tutte le lingue e i loro archivi mostrano i contenuti della lingua corrente.
 

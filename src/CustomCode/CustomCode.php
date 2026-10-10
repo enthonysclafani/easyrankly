@@ -60,6 +60,14 @@ final class CustomCode {
 	);
 
 	/**
+	 * Whether a REST save of a snippet is under way: its post and meta writes wait for
+	 * after_rest_save(), which rebuilds the cache once.
+	 *
+	 * @var bool
+	 */
+	private bool $rest_saving = false;
+
+	/**
 	 * Hooks registration, permissions, validation, cache rebuilds, imports, notices and the runner.
 	 */
 	public function register(): void {
@@ -67,7 +75,8 @@ final class CustomCode {
 		add_filter( 'map_meta_cap', array( $this, 'map_meta_cap' ), 10, 4 );
 		add_filter( 'rest_pre_insert_' . self::POST_TYPE, array( $this, 'validate_rest' ), 10, 2 );
 		add_action( 'rest_after_insert_' . self::POST_TYPE, array( $this, 'after_rest_save' ), 10, 3 );
-		add_action( 'save_post_' . self::POST_TYPE, array( self::class, 'rebuild_cache' ) );
+		add_action( 'save_post_' . self::POST_TYPE, array( $this, 'on_save' ) );
+		add_filter( 'rest_request_after_callbacks', array( $this, 'after_rest_request' ) );
 		// After the post cache is cleaned, so the rebuild query does not see the deleted snippet.
 		add_action( 'after_delete_post', array( $this, 'on_delete' ), 10, 2 );
 		add_action( 'trashed_post', array( $this, 'on_change' ) );
@@ -252,8 +261,8 @@ final class CustomCode {
 	 */
 	public static function syntax_error( string $code ): ?string {
 		try {
-			// Only the ParseError matters: the tokens are discarded.
-			$tokens = token_get_all( "<?php\n" . $code, TOKEN_PARSE );
+			// @phpstan-ignore function.resultUnused (Only the ParseError matters: the tokens are discarded.)
+			token_get_all( "<?php\n" . $code, TOKEN_PARSE );
 		} catch ( \ParseError $error ) {
 			/* translators: 1: PHP error message, 2: line number. */
 			return sprintf( __( '%1$s on line %2$d', 'easyrankly' ), $error->getMessage(), max( 1, $error->getLine() - 1 ) );
@@ -326,6 +335,7 @@ final class CustomCode {
 		}
 
 		$prepared->post_status = 'publish' === $status ? 'publish' : 'draft';
+		$this->rest_saving     = true;
 
 		return $prepared;
 	}
@@ -345,7 +355,32 @@ final class CustomCode {
 				wp_save_post_revision( $post->ID );
 			}
 		}
+		$this->rest_saving = false;
 		self::rebuild_cache();
+	}
+
+	/**
+	 * Rebuilds the cache when a snippet is saved outside REST.
+	 */
+	public function on_save(): void {
+		if ( ! $this->rest_saving ) {
+			self::rebuild_cache();
+		}
+	}
+
+	/**
+	 * Rebuilds the cache if a REST save stopped after validation, before after_rest_save().
+	 *
+	 * @param mixed $response Response of the REST request.
+	 * @return mixed
+	 */
+	public function after_rest_request( $response ) {
+		if ( $this->rest_saving ) {
+			$this->rest_saving = false;
+			self::rebuild_cache();
+		}
+
+		return $response;
 	}
 
 	/**
@@ -399,14 +434,14 @@ final class CustomCode {
 	}
 
 	/**
-	 * Rebuilds the cache when a snippet's meta changes outside REST.
+	 * Rebuilds the cache when a snippet's meta changes outside a REST save.
 	 *
 	 * @param mixed $meta_id Meta ID.
 	 * @param mixed $post_id Post ID.
 	 * @param mixed $key     Meta key.
 	 */
 	public function on_meta_change( $meta_id, $post_id, $key ): void {
-		if ( is_string( $key ) && str_starts_with( $key, '_easyrankly_snippet_' ) && self::meta_key( 'error' ) !== $key && self::POST_TYPE === get_post_type( (int) $post_id ) ) {
+		if ( ! $this->rest_saving && is_string( $key ) && str_starts_with( $key, '_easyrankly_snippet_' ) && self::meta_key( 'error' ) !== $key && self::POST_TYPE === get_post_type( (int) $post_id ) ) {
 			self::rebuild_cache();
 		}
 	}

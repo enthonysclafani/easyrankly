@@ -7,7 +7,7 @@
 
 namespace EasyRankly\Settings\Admin;
 
-use EasyRankly\Admin\Assets;
+use EasyRankly\Admin\MediaField;
 use EasyRankly\Multilingual\Languages;
 use EasyRankly\Settings\Settings;
 
@@ -28,6 +28,26 @@ final class Page {
 	public const SLUG = 'easyrankly';
 
 	/**
+	 * Slug of the Titles page.
+	 */
+	public const TITLES = 'easyrankly-titles';
+
+	/**
+	 * Slug of the Indexing page.
+	 */
+	public const INDEXING = 'easyrankly-indexing';
+
+	/**
+	 * Slug of the Schema and social page.
+	 */
+	public const SCHEMA = 'easyrankly-schema';
+
+	/**
+	 * Slug of the Languages page.
+	 */
+	public const LANGUAGES = 'easyrankly-languages';
+
+	/**
 	 * Hooks the menu and the conversion of the submitted forms.
 	 */
 	public function register(): void {
@@ -43,23 +63,23 @@ final class Page {
 	 */
 	public static function pages(): array {
 		return array(
-			self::SLUG             => array(
+			self::SLUG      => array(
 				'menu'  => __( 'General', 'easyrankly' ),
 				'title' => __( 'General settings', 'easyrankly' ),
 			),
-			'easyrankly-titles'    => array(
+			self::TITLES    => array(
 				'menu'  => __( 'Titles', 'easyrankly' ),
 				'title' => __( 'Titles and descriptions', 'easyrankly' ),
 			),
-			'easyrankly-indexing'  => array(
+			self::INDEXING  => array(
 				'menu'  => __( 'Indexing', 'easyrankly' ),
 				'title' => __( 'Indexing', 'easyrankly' ),
 			),
-			'easyrankly-schema'    => array(
+			self::SCHEMA    => array(
 				'menu'  => __( 'Schema and social', 'easyrankly' ),
 				'title' => __( 'Schema and social sharing', 'easyrankly' ),
 			),
-			'easyrankly-languages' => array(
+			self::LANGUAGES => array(
 				'menu'  => __( 'Languages', 'easyrankly' ),
 				'title' => __( 'Languages', 'easyrankly' ),
 			),
@@ -102,17 +122,9 @@ final class Page {
 	public function load( string $slug ): void {
 		Fields::add( $slug );
 
-		if ( 'easyrankly-schema' === $slug ) {
-			add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_media' ) );
+		if ( self::SCHEMA === $slug ) {
+			add_action( 'admin_enqueue_scripts', array( MediaField::class, 'enqueue' ) );
 		}
-	}
-
-	/**
-	 * Media library modal and the small script that opens it for the image fields.
-	 */
-	public function enqueue_media(): void {
-		wp_enqueue_media();
-		Assets::enqueue( 'media-field' );
 	}
 
 	/**
@@ -133,13 +145,13 @@ final class Page {
 			return;
 		}
 
-		$language = 'easyrankly-titles' === $slug ? Fields::language() : '';
+		$language = self::TITLES === $slug ? Fields::language() : '';
 
 		echo '<div class="wrap">';
 		printf( '<h1>%s</h1>', esc_html( self::pages()[ $slug ]['title'] ) );
 		settings_errors();
 
-		if ( 'easyrankly-titles' === $slug ) {
+		if ( self::TITLES === $slug ) {
 			self::language_links( $language );
 		}
 
@@ -164,7 +176,7 @@ final class Page {
 			return;
 		}
 
-		$base  = menu_page_url( 'easyrankly-titles', false );
+		$base  = menu_page_url( self::TITLES, false );
 		$links = array( '' => __( 'All languages', 'easyrankly' ) );
 		foreach ( Languages::all() as $slug => $language ) {
 			$links[ $slug ] = $language['name'];

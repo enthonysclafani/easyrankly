@@ -35,3 +35,4 @@ tests_add_filter(
 
 require $easyrankly_tests_dir . '/includes/bootstrap.php';
 require_once dirname( __DIR__ ) . '/tools/check-architecture.php';
+require_once __DIR__ . '/Multilingual/WithLanguages.php';

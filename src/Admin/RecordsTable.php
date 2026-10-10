@@ -63,6 +63,8 @@ final class RecordsTable extends \WP_List_Table {
 				'post_type'              => $this->page->post_type(),
 				'post_status'            => array( 'publish', 'draft' ),
 				's'                      => $search,
+				// Names only: the content is the code, which not everyone listed here may read.
+				'search_columns'         => array( 'post_title' ),
 				'posts_per_page'         => self::PER_PAGE,
 				'paged'                  => $this->get_pagenum(),
 				'orderby'                => 'date',
@@ -109,7 +111,7 @@ final class RecordsTable extends \WP_List_Table {
 	 * @return string
 	 */
 	public function column_cb( $item ) {
-		if ( ! $item instanceof \WP_Post ) {
+		if ( ! $item instanceof \WP_Post || ! current_user_can( 'edit_post', $item->ID ) ) {
 			return '';
 		}
 
@@ -141,7 +143,7 @@ final class RecordsTable extends \WP_List_Table {
 	 * @return string
 	 */
 	protected function handle_row_actions( $item, $column_name, $primary ) {
-		if ( ! $item instanceof \WP_Post || $column_name !== $primary ) {
+		if ( ! $item instanceof \WP_Post || $column_name !== $primary || ! current_user_can( 'edit_post', $item->ID ) ) {
 			return '';
 		}
 

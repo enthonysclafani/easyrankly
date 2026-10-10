@@ -15,27 +15,14 @@ use WP_UnitTestCase;
  * Classic locations and navigation blocks show the menu of the language being viewed.
  */
 final class MenusTest extends WP_UnitTestCase {
+	use WithLanguages;
 
 	/**
 	 * Italian (default) and English, a theme with one location.
 	 */
 	public function set_up(): void {
 		parent::set_up();
-		update_option(
-			Settings::OPTION,
-			array(
-				'languages' => array(
-					'it' => array(
-						'locale' => 'it_IT',
-						'name'   => 'Italiano',
-					),
-					'en' => array(
-						'locale' => 'en_US',
-						'name'   => 'English',
-					),
-				),
-			)
-		);
+		$this->set_languages( 'it', 'en' );
 		$this->set_permalink_structure( '/%postname%/' );
 		register_nav_menus( array( 'primary' => 'Primary' ) );
 		( new Menus() )->register_locations();
@@ -199,17 +186,7 @@ final class MenusTest extends WP_UnitTestCase {
 	 */
 	public function test_single_language_registers_nothing(): void {
 		unregister_nav_menu( Menus::location( 'primary', 'en' ) );
-		update_option(
-			Settings::OPTION,
-			array(
-				'languages' => array(
-					'it' => array(
-						'locale' => 'it_IT',
-						'name'   => 'Italiano',
-					),
-				),
-			)
-		);
+		$this->set_languages( 'it' );
 
 		( new Menus() )->register_locations();
 

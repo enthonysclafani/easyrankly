@@ -8,38 +8,20 @@
 namespace EasyRankly\Tests\Multilingual;
 
 use EasyRankly\Multilingual\Translations;
-use EasyRankly\Settings\Settings;
 use WP_UnitTestCase;
 
 /**
  * Groups stay valid after every write: one post per language, one type, at least two posts.
  */
 final class TranslationsTest extends WP_UnitTestCase {
+	use WithLanguages;
 
 	/**
 	 * Three languages, Italian first (default).
 	 */
 	public function set_up(): void {
 		parent::set_up();
-		update_option(
-			Settings::OPTION,
-			array(
-				'languages' => array(
-					'it' => array(
-						'locale' => 'it_IT',
-						'name'   => 'Italiano',
-					),
-					'en' => array(
-						'locale' => 'en_US',
-						'name'   => 'English',
-					),
-					'fr' => array(
-						'locale' => 'fr_FR',
-						'name'   => 'Français',
-					),
-				),
-			)
-		);
+		$this->set_languages( 'it', 'en', 'fr' );
 	}
 
 	/**
@@ -53,6 +35,31 @@ final class TranslationsTest extends WP_UnitTestCase {
 		$this->assertSame( 'it', Translations::language( $post ) );
 		$this->assertSame( 'it', Translations::language( $removed ) );
 		$this->assertSame( array( 'it' => $post ), Translations::of( $post ) );
+	}
+
+	/**
+	 * A language that cannot be stored stops the link, and the posts keep their groups.
+	 */
+	public function test_link_reports_errors_and_changes_no_group(): void {
+		$it = self::factory()->post->create();
+		$fr = self::factory()->post->create();
+		add_filter(
+			'pre_insert_term',
+			static fn( $term, $taxonomy ) => Translations::LANGUAGE === $taxonomy && 'fr' === $term ? new \WP_Error( 'blocked', 'Blocked' ) : $term,
+			10,
+			2
+		);
+
+		$result = Translations::link(
+			array(
+				'it' => $it,
+				'fr' => $fr,
+			)
+		);
+
+		$this->assertWPError( $result );
+		$this->assertNull( Translations::group( $it ) );
+		$this->assertNull( Translations::group( $fr ) );
 	}
 
 	/**

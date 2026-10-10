@@ -251,7 +251,7 @@ final class Rest {
 	/**
 	 * Language of a post and its translations, as the editor panel reads them.
 	 *
-	 * Translations the user cannot read show no title.
+	 * A translation the user cannot read only marks its language as taken: no ID, title or status.
 	 *
 	 * @param int $id Post ID.
 	 * @return \WP_REST_Response
@@ -260,9 +260,16 @@ final class Rest {
 		$translations = array();
 		foreach ( Translations::of( $id ) as $language => $post_id ) {
 			$post = get_post( $post_id );
-			if ( $post_id !== $id && $post instanceof \WP_Post ) {
-				$translations[ $language ] = self::summary( $post );
+			if ( $post_id === $id || ! $post instanceof \WP_Post ) {
+				continue;
 			}
+
+			$translations[ $language ] = current_user_can( 'read_post', $post_id ) ? self::summary( $post ) : array(
+				'id'        => 0,
+				'title'     => '',
+				'status'    => '',
+				'edit_link' => '',
+			);
 		}
 
 		return rest_ensure_response(
@@ -274,17 +281,15 @@ final class Rest {
 	}
 
 	/**
-	 * What the editor shows about a post.
+	 * What the editor shows about a post the user can read.
 	 *
 	 * @param \WP_Post $post Post.
 	 * @return array{id: int, title: string, status: string, edit_link: string}
 	 */
 	private static function summary( \WP_Post $post ): array {
-		$readable = current_user_can( 'read_post', $post->ID );
-
 		return array(
 			'id'        => $post->ID,
-			'title'     => $readable ? html_entity_decode( get_the_title( $post ), ENT_QUOTES, 'UTF-8' ) : '',
+			'title'     => html_entity_decode( get_the_title( $post ), ENT_QUOTES, 'UTF-8' ),
 			'status'    => $post->post_status,
 			'edit_link' => current_user_can( 'edit_post', $post->ID ) ? (string) get_edit_post_link( $post->ID, 'raw' ) : '',
 		);

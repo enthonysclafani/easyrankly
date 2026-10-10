@@ -7,6 +7,7 @@
 
 namespace EasyRankly\Meta\Admin;
 
+use EasyRankly\Admin\MediaField;
 use EasyRankly\Meta\Meta;
 
 defined( 'ABSPATH' ) || exit;
@@ -26,6 +27,18 @@ final class TermFields {
 	 */
 	public function register(): void {
 		add_action( 'admin_init', array( $this, 'hook_taxonomies' ) );
+		add_action( 'load-term.php', array( $this, 'load' ) );
+	}
+
+	/**
+	 * Loads the image picker on the edit screen of the taxonomies that show the fields.
+	 */
+	public function load(): void {
+		$taxonomy = isset( $_REQUEST['taxonomy'] ) ? sanitize_key( wp_unslash( $_REQUEST['taxonomy'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Only picks the assets of the screen.
+
+		if ( taxonomy_exists( $taxonomy ) && is_taxonomy_viewable( $taxonomy ) ) {
+			add_action( 'admin_enqueue_scripts', array( MediaField::class, 'enqueue' ) );
+		}
 	}
 
 	/**
@@ -58,9 +71,9 @@ final class TermFields {
 		wp_nonce_field( self::NONCE, self::NONCE );
 		echo '</th></tr>';
 
-		$this->text_row( 'title', __( 'SEO title', 'easyrankly' ), (string) $value( 'title' ), __( 'Empty uses the title template.', 'easyrankly' ) );
-		$this->text_row( 'description', __( 'Meta description', 'easyrankly' ), (string) $value( 'description' ), __( 'Empty uses the description template.', 'easyrankly' ), true );
-		$this->text_row( 'canonical', __( 'Canonical URL', 'easyrankly' ), (string) $value( 'canonical' ), __( 'Empty uses the term archive URL.', 'easyrankly' ) );
+		$this->text_row( 'title', __( 'SEO title', 'easyrankly' ), (string) $value( 'title' ), __( 'Empty uses the title template', 'easyrankly' ) );
+		$this->text_row( 'description', __( 'Meta description', 'easyrankly' ), (string) $value( 'description' ), __( 'Empty uses the description template', 'easyrankly' ), true );
+		$this->text_row( 'canonical', __( 'Canonical URL', 'easyrankly' ), (string) $value( 'canonical' ), __( 'Empty uses the term archive URL', 'easyrankly' ) );
 
 		printf(
 			'<tr class="form-field"><th scope="row">%1$s</th><td><label><input type="checkbox" name="easyrankly[noindex]" value="1" %2$s> %3$s</label><br><label><input type="checkbox" name="easyrankly[nofollow]" value="1" %4$s> %5$s</label></td></tr>',
@@ -71,15 +84,12 @@ final class TermFields {
 			esc_html__( 'Do not follow its links (nofollow)', 'easyrankly' )
 		);
 
-		$this->text_row( 'og_title', __( 'Social title', 'easyrankly' ), (string) $value( 'og_title' ), __( 'Empty uses the SEO title.', 'easyrankly' ) );
-		$this->text_row( 'og_description', __( 'Social description', 'easyrankly' ), (string) $value( 'og_description' ), __( 'Empty uses the meta description.', 'easyrankly' ), true );
+		$this->text_row( 'og_title', __( 'Social title', 'easyrankly' ), (string) $value( 'og_title' ), __( 'Empty uses the SEO title', 'easyrankly' ) );
+		$this->text_row( 'og_description', __( 'Social description', 'easyrankly' ), (string) $value( 'og_description' ), __( 'Empty uses the meta description', 'easyrankly' ), true );
 
-		printf(
-			'<tr class="form-field"><th scope="row"><label for="easyrankly-og_image">%1$s</label></th><td><input type="number" min="0" step="1" id="easyrankly-og_image" name="easyrankly[og_image]" value="%2$s"><p class="description">%3$s</p></td></tr>',
-			esc_html__( 'Social image', 'easyrankly' ),
-			esc_attr( (string) absint( $value( 'og_image' ) ) ),
-			esc_html__( 'Attachment ID from the Media Library. 0 uses the default image.', 'easyrankly' )
-		);
+		printf( '<tr class="form-field"><th scope="row"><label for="easyrankly-og_image">%s</label></th><td>', esc_html__( 'Social image', 'easyrankly' ) );
+		MediaField::render( 'easyrankly-og_image', 'easyrankly[og_image]', absint( $value( 'og_image' ) ) );
+		printf( '<p class="description">%s</p></td></tr>', esc_html__( 'Empty uses the default image.', 'easyrankly' ) );
 	}
 
 	/**
@@ -101,9 +111,15 @@ final class TermFields {
 		// Each value is sanitized below by the callback registered for its key.
 		$input = isset( $_POST['easyrankly'] ) && is_array( $_POST['easyrankly'] ) ? wp_unslash( $_POST['easyrankly'] ) : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitized per key through sanitize_meta().
 
+		$term = get_term( $term_id );
+		if ( ! $term instanceof \WP_Term ) {
+			return;
+		}
+
 		foreach ( Meta::fields() as $name => $field ) {
-			$key   = Meta::PREFIX . $name;
-			$value = sanitize_meta( $key, $input[ $name ] ?? $field['default'], 'term' );
+			$key = Meta::PREFIX . $name;
+			// The keys are registered per taxonomy, so their sanitize callbacks need it.
+			$value = sanitize_meta( $key, $input[ $name ] ?? $field['default'], 'term', $term->taxonomy );
 
 			if ( $value === $field['default'] || '' === $value ) {
 				delete_term_meta( $term_id, $key );
@@ -116,24 +132,23 @@ final class TermFields {
 	/**
 	 * Prints one text or textarea row.
 	 *
-	 * @param string $name     Field name without prefix.
-	 * @param string $label    Visible label.
-	 * @param string $value    Current value.
-	 * @param string $help     Description under the field.
-	 * @param bool   $textarea Whether to print a textarea.
+	 * @param string $name        Field name without prefix.
+	 * @param string $label       Visible label.
+	 * @param string $value       Current value.
+	 * @param string $placeholder Shown while the field is empty: what is used instead.
+	 * @param bool   $textarea    Whether to print a textarea.
 	 */
-	private function text_row( string $name, string $label, string $value, string $help, bool $textarea = false ): void {
+	private function text_row( string $name, string $label, string $value, string $placeholder, bool $textarea = false ): void {
 		$id    = 'easyrankly-' . $name;
 		$field = $textarea
-			? sprintf( '<textarea id="%1$s" name="easyrankly[%2$s]" rows="3">%3$s</textarea>', esc_attr( $id ), esc_attr( $name ), esc_textarea( $value ) )
-			: sprintf( '<input type="text" id="%1$s" name="easyrankly[%2$s]" value="%3$s">', esc_attr( $id ), esc_attr( $name ), esc_attr( $value ) );
+			? sprintf( '<textarea id="%1$s" name="easyrankly[%2$s]" rows="3" placeholder="%4$s">%3$s</textarea>', esc_attr( $id ), esc_attr( $name ), esc_textarea( $value ), esc_attr( $placeholder ) )
+			: sprintf( '<input type="text" id="%1$s" name="easyrankly[%2$s]" value="%3$s" placeholder="%4$s">', esc_attr( $id ), esc_attr( $name ), esc_attr( $value ), esc_attr( $placeholder ) );
 
 		printf(
-			'<tr class="form-field"><th scope="row"><label for="%1$s">%2$s</label></th><td>%3$s<p class="description">%4$s</p></td></tr>',
+			'<tr class="form-field"><th scope="row"><label for="%1$s">%2$s</label></th><td>%3$s</td></tr>',
 			esc_attr( $id ),
 			esc_html( $label ),
-			$field, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Built above from escaped parts.
-			esc_html( $help )
+			$field // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Built above from escaped parts.
 		);
 	}
 }

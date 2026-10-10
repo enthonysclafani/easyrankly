@@ -7,13 +7,13 @@
 
 namespace EasyRankly\Tests\Multilingual;
 
-use EasyRankly\Settings\Settings;
 use WP_UnitTestCase;
 
 /**
  * A synced pattern block shows the `{slug}-{language}` pattern on the pages of a language, if it exists.
  */
 final class SyncedPatternsTest extends WP_UnitTestCase {
+	use WithLanguages;
 
 	/**
 	 * Synced pattern referenced by the block.
@@ -27,29 +27,7 @@ final class SyncedPatternsTest extends WP_UnitTestCase {
 	 */
 	public function set_up(): void {
 		parent::set_up();
-		update_option(
-			Settings::OPTION,
-			array(
-				'languages' => array(
-					'it' => array(
-						'locale' => 'it_IT',
-						'name'   => 'Italiano',
-					),
-					'en' => array(
-						'locale' => 'en_US',
-						'name'   => 'English',
-					),
-					'fr' => array(
-						'locale' => 'fr_FR',
-						'name'   => 'Français',
-					),
-					'de' => array(
-						'locale' => 'de_DE',
-						'name'   => 'Deutsch',
-					),
-				),
-			)
-		);
+		$this->set_languages( 'it', 'en', 'fr', 'de' );
 		$this->set_permalink_structure( '/%postname%/' );
 		$this->banner = $this->pattern( 'Banner', 'Testo' );
 		$this->pattern( 'Banner - EN', 'Text' );
@@ -103,6 +81,27 @@ final class SyncedPatternsTest extends WP_UnitTestCase {
 
 		$this->go_to( 'http://example.org/' );
 		$this->assertStringContainsString( 'Testo', $this->banner() );
+	}
+
+	/**
+	 * However many synced patterns the page has, their language versions cost no query more than
+	 * the patterns themselves: one query finds the versions and loads the patterns the core renders.
+	 */
+	public function test_one_query_for_all_synced_patterns(): void {
+		$blocks = '<!-- wp:block {"ref":' . $this->banner . '} /-->';
+		foreach ( array( 'Quote', 'Footer note', 'Call' ) as $title ) {
+			$blocks .= '<!-- wp:block {"ref":' . $this->pattern( $title, $title ) . '} /-->';
+		}
+		$count = function ( string $url ) use ( $blocks ): int {
+			global $wpdb;
+			$this->go_to( $url );
+			wp_cache_flush();
+			$before = $wpdb->num_queries;
+			do_blocks( $blocks );
+			return $wpdb->num_queries - $before;
+		};
+
+		$this->assertLessThanOrEqual( $count( 'http://example.org/' ), $count( 'http://example.org/en/' ) );
 	}
 
 	/**

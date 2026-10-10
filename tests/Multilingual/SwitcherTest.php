@@ -7,6 +7,7 @@
 
 namespace EasyRankly\Tests\Multilingual;
 
+use EasyRankly\Multilingual\Switcher;
 use EasyRankly\Multilingual\Translations;
 use EasyRankly\Settings\Settings;
 use WP_UnitTestCase;
@@ -15,6 +16,7 @@ use WP_UnitTestCase;
  * The switcher is plain HTML rendered on the server, linking the page in every language.
  */
 final class SwitcherTest extends WP_UnitTestCase {
+	use WithLanguages;
 
 	/**
 	 * Italian (default), English and French with pretty permalinks.
@@ -92,6 +94,25 @@ final class SwitcherTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Without a build of the editor script, the block still comes from block.json, supports included.
+	 */
+	public function test_block_keeps_its_supports_without_build(): void {
+		$registry = \WP_Block_Type_Registry::get_instance();
+		$registry->unregister( 'easyrankly/language-switcher' );
+
+		add_filter( 'block_type_metadata', array( Switcher::class, 'drop_editor_script' ) );
+		register_block_type( dirname( __DIR__, 2 ) . '/blocks/language-switcher' );
+		remove_filter( 'block_type_metadata', array( Switcher::class, 'drop_editor_script' ) );
+		$block = $registry->get_registered( 'easyrankly/language-switcher' );
+
+		$registry->unregister( 'easyrankly/language-switcher' );
+		( new Switcher() )->register_block();
+
+		$this->assertSame( array(), $block->editor_script_handles );
+		$this->assertTrue( $block->supports['spacing']['margin'] ?? false );
+	}
+
+	/**
 	 * Single content links its published translations; missing ones fall back to the language home.
 	 */
 	public function test_single_content_links_translations(): void {
@@ -160,17 +181,7 @@ final class SwitcherTest extends WP_UnitTestCase {
 	 * With one language the block renders nothing.
 	 */
 	public function test_nothing_with_one_language(): void {
-		update_option(
-			Settings::OPTION,
-			array(
-				'languages' => array(
-					'it' => array(
-						'locale' => 'it_IT',
-						'name'   => 'Italiano',
-					),
-				),
-			)
-		);
+		$this->set_languages( 'it' );
 		$this->go_to( 'http://example.org/' );
 
 		$this->assertSame( '', $this->render() );

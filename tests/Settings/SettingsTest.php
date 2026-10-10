@@ -38,6 +38,38 @@ final class SettingsTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * The defaults of the schema are the constant ones, and the templates cover every generic context.
+	 */
+	public function test_schema_defaults_match_constant(): void {
+		$properties = Settings::schema()['properties'];
+
+		$this->assertSame( array_keys( Settings::DEFAULTS ), array_keys( $properties ) );
+		foreach ( Settings::DEFAULTS as $key => $default ) {
+			$this->assertSame( $default, $properties[ $key ]['default'], $key );
+		}
+		$this->assertSame( \EasyRankly\Context\Context::GENERIC, array_map( 'strval', array_keys( Settings::DEFAULTS['templates'] ) ) );
+	}
+
+	/**
+	 * Reading the settings translates nothing: it runs many times on every page.
+	 */
+	public function test_reading_settings_translates_nothing(): void {
+		update_option( Settings::OPTION, array( 'title_separator' => '|' ) );
+		$translated = 0;
+		$count      = static function ( $translation ) use ( &$translated ) {
+			++$translated;
+			return $translation;
+		};
+		add_filter( 'gettext_easyrankly', $count );
+
+		Settings::get();
+		Settings::value( 'templates' );
+
+		remove_filter( 'gettext_easyrankly', $count );
+		$this->assertSame( 0, $translated );
+	}
+
+	/**
 	 * Unknown keys are dropped and invalid values keep the current value.
 	 */
 	public function test_sanitize_drops_unknown_and_invalid_values(): void {

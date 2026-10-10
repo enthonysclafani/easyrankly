@@ -26,6 +26,13 @@ final class Page extends RecordsPage {
 	public const SLUG = 'easyrankly-redirects';
 
 	/**
+	 * Rules of the rows already printed, by ID: each row asks for one per column.
+	 *
+	 * @var array<int, array{id: int, source: string, target: string, code: int, regex: bool, forced: bool}|null>
+	 */
+	private array $rules = array();
+
+	/**
 	 * Status codes with their labels.
 	 *
 	 * @return array<int, string>
@@ -112,6 +119,7 @@ final class Page extends RecordsPage {
 			'add'         => __( 'Add redirect', 'easyrankly' ),
 			'edit'        => __( 'Edit redirect', 'easyrankly' ),
 			'empty'       => __( 'No redirects yet.', 'easyrankly' ),
+			'search'      => __( 'Search sources', 'easyrankly' ),
 			'saved'       => __( 'Redirect saved.', 'easyrankly' ),
 			'activated'   => __( 'Redirects activated.', 'easyrankly' ),
 			'deactivated' => __( 'Redirects deactivated.', 'easyrankly' ),
@@ -142,7 +150,11 @@ final class Page extends RecordsPage {
 	 * @return string
 	 */
 	public function cell( \WP_Post $post, string $column ): string {
-		$rule = Redirects::rule( $post->ID );
+		if ( ! array_key_exists( $post->ID, $this->rules ) ) {
+			$this->rules[ $post->ID ] = Redirects::rule( $post->ID );
+		}
+
+		$rule = $this->rules[ $post->ID ];
 		if ( null === $rule ) {
 			return '';
 		}
@@ -150,7 +162,7 @@ final class Page extends RecordsPage {
 		switch ( $column ) {
 			case 'source':
 				return sprintf(
-					'<strong><a class="row-title" href="%1$s"><code>%2$s</code></a></strong>%3$s',
+					'<strong><a class="row-title" href="%1$s">%2$s</a></strong>%3$s',
 					esc_url(
 						$this->url(
 							array(
@@ -195,8 +207,9 @@ final class Page extends RecordsPage {
 	/**
 	 * Form values from the submitted form.
 	 *
-	 * The source stays raw: percent-encoded paths would lose their octets with
-	 * sanitize_text_field(), and Redirects::check() validates and normalizes it through REST.
+	 * Source and target stay raw: percent-encoded addresses would lose their octets with
+	 * sanitize_text_field(). Redirects::check() validates and normalizes both through REST,
+	 * and the target meta is sanitized by Rule::sanitize_target().
 	 *
 	 * @return array<string, mixed>
 	 */
@@ -207,7 +220,8 @@ final class Page extends RecordsPage {
 		return array(
 			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Validated and normalized by Redirects::check() through REST (see above).
 			'source' => isset( $_POST['source'] ) ? trim( wp_check_invalid_utf8( (string) wp_unslash( $_POST['source'] ) ) ) : '',
-			'target' => isset( $_POST['target'] ) ? sanitize_text_field( wp_unslash( $_POST['target'] ) ) : '',
+			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Validated by Redirects::check() and sanitized by Rule::sanitize_target() through REST (see above).
+			'target' => isset( $_POST['target'] ) ? trim( wp_check_invalid_utf8( (string) wp_unslash( $_POST['target'] ) ) ) : '',
 			'code'   => array_key_exists( $code, self::codes() ) ? $code : 301,
 			'regex'  => ! empty( $_POST['regex'] ),
 			'forced' => ! empty( $_POST['forced'] ),

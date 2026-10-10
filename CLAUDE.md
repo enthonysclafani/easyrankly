@@ -121,7 +121,7 @@ Prima di scrivere codice, verifica se WordPress lo fa già. Se lo fa, usa o filt
 | Breadcrumb | blocco core `core/breadcrumbs` + `block_core_breadcrumbs_items` | blocco breadcrumb proprio |
 | Cambio slug dei post | `wp_old_slug_redirect()` del core | redirect duplicati per i post |
 | HTTP verso terzi | `wp_safe_remote_get/post()` (URL dell'utente), `wp_remote_*()` (host fissi) | cURL, `file_get_contents()` |
-| Cache | `wp_cache_*()` (gruppo `easyrankly`), transient per dati remoti | cache su file, variabili statiche globali |
+| Cache | `wp_cache_*()` (gruppo `easyrankly`; `easyrankly_redirects` per i redirect, invalidato dal suo `last_changed`; `easyrankly_request`, non persistente, per ciò che vale una sola richiesta), transient per dati remoti | cache su file, variabili statiche globali |
 | Endpoint | `register_rest_route()` con `permission_callback` e `args` con schema | `admin-ajax.php` |
 | Schermate admin | Stile WordPress classico: Settings API (`add_settings_section()`, `add_settings_field()`, `options.php`) su più pagine brevi, `WP_List_Table` per gli elenchi, markup e classi del core (`wrap`, `form-table`, `wp-list-table`, `notice`, `nav-tab-wrapper`); JS solo dove serve interazione (editor a blocchi, scelta dell'immagine) | pagine lunghe a schede, `wp-components` e CSS nostri sulle schermate del plugin, jQuery, librerie UI esterne |
 | Editor a blocchi | `@wordpress/components` nei pannelli dell'editor (`PluginDocumentSettingPanel`) | meta box classiche |
@@ -205,7 +205,7 @@ Prima di scrivere codice, verifica se WordPress lo fa già. Se lo fa, usa o filt
   di un'astrazione prematura.
 - **Callback degli hook**: WordPress passa spesso stringhe dove ti aspetti interi. Nei callback usa parametri
   `mixed` o non tipizzati e converti esplicitamente; i tipi rigidi vanno nei metodi interni.
-- Prefissi: option `easyrankly_`, meta `_easyrankly_` (protetti), hook `easyrankly_`, gruppo cache `easyrankly`,
+- Prefissi: option `easyrankly_`, meta `_easyrankly_` (protetti), hook `easyrankly_`, gruppi cache `easyrankly` e `easyrankly_…`,
   post type e tassonomie `erankly_` (max 20 caratteri).
 - Ogni hook pubblico che esponiamo (`apply_filters`/`do_action`) ha un docblock con `@since` e `@param`. Aggiungerne
   uno è una promessa di compatibilità: fallo solo se serve.
@@ -215,8 +215,8 @@ Prima di scrivere codice, verifica se WordPress lo fa già. Se lo fa, usa o filt
 ## Dati e ciclo di vita
 
 - Ogni option, meta, post type e tassonomia è registrato in un unico punto e documentato in `docs/data-model.md`.
-- Versione dello schema dati in `easyrankly_db_version`. Le migrazioni girano su `admin_init` se la versione è
-  vecchia, sono idempotenti e a lotti (vedi invariante 2).
+- Nessuna migrazione per ora. Con la prima arriverà l'option `easyrankly_db_version` (versione dello schema dati):
+  le migrazioni gireranno su `admin_init` se la versione è vecchia, idempotenti e a lotti (vedi invariante 2).
 - `uninstall.php` rimuove **tutto** ciò che il plugin ha creato sul sito. Un test lo verifica.
 - **Multisite: nessuna funzione dedicata, ma nessun conflitto.** Niente impostazioni di rete, niente codice che
   cicla sui siti, niente `*_site_option()`, niente `switch_to_blog()`. Usando solo API per sito (`get_option()`,
@@ -270,7 +270,7 @@ composer check          # tutto quanto sopra: deve passare prima di dire "fatto"
 ```
 
 - Gli asset admin (`assets/src/<nome>/index.js`) si compilano con `npm run build` (`@wordpress/scripts`) in `build/`,
-  che non si committa; `npm run lint:js` ne controlla lo stile. Ogni nuovo entry point va aggiunto agli script di `package.json`.
+  che non si committa; `npm run lint:js` ne controlla lo stile. Ogni nuovo entry point va aggiunto all'elenco in `webpack.config.js`.
 - Se un controllo non si può eseguire nell'ambiente in cui sei, dillo nel resoconto: la CI su GitHub resta il
   controllo finale. Nel cloud PHPStan non si può installare (il proxy di GitHub non serve il suo pacchetto):
   `composer analyse` lo dichiara e il risultato va letto nella CI della pull request, prima di dire "fatto".

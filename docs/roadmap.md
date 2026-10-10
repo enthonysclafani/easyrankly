@@ -25,7 +25,8 @@ Riferimenti Alpha: `includes/title-description.php`, `includes/meta*.php`, `incl
 `includes/custom-code.php`, `admin/meta-box*`, `admin/settings*`.
 
 - [x] 1.1 Impostazioni: option `easyrankly_settings` con `register_setting()` e schema; pagina admin con
-      `@wordpress/components`; introduzione di `@wordpress/scripts` e `npm run build`
+      `@wordpress/components`; introduzione di `@wordpress/scripts` e `npm run build`. La pagina è stata poi rifatta
+      con la Settings API (superato da 4.1)
 - [x] 1.2 Dati per contenuto: `register_post_meta()` / `register_term_meta()` con schema e `auth_callback`;
       pannello nell'editor a blocchi e campi nelle schermate dei termini
 - [x] 1.3 Title e meta description: template con variabili, override per contenuto, `document_title_parts`
@@ -39,7 +40,7 @@ Riferimenti Alpha: `includes/title-description.php`, `includes/meta*.php`, `incl
 - [x] 1.10 Redirect: post type `erankly_redirect`, hash della sorgente in `post_name`, ricerca solo su 404 più lista
       "forzati", regex, 301/302/307/410, elenco admin con DataViews, redirect per cambio slug di pagine e termini
       (i post li gestisce già il core). Elenco fatto con una tabella di `@wordpress/components`: DataViews nel bundle
-      pesava 1,9 MB contro 7 KB
+      pesava 1,9 MB contro 7 KB. L'elenco è stato poi rifatto con `WP_List_Table` (superato da 4.2)
 - [x] 1.11 Custom code: post type `erankly_snippet`, HTML e PHP, `src/CustomCode/PhpRunner.php` con tutte le regole
       della sezione "Custom code" di `CLAUDE.md`
 

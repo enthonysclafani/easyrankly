@@ -84,6 +84,24 @@ final class SchemaTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * A protected post is named by its own title, not "Protected: …".
+	 */
+	public function test_protected_post_headline_has_no_prefix(): void {
+		$post_id = self::factory()->post->create(
+			array(
+				'post_title'    => 'Locked',
+				'post_password' => 'secret',
+			)
+		);
+
+		$this->go_to( get_permalink( $post_id ) );
+		$nodes = $this->nodes( new Schema() );
+
+		$this->assertSame( 'Locked', $nodes['Article']['headline'] );
+		$this->assertSame( 'Locked - Site', $nodes['WebPage']['name'] );
+	}
+
+	/**
 	 * Pages are WebPages without Article; archives are CollectionPages.
 	 */
 	public function test_page_and_archive_types(): void {

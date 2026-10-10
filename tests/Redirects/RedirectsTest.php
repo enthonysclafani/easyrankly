@@ -89,6 +89,56 @@ final class RedirectsTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Percent-encoded targets are stored as typed, for paths and absolute URLs.
+	 */
+	public function test_rest_keeps_percent_encoded_target(): void {
+		$path = $this->rest( 'POST', $this->body( '/old', '/caff%C3%A8?q=a%20b' ) );
+		$url  = $this->rest( 'POST', $this->body( '/older', 'https://93.184.215.14/caff%C3%A8?q=a%20b&x=1' ) );
+
+		$this->assertSame( 201, $path->get_status() );
+		$this->assertSame( 201, $url->get_status() );
+		$this->assertSame( '/caff%C3%A8?q=a%20b', get_post_meta( $path->get_data()['id'], Redirects::meta_key( 'target' ), true ) );
+		$this->assertSame( 'https://93.184.215.14/caff%C3%A8?q=a%20b&x=1', get_post_meta( $url->get_data()['id'], Redirects::meta_key( 'target' ), true ) );
+	}
+
+	/**
+	 * Outside REST, save_exact() runs the same checks: no loop with an active rule, no duplicate.
+	 */
+	public function test_save_exact_checks_like_rest(): void {
+		$back = Redirects::save_exact( '/b', '/a' );
+		$this->assertIsInt( $back );
+
+		$loop = Redirects::save_exact( '/a', '/b' );
+		$this->assertWPError( $loop );
+		$this->assertSame( 'easyrankly_redirect_loop', $loop->get_error_code() );
+
+		// An inactive B → A does not redirect anyone, so A → B can be saved.
+		wp_update_post(
+			array(
+				'ID'          => $back,
+				'post_status' => 'draft',
+			)
+		);
+		$this->assertIsInt( Redirects::save_exact( '/a', '/b' ) );
+
+		// Activating B → A again goes through REST and is refused there.
+		$response = $this->rest( 'POST', array( 'status' => 'publish' ), '/' . $back );
+		$this->assertSame( 'easyrankly_redirect_loop', $response->get_data()['code'] );
+
+		// Same source again: the rule is updated, not duplicated.
+		$this->assertSame( Redirects::find_id( md5( '/a' ) ), Redirects::save_exact( '/A/', '/c' ) );
+		$this->assertCount(
+			2,
+			get_posts(
+				array(
+					'post_type'   => Redirects::POST_TYPE,
+					'post_status' => array( 'publish', 'draft' ),
+				)
+			)
+		);
+	}
+
+	/**
 	 * Invalid rules and duplicate sources answer 400 and store nothing.
 	 */
 	public function test_rest_rejects_invalid_and_duplicate(): void {
@@ -149,6 +199,29 @@ final class RedirectsTest extends WP_UnitTestCase {
 
 		wp_delete_post( $regex, true );
 		$this->assertSame( array(), get_option( Redirects::REGEX_OPTION ) );
+	}
+
+	/**
+	 * A REST save rebuilds the lists once, with the new meta.
+	 */
+	public function test_rest_save_rebuilds_lists_once(): void {
+		$rebuilds = 0;
+		add_filter(
+			'pre_update_option_' . Redirects::FORCED_OPTION,
+			static function ( $value ) use ( &$rebuilds ) {
+				++$rebuilds;
+				return $value;
+			}
+		);
+
+		$id = $this->rest( 'POST', $this->body( '/live', '/x', array( 'forced' => true ) ) )->get_data()['id'];
+		$this->assertSame( 1, $rebuilds );
+		$this->assertSame( array( '/live' ), array_column( get_option( Redirects::FORCED_OPTION ), 'source' ) );
+
+		$rebuilds = 0;
+		$this->rest( 'POST', array( 'meta' => array( Redirects::meta_key( 'forced' ) => false ) ), '/' . $id );
+		$this->assertSame( 1, $rebuilds );
+		$this->assertSame( array(), get_option( Redirects::FORCED_OPTION ) );
 	}
 
 	/**

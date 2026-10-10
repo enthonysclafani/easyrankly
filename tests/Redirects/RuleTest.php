@@ -119,6 +119,33 @@ final class RuleTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * A "#" in a pattern works whether the administrator escaped it or not.
+	 */
+	public function test_hash_in_regex(): void {
+		$this->assertTrue( Rule::is_valid_regex( '^/a#b$' ) );
+		$this->assertTrue( Rule::is_valid_regex( '^/a\\#b$' ) );
+		$this->assertTrue( Rule::is_valid_regex( '^/a\\\\#b$' ) );
+
+		$rule = array(
+			'source' => '^/a\\#(.*)$',
+			'regex'  => true,
+			'target' => '/b/$1',
+		);
+		$this->assertSame( '/b/c', Rule::match( $rule, '/a#c' ) );
+	}
+
+	/**
+	 * Stored targets keep their encoded octets; anything that is not an address is dropped.
+	 */
+	public function test_sanitize_target(): void {
+		$this->assertSame( '/caff%C3%A8?q=a%20b', Rule::sanitize_target( ' /caff%C3%A8?q=a%20b ' ) );
+		$this->assertSame( 'https://example.com/a%2Fb?x=1&y=2', Rule::sanitize_target( 'https://example.com/a%2Fb?x=1&y=2' ) );
+		$this->assertSame( '/news/$1', Rule::sanitize_target( '/news/$1' ) );
+		$this->assertSame( '', Rule::sanitize_target( 'javascript:alert(1)' ) );
+		$this->assertSame( '', Rule::sanitize_target( array( '/a' ) ) );
+	}
+
+	/**
 	 * A catastrophic pattern hits the backtracking limit instead of hanging.
 	 */
 	public function test_match_stops_runaway_regex(): void {

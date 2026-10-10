@@ -30,33 +30,38 @@ final class EditorPanel {
 	}
 
 	/**
-	 * Enqueues the panel when the site has two languages and the post type has languages.
+	 * Enqueues the panel when the site has two languages and the post type has languages, and
+	 * prints the languages once, before the first script that reads them.
+	 *
+	 * The switcher block reads them only when it renders, after every editor script ran: in
+	 * editors with the panel, the panel's copy serves both.
 	 */
 	public function enqueue(): void {
-		$this->add_switcher_preview();
-
-		$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
-
-		if ( null === $screen || 'post' !== $screen->base || '' === $screen->post_type || ! Languages::enabled() ) {
+		if ( $this->enqueue_panel() ) {
+			wp_add_inline_script( 'easyrankly-languages', self::languages_script(), 'before' );
 			return;
 		}
 
-		if ( ! is_object_in_taxonomy( $screen->post_type, Translations::LANGUAGE ) || ! Assets::enqueue( 'languages' ) ) {
-			return;
-		}
-
-		wp_add_inline_script( 'easyrankly-languages', self::languages_script(), 'before' );
-	}
-
-	/**
-	 * Gives the language switcher block (in any editor, site editor included) the languages for its preview.
-	 */
-	private function add_switcher_preview(): void {
+		// Any other editor (site editor included): the switcher block previews the languages.
 		$handle = generate_block_asset_handle( 'easyrankly/language-switcher', 'editorScript' );
-
 		if ( wp_script_is( $handle, 'registered' ) ) {
 			wp_add_inline_script( $handle, self::languages_script(), 'before' );
 		}
+	}
+
+	/**
+	 * Enqueues the panel on the editor of content with languages, when the site has two.
+	 *
+	 * @return bool Whether the panel is enqueued.
+	 */
+	private function enqueue_panel(): bool {
+		$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+
+		if ( null === $screen || 'post' !== $screen->base || '' === $screen->post_type || ! Languages::enabled() ) {
+			return false;
+		}
+
+		return is_object_in_taxonomy( $screen->post_type, Translations::LANGUAGE ) && Assets::enqueue( 'languages' );
 	}
 
 	/**

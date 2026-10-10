@@ -92,6 +92,28 @@ final class UninstallTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Records that cannot be deleted do not stop the deletion of the others.
+	 */
+	public function test_uninstall_goes_past_records_it_cannot_delete(): void {
+		if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
+			define( 'WP_UNINSTALL_PLUGIN', 'easyrankly/easyrankly.php' );
+		}
+
+		$kept = self::factory()->post->create_many( 100, array( 'post_type' => 'erankly_redirect' ) );
+		$last = self::factory()->post->create(
+			array(
+				'post_type' => 'erankly_redirect',
+				'post_date' => '2000-01-01 00:00:00',
+			)
+		);
+		add_filter( 'pre_delete_post', static fn( $delete, $post ) => in_array( $post->ID, $kept, true ) ? false : $delete, 10, 2 );
+
+		require dirname( __DIR__ ) . '/uninstall.php';
+
+		$this->assertNull( get_post( $last ) );
+	}
+
+	/**
 	 * Snippets, their revisions and meta, and their cache are removed.
 	 */
 	public function test_uninstall_removes_snippets(): void {
@@ -174,5 +196,36 @@ final class UninstallTest extends WP_UnitTestCase {
 		require dirname( __DIR__ ) . '/uninstall.php';
 
 		$this->assertSame( array( 'primary' => 3 ), get_theme_mod( 'nav_menu_locations' ) );
+	}
+
+	/**
+	 * Notices about redirects not created are removed for every user who could get one.
+	 */
+	public function test_uninstall_removes_redirect_notices(): void {
+		if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
+			define( 'WP_UNINSTALL_PLUGIN', 'easyrankly/easyrankly.php' );
+		}
+
+		$users = array(
+			self::factory()->user->create( array( 'role' => 'administrator' ) ),
+			self::factory()->user->create( array( 'role' => 'editor' ) ),
+			self::factory()->user->create( array( 'role' => 'contributor' ) ),
+		);
+		foreach ( $users as $user ) {
+			set_transient(
+				'easyrankly_redirect_notice_' . $user,
+				array(
+					'failed' => array(),
+					'capped' => array( '/x' ),
+				),
+				DAY_IN_SECONDS
+			);
+		}
+
+		require dirname( __DIR__ ) . '/uninstall.php';
+
+		foreach ( $users as $user ) {
+			$this->assertFalse( get_transient( 'easyrankly_redirect_notice_' . $user ), (string) $user );
+		}
 	}
 }
