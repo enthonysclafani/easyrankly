@@ -86,7 +86,8 @@ final class Runner {
 			'target' => $rule['target'],
 		) : null;
 
-		wp_cache_set( $key, $hit ?? array(), Redirects::CACHE_GROUP, HOUR_IN_SECONDS );
+		// Every distinct address without a rule adds an entry: misses expire sooner than hits.
+		wp_cache_set( $key, $hit ?? array(), Redirects::CACHE_GROUP, null === $hit ? MINUTE_IN_SECONDS : HOUR_IN_SECONDS );
 
 		return $hit;
 	}

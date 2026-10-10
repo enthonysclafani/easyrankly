@@ -74,9 +74,9 @@ final class SlugChangesTest extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Moving back to an old address removes the rule that would now loop.
+	 * Moving back to an old address deactivates the rule that would now loop, and keeps it.
 	 */
-	public function test_moving_back_removes_stale_rule(): void {
+	public function test_moving_back_deactivates_stale_rule(): void {
 		$page = self::factory()->post->create(
 			array(
 				'post_type' => 'page',
@@ -99,6 +99,98 @@ final class SlugChangesTest extends WP_UnitTestCase {
 
 		$this->assertNull( $this->target( '/first' ) );
 		$this->assertSame( '/first', $this->target( '/second' ) );
+		$stale = Redirects::find_id( Rule::hash( '/first' ), array( 'draft' ) );
+		$this->assertNotNull( $stale );
+		$this->assertSame( '/second', Redirects::rule( $stale )['target'] );
+	}
+
+	/**
+	 * A rule the administrator made for the new address is deactivated, not deleted.
+	 */
+	public function test_admin_rule_for_new_address_is_kept_inactive(): void {
+		$rule = Redirects::save_exact( '/people', '/elsewhere' );
+		$page = self::factory()->post->create(
+			array(
+				'post_type' => 'page',
+				'post_name' => 'team',
+			)
+		);
+
+		wp_update_post(
+			array(
+				'ID'        => $page,
+				'post_name' => 'people',
+			)
+		);
+
+		$this->assertSame( '/people', $this->target( '/team' ) );
+		$this->assertSame( 'draft', get_post_status( $rule ) );
+		$this->assertSame( '/elsewhere', Redirects::rule( $rule )['target'] );
+	}
+
+	/**
+	 * Child and grandchild pages keep their old addresses when an ancestor moves.
+	 */
+	public function test_descendant_pages_follow_their_ancestor(): void {
+		$about = self::factory()->post->create(
+			array(
+				'post_type' => 'page',
+				'post_name' => 'about',
+			)
+		);
+		$team  = self::factory()->post->create(
+			array(
+				'post_type'   => 'page',
+				'post_name'   => 'team',
+				'post_parent' => $about,
+			)
+		);
+		self::factory()->post->create(
+			array(
+				'post_type'   => 'page',
+				'post_name'   => 'lead',
+				'post_parent' => $team,
+			)
+		);
+		self::factory()->post->create(
+			array(
+				'post_type'   => 'page',
+				'post_status' => 'draft',
+				'post_name'   => 'hidden',
+				'post_parent' => $about,
+			)
+		);
+
+		wp_update_post(
+			array(
+				'ID'        => $about,
+				'post_name' => 'company',
+			)
+		);
+
+		$this->assertSame( '/company', $this->target( '/about' ) );
+		$this->assertSame( '/company/team', $this->target( '/about/team' ) );
+		$this->assertSame( '/company/team/lead', $this->target( '/about/team/lead' ) );
+		$this->assertNull( $this->target( '/about/hidden' ) );
+	}
+
+	/**
+	 * Child categories keep their old archive addresses when the parent is renamed.
+	 */
+	public function test_descendant_terms_follow_their_ancestor(): void {
+		$news  = self::factory()->category->create( array( 'slug' => 'news' ) );
+		$local = self::factory()->category->create(
+			array(
+				'slug'   => 'local',
+				'parent' => $news,
+			)
+		);
+
+		wp_update_term( $news, 'category', array( 'slug' => 'updates' ) );
+
+		$this->assertSame( '/category/updates', $this->target( '/category/news' ) );
+		$this->assertSame( '/category/updates/local', $this->target( '/category/news/local' ) );
+		$this->assertSame( home_url( '/category/updates/local/' ), get_term_link( $local, 'category' ) );
 	}
 
 	/**
