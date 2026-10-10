@@ -157,6 +157,10 @@ final class Page extends RecordsPage {
 	public function cell( \WP_Post $post, string $column ): string {
 		switch ( $column ) {
 			case 'name':
+				if ( ! current_user_can( 'edit_post', $post->ID ) ) {
+					// Like the core lists: no link to a form the user cannot open.
+					return sprintf( '<strong>%s</strong>', esc_html( $post->post_title ) );
+				}
 				return sprintf(
 					'<strong><a class="row-title" href="%1$s">%2$s</a></strong>',
 					esc_url(

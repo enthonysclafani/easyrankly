@@ -251,6 +251,7 @@ final class PageTest extends WP_UnitTestCase {
 		[ , $html ] = $this->request( array() );
 		$this->assertStringContainsString( 'Keys', $html );
 		$this->assertStringNotContainsString( 'cb-select-' . $id, $html );
+		$this->assertStringNotContainsString( 'action=edit&#038;id=' . $id, $html );
 		$this->assertStringNotContainsString( 'action=deactivate&#038;id=' . $id, $html );
 		$this->assertStringNotContainsString( 'action=activate&#038;id=' . $id, $html );
 

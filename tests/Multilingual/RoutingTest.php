@@ -134,6 +134,19 @@ final class RoutingTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * With the site in a folder, only paths inside that folder lose it: "/blogen/" is not "/blog/en/".
+	 */
+	public function test_site_folder_ends_at_a_slash(): void {
+		update_option( 'home', 'http://example.org/blog' );
+
+		$_SERVER['REQUEST_URI'] = '/blog/en/hello/';
+		$this->assertSame( 'en', Routing::current() );
+
+		$_SERVER['REQUEST_URI'] = '/blogen/hello/';
+		$this->assertSame( 'it', Routing::current() );
+	}
+
+	/**
 	 * Post links carry the prefix of the post's language; content without a language has none.
 	 */
 	public function test_post_links_follow_the_post_language(): void {
