@@ -7,6 +7,8 @@
 
 namespace EasyRankly\Redirects;
 
+use EasyRankly\Redirects\Admin\Page;
+
 defined( 'ABSPATH' ) || exit;
 
 /**
@@ -16,6 +18,9 @@ defined( 'ABSPATH' ) || exit;
  *
  * Non-hierarchical post types are left to core, which already redirects old slugs
  * through `_wp_old_slug` and wp_old_slug_redirect().
+ *
+ * Redirects that cannot be saved, and descendants beyond the limit, are kept for a day in a
+ * transient of the user who made the change, shown once on their next admin screen.
  */
 final class SlugChanges {
 
@@ -26,6 +31,16 @@ final class SlugChanges {
 	 * the page (redirect_guess_404_permalink()).
 	 */
 	public const MAX_DESCENDANTS = 100;
+
+	/**
+	 * Prefix of the per-user transient with the problems to show; the user ID follows.
+	 */
+	public const NOTICE = 'easyrankly_redirect_notice_';
+
+	/**
+	 * Most problems of each kind kept for the notice.
+	 */
+	private const MAX_PROBLEMS = 20;
 
 	/**
 	 * Term links captured before an update, keyed by term ID.
@@ -41,6 +56,7 @@ final class SlugChanges {
 		add_action( 'post_updated', array( $this, 'post_updated' ), 10, 3 );
 		add_action( 'edit_terms', array( $this, 'before_term_update' ), 10, 2 );
 		add_action( 'edited_term', array( $this, 'term_updated' ), 10, 3 );
+		add_action( 'admin_notices', array( $this, 'print_notice' ) );
 	}
 
 	/**
@@ -71,7 +87,8 @@ final class SlugChanges {
 	}
 
 	/**
-	 * New addresses of the published descendants of a post, level by level, up to the limit.
+	 * New addresses of the published descendants of a post, level by level, up to one more
+	 * than the limit, so moved() knows when some are left out.
 	 *
 	 * @param \WP_Post $post Post that moved.
 	 * @return string[]
@@ -79,7 +96,7 @@ final class SlugChanges {
 	private static function descendant_links( \WP_Post $post ): array {
 		$links   = array();
 		$parents = array( $post->ID );
-		$left    = self::MAX_DESCENDANTS;
+		$left    = self::MAX_DESCENDANTS + 1;
 
 		while ( array() !== $parents && $left > 0 ) {
 			$children = get_posts(
@@ -149,7 +166,7 @@ final class SlugChanges {
 
 		$links = array();
 		$ids   = get_term_children( $term_id, $taxonomy );
-		foreach ( is_array( $ids ) ? array_slice( $ids, 0, self::MAX_DESCENDANTS ) : array() as $child ) {
+		foreach ( is_array( $ids ) ? array_slice( $ids, 0, self::MAX_DESCENDANTS + 1 ) : array() as $child ) {
 			$link = get_term_link( (int) $child, $taxonomy );
 			if ( is_string( $link ) ) {
 				$links[] = $link;
@@ -169,7 +186,7 @@ final class SlugChanges {
 	 *
 	 * @param string   $old         Old URL.
 	 * @param string   $current     New URL.
-	 * @param string[] $descendants New URLs of the descendants.
+	 * @param string[] $descendants New URLs of the descendants, at most one more than the limit.
 	 */
 	private function moved( string $old, string $current, array $descendants = array() ): void {
 		$from = Rule::normalize( $old );
@@ -179,14 +196,125 @@ final class SlugChanges {
 			return;
 		}
 
-		$this->save( $from, $to );
+		$problems = array(
+			'failed' => array(),
+			'capped' => array(),
+		);
+
+		$error = $this->save( $from, $to );
+		if ( null !== $error ) {
+			$problems['failed'][] = array( $from, $to, $error );
+		}
+
+		if ( count( $descendants ) > self::MAX_DESCENDANTS ) {
+			$problems['capped'][] = $to;
+			$descendants          = array_slice( $descendants, 0, self::MAX_DESCENDANTS );
+		}
 
 		foreach ( $descendants as $link ) {
 			$path = Rule::normalize( $link );
 			if ( str_starts_with( $path, $to . '/' ) ) {
-				$this->save( $from . substr( $path, strlen( $to ) ), $path );
+				$source = $from . substr( $path, strlen( $to ) );
+				$error  = $this->save( $source, $path );
+				if ( null !== $error ) {
+					$problems['failed'][] = array( $source, $path, $error );
+				}
 			}
 		}
+
+		self::remember( $problems );
+	}
+
+	/**
+	 * Adds problems to the notice of the current user. Without a user (WP-CLI, cron) nobody
+	 * would see it, so nothing is kept.
+	 *
+	 * @param array{failed: list<array{0: string, 1: string, 2: string}>, capped: list<string>} $problems New problems.
+	 */
+	private static function remember( array $problems ): void {
+		$user = get_current_user_id();
+		if ( $user <= 0 || ( array() === $problems['failed'] && array() === $problems['capped'] ) ) {
+			return;
+		}
+
+		$kept = self::notice( $user );
+		foreach ( array( 'failed', 'capped' ) as $kind ) {
+			$kept[ $kind ] = array_slice( array_merge( $kept[ $kind ], $problems[ $kind ] ), 0, self::MAX_PROBLEMS );
+		}
+
+		set_transient( self::NOTICE . $user, $kept, DAY_IN_SECONDS );
+	}
+
+	/**
+	 * Problems kept for a user.
+	 *
+	 * @param int $user User ID.
+	 * @return array{failed: list<array{0: string, 1: string, 2: string}>, capped: list<string>}
+	 */
+	private static function notice( int $user ): array {
+		$stored = get_transient( self::NOTICE . $user );
+		$notice = array(
+			'failed' => array(),
+			'capped' => array(),
+		);
+		if ( ! is_array( $stored ) ) {
+			return $notice;
+		}
+
+		foreach ( is_array( $stored['failed'] ?? null ) ? $stored['failed'] : array() as $item ) {
+			if ( is_array( $item ) && 3 === count( $item ) ) {
+				$notice['failed'][] = array( (string) $item[0], (string) $item[1], (string) $item[2] );
+			}
+		}
+		foreach ( is_array( $stored['capped'] ?? null ) ? $stored['capped'] : array() as $path ) {
+			$notice['capped'][] = (string) $path;
+		}
+
+		return $notice;
+	}
+
+	/**
+	 * Shows the kept problems once, then forgets them. Not in the block editor, which does
+	 * not show classic notices: they wait for the next screen.
+	 */
+	public function print_notice(): void {
+		$user   = get_current_user_id();
+		$screen = get_current_screen();
+		if ( $user <= 0 || ( null !== $screen && $screen->is_block_editor() ) ) {
+			return;
+		}
+
+		$notice = self::notice( $user );
+		if ( array() === $notice['failed'] && array() === $notice['capped'] ) {
+			return;
+		}
+		delete_transient( self::NOTICE . $user );
+
+		echo '<div class="notice notice-warning is-dismissible">';
+		if ( array() !== $notice['failed'] ) {
+			printf( '<p>%s</p><ul>', esc_html__( 'EasyRankly could not create these redirects for changed addresses:', 'easyrankly' ) );
+			foreach ( $notice['failed'] as [ $from, $to, $error ] ) {
+				printf( '<li><code>%1$s</code> &rarr; <code>%2$s</code>: %3$s</li>', esc_html( $from ), esc_html( $to ), esc_html( $error ) );
+			}
+			echo '</ul>';
+		}
+		foreach ( $notice['capped'] as $path ) {
+			printf(
+				'<p>%s</p>',
+				esc_html(
+					sprintf(
+						/* translators: 1: number of descendants, 2: new path of the page or term. */
+						__( 'Only the first %1$d pages or terms under %2$s got a redirect from their old address; the others answer "not found" there.', 'easyrankly' ),
+						self::MAX_DESCENDANTS,
+						$path
+					)
+				)
+			);
+		}
+		if ( current_user_can( 'manage_options' ) ) {
+			printf( '<p><a href="%1$s">%2$s</a></p>', esc_url( admin_url( 'admin.php?page=' . Page::SLUG ) ), esc_html__( 'Add the missing redirects', 'easyrankly' ) );
+		}
+		echo '</div>';
 	}
 
 	/**
@@ -199,8 +327,9 @@ final class SlugChanges {
 	 *
 	 * @param string $from Old normalized path.
 	 * @param string $to   New normalized path.
+	 * @return string|null Why the rule was not saved, or null when it was.
 	 */
-	private function save( string $from, string $to ): void {
+	private function save( string $from, string $to ): ?string {
 		$stale = Redirects::find_id( Rule::hash( $to ) );
 		if ( null !== $stale ) {
 			wp_update_post(
@@ -211,7 +340,12 @@ final class SlugChanges {
 			);
 		}
 
-		if ( is_wp_error( Redirects::save_exact( $from, $to ) ) && null !== $stale ) {
+		$saved = Redirects::save_exact( $from, $to );
+		if ( ! is_wp_error( $saved ) ) {
+			return null;
+		}
+
+		if ( null !== $stale ) {
 			wp_update_post(
 				array(
 					'ID'          => $stale,
@@ -219,5 +353,7 @@ final class SlugChanges {
 				)
 			);
 		}
+
+		return $saved->get_error_message();
 	}
 }

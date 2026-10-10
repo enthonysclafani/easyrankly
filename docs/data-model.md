@@ -73,4 +73,4 @@ Meta del post type `erankly_snippet` (`src/CustomCode/CustomCode.php`), nel REST
 
 | Nome | Scadenza | Contenuto | Introdotto in |
 |---|---|---|---|
-| _(nessuno per ora)_ | | | |
+| `easyrankly_redirect_notice_{ID utente}` | 1 giorno | Redirect automatici che `src/Redirects/SlugChanges.php` non ha potuto creare dopo un cambio di indirizzo fatto da quell'utente: `{failed: [[sorgente, destinazione, errore]…], capped: [percorso…]}`, al massimo 20 per tipo (`capped` = pagine o termini con più di 100 discendenti). Mostrato una volta sola nella schermata admin successiva (non nell'editor a blocchi) e poi cancellato. Nessun transient senza un utente collegato (WP-CLI). | DT-05 |

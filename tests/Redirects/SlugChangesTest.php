@@ -9,6 +9,7 @@ namespace EasyRankly\Tests\Redirects;
 
 use EasyRankly\Redirects\Redirects;
 use EasyRankly\Redirects\Rule;
+use EasyRankly\Redirects\SlugChanges;
 use WP_UnitTestCase;
 
 /**
@@ -25,6 +26,59 @@ final class SlugChangesTest extends WP_UnitTestCase {
 		create_initial_taxonomies();
 		flush_rewrite_rules();
 		( new Redirects() )->register_post_type();
+	}
+
+	/**
+	 * Back to a visitor on the frontend.
+	 */
+	public function tear_down(): void {
+		wp_set_current_user( 0 );
+		set_current_screen( 'front' );
+		parent::tear_down();
+	}
+
+	/**
+	 * Output of the notice on an admin screen.
+	 *
+	 * @param string $screen       Screen ID.
+	 * @param bool   $block_editor Whether the screen is the block editor.
+	 * @return string
+	 */
+	private function notice( string $screen = 'dashboard', bool $block_editor = false ): string {
+		set_current_screen( $screen );
+		get_current_screen()->is_block_editor( $block_editor );
+		ob_start();
+		( new SlugChanges() )->print_notice();
+		return (string) ob_get_clean();
+	}
+
+	/**
+	 * Creates a published page.
+	 *
+	 * @param string $name      Slug.
+	 * @param int    $parent_id Parent page.
+	 * @return int
+	 */
+	private function page( string $name, int $parent_id = 0 ): int {
+		return self::factory()->post->create(
+			array(
+				'post_type'   => 'page',
+				'post_name'   => $name,
+				'post_parent' => $parent_id,
+			)
+		);
+	}
+
+	/**
+	 * Makes every redirect fail to save, as a database error would.
+	 */
+	private function refuse_redirects(): void {
+		add_filter(
+			'wp_insert_post_empty_content',
+			static fn( $maybe_empty, $post ) => Redirects::POST_TYPE === ( $post['post_type'] ?? '' ) ? true : $maybe_empty,
+			10,
+			2
+		);
 	}
 
 	/**
@@ -253,5 +307,100 @@ final class SlugChangesTest extends WP_UnitTestCase {
 		);
 
 		$this->assertSame( array(), get_posts( array( 'post_type' => Redirects::POST_TYPE ) ) );
+	}
+
+	/**
+	 * A redirect that cannot be saved is shown once to who made the change, with a link to add it.
+	 */
+	public function test_failed_redirect_is_shown_once(): void {
+		$user = self::factory()->user->create( array( 'role' => 'administrator' ) );
+		wp_set_current_user( $user );
+		$page = $this->page( 'old-name' );
+		$this->refuse_redirects();
+
+		wp_update_post(
+			array(
+				'ID'        => $page,
+				'post_name' => 'new-name',
+			)
+		);
+
+		$this->assertNull( $this->target( '/old-name' ) );
+		$this->assertSame( '', $this->notice( 'page', true ), 'not in the block editor' );
+
+		$html = $this->notice();
+		$this->assertStringContainsString( 'notice notice-warning', $html );
+		$this->assertStringContainsString( '<code>/old-name</code> &rarr; <code>/new-name</code>', $html );
+		$this->assertStringContainsString( 'admin.php?page=easyrankly-redirects', $html );
+		$this->assertSame( '', $this->notice(), 'shown once' );
+		$this->assertFalse( get_transient( SlugChanges::NOTICE . $user ) );
+	}
+
+	/**
+	 * Descendants beyond the limit get no redirect, and the notice says so; editors get no link.
+	 */
+	public function test_descendants_beyond_the_limit_are_reported(): void {
+		$user = self::factory()->user->create( array( 'role' => 'editor' ) );
+		wp_set_current_user( $user );
+		$parent   = $this->page( 'docs' );
+		$children = array();
+		for ( $i = 0; $i <= SlugChanges::MAX_DESCENDANTS; $i++ ) {
+			$children[] = $this->page( 'child-' . $i, $parent );
+		}
+
+		wp_update_post(
+			array(
+				'ID'        => $parent,
+				'post_name' => 'manual',
+			)
+		);
+
+		$this->assertSame( '/manual/child-0', $this->target( '/docs/child-0' ) );
+		$last = SlugChanges::MAX_DESCENDANTS - 1;
+		$this->assertSame( "/manual/child-$last", $this->target( "/docs/child-$last" ) );
+		$this->assertNull( $this->target( '/docs/child-' . SlugChanges::MAX_DESCENDANTS ) );
+		$this->assertCount( SlugChanges::MAX_DESCENDANTS + 1, $children );
+
+		$html = $this->notice();
+		$this->assertStringContainsString( 'Only the first ' . SlugChanges::MAX_DESCENDANTS . ' pages or terms under /manual', $html );
+		$this->assertStringNotContainsString( 'easyrankly-redirects', $html );
+	}
+
+	/**
+	 * Without a logged-in user (WP-CLI, cron) nobody would see a notice: nothing is kept.
+	 */
+	public function test_no_notice_without_a_user(): void {
+		$page = $this->page( 'cli-old' );
+		$this->refuse_redirects();
+
+		wp_update_post(
+			array(
+				'ID'        => $page,
+				'post_name' => 'cli-new',
+			)
+		);
+
+		$this->assertNull( $this->target( '/cli-old' ) );
+		$this->assertFalse( get_transient( SlugChanges::NOTICE . '0' ) );
+	}
+
+	/**
+	 * Changes that work leave no notice.
+	 */
+	public function test_no_notice_when_everything_is_saved(): void {
+		$user = self::factory()->user->create( array( 'role' => 'administrator' ) );
+		wp_set_current_user( $user );
+		$page = $this->page( 'fine-old' );
+
+		wp_update_post(
+			array(
+				'ID'        => $page,
+				'post_name' => 'fine-new',
+			)
+		);
+
+		$this->assertSame( '/fine-new', $this->target( '/fine-old' ) );
+		$this->assertFalse( get_transient( SlugChanges::NOTICE . $user ) );
+		$this->assertSame( '', $this->notice() );
 	}
 }

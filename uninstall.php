@@ -75,6 +75,27 @@ foreach ( array_unique( array_merge( array( get_stylesheet() ), array_keys( wp_g
 	}
 }
 
+// Notices about redirects not created after an address change (src/Redirects/SlugChanges.php): one
+// transient per user, only for users whose role can change addresses. Others, if any, expire in a day
+// and the core removes them with the other expired transients.
+$easyrankly_offset = 0;
+do {
+	$easyrankly_users = get_users(
+		array(
+			'capability__in' => array( 'edit_pages', 'edit_posts', 'manage_categories' ),
+			'fields'         => 'ID',
+			'number'         => 500,
+			'offset'         => $easyrankly_offset,
+			'orderby'        => 'ID',
+			'count_total'    => false,
+		)
+	);
+	foreach ( $easyrankly_users as $easyrankly_user ) {
+		delete_transient( 'easyrankly_redirect_notice_' . (int) $easyrankly_user );
+	}
+	$easyrankly_offset += 500;
+} while ( array() !== $easyrankly_users );
+
 delete_option( 'easyrankly_settings' );
 delete_option( 'easyrankly_redirects_forced' );
 delete_option( 'easyrankly_redirects_regex' );

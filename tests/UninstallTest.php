@@ -197,4 +197,35 @@ final class UninstallTest extends WP_UnitTestCase {
 
 		$this->assertSame( array( 'primary' => 3 ), get_theme_mod( 'nav_menu_locations' ) );
 	}
+
+	/**
+	 * Notices about redirects not created are removed for every user who could get one.
+	 */
+	public function test_uninstall_removes_redirect_notices(): void {
+		if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
+			define( 'WP_UNINSTALL_PLUGIN', 'easyrankly/easyrankly.php' );
+		}
+
+		$users = array(
+			self::factory()->user->create( array( 'role' => 'administrator' ) ),
+			self::factory()->user->create( array( 'role' => 'editor' ) ),
+			self::factory()->user->create( array( 'role' => 'contributor' ) ),
+		);
+		foreach ( $users as $user ) {
+			set_transient(
+				'easyrankly_redirect_notice_' . $user,
+				array(
+					'failed' => array(),
+					'capped' => array( '/x' ),
+				),
+				DAY_IN_SECONDS
+			);
+		}
+
+		require dirname( __DIR__ ) . '/uninstall.php';
+
+		foreach ( $users as $user ) {
+			$this->assertFalse( get_transient( 'easyrankly_redirect_notice_' . $user ), (string) $user );
+		}
+	}
 }
