@@ -146,7 +146,7 @@ final class Runner {
 	}
 
 	/**
-	 * Sends the response: 410 renders the 404 template with status 410, the others redirect.
+	 * Sends the response: 410 and 451 render the 404 template with their own status, the others redirect.
 	 *
 	 * Internal targets go through wp_safe_redirect(). External targets were validated when
 	 * an administrator saved them and are checked again here. A target equal to the
@@ -156,10 +156,10 @@ final class Runner {
 	 * @param string $target Target path or URL.
 	 */
 	private function send( int $code, string $target ): void {
-		if ( 410 === $code ) {
+		if ( in_array( $code, Rule::NO_TARGET, true ) ) {
 			global $wp_query;
 			$wp_query->set_404();
-			status_header( 410 );
+			status_header( $code );
 			nocache_headers();
 			return;
 		}

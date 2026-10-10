@@ -221,6 +221,36 @@ final class RunnerTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * 451 answers "unavailable for legal reasons" with the 404 template, even when the page exists.
+	 */
+	public function test_unavailable_for_legal_reasons(): void {
+		self::factory()->post->create( array( 'post_name' => 'takedown' ) );
+		$this->rule(
+			'/takedown',
+			'',
+			array(
+				'code'   => 451,
+				'forced' => true,
+			)
+		);
+
+		$status = 0;
+		add_filter(
+			'status_header',
+			static function ( $header, $code ) use ( &$status ) {
+				$status = $code;
+				return $header;
+			},
+			10,
+			2
+		);
+
+		$this->assertNull( $this->visit( '/takedown/' ) );
+		$this->assertSame( 451, $status );
+		$this->assertTrue( is_404() );
+	}
+
+	/**
 	 * Only GET and HEAD requests are redirected.
 	 */
 	public function test_post_requests_are_left_alone(): void {

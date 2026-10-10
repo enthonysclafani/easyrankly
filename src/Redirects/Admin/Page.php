@@ -9,6 +9,7 @@ namespace EasyRankly\Redirects\Admin;
 
 use EasyRankly\Admin\RecordsPage;
 use EasyRankly\Redirects\Redirects;
+use EasyRankly\Redirects\Rule;
 use EasyRankly\Settings\Admin\Page as SettingsPage;
 
 defined( 'ABSPATH' ) || exit;
@@ -42,6 +43,7 @@ final class Page extends RecordsPage {
 			302 => __( '302 Found (temporary)', 'easyrankly' ),
 			307 => __( '307 Temporary redirect', 'easyrankly' ),
 			410 => __( '410 Gone (no target)', 'easyrankly' ),
+			451 => __( '451 Unavailable for legal reasons (no target)', 'easyrankly' ),
 		);
 	}
 
@@ -229,7 +231,7 @@ final class Page extends RecordsPage {
 	}
 
 	/**
-	 * REST body of a redirect; a 410 has no target.
+	 * REST body of a redirect; a 410 or 451 has no target.
 	 *
 	 * @param array<string, mixed> $values Form values.
 	 * @param \WP_Post|null        $post   Redirect being edited, null for a new one.
@@ -240,7 +242,7 @@ final class Page extends RecordsPage {
 			'title'  => (string) $values['source'],
 			'status' => $values['active'] ? 'publish' : 'draft',
 			'meta'   => array(
-				Redirects::meta_key( 'target' ) => 410 === $values['code'] ? '' : (string) $values['target'],
+				Redirects::meta_key( 'target' ) => in_array( (int) $values['code'], Rule::NO_TARGET, true ) ? '' : (string) $values['target'],
 				Redirects::meta_key( 'code' )   => (int) $values['code'],
 				Redirects::meta_key( 'regex' )  => (bool) $values['regex'],
 				Redirects::meta_key( 'forced' ) => (bool) $values['forced'],
@@ -278,7 +280,7 @@ final class Page extends RecordsPage {
 			'<tr><th scope="row"><label for="easyrankly-target">%1$s</label></th><td><input type="text" id="easyrankly-target" name="target" value="%2$s" class="regular-text code" /><p class="description">%3$s</p></td></tr>',
 			esc_html__( 'Target', 'easyrankly' ),
 			esc_attr( (string) $values['target'] ),
-			esc_html__( 'Path on this site or full URL. Ignored for 410.', 'easyrankly' )
+			esc_html__( 'Path on this site or full URL. Ignored for 410 and 451.', 'easyrankly' )
 		);
 
 		printf(

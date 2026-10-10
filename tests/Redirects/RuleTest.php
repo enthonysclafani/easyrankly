@@ -63,6 +63,13 @@ final class RuleTest extends WP_UnitTestCase {
 			),
 			Rule::validate( '/gone', 'ignored', 410, false )
 		);
+		$this->assertSame(
+			array(
+				'source' => '/blocked',
+				'target' => '',
+			),
+			Rule::validate( '/blocked', 'ignored', 451, false )
+		);
 	}
 
 	/**
