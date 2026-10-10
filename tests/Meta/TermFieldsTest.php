@@ -7,6 +7,7 @@
 
 namespace EasyRankly\Tests\Meta;
 
+use EasyRankly\Admin\MediaField;
 use EasyRankly\Meta\Admin\TermFields;
 use EasyRankly\Meta\Meta;
 use WP_UnitTestCase;
@@ -114,6 +115,34 @@ final class TermFieldsTest extends WP_UnitTestCase {
 
 		$this->assertStringContainsString( 'name="easyrankly_term_seo"', $html );
 		$this->assertStringContainsString( 'value="a&quot;b&amp;c"', $html );
+	}
+
+	/**
+	 * The social image is chosen from the media library, like the images of the settings.
+	 */
+	public function test_social_image_uses_the_media_picker(): void {
+		$term_id  = self::factory()->category->create();
+		$image_id = self::factory()->attachment->create_object( 'share.jpg', 0, array( 'post_mime_type' => 'image/jpeg' ) );
+		update_term_meta( $term_id, '_easyrankly_og_image', $image_id );
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'editor' ) ) );
+
+		$html = get_echo( array( new TermFields(), 'render' ), array( get_term( $term_id ) ) );
+
+		$this->assertStringContainsString( 'class="easyrankly-media-field"', $html );
+		$this->assertStringContainsString( 'name="easyrankly[og_image]" value="' . $image_id . '"', $html );
+
+		$fields   = new TermFields();
+		$expected = array(
+			'category' => 10,
+			'nav_menu' => false,
+		);
+		foreach ( $expected as $taxonomy => $hooked ) {
+			$_REQUEST['taxonomy'] = $taxonomy;
+			$fields->load();
+			$this->assertSame( $hooked, has_action( 'admin_enqueue_scripts', array( MediaField::class, 'enqueue' ) ), $taxonomy );
+			remove_action( 'admin_enqueue_scripts', array( MediaField::class, 'enqueue' ) );
+		}
+		unset( $_REQUEST['taxonomy'] );
 	}
 
 	/**

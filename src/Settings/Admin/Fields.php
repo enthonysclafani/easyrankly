@@ -7,6 +7,7 @@
 
 namespace EasyRankly\Settings\Admin;
 
+use EasyRankly\Admin\MediaField;
 use EasyRankly\Context\Context;
 use EasyRankly\Multilingual\Languages;
 use EasyRankly\Multilingual\Menus;
@@ -599,22 +600,8 @@ final class Fields {
 	 */
 	public static function media( array $args ): void {
 		$key = (string) $args['key'];
-		$id  = (int) Settings::value( $key );
 
-		printf(
-			'<div class="easyrankly-media-field" data-choose="%1$s" data-replace="%2$s" data-remove="%3$s">',
-			esc_attr__( 'Choose image', 'easyrankly' ),
-			esc_attr__( 'Replace image', 'easyrankly' ),
-			esc_attr__( 'Remove', 'easyrankly' )
-		);
-		printf( '<p class="easyrankly-media-field__preview">%s</p>', $id > 0 ? wp_get_attachment_image( $id, 'thumbnail' ) : '' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Markup built and escaped by the core.
-		printf(
-			'<input type="number" min="0" step="1" id="%1$s" name="%2$s" value="%3$s" class="small-text" />',
-			esc_attr( self::id( $key ) ),
-			esc_attr( self::name( $key ) ),
-			esc_attr( $id > 0 ? (string) $id : '' )
-		);
-		echo '</div>';
+		MediaField::render( self::id( $key ), self::name( $key ), (int) Settings::value( $key ) );
 		self::description( $args );
 	}
 

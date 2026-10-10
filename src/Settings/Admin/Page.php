@@ -7,7 +7,7 @@
 
 namespace EasyRankly\Settings\Admin;
 
-use EasyRankly\Admin\Assets;
+use EasyRankly\Admin\MediaField;
 use EasyRankly\Multilingual\Languages;
 use EasyRankly\Settings\Settings;
 
@@ -123,16 +123,8 @@ final class Page {
 		Fields::add( $slug );
 
 		if ( self::SCHEMA === $slug ) {
-			add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_media' ) );
+			add_action( 'admin_enqueue_scripts', array( MediaField::class, 'enqueue' ) );
 		}
-	}
-
-	/**
-	 * Media library modal and the small script that opens it for the image fields.
-	 */
-	public function enqueue_media(): void {
-		wp_enqueue_media();
-		Assets::enqueue( 'media-field' );
 	}
 
 	/**

@@ -1,5 +1,5 @@
 /**
- * Image fields of the settings pages: "Choose image" and "Remove" buttons with the media
+ * Image fields of the settings pages and of the term screens: "Choose image" and "Remove" buttons with the media
  * library modal. Without this script the field is a number input with the attachment ID.
  */
 
