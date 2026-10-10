@@ -219,6 +219,69 @@ final class PageTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Without edit_plugins a PHP snippet stays in the list by name, but its code cannot be
+	 * opened, searched or changed from the screen.
+	 */
+	public function test_php_code_is_hidden_without_edit_plugins(): void {
+		$this->request(
+			array( 'action' => 'new' ),
+			$this->form(
+				array(
+					'type'   => 'php',
+					'name'   => 'Keys',
+					'code'   => 'define( "MY_KEY", "s3cr3t" );',
+					'active' => '',
+				)
+			)
+		);
+		$id = self::snippets( 'Keys' )[0]->ID;
+
+		$this->deny( 'edit_plugins' );
+
+		[ , $html ] = $this->request(
+			array(
+				'action' => 'edit',
+				'id'     => (string) $id,
+			)
+		);
+		$this->assertStringNotContainsString( 's3cr3t', $html );
+		$this->assertStringNotContainsString( '<textarea', $html );
+		$this->assertStringContainsString( 'not allowed to edit this item', $html );
+
+		[ , $html ] = $this->request( array() );
+		$this->assertStringContainsString( 'Keys', $html );
+		$this->assertStringNotContainsString( 'cb-select-' . $id, $html );
+		$this->assertStringNotContainsString( 'action=deactivate&#038;id=' . $id, $html );
+		$this->assertStringNotContainsString( 'action=activate&#038;id=' . $id, $html );
+
+		[ , $html ] = $this->request( array( 's' => 's3cr3t' ) );
+		$this->assertStringNotContainsString( 'Keys', $html );
+	}
+
+	/**
+	 * A stored HTML snippet gets the HTML help only, and no "Everywhere" position.
+	 */
+	public function test_html_snippet_form_speaks_of_html_only(): void {
+		$this->request( array( 'action' => 'new' ), $this->form( array() ) );
+		$id = self::snippets( 'Analytics' )[0]->ID;
+
+		[ , $html ] = $this->request(
+			array(
+				'action' => 'edit',
+				'id'     => (string) $id,
+			)
+		);
+
+		$this->assertStringContainsString( 'HTML is printed as it is on every page of the site.</p>', $html );
+		$this->assertStringNotContainsString( 'value="everywhere"', $html );
+		$this->assertStringNotContainsString( 'Everywhere runs the PHP', $html );
+
+		[ , $html ] = $this->request( array( 'action' => 'new' ) );
+		$this->assertStringContainsString( 'value="everywhere"', $html );
+		$this->assertStringContainsString( 'Everywhere runs the PHP', $html );
+	}
+
+	/**
 	 * The type of a saved snippet cannot change from the form.
 	 */
 	public function test_type_never_changes(): void {

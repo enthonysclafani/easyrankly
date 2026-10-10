@@ -284,6 +284,34 @@ final class CustomCodeTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * A REST save rebuilds the cache once, after the post and its meta are written.
+	 */
+	public function test_rest_save_rebuilds_cache_once(): void {
+		$rebuilds = 0;
+		add_filter(
+			'pre_update_option_' . CustomCode::OPTION,
+			static function ( $value ) use ( &$rebuilds ) {
+				++$rebuilds;
+				return $value;
+			}
+		);
+
+		$id = $this->rest( 'POST', $this->body( 'html', '<meta name="a">', 'publish', 'footer', 5 ) )->get_data()['id'];
+		$this->assertSame( 1, $rebuilds );
+		$this->assertSame( array( $id ), array_column( get_option( CustomCode::OPTION )['positions']['footer'], 'id' ) );
+
+		$rebuilds = 0;
+		$this->rest( 'POST', array( 'meta' => array( CustomCode::meta_key( 'position' ) => 'head' ) ), '/' . $id );
+		$this->assertSame( 1, $rebuilds );
+		$this->assertSame( array( $id ), array_column( get_option( CustomCode::OPTION )['positions']['head'], 'id' ) );
+
+		// Outside REST every write still rebuilds.
+		$rebuilds = 0;
+		update_post_meta( $id, CustomCode::meta_key( 'priority' ), 3 );
+		$this->assertSame( 1, $rebuilds );
+	}
+
+	/**
 	 * Meta changed outside REST updates the cache; PHP that does not parse is never cached.
 	 */
 	public function test_cache_follows_writes_outside_rest(): void {

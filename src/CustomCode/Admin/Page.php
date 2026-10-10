@@ -112,6 +112,7 @@ final class Page extends RecordsPage {
 			'add'         => __( 'Add snippet', 'easyrankly' ),
 			'edit'        => __( 'Edit snippet', 'easyrankly' ),
 			'empty'       => __( 'No snippets yet.', 'easyrankly' ),
+			'search'      => __( 'Search names', 'easyrankly' ),
 			'saved'       => __( 'Snippet saved.', 'easyrankly' ),
 			'activated'   => __( 'Snippets activated.', 'easyrankly' ),
 			'deactivated' => __( 'Snippets deactivated.', 'easyrankly' ),
@@ -319,23 +320,40 @@ final class Page extends RecordsPage {
 		}
 		echo '</td></tr>';
 
+		// A new snippet can still become PHP, if the user may write PHP; a stored one keeps its type.
+		$php = null === $post ? CustomCode::can_write_php() : 'php' === $values['type'];
+		$all = null === $post && $php;
+
+		if ( $all ) {
+			$help = __( 'HTML is printed as it is on every page of the site. PHP goes without the opening tag: it is checked for syntax errors before it can be active, and turned off at the first runtime error.', 'easyrankly' );
+		} elseif ( $php ) {
+			$help = __( 'PHP without the opening tag. It is checked for syntax errors before it can be active, and turned off at the first runtime error.', 'easyrankly' );
+		} else {
+			$help = __( 'HTML is printed as it is on every page of the site.', 'easyrankly' );
+		}
+
 		printf(
 			'<tr><th scope="row"><label for="easyrankly-code">%1$s</label></th><td><textarea id="easyrankly-code" name="code" rows="14" class="large-text code">%2$s</textarea><p class="description">%3$s</p></td></tr>',
 			esc_html__( 'Code', 'easyrankly' ),
 			esc_textarea( (string) $values['code'] ),
-			'php' === $values['type']
-				? esc_html__( 'PHP without the opening tag. It is checked for syntax errors before it can be active, and turned off at the first runtime error.', 'easyrankly' )
-				: esc_html__( 'HTML is printed as it is on every page of the site. PHP goes without the opening tag: it is checked for syntax errors before it can be active, and turned off at the first runtime error.', 'easyrankly' )
+			esc_html( $help )
 		);
 
 		printf( '<tr><th scope="row"><label for="easyrankly-position">%s</label></th><td><select id="easyrankly-position" name="position">', esc_html__( 'Position', 'easyrankly' ) );
 		foreach ( self::positions() as $position => $label ) {
-			printf( '<option value="%1$s"%2$s>%3$s</option>', esc_attr( $position ), selected( $values['position'], $position, false ), esc_html( $label ) );
+			// "Everywhere" takes only PHP: offered only where the snippet is or can become PHP.
+			if ( 'everywhere' !== $position || $php || 'everywhere' === $values['position'] ) {
+				printf( '<option value="%1$s"%2$s>%3$s</option>', esc_attr( $position ), selected( $values['position'], $position, false ), esc_html( $label ) );
+			}
 		}
-		printf(
-			'</select><p class="description">%s</p></td></tr>',
-			esc_html__( 'Everywhere runs the PHP as soon as the plugins are loaded, on every request, admin included, but never on this screen. What it prints is dropped: use it to add or remove hooks. If it locks you out, add define( \'EASYRANKLY_SAFE_MODE\', true ); to wp-config.php.', 'easyrankly' )
-		);
+		echo '</select>';
+		if ( $php ) {
+			printf(
+				'<p class="description">%s</p>',
+				esc_html__( 'Everywhere runs the PHP as soon as the plugins are loaded, on every request, admin included, but never on this screen. What it prints is dropped: use it to add or remove hooks. If it locks you out, add define( \'EASYRANKLY_SAFE_MODE\', true ); to wp-config.php.', 'easyrankly' )
+			);
+		}
+		echo '</td></tr>';
 
 		printf(
 			'<tr><th scope="row"><label for="easyrankly-priority">%1$s</label></th><td><input type="number" id="easyrankly-priority" name="priority" value="%2$d" min="0" max="1000" class="small-text" /><p class="description">%3$s</p></td></tr>',
