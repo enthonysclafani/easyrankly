@@ -36,6 +36,10 @@ It runs a PHP snippet as soon as the plugins are loaded, on every request, admin
 
 They are noindex and left out of the sitemap. Their automatic description is empty, so their text never appears in the page source; a description you write for the post yourself is still used.
 
+= Are empty archives indexed? =
+
+No. A category, tag, author or post type archive with nothing in it is noindex until it has content. A category or tag with its own description stays indexable, since the description is content.
+
 == External services ==
 
 EasyRankly does not connect to any external service.
