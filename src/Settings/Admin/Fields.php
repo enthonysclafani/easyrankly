@@ -236,7 +236,7 @@ final class Fields {
 				'label_for'   => self::id( 'breadcrumb_home_label' ),
 				'key'         => 'breadcrumb_home_label',
 				'maxlength'   => 60,
-				'description' => __( 'Empty keeps the WordPress label (Home).', 'easyrankly' ),
+				'placeholder' => __( 'Empty keeps the WordPress label (Home)', 'easyrankly' ),
 			)
 		);
 
@@ -370,7 +370,6 @@ final class Fields {
 				'key'         => 'identity_name',
 				'maxlength'   => 200,
 				'placeholder' => get_bloginfo( 'name' ),
-				'description' => __( 'Empty uses the site title.', 'easyrankly' ),
 			)
 		);
 		add_settings_field(
