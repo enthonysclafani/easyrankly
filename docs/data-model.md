@@ -53,8 +53,8 @@ Meta del post type `erankly_snippet` (`src/CustomCode/CustomCode.php`), nel REST
 
 | Nome | Contenuto | Stati custom | Introdotto in |
 |---|---|---|---|
-| `erankly_redirect` | Un redirect per post. `post_title` = sorgente normalizzata (percorso relativo alla home, minuscolo, senza query string né slash finale) o regex; `post_name` = md5 della sorgente esatta (colonna indicizzata, usata per la ricerca su 404) o `regex-{md5}`; `post_status` `publish` = attivo, `draft` = disattivo. Non pubblico, senza UI core, REST `/wp/v2/easyrankly-redirects` solo con `manage_options`. | nessuno | 1.10 |
-| `erankly_snippet` | Uno snippet per post. `post_title` = nome, `post_content` = codice (le revisioni native ne tengono la cronologia), `post_status` `publish` = attivo, `draft` = disattivo. Serve `manage_options` più `unfiltered_html`; per il PHP anche `edit_plugins`. REST `/wp/v2/easyrankly-snippets`. | nessuno | 1.11 |
+| `erankly_redirect` | Un redirect per post. `post_title` = sorgente normalizzata (percorso relativo alla home, minuscolo, senza query string né slash finale) o regex; `post_name` = md5 della sorgente esatta (colonna indicizzata, usata per la ricerca su 404) o `regex-{md5}`; `post_status` `publish` = attivo, `draft` = disattivo; `post_excerpt` = note, solo in admin. Non pubblico, senza UI core, REST `/wp/v2/easyrankly-redirects` solo con `manage_options`. | nessuno | 1.10 |
+| `erankly_snippet` | Uno snippet per post. `post_title` = nome, `post_content` = codice (le revisioni native ne tengono la cronologia), `post_excerpt` = note, solo in admin, `post_status` `publish` = attivo, `draft` = disattivo. Serve `manage_options` più `unfiltered_html`; per il PHP anche `edit_plugins`. REST `/wp/v2/easyrankly-snippets`. | nessuno | 1.11 |
 
 ## Tassonomie nascoste
 

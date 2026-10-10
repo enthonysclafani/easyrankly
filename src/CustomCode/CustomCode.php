@@ -14,8 +14,8 @@ defined( 'ABSPATH' ) || exit;
  * without running it and keeps the autoloaded cache the frontend reads.
  *
  * One post per snippet: post_title = name, post_content = code (native revisions keep
- * its history), post_status publish = active, draft = inactive; meta: type, position,
- * priority and the last runtime error.
+ * its history), post_excerpt = notes (admin only), post_status publish = active,
+ * draft = inactive; meta: type, position, priority and the last runtime error.
  */
 final class CustomCode {
 
@@ -112,7 +112,7 @@ final class CustomCode {
 				'show_in_rest'          => true,
 				'rest_base'             => 'easyrankly-snippets',
 				'rest_controller_class' => RestController::class,
-				'supports'              => array( 'title', 'editor', 'revisions', 'custom-fields' ),
+				'supports'              => array( 'title', 'editor', 'excerpt', 'revisions', 'custom-fields' ),
 				'rewrite'               => false,
 				'query_var'             => false,
 				'can_export'            => true,

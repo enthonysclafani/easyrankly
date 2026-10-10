@@ -144,6 +144,7 @@ final class Page extends RecordsPage {
 			'type'     => __( 'Type', 'easyrankly' ),
 			'position' => __( 'Position', 'easyrankly' ),
 			'status'   => __( 'Status', 'easyrankly' ),
+			'notes'    => __( 'Notes', 'easyrankly' ),
 		);
 	}
 
@@ -184,6 +185,8 @@ final class Page extends RecordsPage {
 					$status .= ' ' . __( '(turned off by an error)', 'easyrankly' );
 				}
 				return esc_html( $status );
+			case 'notes':
+				return esc_html( wp_trim_words( $post->post_excerpt, 15 ) );
 		}
 
 		return '';
@@ -204,6 +207,7 @@ final class Page extends RecordsPage {
 				'position' => 'head',
 				'priority' => 10,
 				'active'   => false,
+				'notes'    => '',
 			);
 		}
 
@@ -214,6 +218,7 @@ final class Page extends RecordsPage {
 			'position' => (string) get_post_meta( $post->ID, CustomCode::meta_key( 'position' ), true ),
 			'priority' => (int) get_post_meta( $post->ID, CustomCode::meta_key( 'priority' ), true ),
 			'active'   => 'publish' === $post->post_status,
+			'notes'    => $post->post_excerpt,
 		);
 	}
 
@@ -237,6 +242,7 @@ final class Page extends RecordsPage {
 			'position' => array_key_exists( $position, self::positions() ) ? $position : 'head',
 			'priority' => isset( $_POST['priority'] ) ? min( 1000, absint( $_POST['priority'] ) ) : 10,
 			'active'   => ! empty( $_POST['active'] ),
+			'notes'    => isset( $_POST['notes'] ) ? sanitize_textarea_field( wp_unslash( $_POST['notes'] ) ) : '',
 		);
 		// phpcs:enable WordPress.Security.NonceVerification.Missing
 	}
@@ -261,6 +267,7 @@ final class Page extends RecordsPage {
 			'title'   => (string) $values['name'],
 			'content' => (string) $values['code'],
 			'status'  => $values['active'] ? 'publish' : 'draft',
+			'excerpt' => (string) $values['notes'],
 			'meta'    => $meta,
 		);
 	}
@@ -371,6 +378,13 @@ final class Page extends RecordsPage {
 			esc_html__( 'Status', 'easyrankly' ),
 			checked( (bool) $values['active'], true, false ),
 			esc_html__( 'Active', 'easyrankly' )
+		);
+
+		printf(
+			'<tr><th scope="row"><label for="easyrankly-notes">%1$s</label></th><td><textarea id="easyrankly-notes" name="notes" rows="3" class="large-text">%2$s</textarea><p class="description">%3$s</p></td></tr>',
+			esc_html__( 'Notes', 'easyrankly' ),
+			esc_textarea( (string) $values['notes'] ),
+			esc_html__( 'Only for you: what the snippet is for, who asked for it. Never printed on the site.', 'easyrankly' )
 		);
 	}
 }

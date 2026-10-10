@@ -157,6 +157,27 @@ final class PageTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Notes are saved as plain text in the excerpt and shown in the form and in the list.
+	 */
+	public function test_notes_are_saved_and_listed(): void {
+		$this->request( array( 'action' => 'new' ), $this->form( array( 'notes' => "Richiesto da marketing\n<script>x</script>" ) ) );
+
+		$snippet = self::snippets( 'Analytics' )[0];
+		$this->assertSame( 'Richiesto da marketing', get_post_field( 'post_excerpt', $snippet->ID, 'raw' ) );
+
+		[ , $html ] = $this->request(
+			array(
+				'action' => 'edit',
+				'id'     => (string) $snippet->ID,
+			)
+		);
+		$this->assertStringContainsString( '>Richiesto da marketing', $html );
+
+		[ , $html ] = $this->request( array() );
+		$this->assertStringContainsString( 'Richiesto da marketing', $html );
+	}
+
+	/**
 	 * Without unfiltered_html the screen shows and changes nothing.
 	 */
 	public function test_requires_unfiltered_html(): void {

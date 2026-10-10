@@ -408,6 +408,27 @@ final class PageTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Notes are saved as plain text in the excerpt, shown in the form and in the list.
+	 */
+	public function test_notes_are_saved_and_listed(): void {
+		$this->load( array( 'action' => 'new' ), $this->form( 0, array( 'notes' => "Vecchio blog\n<b>fino a maggio</b>" ) ) );
+
+		$id = (int) Redirects::find_id( Rule::hash( '/old-page' ) );
+		$this->assertSame( "Vecchio blog\nfino a maggio", get_post_field( 'post_excerpt', $id, 'raw' ) );
+
+		$this->load(
+			array(
+				'action' => 'edit',
+				'id'     => (string) $id,
+			)
+		);
+		$this->assertStringContainsString( "name=\"notes\" rows=\"3\" class=\"large-text\">Vecchio blog\nfino a maggio</textarea>", $this->render() );
+
+		$this->load( array() );
+		$this->assertStringContainsString( 'Vecchio blog fino a maggio', $this->render() );
+	}
+
+	/**
 	 * The edit form shows the stored rule.
 	 */
 	public function test_edit_form_shows_values(): void {
