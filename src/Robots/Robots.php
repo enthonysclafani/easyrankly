@@ -84,17 +84,17 @@ final class Robots {
 	 * date archive and for the later pages of any empty archive, so only these get here. A term with a description of
 	 * its own keeps its page indexable: the description is content.
 	 *
-	 * @param mixed $object Queried object.
+	 * @param mixed $queried Queried object.
 	 * @return bool
 	 */
-	private static function is_empty_archive( $object ): bool {
+	private static function is_empty_archive( $queried ): bool {
 		global $wp_query;
 
 		if ( ! ( is_archive() || ( is_home() && ! is_front_page() ) ) || ! $wp_query instanceof \WP_Query || $wp_query->post_count > 0 ) {
 			return false;
 		}
 
-		return ! ( $object instanceof \WP_Term && '' !== trim( $object->description ) );
+		return ! ( $queried instanceof \WP_Term && '' !== trim( $queried->description ) );
 	}
 
 	/**
