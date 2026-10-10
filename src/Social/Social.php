@@ -133,8 +133,8 @@ final class Social {
 	/**
 	 * Image to share: the object's social image, the featured image, then the default one.
 	 *
-	 * Loading the attachment costs the same queries the theme makes to show the featured
-	 * image, and they are cached for it.
+	 * Loading the featured image costs the same queries the theme makes to show it, and
+	 * they are cached for it. The default image is copied in the settings: no query.
 	 *
 	 * @param \WP_Post|null $post Queried post, if any.
 	 * @return array{url: string, width: int, height: int, alt: string}|null
@@ -145,7 +145,6 @@ final class Social {
 		if ( null !== $post && is_singular() ) {
 			$candidates[] = (int) get_post_thumbnail_id( $post );
 		}
-		$candidates[] = (int) Settings::value( 'social_image' );
 
 		foreach ( $candidates as $attachment_id ) {
 			if ( $attachment_id <= 0 ) {
@@ -165,6 +164,6 @@ final class Social {
 			);
 		}
 
-		return null;
+		return Settings::image( 'social_image' );
 	}
 }

@@ -137,16 +137,15 @@ final class Menus {
 	/**
 	 * Navigation menu shown in place of another in one language, or 0 to keep it.
 	 *
-	 * Read from the stored option, without the translated defaults of Settings::get(): this runs while
-	 * the page renders. The core loads the navigation menu anyway, so checking it costs no query.
+	 * The core loads the navigation menu anyway, so checking it costs no query.
 	 *
 	 * @param int    $navigation Navigation menu ID in the block.
 	 * @param string $language   Language slug.
 	 * @return int
 	 */
 	public static function navigation( int $navigation, string $language ): int {
-		$settings = get_option( Settings::OPTION, array() );
-		$target   = is_array( $settings ) ? (int) ( $settings[ self::SETTING ][ $language ][ $navigation ] ?? 0 ) : 0;
+		$menus  = Settings::value( self::SETTING );
+		$target = is_array( $menus ) ? (int) ( $menus[ $language ][ $navigation ] ?? 0 ) : 0;
 
 		return $target > 0 && 'wp_navigation' === get_post_type( $target ) ? $target : 0;
 	}

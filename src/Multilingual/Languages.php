@@ -35,14 +35,13 @@ final class Languages {
 	 *
 	 * `site_title` and `tagline` are empty when the language uses those of Settings > General.
 	 *
-	 * The option is autoloaded, so this costs no query. It is read directly, without the
-	 * defaults of Settings::get(): those are translated, and the locale filter reads this.
+	 * The option is autoloaded, so this costs no query. Settings::get() builds nothing
+	 * translated, so the locale filter can read this.
 	 *
 	 * @return array<string, array{locale: string, name: string, site_title: string, tagline: string}>
 	 */
 	public static function all(): array {
-		$settings  = get_option( Settings::OPTION, array() );
-		$languages = is_array( $settings ) ? ( $settings['languages'] ?? array() ) : array();
+		$languages = Settings::value( 'languages' );
 		$clean     = array();
 
 		foreach ( is_array( $languages ) ? $languages : array() as $slug => $language ) {

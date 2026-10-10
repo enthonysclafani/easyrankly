@@ -24,6 +24,12 @@ defined( 'ABSPATH' ) || exit;
 final class Titles {
 
 	/**
+	 * Names of the template variables, as the settings screen lists them: those of
+	 * variables(), plus `sep`, which Template::render() fills in from the settings.
+	 */
+	public const VARIABLES = array( 'title', 'sep', 'site_name', 'tagline', 'page', 'excerpt', 'term_description', 'author', 'post_type', 'category', 'date', 'search_query' );
+
+	/**
 	 * Hooks the title filter and the description tag.
 	 */
 	public function register(): void {

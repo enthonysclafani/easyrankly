@@ -43,16 +43,16 @@ final class Form {
 			case Page::SLUG:
 				$settings = self::general( $value, $current );
 				break;
-			case 'easyrankly-titles':
+			case Page::TITLES:
 				$settings = self::titles( $value, $current );
 				break;
-			case 'easyrankly-indexing':
+			case Page::INDEXING:
 				$settings = self::indexing( $value, $current );
 				break;
-			case 'easyrankly-schema':
+			case Page::SCHEMA:
 				$settings = self::schema( $value );
 				break;
-			case 'easyrankly-languages':
+			case Page::LANGUAGES:
 				$settings = self::languages( $value );
 				break;
 			default:
@@ -179,7 +179,7 @@ final class Form {
 			$settings['x_username'] = ltrim( trim( $settings['x_username'] ), '@' );
 		}
 
-		foreach ( array( 'identity_logo', 'social_image' ) as $key ) {
+		foreach ( Settings::IMAGES as $key ) {
 			if ( isset( $value[ $key ] ) && is_scalar( $value[ $key ] ) ) {
 				$settings[ $key ] = absint( $value[ $key ] );
 			}
@@ -326,26 +326,8 @@ final class Form {
 	 * @return string
 	 */
 	private static function invalid_message( string $key ): string {
-		$labels = array(
-			'title_separator'       => __( 'Title separator', 'easyrankly' ),
-			'breadcrumb_home_label' => __( 'Label of the first item', 'easyrankly' ),
-			'breadcrumb_taxonomies' => __( 'Breadcrumbs', 'easyrankly' ),
-			'templates'             => __( 'Titles and descriptions', 'easyrankly' ),
-			'language_templates'    => __( 'Titles and descriptions', 'easyrankly' ),
-			'noindex'               => __( 'Do not index', 'easyrankly' ),
-			'robots_txt'            => __( 'Extra rules', 'easyrankly' ),
-			'identity_type'         => __( 'This site represents', 'easyrankly' ),
-			'identity_name'         => __( 'Name', 'easyrankly' ),
-			'identity_logo'         => __( 'Logo or photo', 'easyrankly' ),
-			'same_as'               => __( 'Profiles on other sites', 'easyrankly' ),
-			'social_image'          => __( 'Default image', 'easyrankly' ),
-			'x_username'            => __( 'X username', 'easyrankly' ),
-			'languages'             => __( 'Languages', 'easyrankly' ),
-			Menus::SETTING          => __( 'Menus', 'easyrankly' ),
-		);
-
 		/* translators: %s: name of a setting. */
-		return sprintf( __( '%s: the value is not valid and was not saved.', 'easyrankly' ), $labels[ $key ] ?? $key );
+		return sprintf( __( '%s: the value is not valid and was not saved.', 'easyrankly' ), Fields::label( $key ) );
 	}
 
 	/**

@@ -175,7 +175,7 @@ final class Schema {
 		$is_person = 'person' === Settings::value( 'identity_type' );
 		$name      = (string) Settings::value( 'identity_name' );
 		$same_as   = Settings::value( 'same_as' );
-		$image     = $this->image( (int) Settings::value( 'identity_logo' ), $home . ( $is_person ? '#personimage' : '#logo' ) );
+		$logo      = Settings::image( 'identity_logo' );
 
 		$node = array(
 			'@type' => $is_person ? 'Person' : 'Organization',
@@ -184,8 +184,15 @@ final class Schema {
 			'url'   => $home,
 		);
 
-		if ( null !== $image ) {
-			$node[ $is_person ? 'image' : 'logo' ] = $image;
+		if ( null !== $logo ) {
+			// Copied in the settings: no attachment to load on every page.
+			$node[ $is_person ? 'image' : 'logo' ] = array(
+				'@type'  => 'ImageObject',
+				'@id'    => $home . ( $is_person ? '#personimage' : '#logo' ),
+				'url'    => $logo['url'],
+				'width'  => $logo['width'],
+				'height' => $logo['height'],
+			);
 		}
 		if ( is_array( $same_as ) && array() !== $same_as ) {
 			$node['sameAs'] = array_values( $same_as );
