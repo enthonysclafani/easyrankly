@@ -51,6 +51,30 @@ final class MetaTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Post types and taxonomies registered after the plugin get the fields too.
+	 */
+	public function test_fields_are_registered_for_late_types(): void {
+		register_post_type(
+			'late_book',
+			array(
+				'public'       => true,
+				'show_in_rest' => true,
+			)
+		);
+		register_taxonomy( 'late_genre', 'late_book', array( 'public' => true ) );
+		register_post_type( 'late_private', array( 'public' => false ) );
+
+		$this->assertTrue( registered_meta_key_exists( 'post', '_easyrankly_title', 'late_book' ) );
+		$this->assertTrue( post_type_supports( 'late_book', 'custom-fields' ) );
+		$this->assertTrue( registered_meta_key_exists( 'term', '_easyrankly_title', 'late_genre' ) );
+		$this->assertFalse( registered_meta_key_exists( 'post', '_easyrankly_title', 'late_private' ) );
+
+		unregister_taxonomy( 'late_genre' );
+		unregister_post_type( 'late_book' );
+		unregister_post_type( 'late_private' );
+	}
+
+	/**
 	 * The REST response of a redirect carries no SEO fields.
 	 */
 	public function test_redirects_have_no_seo_fields_in_rest(): void {

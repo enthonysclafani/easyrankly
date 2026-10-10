@@ -380,6 +380,7 @@ final class Settings {
 					'minimum' => 0,
 				),
 				'url'    => array( 'type' => 'string' ),
+				'file'   => array( 'type' => 'string' ),
 				'width'  => array(
 					'type'    => 'integer',
 					'minimum' => 0,
@@ -497,12 +498,18 @@ final class Settings {
 		$stored = is_array( $images ) && is_array( $images[ $key ] ?? null ) ? $images[ $key ] : array();
 		$copy   = (int) ( $stored['id'] ?? 0 ) === $id ? $stored : self::copy_image( $id );
 
-		if ( '' === (string) ( $copy['url'] ?? '' ) ) {
+		$url  = (string) ( $copy['url'] ?? '' );
+		$file = (string) ( $copy['file'] ?? '' );
+		if ( '' !== $file ) {
+			// Built from the current uploads address: a new site address or CDN path applies at once.
+			$url = wp_get_upload_dir()['baseurl'] . '/' . $file;
+		}
+		if ( '' === $url ) {
 			return null;
 		}
 
 		return array(
-			'url'    => (string) $copy['url'],
+			'url'    => $url,
 			'width'  => (int) ( $copy['width'] ?? 0 ),
 			'height' => (int) ( $copy['height'] ?? 0 ),
 			'alt'    => (string) ( $copy['alt'] ?? '' ),
@@ -513,7 +520,7 @@ final class Settings {
 	 * Copies of the images the settings point to.
 	 *
 	 * @param array<string, mixed> $settings Settings.
-	 * @return array<string, array{id: int, url: string, width: int, height: int, alt: string}>
+	 * @return array<string, array{id: int, url: string, file: string, width: int, height: int, alt: string}>
 	 */
 	private static function copy_images( array $settings ): array {
 		$images = array();
@@ -532,8 +539,11 @@ final class Settings {
 	 * Address, full size and alternative text of an attachment; an empty address when it is
 	 * not an image (anymore).
 	 *
+	 * An image in the uploads folder also keeps its path inside it, so pages build its address
+	 * from the current uploads address instead of keeping the host it had when copied.
+	 *
 	 * @param int $id Attachment ID.
-	 * @return array{id: int, url: string, width: int, height: int, alt: string}
+	 * @return array{id: int, url: string, file: string, width: int, height: int, alt: string}
 	 */
 	private static function copy_image( int $id ): array {
 		$image = Meta::image( $id ) ?? array(
@@ -542,8 +552,13 @@ final class Settings {
 			'height' => 0,
 			'alt'    => '',
 		);
+		$base  = wp_get_upload_dir()['baseurl'] . '/';
+		$file  = '' !== $image['url'] && str_starts_with( $image['url'], $base ) ? substr( $image['url'], strlen( $base ) ) : '';
 
-		return array( 'id' => $id ) + $image;
+		return array(
+			'id'   => $id,
+			'file' => $file,
+		) + $image;
 	}
 
 	/**

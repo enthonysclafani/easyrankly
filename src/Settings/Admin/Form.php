@@ -323,6 +323,14 @@ final class Form {
 	 * @return string|null Error message, or null when everything was renamed.
 	 */
 	private static function rename( array $renamed ): ?string {
+		// Every new prefix is checked before any term changes: a refused save moves no content.
+		foreach ( $renamed as $slug ) {
+			if ( get_term_by( 'slug', $slug, Translations::LANGUAGE ) instanceof \WP_Term ) {
+				/* translators: %s: URL prefix. */
+				return sprintf( __( 'The URL prefix %s is still used by content of a language removed earlier: choose another one.', 'easyrankly' ), $slug );
+			}
+		}
+
 		foreach ( $renamed as $previous => $slug ) {
 			$term = get_term_by( 'slug', $previous, Translations::LANGUAGE );
 			if ( ! $term instanceof \WP_Term ) {
@@ -337,8 +345,7 @@ final class Form {
 				)
 			);
 			if ( is_wp_error( $result ) ) {
-				/* translators: %s: URL prefix. */
-				return sprintf( __( 'The URL prefix %s is still used by content of a language removed earlier: choose another one.', 'easyrankly' ), $slug );
+				return $result->get_error_message();
 			}
 		}
 

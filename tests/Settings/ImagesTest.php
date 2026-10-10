@@ -135,6 +135,20 @@ final class ImagesTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Images in the uploads folder follow a new uploads address (new host, CDN path) without a new copy.
+	 */
+	public function test_copies_follow_the_uploads_address(): void {
+		update_option( 'upload_url_path', 'https://cdn.example/uploads' );
+		wp_upload_dir( null, false, true ); // A new request would build it again.
+		$url = Settings::image( 'social_image' )['url'] ?? '';
+		update_option( 'upload_url_path', '' );
+		wp_upload_dir( null, false, true );
+
+		$this->assertSame( 'https://cdn.example/uploads/share.jpg', $url );
+		$this->assertStringEndsWith( '/wp-content/uploads/share.jpg', Settings::image( 'social_image' )['url'] ?? '' );
+	}
+
+	/**
 	 * The copies cannot be written from outside: they always come from the attachments.
 	 */
 	public function test_copies_are_read_only(): void {

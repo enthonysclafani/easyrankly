@@ -84,42 +84,81 @@ final class Meta {
 	 * has a page of its own. Private types (redirects, snippets, navigation menus, templates)
 	 * and those of other plugins do not get SEO fields in their REST responses.
 	 *
-	 * Post meta reaches the REST API (and the block editor) only on post types that support
-	 * custom fields, so that support is added to every viewable post type shown in REST,
-	 * where the SEO panel of the editor needs it.
+	 * Types registered later (after init at priority 99) get the fields when they are registered.
 	 */
 	public function register_meta(): void {
-		$post_types = array_filter( get_post_types(), 'is_post_type_viewable' );
-		$taxonomies = array_filter( get_taxonomies(), 'is_taxonomy_viewable' );
+		foreach ( get_post_types() as $post_type ) {
+			$this->register_post_type_meta( $post_type );
+		}
+		foreach ( get_taxonomies() as $taxonomy ) {
+			$this->register_taxonomy_meta( $taxonomy );
+		}
+
+		add_action( 'registered_post_type', array( $this, 'register_post_type_meta' ) );
+		add_action( 'registered_taxonomy', array( $this, 'register_taxonomy_meta' ) );
+	}
+
+	/**
+	 * Registers the fields of a viewable post type.
+	 *
+	 * Post meta reaches the REST API (and the block editor) only on post types that support
+	 * custom fields, so that support is added where the SEO panel of the editor needs it.
+	 *
+	 * @param mixed $post_type Post type name.
+	 */
+	public function register_post_type_meta( $post_type ): void {
+		$post_type = (string) $post_type;
+		if ( ! is_post_type_viewable( $post_type ) ) {
+			return;
+		}
 
 		foreach ( self::fields() as $name => $field ) {
-			$args = array(
-				'type'              => $field['type'],
-				'description'       => $field['description'],
-				'default'           => $field['default'],
-				'single'            => true,
-				'sanitize_callback' => match ( true ) {
-					'canonical' === $name => array( self::class, 'sanitize_url' ),
-					'boolean' === $field['type'] => array( self::class, 'sanitize_boolean' ),
-					'integer' === $field['type'] => array( self::class, 'sanitize_integer' ),
-					default => array( self::class, 'sanitize_string' ),
-				},
-				'show_in_rest'      => true,
-			);
-
-			foreach ( $post_types as $post_type ) {
-				register_post_meta( $post_type, self::PREFIX . $name, $args + array( 'auth_callback' => array( self::class, 'can_edit_post' ) ) );
-			}
-			foreach ( $taxonomies as $taxonomy ) {
-				register_term_meta( $taxonomy, self::PREFIX . $name, $args + array( 'auth_callback' => array( self::class, 'can_edit_term' ) ) );
-			}
+			register_post_meta( $post_type, self::PREFIX . $name, self::args( $name, $field ) + array( 'auth_callback' => array( self::class, 'can_edit_post' ) ) );
 		}
 
-		foreach ( get_post_types( array( 'show_in_rest' => true ) ) as $post_type ) {
-			if ( is_post_type_viewable( $post_type ) && 'attachment' !== $post_type ) {
-				add_post_type_support( $post_type, 'custom-fields' );
-			}
+		$object = get_post_type_object( $post_type );
+		if ( null !== $object && $object->show_in_rest && 'attachment' !== $post_type ) {
+			add_post_type_support( $post_type, 'custom-fields' );
 		}
+	}
+
+	/**
+	 * Registers the fields of a viewable taxonomy.
+	 *
+	 * @param mixed $taxonomy Taxonomy name.
+	 */
+	public function register_taxonomy_meta( $taxonomy ): void {
+		$taxonomy = (string) $taxonomy;
+		if ( ! is_taxonomy_viewable( $taxonomy ) ) {
+			return;
+		}
+
+		foreach ( self::fields() as $name => $field ) {
+			register_term_meta( $taxonomy, self::PREFIX . $name, self::args( $name, $field ) + array( 'auth_callback' => array( self::class, 'can_edit_term' ) ) );
+		}
+	}
+
+	/**
+	 * Registration arguments of a field.
+	 *
+	 * @param string                                                   $name  Field name without prefix.
+	 * @param array{type: string, description: string, default: mixed} $field Field schema.
+	 * @return array<string, mixed>
+	 */
+	private static function args( string $name, array $field ): array {
+		return array(
+			'type'              => $field['type'],
+			'description'       => $field['description'],
+			'default'           => $field['default'],
+			'single'            => true,
+			'sanitize_callback' => match ( true ) {
+				'canonical' === $name => array( self::class, 'sanitize_url' ),
+				'boolean' === $field['type'] => array( self::class, 'sanitize_boolean' ),
+				'integer' === $field['type'] => array( self::class, 'sanitize_integer' ),
+				default => array( self::class, 'sanitize_string' ),
+			},
+			'show_in_rest'      => true,
+		);
 	}
 
 	/**

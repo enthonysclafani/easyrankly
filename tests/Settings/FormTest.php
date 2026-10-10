@@ -475,6 +475,33 @@ final class FormTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * When one of several renames is refused, no content changes language.
+	 */
+	public function test_languages_page_refused_rename_moves_no_content(): void {
+		$french = array(
+			'order'    => '3',
+			'previous' => 'fr',
+			'slug'     => 'fr',
+			'locale'   => 'fr_FR',
+			'name'     => 'Français',
+		);
+		$this->save( 'easyrankly-languages', array( 'languages' => array_merge( $this->rows(), array( $french ) ) ) );
+		wp_set_object_terms( self::factory()->post->create(), 'de', Translations::LANGUAGE );
+		$english = self::factory()->post->create();
+		$fr_post = self::factory()->post->create();
+		Translations::set_language( $english, 'en' );
+		Translations::set_language( $fr_post, 'fr' );
+
+		$rows   = array_merge( $this->rows( array( 'slug' => 'es' ) ), array( array( 'slug' => 'de' ) + $french ) );
+		$stored = $this->save( 'easyrankly-languages', array( 'languages' => $rows ) );
+
+		$this->assertSame( array( 'it', 'en', 'fr' ), array_keys( $stored['languages'] ) );
+		$this->assertSame( array( 'easyrankly_languages' ), $this->errors() );
+		$this->assertSame( 'en', Translations::language( $english ) );
+		$this->assertSame( 'fr', Translations::language( $fr_post ) );
+	}
+
+	/**
 	 * Removing a language removes its title templates and menu choices.
 	 */
 	public function test_languages_page_removal_drops_language_data(): void {

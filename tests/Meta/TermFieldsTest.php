@@ -71,6 +71,29 @@ final class TermFieldsTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Values that sanitize to empty, and the image removed with the picker, delete their meta.
+	 */
+	public function test_values_empty_after_sanitizing_are_deleted(): void {
+		$term_id = self::factory()->category->create();
+		update_term_meta( $term_id, '_easyrankly_title', 'Old' );
+		update_term_meta( $term_id, '_easyrankly_og_image', 5 );
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'editor' ) ) );
+
+		$this->submit(
+			array(
+				'title'     => '   ',
+				'canonical' => 'javascript:alert(1)',
+				'og_image'  => '0',
+			)
+		);
+		( new TermFields() )->save( $term_id );
+
+		foreach ( array( 'title', 'canonical', 'og_image' ) as $name ) {
+			$this->assertFalse( metadata_exists( 'term', $term_id, '_easyrankly_' . $name ), $name );
+		}
+	}
+
+	/**
 	 * Without a valid nonce nothing is saved.
 	 */
 	public function test_invalid_nonce_saves_nothing(): void {

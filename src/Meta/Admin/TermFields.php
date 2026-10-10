@@ -111,9 +111,15 @@ final class TermFields {
 		// Each value is sanitized below by the callback registered for its key.
 		$input = isset( $_POST['easyrankly'] ) && is_array( $_POST['easyrankly'] ) ? wp_unslash( $_POST['easyrankly'] ) : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitized per key through sanitize_meta().
 
+		$term = get_term( $term_id );
+		if ( ! $term instanceof \WP_Term ) {
+			return;
+		}
+
 		foreach ( Meta::fields() as $name => $field ) {
-			$key   = Meta::PREFIX . $name;
-			$value = sanitize_meta( $key, $input[ $name ] ?? $field['default'], 'term' );
+			$key = Meta::PREFIX . $name;
+			// The keys are registered per taxonomy, so their sanitize callbacks need it.
+			$value = sanitize_meta( $key, $input[ $name ] ?? $field['default'], 'term', $term->taxonomy );
 
 			if ( $value === $field['default'] || '' === $value ) {
 				delete_term_meta( $term_id, $key );
