@@ -127,14 +127,19 @@ function SeoPanels() {
 										<img
 											src={
 												image.media_details?.sizes
-													?.medium?.source_url ??
+													?.large?.source_url ??
 												image.source_url
 											}
 											alt={ image.alt_text ?? '' }
+											// 1.91:1 and centered crop, like the large cards of Facebook, LinkedIn and X.
 											style={ {
 												display: 'block',
-												maxWidth: '100%',
-												height: 'auto',
+												width: '100%',
+												aspectRatio: '1.91 / 1',
+												objectFit: 'cover',
+												border: '1px solid #ddd',
+												borderRadius: '2px',
+												boxSizing: 'border-box',
 											} }
 										/>
 									) }
