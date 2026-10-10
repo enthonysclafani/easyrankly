@@ -24,6 +24,12 @@ defined( 'ABSPATH' ) || exit;
 final class Titles {
 
 	/**
+	 * Names of the template variables, as the settings screen lists them: those of
+	 * variables(), plus `sep`, which Template::render() fills in from the settings.
+	 */
+	public const VARIABLES = array( 'title', 'sep', 'site_name', 'tagline', 'page', 'excerpt', 'term_description', 'author', 'post_type', 'category', 'date', 'search_query' );
+
+	/**
 	 * Hooks the title filter and the description tag.
 	 */
 	public function register(): void {
@@ -119,16 +125,7 @@ final class Titles {
 	 * @return string
 	 */
 	private static function override( string $field ): string {
-		$object = get_queried_object();
-
-		if ( $object instanceof \WP_Post && ( is_singular() || is_home() || is_front_page() ) ) {
-			return (string) Meta::post( $object->ID, $field );
-		}
-		if ( $object instanceof \WP_Term ) {
-			return (string) Meta::term( $object->term_id, $field );
-		}
-
-		return '';
+		return (string) Meta::queried( $field );
 	}
 
 	/**
@@ -160,7 +157,7 @@ final class Titles {
 			/* translators: %s: search query. */
 			$variables['title'] = sprintf( __( 'Search results for “%s”', 'easyrankly' ), $variables['search_query'] );
 		} elseif ( $object instanceof \WP_Post ) {
-			$variables['title']     = get_the_title( $object );
+			$variables['title']     = Template::post_title( $object );
 			$variables['excerpt']   = static fn(): string => Template::excerpt( $object );
 			$variables['author']    = static fn(): string => (string) get_the_author_meta( 'display_name', (int) $object->post_author );
 			$variables['post_type'] = (string) ( get_post_type_object( $object->post_type )->labels->singular_name ?? '' );

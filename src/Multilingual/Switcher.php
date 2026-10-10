@@ -33,17 +33,35 @@ final class Switcher {
 	 * Registers the block from its block.json, with the server render.
 	 *
 	 * In a development checkout without `npm run build` the editor script is missing and core
-	 * would complain on every request: the block is then registered without it, so existing
-	 * blocks still render (the admin notice of Assets explains the missing build).
+	 * would complain on every request: the block is then registered from block.json without it,
+	 * so existing blocks still render with their supports (the admin notice of Assets explains
+	 * the missing build).
 	 */
 	public function register_block(): void {
-		$args = array( 'render_callback' => array( self::class, 'render' ) );
-
-		if ( is_readable( dirname( PLUGIN_FILE ) . '/build/language-switcher.asset.php' ) ) {
-			register_block_type( dirname( PLUGIN_FILE ) . '/blocks/language-switcher', $args );
-		} else {
-			register_block_type( 'easyrankly/language-switcher', $args );
+		$built = is_readable( dirname( PLUGIN_FILE ) . '/build/language-switcher.asset.php' );
+		if ( ! $built ) {
+			add_filter( 'block_type_metadata', array( self::class, 'drop_editor_script' ) );
 		}
+
+		register_block_type( dirname( PLUGIN_FILE ) . '/blocks/language-switcher', array( 'render_callback' => array( self::class, 'render' ) ) );
+
+		if ( ! $built ) {
+			remove_filter( 'block_type_metadata', array( self::class, 'drop_editor_script' ) );
+		}
+	}
+
+	/**
+	 * Leaves the editor script out of the block's metadata, for checkouts without a build.
+	 *
+	 * @param mixed $metadata Metadata read from block.json.
+	 * @return mixed
+	 */
+	public static function drop_editor_script( $metadata ) {
+		if ( is_array( $metadata ) && 'easyrankly/language-switcher' === ( $metadata['name'] ?? null ) ) {
+			unset( $metadata['editorScript'] );
+		}
+
+		return $metadata;
 	}
 
 	/**
@@ -88,7 +106,6 @@ final class Switcher {
 			return array();
 		}
 
-		$home   = (string) get_option( 'home' ) . '/';
 		$object = get_queried_object();
 		$links  = array();
 
@@ -96,19 +113,17 @@ final class Switcher {
 			$versions = Translations::versions( $object->ID );
 			foreach ( array_keys( Languages::all() ) as $language ) {
 				$version = $versions[ $language ] ?? null;
-				$url     = $version instanceof \WP_Post && ( $version->ID === $object->ID || ( 'publish' === $version->post_status && '' === $version->post_password ) )
-					? get_permalink( $version )
-					: Routing::url( $home, $language );
+				$url     = $version instanceof \WP_Post && ( $version->ID === $object->ID || Translations::is_public( $version ) ) ? get_permalink( $version ) : false;
 
-				$links[ $language ] = is_string( $url ) ? $url : Routing::url( $home, $language );
+				$links[ $language ] = is_string( $url ) ? $url : Routing::home( $language );
 			}
 
 			return $links;
 		}
 
-		$page = is_404() || is_singular() ? $home : get_pagenum_link( 1, false );
+		$page = is_404() || is_singular() ? '' : get_pagenum_link( 1, false );
 		foreach ( array_keys( Languages::all() ) as $language ) {
-			$links[ $language ] = Routing::url( $page, $language );
+			$links[ $language ] = '' === $page ? Routing::home( $language ) : Routing::url( $page, $language );
 		}
 
 		return $links;

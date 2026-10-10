@@ -28,16 +28,31 @@ const languages = window.easyrankly?.languages ?? [];
 /**
  * Post IDs of a translations response, keyed by language.
  *
+ * Translations the user cannot read come without an ID: they are left out, and the API
+ * refuses the change because the user cannot edit them either.
+ *
  * @param {Object} translations Translations from the API.
  * @return {Object} Language => post ID.
  */
 function ids( translations ) {
 	return Object.fromEntries(
-		Object.entries( translations ).map( ( [ language, post ] ) => [
-			language,
-			post.id,
-		] )
+		Object.entries( translations )
+			.filter( ( [ , post ] ) => post.id > 0 )
+			.map( ( [ language, post ] ) => [ language, post.id ] )
 	);
+}
+
+/**
+ * Name of a translation in the panel.
+ *
+ * @param {Object} translation Translation from the API.
+ * @return {string} Title, ID, or a note for content the user cannot read.
+ */
+function label( translation ) {
+	if ( ! translation.id ) {
+		return __( 'content you cannot view', 'easyrankly' );
+	}
+	return translation.title || `#${ translation.id }`;
 }
 
 /**
@@ -171,28 +186,29 @@ function LanguagePanel() {
 										{ ': ' }
 										{ translation.edit_link ? (
 											<a href={ translation.edit_link }>
-												{ translation.title ||
-													`#${ translation.id }` }
+												{ label( translation ) }
 											</a>
 										) : (
-											translation.title ||
-											`#${ translation.id }`
+											label( translation )
 										) }
-										{ translation.status !== 'publish' &&
+										{ translation.status &&
+											translation.status !== 'publish' &&
 											` (${ translation.status })` }{ ' ' }
-										<Button
-											variant="link"
-											isDestructive
-											disabled={ busy }
-											onClick={ () =>
-												save( {
-													language: data.language,
-													translations: others,
-												} )
-											}
-										>
-											{ __( 'Unlink', 'easyrankly' ) }
-										</Button>
+										{ translation.id > 0 && (
+											<Button
+												variant="link"
+												isDestructive
+												disabled={ busy }
+												onClick={ () =>
+													save( {
+														language: data.language,
+														translations: others,
+													} )
+												}
+											>
+												{ __( 'Unlink', 'easyrankly' ) }
+											</Button>
+										) }
 									</div>
 								);
 							}

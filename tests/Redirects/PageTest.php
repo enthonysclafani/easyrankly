@@ -173,6 +173,15 @@ final class PageTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * A percent-encoded target typed in the form is stored as typed.
+	 */
+	public function test_form_keeps_percent_encoded_target(): void {
+		$this->load( array( 'action' => 'new' ), $this->form( 0, array( 'target' => '/caff%C3%A8?q=a%20b' ) ) );
+
+		$this->assertSame( '/caff%C3%A8?q=a%20b', Redirects::rule( (int) Redirects::find_id( Rule::hash( '/old-page' ) ) )['target'] ?? '' );
+	}
+
+	/**
 	 * An invalid form comes back with the error and the values typed.
 	 */
 	public function test_invalid_redirect_comes_back_with_error(): void {
@@ -292,6 +301,56 @@ final class PageTest extends WP_UnitTestCase {
 
 		$this->assertStringContainsString( 'message=activated', $location );
 		$this->assertSame( array( 'publish', 'publish' ), array( get_post_status( $first ), get_post_status( $second ) ) );
+	}
+
+	/**
+	 * A bulk change goes on after an error, and says what changed and what did not.
+	 */
+	public function test_bulk_activate_goes_on_after_an_error(): void {
+		Redirects::save_exact( '/a', '/b' );
+		$loop = (int) Redirects::save_exact( '/c', '/d' );
+		$fine = (int) Redirects::save_exact( '/e', '/f' );
+		foreach ( array( $loop, $fine ) as $id ) {
+			wp_update_post(
+				array(
+					'ID'          => $id,
+					'post_status' => 'draft',
+				)
+			);
+		}
+		// B → A would bounce with the active A → B: activating it must fail.
+		wp_update_post(
+			array(
+				'ID'         => $loop,
+				'post_title' => '/b',
+				'post_name'  => Rule::hash( '/b' ),
+				'meta_input' => array( Redirects::meta_key( 'target' ) => '/a' ),
+			)
+		);
+
+		$get      = array(
+			'page'     => Page::SLUG,
+			'action'   => 'activate',
+			'ids'      => array( (string) $loop, (string) $fine ),
+			'_wpnonce' => wp_create_nonce( 'bulk-' . Page::SLUG ),
+		);
+		$_GET     = $get;
+		$_REQUEST = $get;
+
+		$page = new Page();
+		$page->load();
+		$html = $this->render( $page );
+
+		$this->assertSame( array( 'draft', 'publish' ), array( get_post_status( $loop ), get_post_status( $fine ) ) );
+		$this->assertStringContainsString( "1 item changed. Not changed:<br>\n/b: ", $html );
+	}
+
+	/**
+	 * The search box says what it searches.
+	 */
+	public function test_search_box_names_sources(): void {
+		Redirects::save_exact( '/a', '/b' );
+		$this->assertStringContainsString( 'Search sources', $this->render() );
 	}
 
 	/**

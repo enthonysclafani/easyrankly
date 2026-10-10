@@ -17,6 +17,7 @@ use WP_UnitTestCase;
  * Changing translations needs the rights to edit every post involved.
  */
 final class RestTest extends WP_UnitTestCase {
+	use WithLanguages;
 
 	/**
 	 * Editor user.
@@ -37,25 +38,7 @@ final class RestTest extends WP_UnitTestCase {
 	 */
 	public function set_up(): void {
 		parent::set_up();
-		update_option(
-			Settings::OPTION,
-			array(
-				'languages' => array(
-					'it' => array(
-						'locale' => 'it_IT',
-						'name'   => 'Italiano',
-					),
-					'en' => array(
-						'locale' => 'en_US',
-						'name'   => 'English',
-					),
-					'fr' => array(
-						'locale' => 'fr_FR',
-						'name'   => 'Français',
-					),
-				),
-			)
-		);
+		$this->set_languages( 'it', 'en', 'fr' );
 
 		global $wp_rest_server;
 		$wp_rest_server = new \Spy_REST_Server();
@@ -118,6 +101,39 @@ final class RestTest extends WP_UnitTestCase {
 		$this->assertSame( $en, $data['translations']->en['id'] );
 		$this->assertSame( 'Hello & welcome', $data['translations']->en['title'] );
 		$this->assertObjectNotHasProperty( 'it', $data['translations'] );
+	}
+
+	/**
+	 * A translation the author cannot read only marks its language as taken.
+	 */
+	public function test_unreadable_translation_shows_only_its_language(): void {
+		$own     = self::factory()->post->create( array( 'post_author' => $this->author ) );
+		$private = self::factory()->post->create(
+			array(
+				'post_author' => $this->editor,
+				'post_status' => 'private',
+				'post_title'  => 'Secret',
+			)
+		);
+		Translations::link(
+			array(
+				'it' => $own,
+				'en' => $private,
+			)
+		);
+
+		wp_set_current_user( $this->author );
+		$data = $this->request( 'GET', '/' . $own )->get_data();
+
+		$this->assertSame(
+			array(
+				'id'        => 0,
+				'title'     => '',
+				'status'    => '',
+				'edit_link' => '',
+			),
+			$data['translations']->en
+		);
 	}
 
 	/**
@@ -341,6 +357,8 @@ final class RestTest extends WP_UnitTestCase {
 		if ( is_readable( dirname( __DIR__, 2 ) . '/build/languages.asset.php' ) ) {
 			$this->assertTrue( wp_script_is( 'easyrankly-languages', 'enqueued' ) );
 			$this->assertStringContainsString( '"slug":"en"', (string) wp_scripts()->get_data( 'easyrankly-languages', 'before' )[1] );
+			$switcher = generate_block_asset_handle( 'easyrankly/language-switcher', 'editorScript' );
+			$this->assertFalse( wp_scripts()->get_data( $switcher, 'before' ), 'The languages are printed once.' );
 		} else {
 			$this->assertSame( 10, has_action( 'admin_notices', array( \EasyRankly\Admin\Assets::class, 'missing_build_notice' ) ) );
 		}

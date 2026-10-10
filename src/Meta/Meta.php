@@ -10,7 +10,7 @@ namespace EasyRankly\Meta;
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Registers the SEO meta keys for every post type and taxonomy, and reads them.
+ * Registers the SEO meta keys for every viewable post type and taxonomy, and reads them.
  *
  * The same fields exist on posts and terms. Empty means "use the default":
  * templates, settings and core behavior decide, never a value copied here.
@@ -80,36 +80,85 @@ final class Meta {
 	}
 
 	/**
-	 * Registers every field for all post types and all taxonomies.
+	 * Registers every field for the viewable post types and taxonomies: those whose content
+	 * has a page of its own. Private types (redirects, snippets, navigation menus, templates)
+	 * and those of other plugins do not get SEO fields in their REST responses.
 	 *
-	 * Post meta reaches the REST API (and the block editor) only on post types that support
-	 * custom fields, so that support is added to every public post type shown in REST.
+	 * Types registered later (after init at priority 99) get the fields when they are registered.
 	 */
 	public function register_meta(): void {
+		foreach ( get_post_types() as $post_type ) {
+			$this->register_post_type_meta( $post_type );
+		}
+		foreach ( get_taxonomies() as $taxonomy ) {
+			$this->register_taxonomy_meta( $taxonomy );
+		}
+
+		add_action( 'registered_post_type', array( $this, 'register_post_type_meta' ) );
+		add_action( 'registered_taxonomy', array( $this, 'register_taxonomy_meta' ) );
+	}
+
+	/**
+	 * Registers the fields of a viewable post type.
+	 *
+	 * Post meta reaches the REST API (and the block editor) only on post types that support
+	 * custom fields, so that support is added where the SEO panel of the editor needs it.
+	 *
+	 * @param mixed $post_type Post type name.
+	 */
+	public function register_post_type_meta( $post_type ): void {
+		$post_type = (string) $post_type;
+		if ( ! is_post_type_viewable( $post_type ) ) {
+			return;
+		}
+
 		foreach ( self::fields() as $name => $field ) {
-			$args = array(
-				'type'              => $field['type'],
-				'description'       => $field['description'],
-				'default'           => $field['default'],
-				'single'            => true,
-				'sanitize_callback' => match ( true ) {
-					'canonical' === $name => array( self::class, 'sanitize_url' ),
-					'boolean' === $field['type'] => array( self::class, 'sanitize_boolean' ),
-					'integer' === $field['type'] => array( self::class, 'sanitize_integer' ),
-					default => array( self::class, 'sanitize_string' ),
-				},
-				'show_in_rest'      => true,
-			);
-
-			register_post_meta( '', self::PREFIX . $name, $args + array( 'auth_callback' => array( self::class, 'can_edit_post' ) ) );
-			register_term_meta( '', self::PREFIX . $name, $args + array( 'auth_callback' => array( self::class, 'can_edit_term' ) ) );
+			register_post_meta( $post_type, self::PREFIX . $name, self::args( $name, $field ) + array( 'auth_callback' => array( self::class, 'can_edit_post' ) ) );
 		}
 
-		foreach ( get_post_types( array( 'show_in_rest' => true ) ) as $post_type ) {
-			if ( is_post_type_viewable( $post_type ) && 'attachment' !== $post_type ) {
-				add_post_type_support( $post_type, 'custom-fields' );
-			}
+		$object = get_post_type_object( $post_type );
+		if ( null !== $object && $object->show_in_rest && 'attachment' !== $post_type ) {
+			add_post_type_support( $post_type, 'custom-fields' );
 		}
+	}
+
+	/**
+	 * Registers the fields of a viewable taxonomy.
+	 *
+	 * @param mixed $taxonomy Taxonomy name.
+	 */
+	public function register_taxonomy_meta( $taxonomy ): void {
+		$taxonomy = (string) $taxonomy;
+		if ( ! is_taxonomy_viewable( $taxonomy ) ) {
+			return;
+		}
+
+		foreach ( self::fields() as $name => $field ) {
+			register_term_meta( $taxonomy, self::PREFIX . $name, self::args( $name, $field ) + array( 'auth_callback' => array( self::class, 'can_edit_term' ) ) );
+		}
+	}
+
+	/**
+	 * Registration arguments of a field.
+	 *
+	 * @param string                                                   $name  Field name without prefix.
+	 * @param array{type: string, description: string, default: mixed} $field Field schema.
+	 * @return array<string, mixed>
+	 */
+	private static function args( string $name, array $field ): array {
+		return array(
+			'type'              => $field['type'],
+			'description'       => $field['description'],
+			'default'           => $field['default'],
+			'single'            => true,
+			'sanitize_callback' => match ( true ) {
+				'canonical' === $name => array( self::class, 'sanitize_url' ),
+				'boolean' === $field['type'] => array( self::class, 'sanitize_boolean' ),
+				'integer' === $field['type'] => array( self::class, 'sanitize_integer' ),
+				default => array( self::class, 'sanitize_string' ),
+			},
+			'show_in_rest'      => true,
+		);
 	}
 
 	/**
@@ -123,6 +172,46 @@ final class Meta {
 	 */
 	public static function post( int $post_id, string $name ): mixed {
 		return get_post_meta( $post_id, self::PREFIX . $name, true );
+	}
+
+	/**
+	 * Reads a field of the object the page is about: the post of a single page or of the
+	 * posts page, or the term of a term archive.
+	 *
+	 * @param string $name Field name without prefix.
+	 * @return mixed Null when the page has no such object (other archives, search, 404).
+	 */
+	public static function queried( string $name ): mixed {
+		$object = get_queried_object();
+
+		if ( $object instanceof \WP_Post && ( is_singular() || is_home() ) ) {
+			return self::post( $object->ID, $name );
+		}
+		if ( $object instanceof \WP_Term ) {
+			return self::term( $object->term_id, $name );
+		}
+
+		return null;
+	}
+
+	/**
+	 * Full-size image of an attachment with its alternative text, as pages share it.
+	 *
+	 * @param int $attachment_id Attachment ID.
+	 * @return array{url: string, width: int, height: int, alt: string}|null Null when it is not an image.
+	 */
+	public static function image( int $attachment_id ): ?array {
+		$source = $attachment_id > 0 ? wp_get_attachment_image_src( $attachment_id, 'full' ) : false;
+		if ( false === $source ) {
+			return null;
+		}
+
+		return array(
+			'url'    => (string) $source[0],
+			'width'  => (int) $source[1],
+			'height' => (int) $source[2],
+			'alt'    => trim( wp_strip_all_tags( (string) get_post_meta( $attachment_id, '_wp_attachment_image_alt', true ) ) ),
+		);
 	}
 
 	/**

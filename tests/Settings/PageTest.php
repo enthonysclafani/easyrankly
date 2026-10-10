@@ -7,6 +7,7 @@
 
 namespace EasyRankly\Tests\Settings;
 
+use EasyRankly\Admin\MediaField;
 use EasyRankly\Settings\Admin\Page;
 use EasyRankly\Settings\Settings;
 use WP_UnitTestCase;
@@ -234,12 +235,13 @@ final class PageTest extends WP_UnitTestCase {
 		foreach ( array_keys( Page::pages() ) as $slug ) {
 			$page = new Page();
 			$page->load( $slug );
-			$hooked = has_action( 'admin_enqueue_scripts', array( $page, 'enqueue_media' ) );
+			$hooked = has_action( 'admin_enqueue_scripts', array( MediaField::class, 'enqueue' ) );
+			remove_action( 'admin_enqueue_scripts', array( MediaField::class, 'enqueue' ) );
 
 			$this->assertSame( 'easyrankly-schema' === $slug ? 10 : false, $hooked, $slug );
 		}
 
-		( new Page() )->enqueue_media();
+		MediaField::enqueue();
 
 		$built = is_readable( dirname( __DIR__, 2 ) . '/build/media-field.asset.php' );
 		$this->assertSame( $built, wp_script_is( 'easyrankly-media-field', 'enqueued' ) );

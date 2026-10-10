@@ -61,17 +61,27 @@ final class Redirects {
 	);
 
 	/**
+	 * Whether a REST save of a redirect is under way: core saves the post before its meta,
+	 * so the lists wait for `rest_after_insert` and are rebuilt once, with the new meta.
+	 *
+	 * @var bool
+	 */
+	private bool $rest_saving = false;
+
+	/**
 	 * Hooks registration, validation, list rebuilds, the frontend runner and slug tracking.
 	 */
 	public function register(): void {
 		add_action( 'init', array( $this, 'register_post_type' ) );
 		add_filter( 'rest_pre_insert_' . self::POST_TYPE, array( $this, 'validate_rest' ), 10, 2 );
-		add_action( 'save_post_' . self::POST_TYPE, array( self::class, 'rebuild_lists' ) );
-		add_action( 'deleted_post', array( $this, 'on_delete' ), 10, 2 );
+		add_action( 'save_post_' . self::POST_TYPE, array( $this, 'on_save' ) );
+		// After clean_post_cache(), so the rebuild cannot read the deleted rule from a cached query.
+		add_action( 'after_delete_post', array( $this, 'on_delete' ), 10, 2 );
 		add_action( 'trashed_post', array( $this, 'on_status_change' ) );
 		add_action( 'untrashed_post', array( $this, 'on_status_change' ) );
 		add_filter( 'rest_' . self::POST_TYPE . '_trashable', '__return_false' );
-		add_action( 'rest_after_insert_' . self::POST_TYPE, array( self::class, 'rebuild_lists' ) );
+		add_action( 'rest_after_insert_' . self::POST_TYPE, array( $this, 'after_rest_save' ) );
+		add_filter( 'rest_request_after_callbacks', array( $this, 'after_rest_request' ) );
 
 		( new Runner() )->register();
 		( new SlugChanges() )->register();
@@ -122,7 +132,7 @@ final class Redirects {
 					'sanitize_callback' => match ( $type ) {
 						'integer' => 'absint',
 						'boolean' => 'rest_sanitize_boolean',
-						default   => 'sanitize_text_field',
+						default   => array( Rule::class, 'sanitize_target' ),
 					},
 					'auth_callback'     => static fn(): bool => current_user_can( 'manage_options' ),
 				)
@@ -185,8 +195,40 @@ final class Redirects {
 		$prepared->post_title  = $valid['source'];
 		$prepared->post_name   = $regex ? 'regex-' . md5( $valid['source'] ) : Rule::hash( $valid['source'] );
 		$prepared->post_status = $status;
+		$this->rest_saving     = true;
 
 		return $prepared;
+	}
+
+	/**
+	 * Rebuilds the lists when a redirect is saved outside REST, where the meta is already saved.
+	 */
+	public function on_save(): void {
+		if ( ! $this->rest_saving ) {
+			self::rebuild_lists();
+		}
+	}
+
+	/**
+	 * Rebuilds the lists once a REST save has written the post and its meta.
+	 */
+	public function after_rest_save(): void {
+		$this->rest_saving = false;
+		self::rebuild_lists();
+	}
+
+	/**
+	 * Rebuilds the lists if a REST save stopped after validation, before `rest_after_insert`.
+	 *
+	 * @param mixed $response Response of the REST request.
+	 * @return mixed
+	 */
+	public function after_rest_request( $response ) {
+		if ( $this->rest_saving ) {
+			$this->after_rest_save();
+		}
+
+		return $response;
 	}
 
 	/**
@@ -221,9 +263,10 @@ final class Redirects {
 			return new \WP_Error( 'easyrankly_redirect_duplicate', __( 'A redirect for this source already exists.', 'easyrankly' ) );
 		}
 
-		// A → B while B → A exists would bounce the visitor between the two forever.
+		// A → B while an active B → A exists would bounce the visitor between the two forever.
+		// An inactive B → A is checked again when someone activates it (through REST, so here).
 		if ( '' !== $valid['target'] && Rule::is_internal( Rule::target_url( $valid['target'] ) ) ) {
-			$back = self::find_id( Rule::hash( Rule::normalize( $valid['target'] ) ), array( 'publish', 'draft' ) );
+			$back = self::find_id( Rule::hash( Rule::normalize( $valid['target'] ) ) );
 			$rule = null !== $back && $back !== $id ? self::rule( $back ) : null;
 			if ( null !== $rule && '' !== $rule['target'] && Rule::is_internal( Rule::target_url( $rule['target'] ) ) && Rule::normalize( $rule['target'] ) === $valid['source'] ) {
 				return new \WP_Error( 'easyrankly_redirect_loop', __( 'Another redirect already sends the target back to this source.', 'easyrankly' ) );
@@ -234,7 +277,10 @@ final class Redirects {
 	}
 
 	/**
-	 * Creates or updates an exact redirect outside REST (slug changes). Validates like REST.
+	 * Creates or updates an active exact redirect outside REST (slug changes).
+	 *
+	 * Runs the same checks as REST (check()): a rule that already exists for the source
+	 * is updated, one that would loop with an active rule is refused.
 	 *
 	 * @param string $source Source path.
 	 * @param string $target Target path or URL.
@@ -242,22 +288,21 @@ final class Redirects {
 	 * @return int|\WP_Error Redirect ID.
 	 */
 	public static function save_exact( string $source, string $target, int $code = 301 ) {
-		$existing = Rule::validate( $source, $target, $code, false );
-		if ( is_wp_error( $existing ) ) {
-			return $existing;
+		$id    = (int) self::find_id( Rule::hash( Rule::normalize( $source ) ), array( 'publish', 'draft' ) );
+		$valid = self::check( $source, $target, $code, false, $id );
+		if ( is_wp_error( $valid ) ) {
+			return $valid;
 		}
 
-		$id = (int) self::find_id( Rule::hash( $existing['source'] ), array( 'publish', 'draft' ) );
-
-		$id = wp_insert_post(
+		return wp_insert_post(
 			array(
 				'ID'          => $id,
 				'post_type'   => self::POST_TYPE,
 				'post_status' => 'publish',
-				'post_title'  => $existing['source'],
-				'post_name'   => Rule::hash( $existing['source'] ),
+				'post_title'  => $valid['source'],
+				'post_name'   => Rule::hash( $valid['source'] ),
 				'meta_input'  => array(
-					self::meta_key( 'target' ) => $existing['target'],
+					self::meta_key( 'target' ) => $valid['target'],
 					self::meta_key( 'code' )   => $code,
 					self::meta_key( 'regex' )  => false,
 					self::meta_key( 'forced' ) => false,
@@ -265,8 +310,6 @@ final class Redirects {
 			),
 			true
 		);
-
-		return $id;
 	}
 
 	/**

@@ -9,6 +9,7 @@ namespace EasyRankly\Tests\Titles;
 
 use EasyRankly\Meta\Meta;
 use EasyRankly\Settings\Settings;
+use EasyRankly\Titles\Titles;
 use WP_UnitTestCase;
 
 /**
@@ -70,6 +71,30 @@ final class TitlesTest extends WP_UnitTestCase {
 
 		$this->assertSame( 'Hello World - Site', wp_get_document_title() );
 		$this->assertSame( '<meta name="description" content="About &quot;this&quot; &amp; that." />' . "\n", $this->head() );
+	}
+
+	/**
+	 * Protected and private posts keep their own title, without the prefixes of get_the_title().
+	 */
+	public function test_protected_and_private_titles_have_no_prefix(): void {
+		$protected = self::factory()->post->create(
+			array(
+				'post_title'    => 'Locked',
+				'post_password' => 'secret',
+			)
+		);
+		$this->go_to( get_permalink( $protected ) );
+		$this->assertSame( 'Locked - Site', wp_get_document_title() );
+
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
+		$private = self::factory()->post->create(
+			array(
+				'post_title'  => 'Hidden',
+				'post_status' => 'private',
+			)
+		);
+		$this->go_to( get_permalink( $private ) );
+		$this->assertSame( 'Hidden - Site', wp_get_document_title() );
 	}
 
 	/**
@@ -205,5 +230,27 @@ final class TitlesTest extends WP_UnitTestCase {
 		update_option( Settings::OPTION, array( 'templates' => array( 'bogus' => array( 'title' => 'x' ) ) ) );
 
 		$this->assertArrayNotHasKey( 'bogus', Settings::value( 'templates' ) );
+	}
+
+	/**
+	 * The variables listed on the settings screen are those the templates understand.
+	 */
+	public function test_variables_list_matches_templates(): void {
+		$author = self::factory()->user->create( array( 'display_name' => 'Ann' ) );
+		$term   = self::factory()->category->create();
+		$post   = self::factory()->post->create(
+			array(
+				'post_author'   => $author,
+				'post_category' => array( $term ),
+			)
+		);
+		$seen   = array( 'sep' );
+
+		foreach ( array( get_permalink( $post ), get_category_link( $term ), get_author_posts_url( $author ), home_url( '/?s=x' ), home_url( '/?m=' . gmdate( 'Y' ) ) ) as $url ) {
+			$this->go_to( $url );
+			$seen = array_merge( $seen, array_keys( Titles::variables() ) );
+		}
+
+		$this->assertEqualSets( Titles::VARIABLES, array_values( array_unique( $seen ) ) );
 	}
 }

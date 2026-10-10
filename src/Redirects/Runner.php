@@ -7,6 +7,8 @@
 
 namespace EasyRankly\Redirects;
 
+use EasyRankly\Context\Context;
+
 defined( 'ABSPATH' ) || exit;
 
 /**
@@ -33,7 +35,7 @@ final class Runner {
 			return;
 		}
 
-		$rule = $this->find( Rule::normalize( self::request_uri() ) );
+		$rule = $this->find( Rule::normalize( Context::request_uri() ) );
 		if ( null !== $rule ) {
 			$this->send( $rule['code'], $rule['target'] );
 		}
@@ -86,7 +88,8 @@ final class Runner {
 			'target' => $rule['target'],
 		) : null;
 
-		wp_cache_set( $key, $hit ?? array(), Redirects::CACHE_GROUP, HOUR_IN_SECONDS );
+		// Every distinct address without a rule adds an entry: misses expire sooner than hits.
+		wp_cache_set( $key, $hit ?? array(), Redirects::CACHE_GROUP, null === $hit ? MINUTE_IN_SECONDS : HOUR_IN_SECONDS );
 
 		return $hit;
 	}
@@ -173,7 +176,7 @@ final class Runner {
 		$url = Rule::target_url( $target );
 
 		if ( Rule::is_internal( $url ) ) {
-			if ( Rule::normalize( $url ) === Rule::normalize( self::request_uri() ) ) {
+			if ( Rule::normalize( $url ) === Rule::normalize( Context::request_uri() ) ) {
 				return;
 			}
 			if ( wp_safe_redirect( $url, $code, 'EasyRankly' ) ) {
@@ -185,14 +188,5 @@ final class Runner {
 		if ( Rule::is_absolute_url( $url ) && wp_redirect( $url, $code, 'EasyRankly' ) ) { // phpcs:ignore WordPress.Security.SafeRedirect.wp_redirect_wp_redirect -- External target saved by an administrator and checked with wp_http_validate_url() then; checked again here without a DNS lookup.
 			exit;
 		}
-	}
-
-	/**
-	 * Path and query of the current request.
-	 *
-	 * @return string
-	 */
-	private static function request_uri(): string {
-		return isset( $_SERVER['REQUEST_URI'] ) ? esc_url_raw( wp_unslash( $_SERVER['REQUEST_URI'] ) ) : '/';
 	}
 }

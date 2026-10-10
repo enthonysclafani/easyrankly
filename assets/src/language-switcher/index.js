@@ -6,10 +6,10 @@ import { registerBlockType } from '@wordpress/blocks';
 import { useBlockProps } from '@wordpress/block-editor';
 import { __ } from '@wordpress/i18n';
 
-const languages = window.easyrankly?.languages ?? [];
-
 function Edit() {
 	const blockProps = useBlockProps();
+	// Read at render: the languages may be printed with another editor script.
+	const languages = window.easyrankly?.languages ?? [];
 
 	return (
 		<nav { ...blockProps } aria-label={ __( 'Languages', 'easyrankly' ) }>

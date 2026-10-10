@@ -65,7 +65,7 @@ abstract class RecordsPage {
 	abstract protected function can_manage(): bool;
 
 	/**
-	 * Texts of the screen: title, add, edit, empty, saved, deleted, activated, deactivated, confirm.
+	 * Texts of the screen: title, add, edit, empty, search, saved, deleted, activated, deactivated, confirm.
 	 *
 	 * @return array<string, string>
 	 */
@@ -217,7 +217,7 @@ abstract class RecordsPage {
 
 		echo '<form method="get">';
 		printf( '<input type="hidden" name="page" value="%s" />', esc_attr( $this->slug() ) );
-		$table->search_box( __( 'Search', 'easyrankly' ), $this->slug() );
+		$table->search_box( $this->label( 'search' ), $this->slug() );
 		$table->display();
 		echo '</form>';
 	}
@@ -236,6 +236,13 @@ abstract class RecordsPage {
 		printf( '<h1>%s</h1>', esc_html( null === $post ? $this->label( 'add' ) : $this->label( 'edit' ) ) );
 		$this->notices();
 		$this->messages();
+
+		// The form shows the record as stored: only those who may edit it get to read it.
+		if ( null !== $post && ! current_user_can( 'edit_post', $post->ID ) ) {
+			printf( '<div class="notice notice-error"><p>%s</p></div>', esc_html__( 'Sorry, you are not allowed to edit this item.', 'easyrankly' ) );
+			printf( '<p><a href="%1$s">%2$s</a></p>', esc_url( $this->url() ), esc_html__( 'Back to the list', 'easyrankly' ) );
+			return;
+		}
 
 		$id = null === $post ? 0 : $post->ID;
 		printf(
@@ -321,16 +328,19 @@ abstract class RecordsPage {
 		check_admin_referer( 'easyrankly-delete_' . $this->slug() );
 
 		$deleted = 0;
+		$errors  = array();
 		foreach ( $this->ids() as $id ) {
-			$result = $this->dispatch( 'DELETE', $id, array( 'force' => true ) );
-			if ( is_wp_error( $result ) ) {
-				$this->error = $result->get_error_message();
-				return;
+			$error = $this->failure( $id, $this->dispatch( 'DELETE', $id, array( 'force' => true ) ) );
+			if ( null === $error ) {
+				++$deleted;
+			} else {
+				$errors[] = $error;
 			}
-			++$deleted;
 		}
 
-		$this->redirect(
+		$this->finish(
+			$deleted,
+			$errors,
 			array(
 				'message' => 'deleted',
 				'count'   => $deleted,
@@ -360,22 +370,59 @@ abstract class RecordsPage {
 	}
 
 	/**
-	 * Changes the status of records through REST; stops at the first error, which the list shows.
+	 * Changes the status of records through REST, going on after an error.
 	 *
 	 * @param string $action "activate" or "deactivate".
 	 * @param int[]  $ids    Record IDs.
 	 */
 	private function toggle( string $action, array $ids ): void {
+		$done   = 0;
+		$errors = array();
 		foreach ( $ids as $id ) {
-			$result = $this->dispatch( 'POST', $id, array( 'status' => 'activate' === $action ? 'publish' : 'draft' ) );
-			if ( is_wp_error( $result ) ) {
-				$post        = $this->record( $id );
-				$this->error = null === $post ? $result->get_error_message() : $post->post_title . ': ' . $result->get_error_message();
-				return;
+			$error = $this->failure( $id, $this->dispatch( 'POST', $id, array( 'status' => 'activate' === $action ? 'publish' : 'draft' ) ) );
+			if ( null === $error ) {
+				++$done;
+			} else {
+				$errors[] = $error;
 			}
 		}
 
-		$this->redirect( array( 'message' => 'activate' === $action ? 'activated' : 'deactivated' ) );
+		$this->finish( $done, $errors, array( 'message' => 'activate' === $action ? 'activated' : 'deactivated' ) );
+	}
+
+	/**
+	 * Message of a failed change on one record, or null when it succeeded.
+	 *
+	 * @param int            $id     Record ID.
+	 * @param true|\WP_Error $result Result of the change.
+	 * @return string|null
+	 */
+	private function failure( int $id, $result ): ?string {
+		if ( ! is_wp_error( $result ) ) {
+			return null;
+		}
+
+		$post = $this->record( $id );
+
+		return null === $post ? $result->get_error_message() : $post->post_title . ': ' . $result->get_error_message();
+	}
+
+	/**
+	 * Back to the list with a message when every change succeeded; otherwise stays on the
+	 * view and says how many changed and which did not, one per line.
+	 *
+	 * @param int                  $done   Records changed.
+	 * @param string[]             $errors One message per record not changed.
+	 * @param array<string, mixed> $args   Query arguments of the success message.
+	 */
+	private function finish( int $done, array $errors, array $args ): void {
+		if ( array() === $errors ) {
+			$this->redirect( $args );
+		}
+
+		/* translators: %d: number of items changed. */
+		$summary     = sprintf( _n( '%d item changed. Not changed:', '%d items changed. Not changed:', $done, 'easyrankly' ), $done );
+		$this->error = implode( "\n", array_merge( array( $summary ), $errors ) );
 	}
 
 	/**
@@ -409,7 +456,7 @@ abstract class RecordsPage {
 	 */
 	private function messages(): void {
 		if ( '' !== $this->error ) {
-			printf( '<div class="notice notice-error"><p>%s</p></div>', esc_html( $this->error ) );
+			printf( '<div class="notice notice-error"><p>%s</p></div>', nl2br( esc_html( $this->error ), false ) );
 			return;
 		}
 

@@ -102,4 +102,48 @@ final class TemplateTest extends WP_UnitTestCase {
 
 		$this->assertSame( 'Short summary.', Template::excerpt( $post ) );
 	}
+
+	/**
+	 * A long manual excerpt is cut like a generated one, so descriptions keep their length.
+	 */
+	public function test_long_manual_excerpt_is_cut(): void {
+		$post = self::factory()->post->create_and_get( array( 'post_excerpt' => str_repeat( 'summary ', 60 ) ) );
+
+		$excerpt = Template::excerpt( $post );
+
+		$this->assertStringEndsWith( 'summary…', $excerpt );
+		$this->assertLessThanOrEqual( Template::EXCERPT_LENGTH + 1, mb_strlen( $excerpt ) );
+	}
+
+	/**
+	 * Title, social tags and schema ask for the same summary: the content is parsed once.
+	 */
+	public function test_content_excerpt_is_worked_out_once(): void {
+		$post   = self::factory()->post->create_and_get(
+			array(
+				'post_excerpt' => '',
+				'post_content' => '<!-- wp:paragraph --><p>Some text.</p><!-- /wp:paragraph -->',
+			)
+		);
+		$parsed = 0;
+		add_filter(
+			'block_parser_class',
+			static function ( $parser ) use ( &$parsed ) {
+				++$parsed;
+				return $parser;
+			}
+		);
+
+		$first  = Template::excerpt( $post );
+		$once   = $parsed;
+		$second = Template::excerpt( $post );
+
+		$this->assertSame( 'Some text.', $first );
+		$this->assertSame( $first, $second );
+		$this->assertGreaterThan( 0, $once );
+		$this->assertSame( $once, $parsed );
+
+		$post->post_content = '<!-- wp:paragraph --><p>Other text.</p><!-- /wp:paragraph -->';
+		$this->assertSame( 'Other text.', Template::excerpt( $post ) );
+	}
 }

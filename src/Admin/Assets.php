@@ -22,7 +22,7 @@ final class Assets {
 	 * the plugin use the admin classes of the core, and in the block editor the core already loads the
 	 * `wp-components` styles (a dependency of `wp-edit-post`).
 	 *
-	 * @param string $entry Entry point name from package.json (e.g. "editor").
+	 * @param string $entry Entry point name from webpack.config.js (e.g. "editor").
 	 * @return bool False when the build is missing; a notice then explains how to build it.
 	 */
 	public static function enqueue( string $entry ): bool {

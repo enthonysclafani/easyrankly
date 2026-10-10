@@ -274,6 +274,10 @@ final class HreflangTest extends WP_UnitTestCase {
 
 		update_post_meta( $map['fr'], '_easyrankly_noindex', true );
 		$this->assertArrayNotHasKey( 'fr-FR', Hreflang::alternates() );
+
+		// The URLs follow the options they are built from.
+		update_option( 'home', 'http://example.net' );
+		$this->assertStringStartsWith( 'http://example.net/', Hreflang::alternates()['x-default'] ?? '' );
 	}
 
 	/**

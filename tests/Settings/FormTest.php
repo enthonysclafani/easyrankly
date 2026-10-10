@@ -7,6 +7,8 @@
 
 namespace EasyRankly\Tests\Settings;
 
+use EasyRankly\Multilingual\Menus;
+use EasyRankly\Multilingual\Translations;
 use EasyRankly\Settings\Admin\Form;
 use EasyRankly\Settings\Admin\Page;
 use EasyRankly\Settings\Settings;
@@ -381,6 +383,141 @@ final class FormTest extends WP_UnitTestCase {
 
 		$stored = $this->save( 'easyrankly-languages', array( 'languages' => $rows ) );
 		$this->assertSame( array( 'en' => array( 10 => 12 ) ), $stored['navigation_menus'] );
+	}
+
+	/**
+	 * Rows of the two current languages, as the page posts them.
+	 *
+	 * @param array<string, string> $en Fields that change in the English row.
+	 * @return list<array<string, string>>
+	 */
+	private function rows( array $en = array() ): array {
+		return array(
+			array(
+				'order'    => '1',
+				'previous' => 'it',
+				'slug'     => 'it',
+				'locale'   => 'it_IT',
+				'name'     => 'Italiano',
+			),
+			array_merge(
+				array(
+					'order'    => '2',
+					'previous' => 'en',
+					'slug'     => 'en',
+					'locale'   => 'en_US',
+					'name'     => 'English',
+				),
+				$en
+			),
+		);
+	}
+
+	/**
+	 * Content without a language belongs to the first language: another one cannot come first
+	 * until that content has a language.
+	 */
+	public function test_languages_page_keeps_default_while_content_has_no_language(): void {
+		$post = self::factory()->post->create();
+
+		$stored = $this->save( 'easyrankly-languages', array( 'languages' => $this->rows( array( 'order' => '0' ) ) ) );
+		$this->assertSame( array( 'it', 'en' ), array_keys( $stored['languages'] ) );
+		$this->assertSame( array( 'easyrankly_languages' ), $this->errors() );
+
+		$GLOBALS['wp_settings_errors'] = array();
+		$stored                        = $this->save( 'easyrankly-languages', array( 'languages' => array( $this->rows()[1] ) ) );
+		$this->assertSame( array( 'it', 'en' ), array_keys( $stored['languages'] ), 'The default language cannot be removed either.' );
+
+		Translations::set_language( $post, 'it' );
+		$GLOBALS['wp_settings_errors'] = array();
+		$stored                        = $this->save( 'easyrankly-languages', array( 'languages' => $this->rows( array( 'order' => '0' ) ) ) );
+		$this->assertSame( array( 'en', 'it' ), array_keys( $stored['languages'] ) );
+		$this->assertSame( array(), $this->errors() );
+		$this->assertSame( 'it', Translations::language( $post ) );
+	}
+
+	/**
+	 * A new prefix renames the language: its content, title templates and menus follow it.
+	 */
+	public function test_languages_page_renames_a_language(): void {
+		$post = self::factory()->post->create();
+		Translations::set_language( $post, 'en' );
+		set_theme_mod( 'nav_menu_locations', array( Menus::location( 'primary', 'en' ) => 7 ) );
+
+		$stored = $this->save(
+			'easyrankly-languages',
+			array(
+				'languages'        => $this->rows( array( 'slug' => 'en-gb' ) ),
+				'navigation_menus' => array( 'en' => array( '10' => '12' ) ),
+			)
+		);
+
+		$this->assertSame( array( 'it', 'en-gb' ), array_keys( $stored['languages'] ) );
+		$this->assertSame( 'en-gb', Translations::language( $post ) );
+		$this->assertSame( array( 'en-gb' ), array_keys( $stored['language_templates'] ) );
+		$this->assertSame( array( 'en-gb' => array( 10 => 12 ) ), $stored['navigation_menus'] );
+		$this->assertSame( array( Menus::location( 'primary', 'en-gb' ) => 7 ), get_theme_mod( 'nav_menu_locations' ) );
+	}
+
+	/**
+	 * A prefix still used by the content of a removed language cannot be given to another one.
+	 */
+	public function test_languages_page_refuses_prefix_of_removed_content(): void {
+		wp_set_object_terms( self::factory()->post->create(), 'de', Translations::LANGUAGE );
+		$post = self::factory()->post->create();
+		Translations::set_language( $post, 'en' );
+
+		$stored = $this->save( 'easyrankly-languages', array( 'languages' => $this->rows( array( 'slug' => 'de' ) ) ) );
+
+		$this->assertSame( array( 'it', 'en' ), array_keys( $stored['languages'] ) );
+		$this->assertSame( array( 'easyrankly_languages' ), $this->errors() );
+		$this->assertSame( 'en', Translations::language( $post ) );
+	}
+
+	/**
+	 * When one of several renames is refused, no content changes language.
+	 */
+	public function test_languages_page_refused_rename_moves_no_content(): void {
+		$french = array(
+			'order'    => '3',
+			'previous' => 'fr',
+			'slug'     => 'fr',
+			'locale'   => 'fr_FR',
+			'name'     => 'Français',
+		);
+		$this->save( 'easyrankly-languages', array( 'languages' => array_merge( $this->rows(), array( $french ) ) ) );
+		wp_set_object_terms( self::factory()->post->create(), 'de', Translations::LANGUAGE );
+		$english = self::factory()->post->create();
+		$fr_post = self::factory()->post->create();
+		Translations::set_language( $english, 'en' );
+		Translations::set_language( $fr_post, 'fr' );
+
+		$rows   = array_merge( $this->rows( array( 'slug' => 'es' ) ), array( array( 'slug' => 'de' ) + $french ) );
+		$stored = $this->save( 'easyrankly-languages', array( 'languages' => $rows ) );
+
+		$this->assertSame( array( 'it', 'en', 'fr' ), array_keys( $stored['languages'] ) );
+		$this->assertSame( array( 'easyrankly_languages' ), $this->errors() );
+		$this->assertSame( 'en', Translations::language( $english ) );
+		$this->assertSame( 'fr', Translations::language( $fr_post ) );
+	}
+
+	/**
+	 * Removing a language removes its title templates and menu choices.
+	 */
+	public function test_languages_page_removal_drops_language_data(): void {
+		$this->save(
+			'easyrankly-languages',
+			array(
+				'languages'        => $this->rows(),
+				'navigation_menus' => array( 'en' => array( '10' => '12' ) ),
+			)
+		);
+
+		$stored = $this->save( 'easyrankly-languages', array( 'languages' => $this->rows( array( 'remove' => '1' ) ) ) );
+
+		$this->assertSame( array( 'it' ), array_keys( $stored['languages'] ) );
+		$this->assertSame( array(), $stored['language_templates'] );
+		$this->assertSame( array(), $stored['navigation_menus'] );
 	}
 
 	/**

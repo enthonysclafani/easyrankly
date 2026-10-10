@@ -11,23 +11,26 @@
 defined( 'WP_UNINSTALL_PLUGIN' ) || exit;
 
 // Redirects (src/Redirects/Redirects.php) and snippets (src/CustomCode/CustomCode.php): posts with
-// their meta and revisions first, then the caches built from them.
+// their meta and revisions first, then the caches built from them. Each post is tried once, so
+// one that cannot be deleted does not stop the others.
+$easyrankly_tried = array();
 do {
-	$easyrankly_ids     = get_posts(
+	$easyrankly_ids = get_posts(
 		array(
 			'post_type'        => array( 'erankly_redirect', 'erankly_snippet' ),
 			'post_status'      => array_keys( get_post_stati() ),
+			'post__not_in'     => $easyrankly_tried,
 			'posts_per_page'   => 100,
 			'fields'           => 'ids',
 			'no_found_rows'    => true,
 			'suppress_filters' => true,
 		)
 	);
-	$easyrankly_deleted = 0;
 	foreach ( $easyrankly_ids as $easyrankly_id ) {
-		$easyrankly_deleted += wp_delete_post( (int) $easyrankly_id, true ) ? 1 : 0;
+		$easyrankly_tried[] = (int) $easyrankly_id;
+		wp_delete_post( (int) $easyrankly_id, true );
 	}
-} while ( $easyrankly_deleted > 0 );
+} while ( array() !== $easyrankly_ids );
 
 // Languages and translation groups (src/Multilingual/): the plugin is not loaded here, so the
 // taxonomies are registered (if missing) just to delete their terms, which removes the relationships too.
@@ -35,20 +38,23 @@ foreach ( array( 'erankly_language', 'erankly_translation' ) as $easyrankly_taxo
 	if ( ! taxonomy_exists( $easyrankly_taxonomy ) ) {
 		register_taxonomy( $easyrankly_taxonomy, array() );
 	}
+	$easyrankly_tried = array();
 	do {
-		$easyrankly_terms   = get_terms(
+		$easyrankly_terms = get_terms(
 			array(
 				'taxonomy'   => $easyrankly_taxonomy,
 				'hide_empty' => false,
+				'exclude'    => $easyrankly_tried,
 				'fields'     => 'ids',
 				'number'     => 100,
 			)
 		);
-		$easyrankly_deleted = 0;
-		foreach ( is_array( $easyrankly_terms ) ? $easyrankly_terms : array() as $easyrankly_term ) {
-			$easyrankly_deleted += true === wp_delete_term( (int) $easyrankly_term, $easyrankly_taxonomy ) ? 1 : 0;
+		$easyrankly_terms = is_array( $easyrankly_terms ) ? $easyrankly_terms : array();
+		foreach ( $easyrankly_terms as $easyrankly_term ) {
+			$easyrankly_tried[] = (int) $easyrankly_term;
+			wp_delete_term( (int) $easyrankly_term, $easyrankly_taxonomy );
 		}
-	} while ( $easyrankly_deleted > 0 );
+	} while ( array() !== $easyrankly_terms );
 }
 
 // Language menu locations (src/Multilingual/Menus.php): the core stores the menus assigned to them in
@@ -68,6 +74,27 @@ foreach ( array_unique( array_merge( array( get_stylesheet() ), array_keys( wp_g
 		update_option( 'theme_mods_' . $easyrankly_theme, $easyrankly_mods );
 	}
 }
+
+// Notices about redirects not created after an address change (src/Redirects/SlugChanges.php): one
+// transient per user, only for users whose role can change addresses. Others, if any, expire in a day
+// and the core removes them with the other expired transients.
+$easyrankly_offset = 0;
+do {
+	$easyrankly_users = get_users(
+		array(
+			'capability__in' => array( 'edit_pages', 'edit_posts', 'manage_categories' ),
+			'fields'         => 'ID',
+			'number'         => 500,
+			'offset'         => $easyrankly_offset,
+			'orderby'        => 'ID',
+			'count_total'    => false,
+		)
+	);
+	foreach ( $easyrankly_users as $easyrankly_user ) {
+		delete_transient( 'easyrankly_redirect_notice_' . (int) $easyrankly_user );
+	}
+	$easyrankly_offset += 500;
+} while ( array() !== $easyrankly_users );
 
 delete_option( 'easyrankly_settings' );
 delete_option( 'easyrankly_redirects_forced' );

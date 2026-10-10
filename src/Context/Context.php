@@ -69,4 +69,13 @@ final class Context {
 
 		return array();
 	}
+
+	/**
+	 * Path and query of the current request, as the browser asked for them.
+	 *
+	 * @return string
+	 */
+	public static function request_uri(): string {
+		return isset( $_SERVER['REQUEST_URI'] ) ? esc_url_raw( wp_unslash( $_SERVER['REQUEST_URI'] ) ) : '/';
+	}
 }

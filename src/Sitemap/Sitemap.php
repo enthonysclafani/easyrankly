@@ -71,73 +71,97 @@ final class Sitemap {
 	}
 
 	/**
-	 * Leaves out posts or terms with their own noindex or with a canonical override.
-	 *
-	 * The same meta query is valid for WP_Query and WP_Term_Query.
+	 * Terms query: leaves out the terms with their own noindex or a canonical override.
 	 *
 	 * @param mixed $args Query arguments.
 	 * @return mixed
 	 */
 	public function filter_query_args( $args ) {
-		if ( ! is_array( $args ) ) {
+		if ( ! is_array( $args ) || ! isset( $args['taxonomy'] ) ) {
 			return $args;
 		}
 
-		$conditions = array(
-			'relation' => 'AND',
+		$excluded = get_terms(
 			array(
-				'relation' => 'OR',
-				array(
-					'key'     => Meta::PREFIX . 'noindex',
-					'compare' => 'NOT EXISTS',
-				),
-				array(
-					'key'     => Meta::PREFIX . 'noindex',
-					'value'   => '1',
-					'compare' => '!=',
-				),
-			),
-			array(
-				'relation' => 'OR',
-				array(
-					'key'     => Meta::PREFIX . 'canonical',
-					'compare' => 'NOT EXISTS',
-				),
-				array(
-					'key'   => Meta::PREFIX . 'canonical',
-					'value' => '',
-				),
-			),
+				'taxonomy'               => $args['taxonomy'],
+				'hide_empty'             => false,
+				'fields'                 => 'ids',
+				'update_term_meta_cache' => false,
+				'meta_query'             => self::excluded_meta_query(), // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- Sitemap requests only, one join on the meta_key index.
+			)
 		);
 
-		$args['meta_query'] = isset( $args['meta_query'] ) && is_array( $args['meta_query'] ) // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- Sitemap requests only, cached by page caches; there is no other way to skip noindex objects.
-			? array(
-				'relation' => 'AND',
-				$args['meta_query'],
-				$conditions,
-			)
-			: $conditions;
-
-		return $args;
+		return self::exclude( $args, 'exclude', is_array( $excluded ) ? $excluded : array() );
 	}
 
 	/**
-	 * Posts query: the common conditions plus the posts redirected by forced rules.
+	 * Posts query: leaves out the posts with their own noindex or a canonical override, and
+	 * the posts redirected by forced rules.
 	 *
 	 * @param mixed $args Query arguments.
 	 * @return mixed
 	 */
 	public function filter_posts_query_args( $args ) {
-		$args = $this->filter_query_args( $args );
-		if ( ! is_array( $args ) ) {
+		if ( ! is_array( $args ) || ! isset( $args['post_type'] ) ) {
 			return $args;
 		}
 
-		$redirected = self::redirected_post_ids();
-		if ( array() !== $redirected ) {
-			$excluded             = isset( $args['post__not_in'] ) && is_array( $args['post__not_in'] ) ? $args['post__not_in'] : array();
-			$args['post__not_in'] = array_values( array_unique( array_merge( array_map( 'intval', $excluded ), $redirected ) ) );
+		$excluded = get_posts(
+			array(
+				'post_type'              => $args['post_type'],
+				'post_status'            => $args['post_status'] ?? 'publish',
+				'posts_per_page'         => -1,
+				'orderby'                => 'none',
+				'fields'                 => 'ids',
+				'update_post_meta_cache' => false,
+				'update_post_term_cache' => false,
+				'meta_query'             => self::excluded_meta_query(), // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- Sitemap requests only, one join on the meta_key index.
+			)
+		);
+
+		return self::exclude( $args, 'post__not_in', array_merge( $excluded, self::redirected_post_ids() ) );
+	}
+
+	/**
+	 * Meta query of the objects with their own noindex or a canonical override.
+	 *
+	 * It runs as a separate query whose IDs are then excluded: excluding them inside the
+	 * sitemap query needs NOT EXISTS and != clauses, which join every meta row of every
+	 * object and took seconds per sitemap page on a site with 50,000 posts.
+	 *
+	 * @return array<int|string, mixed>
+	 */
+	private static function excluded_meta_query(): array {
+		return array(
+			'relation' => 'OR',
+			array(
+				'key'   => Meta::PREFIX . 'noindex',
+				'value' => '1',
+			),
+			// Any non-empty canonical. Unlike !=, > shares the join with the clause above.
+			array(
+				'key'     => Meta::PREFIX . 'canonical',
+				'value'   => '',
+				'compare' => '>',
+			),
+		);
+	}
+
+	/**
+	 * Adds IDs to the exclusion argument of a query, keeping those already there.
+	 *
+	 * @param array<mixed> $args Query arguments.
+	 * @param string       $key  post__not_in or exclude.
+	 * @param array<mixed> $ids  IDs to leave out.
+	 * @return array<mixed>
+	 */
+	private static function exclude( array $args, string $key, array $ids ): array {
+		if ( array() === $ids ) {
+			return $args;
 		}
+
+		$existing     = isset( $args[ $key ] ) ? wp_parse_id_list( $args[ $key ] ) : array();
+		$args[ $key ] = array_values( array_unique( array_merge( $existing, array_map( 'intval', $ids ) ) ) );
 
 		return $args;
 	}

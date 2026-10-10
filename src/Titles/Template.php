@@ -69,21 +69,41 @@ final class Template {
 	}
 
 	/**
-	 * Description-length summary of a post: its excerpt, or the start of its content.
+	 * Description-length summary of a post: its excerpt, or the start of its content, both
+	 * cut to EXCERPT_LENGTH.
 	 *
 	 * Shortcodes are removed without running them; only text blocks are kept (core excerpt rules).
+	 * Title, social tags and schema ask for it on the same page: the summary of the content is
+	 * kept in the object cache, keyed by the content itself, so it is worked out once.
 	 *
 	 * @param \WP_Post $post Post.
 	 * @return string
 	 */
 	public static function excerpt( \WP_Post $post ): string {
 		if ( '' !== trim( $post->post_excerpt ) ) {
-			return self::plain( $post->post_excerpt );
+			return self::truncate( self::plain( $post->post_excerpt ), self::EXCERPT_LENGTH );
 		}
 
-		$text = self::plain( strip_shortcodes( excerpt_remove_blocks( $post->post_content ) ) );
+		$key  = 'excerpt:' . md5( $post->post_content );
+		$text = wp_cache_get( $key, 'easyrankly' );
+		if ( ! is_string( $text ) ) {
+			$text = self::truncate( self::plain( strip_shortcodes( excerpt_remove_blocks( $post->post_content ) ) ), self::EXCERPT_LENGTH );
+			wp_cache_set( $key, $text, 'easyrankly', HOUR_IN_SECONDS );
+		}
 
-		return self::truncate( $text, self::EXCERPT_LENGTH );
+		return $text;
+	}
+
+	/**
+	 * Title of a post as the document title shows it: without the "Protected:" and "Private:"
+	 * prefixes get_the_title() adds on the frontend.
+	 *
+	 * @param \WP_Post $post Post.
+	 * @return string May contain markup and entities.
+	 */
+	public static function post_title( \WP_Post $post ): string {
+		/** This filter is documented in wp-includes/general-template.php */
+		return (string) apply_filters( 'single_post_title', $post->post_title, $post ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core filter, applied as the core does for the document title.
 	}
 
 	/**

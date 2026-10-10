@@ -29,7 +29,12 @@ final class RobotsTxtTest extends WP_UnitTestCase {
 	 * @return string
 	 */
 	private function robots_txt(): string {
-		return get_echo( 'do_robots' );
+		return get_echo(
+			static function (): void {
+				// WordPress 7.0 sends the Content-Type header even after output (7.1 checks headers_sent()).
+				@do_robots(); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- Only the header warning of the test run is silenced.
+			}
+		);
 	}
 
 	/**

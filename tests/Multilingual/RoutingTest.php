@@ -7,6 +7,7 @@
 
 namespace EasyRankly\Tests\Multilingual;
 
+use EasyRankly\Multilingual\Requests;
 use EasyRankly\Multilingual\Routing;
 use EasyRankly\Multilingual\Translations;
 use EasyRankly\Settings\Settings;
@@ -130,6 +131,19 @@ final class RoutingTest extends WP_UnitTestCase {
 		$this->assertSame( 'http://example.org/english/', Routing::url( 'http://example.org/english/', 'it' ) );
 		$this->assertSame( 'http://example.org.evil/hello/', Routing::url( 'http://example.org.evil/hello/', 'en' ) );
 		$this->assertSame( 'https://other.test/hello/', Routing::url( 'https://other.test/hello/', 'en' ) );
+	}
+
+	/**
+	 * With the site in a folder, only paths inside that folder lose it: "/blogen/" is not "/blog/en/".
+	 */
+	public function test_site_folder_ends_at_a_slash(): void {
+		update_option( 'home', 'http://example.org/blog' );
+
+		$_SERVER['REQUEST_URI'] = '/blog/en/hello/';
+		$this->assertSame( 'en', Routing::current() );
+
+		$_SERVER['REQUEST_URI'] = '/blogen/hello/';
+		$this->assertSame( 'it', Routing::current() );
 	}
 
 	/**
@@ -262,7 +276,7 @@ final class RoutingTest extends WP_UnitTestCase {
 	 * Single content under another language's prefix is sent to its own URL.
 	 */
 	public function test_wrong_language_redirects_to_own_url(): void {
-		$routing = new Routing();
+		$routing = new Requests();
 		$en      = $this->post( 'en', array( 'post_name' => 'hello-en' ) );
 		$it      = $this->post( 'it', array( 'post_name' => 'ciao' ) );
 
@@ -318,7 +332,7 @@ final class RoutingTest extends WP_UnitTestCase {
 		$this->assertSame( $front_en, get_queried_object_id() );
 		$this->assertSame( 'http://example.org/', get_permalink( $front ) );
 		$this->assertSame( 'http://example.org/en/', get_permalink( $front_en ) );
-		$this->assertSame( '', ( new Routing() )->wrong_language_target() );
+		$this->assertSame( '', ( new Requests() )->wrong_language_target() );
 
 		$this->go_to( 'http://example.org/en/blog-en/' );
 		$this->assertTrue( is_home() );

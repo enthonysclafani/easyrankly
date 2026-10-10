@@ -43,7 +43,8 @@ final class Rule {
 		$path = (string) wp_parse_url( $url, PHP_URL_PATH );
 		$path = mb_strtolower( rawurldecode( $path ) );
 		$path = '/' . trim( (string) preg_replace( '#/+#', '/', $path ), '/' );
-		$home = untrailingslashit( (string) wp_parse_url( home_url(), PHP_URL_PATH ) );
+		// The stored home: on the pages of a language home_url() is the home of that language.
+		$home = untrailingslashit( (string) wp_parse_url( (string) get_option( 'home' ), PHP_URL_PATH ) );
 
 		if ( '' !== $home && '/' !== $home ) {
 			$home = mb_strtolower( $home );
@@ -75,7 +76,10 @@ final class Rule {
 	 * @return string
 	 */
 	public static function compile( string $pattern ): string {
-		return '#(*LIMIT_MATCH=100000)(*LIMIT_DEPTH=10000)' . str_replace( '#', '\#', $pattern ) . '#iu';
+		// Escape the delimiter, but not a "#" the administrator already escaped: "\#" would become "\\#".
+		$pattern = (string) preg_replace( '/(?<!\\\\)((?:\\\\\\\\)*)#/', '$1\\#', $pattern );
+
+		return '#(*LIMIT_MATCH=100000)(*LIMIT_DEPTH=10000)' . $pattern . '#iu';
 	}
 
 	/**
@@ -130,6 +134,26 @@ final class Rule {
 		}
 
 		return $target;
+	}
+
+	/**
+	 * Target as stored: trimmed, with its percent-encoded octets kept.
+	 *
+	 * Used as the meta sanitize callback, so every way of writing a redirect keeps
+	 * "/caff%C3%A8?q=a%20b" as typed; sanitize_text_field() would strip the "%XX".
+	 * Whether the target is acceptable is decided by validate().
+	 *
+	 * @param mixed $value Raw target.
+	 * @return string
+	 */
+	public static function sanitize_target( $value ): string {
+		$target = is_scalar( $value ) ? trim( wp_check_invalid_utf8( (string) $value ) ) : '';
+
+		if ( '' === $target ) {
+			return '';
+		}
+
+		return str_starts_with( $target, '/' ) && ! str_starts_with( $target, '//' ) ? esc_url_raw( $target ) : esc_url_raw( $target, array( 'http', 'https' ) );
 	}
 
 	/**

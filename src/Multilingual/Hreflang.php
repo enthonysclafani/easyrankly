@@ -31,6 +31,20 @@ final class Hreflang {
 	 */
 	public function register(): void {
 		add_action( 'wp_head', array( $this, 'print_links' ), 1 );
+		foreach ( array( 'added_option', 'updated_option', 'deleted_option' ) as $hook ) {
+			add_action( $hook, array( self::class, 'on_option_change' ) );
+		}
+	}
+
+	/**
+	 * Expires the cached alternates when an option their URLs depend on changes.
+	 *
+	 * @param mixed $option Option name.
+	 */
+	public static function on_option_change( $option ): void {
+		if ( in_array( $option, array( Settings::OPTION, 'show_on_front', 'page_on_front', 'permalink_structure', 'home' ), true ) ) {
+			wp_cache_set_last_changed( 'easyrankly' );
+		}
 	}
 
 	/**
@@ -59,7 +73,7 @@ final class Hreflang {
 		} elseif ( is_home() || ( is_front_page() && ! $object instanceof \WP_Post ) ) {
 			$urls = array();
 			foreach ( array_keys( Languages::all() ) as $language ) {
-				$urls[ $language ] = Routing::url( (string) get_option( 'home' ) . '/', $language );
+				$urls[ $language ] = Routing::home( $language );
 			}
 		} else {
 			return array();
@@ -98,7 +112,8 @@ final class Hreflang {
 	/**
 	 * URLs of the indexable versions of a post, keyed by language, when the post itself is one.
 	 *
-	 * Cached in the object cache until a post, its meta, a term relationship or the settings change.
+	 * Cached in the object cache until a post, its meta, a term relationship, the settings or the
+	 * front page and permalink options change (see on_option_change()).
 	 *
 	 * @param \WP_Post $post Post being viewed.
 	 * @return array<string, string>
@@ -109,8 +124,7 @@ final class Hreflang {
 			return array();
 		}
 
-		$key  = 'hreflang:' . $group->term_id . ':' . wp_cache_get_last_changed( 'posts' ) . ':' . wp_cache_get_last_changed( 'terms' ) . ':'
-			. md5( (string) wp_json_encode( array( get_option( Settings::OPTION ), get_option( 'show_on_front' ), get_option( 'page_on_front' ), get_option( 'permalink_structure' ), get_option( 'home' ) ) ) );
+		$key  = 'hreflang:' . $group->term_id . ':' . wp_cache_get_last_changed( 'posts' ) . ':' . wp_cache_get_last_changed( 'terms' ) . ':' . wp_cache_get_last_changed( 'easyrankly' );
 		$urls = wp_cache_get( $key, 'easyrankly' );
 		if ( is_array( $urls ) ) {
 			return isset( $urls[ $post->ID ] ) ? array_column( $urls, 'url', 'language' ) : array();
@@ -142,8 +156,7 @@ final class Hreflang {
 	 * @return bool
 	 */
 	private static function indexable( \WP_Post $post ): bool {
-		return 'publish' === $post->post_status
-			&& '' === $post->post_password
+		return Translations::is_public( $post )
 			&& ! (bool) Meta::post( $post->ID, 'noindex' )
 			&& '' === (string) Meta::post( $post->ID, 'canonical' );
 	}
