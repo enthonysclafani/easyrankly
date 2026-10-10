@@ -8,7 +8,9 @@
 namespace EasyRankly\Tests\Sitemap;
 
 use EasyRankly\Meta\Meta;
+use EasyRankly\Redirects\Redirects;
 use EasyRankly\Settings\Settings;
+use EasyRankly\Sitemap\Sitemap;
 use WP_UnitTestCase;
 
 /**
@@ -25,6 +27,14 @@ final class SitemapTest extends WP_UnitTestCase {
 		update_option( 'blog_public', '1' );
 		delete_option( Settings::OPTION );
 		$GLOBALS['wp_sitemaps'] = null;
+	}
+
+	/**
+	 * Back to plain permalinks: the rewrite globals outlive the database rollback.
+	 */
+	public function tear_down(): void {
+		$this->set_permalink_structure( '' );
+		parent::tear_down();
 	}
 
 	/**
@@ -89,6 +99,80 @@ final class SitemapTest extends WP_UnitTestCase {
 		$this->assertSame( '', get_term_meta( $term_id, '_easyrankly_canonical', true ) );
 		$this->assertContains( get_permalink( $post_id ), $this->urls( 'posts', 'post' ) );
 		$this->assertContains( get_category_link( $term_id ), $this->urls( 'taxonomies', 'category' ) );
+	}
+
+	/**
+	 * Posts that an exact forced redirect sends elsewhere are left out; regex rules and
+	 * paths that only resemble a post's address are not considered.
+	 */
+	public function test_posts_with_forced_redirect_are_left_out(): void {
+		$this->set_permalink_structure( '/%postname%/' );
+		$kept       = self::factory()->post->create( array( 'post_name' => 'kept' ) );
+		$redirected = self::factory()->post->create( array( 'post_name' => 'moved' ) );
+		$gone       = self::factory()->post->create( array( 'post_name' => 'gone' ) );
+		$by_regex   = self::factory()->post->create( array( 'post_name' => 'regex-only' ) );
+		$page       = self::factory()->post->create(
+			array(
+				'post_type' => 'page',
+				'post_name' => 'old-page',
+			)
+		);
+
+		update_option(
+			Redirects::FORCED_OPTION,
+			array(
+				array(
+					'source' => '/moved',
+					'regex'  => false,
+					'target' => '/kept',
+					'code'   => 301,
+				),
+				array(
+					'source' => '/gone',
+					'regex'  => false,
+					'target' => '',
+					'code'   => 410,
+				),
+				array(
+					'source' => '^/regex-only$',
+					'regex'  => true,
+					'target' => '/kept',
+					'code'   => 301,
+				),
+				array(
+					'source' => '/kept/2',
+					'regex'  => false,
+					'target' => '/',
+					'code'   => 302,
+				),
+				array(
+					'source' => '/old-page',
+					'regex'  => false,
+					'target' => 'https://example.org/new/',
+					'code'   => 301,
+				),
+			),
+			true
+		);
+
+		$posts = $this->urls( 'posts', 'post' );
+		$this->assertContains( get_permalink( $kept ), $posts );
+		$this->assertContains( get_permalink( $by_regex ), $posts );
+		$this->assertNotContains( get_permalink( $redirected ), $posts );
+		$this->assertNotContains( get_permalink( $gone ), $posts );
+		$this->assertNotContains( get_permalink( $page ), $this->urls( 'posts', 'page' ) );
+	}
+
+	/**
+	 * Without forced redirects the query gets no exclusion list.
+	 */
+	public function test_no_forced_redirects_adds_no_exclusion(): void {
+		delete_option( Redirects::FORCED_OPTION );
+
+		$args = ( new Sitemap() )->filter_posts_query_args( array( 'post_type' => 'post' ) );
+
+		$this->assertIsArray( $args );
+		$this->assertArrayNotHasKey( 'post__not_in', $args );
 	}
 
 	/**
