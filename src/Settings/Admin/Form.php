@@ -168,7 +168,7 @@ final class Form {
 	}
 
 	/**
-	 * Schema and social page: identity, profiles and sharing defaults.
+	 * Schema and social page: identity, local business, profiles and sharing defaults.
 	 *
 	 * @param array<mixed> $value Posted values.
 	 * @return array<string, mixed>
@@ -192,7 +192,56 @@ final class Form {
 			$settings['same_as'] = array_values( array_unique( array_filter( $lines, static fn( string $line ): bool => '' !== $line ) ) );
 		}
 
+		if ( isset( $value['local_business'] ) && is_array( $value['local_business'] ) ) {
+			$settings['local_business'] = self::local_business( $value['local_business'] );
+		}
+
 		return $settings;
+	}
+
+	/**
+	 * Local business details from their fields.
+	 *
+	 * Coordinates accept a decimal comma. A time range with only one end is kept as it is, so the
+	 * schema rejects it and the page says so, instead of dropping it without a word.
+	 *
+	 * @param array<mixed> $posted Posted local_business fields.
+	 * @return array<string, mixed>
+	 */
+	private static function local_business( array $posted ): array {
+		$text     = static fn( string $key ): string => trim( is_string( $posted[ $key ] ?? null ) ? $posted[ $key ] : '' );
+		$business = array(
+			'type'           => '' !== $text( 'type' ) ? $text( 'type' ) : 'LocalBusiness',
+			'street_address' => $text( 'street_address' ),
+			'locality'       => $text( 'locality' ),
+			'region'         => $text( 'region' ),
+			'postal_code'    => $text( 'postal_code' ),
+			'country'        => strtoupper( $text( 'country' ) ),
+			'telephone'      => $text( 'telephone' ),
+			'hours'          => array(),
+		);
+
+		foreach ( array( 'latitude', 'longitude' ) as $key ) {
+			$number           = str_replace( ',', '.', $text( $key ) );
+			$business[ $key ] = '' === $number ? null : ( is_numeric( $number ) ? (float) $number : $number );
+		}
+
+		$hours = is_array( $posted['hours'] ?? null ) ? $posted['hours'] : array();
+		foreach ( Settings::WEEKDAYS as $day ) {
+			$ranges = array();
+			foreach ( is_array( $hours[ $day ] ?? null ) ? $hours[ $day ] : array() as $slot ) {
+				$opens  = is_array( $slot ) && is_string( $slot['opens'] ?? null ) ? trim( $slot['opens'] ) : '';
+				$closes = is_array( $slot ) && is_string( $slot['closes'] ?? null ) ? trim( $slot['closes'] ) : '';
+				if ( '' !== $opens || '' !== $closes ) {
+					$ranges[] = $opens . '-' . $closes;
+				}
+			}
+			if ( array() !== $ranges ) {
+				$business['hours'][ $day ] = $ranges;
+			}
+		}
+
+		return $business;
 	}
 
 	/**

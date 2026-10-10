@@ -17,7 +17,7 @@ use EasyRankly\Titles\Titles;
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Prints one JSON-LD graph per page: the site's Organization or Person, WebSite,
+ * Prints one JSON-LD graph per page: the site's Organization (or local business) or Person, WebSite,
  * WebPage, Article on posts, and BreadcrumbList when the page shows a breadcrumb.
  *
  * Nodes reference each other by @id, so search engines read one connected graph
@@ -168,16 +168,21 @@ final class Schema {
 	}
 
 	/**
-	 * The Organization or Person the site represents.
+	 * The Organization, local business or Person the site represents.
+	 *
+	 * A local business is an Organization of a more specific type (Restaurant, Dentist…) with
+	 * address, phone, coordinates and opening hours; it keeps the #organization @id.
 	 *
 	 * @param string $home Home URL.
 	 * @return array<string, mixed>
 	 */
 	private function identity( string $home ): array {
-		$is_person = 'person' === Settings::value( 'identity_type' );
+		$identity  = (string) Settings::value( 'identity_type' );
+		$is_person = 'person' === $identity;
 		$name      = (string) Settings::value( 'identity_name' );
 		$same_as   = Settings::value( 'same_as' );
 		$logo      = Settings::image( 'identity_logo' );
+		$business  = 'local_business' === $identity ? (array) Settings::value( 'local_business' ) : null;
 
 		$node = array(
 			'@type' => $is_person ? 'Person' : 'Organization',
@@ -186,15 +191,77 @@ final class Schema {
 			'url'   => $home,
 		);
 
+		if ( null !== $business ) {
+			$type          = is_string( $business['type'] ?? null ) ? $business['type'] : '';
+			$node['@type'] = 1 === preg_match( '/' . Settings::BUSINESS_TYPE_PATTERN . '/', $type ) ? $type : 'LocalBusiness';
+		}
 		if ( null !== $logo ) {
 			// Copied in the settings: no attachment to load on every page.
 			$node[ $is_person ? 'image' : 'logo' ] = self::image_object( $logo, $home . ( $is_person ? '#personimage' : '#logo' ) );
+			if ( null !== $business ) {
+				$node['image'] = array( '@id' => $home . '#logo' );
+			}
 		}
 		if ( is_array( $same_as ) && array() !== $same_as ) {
 			$node['sameAs'] = array_values( $same_as );
 		}
 
-		return $node;
+		return null === $business ? $node : $node + self::business_details( $business );
+	}
+
+	/**
+	 * Address, phone, coordinates and opening hours of a local business, without empty fields.
+	 *
+	 * @param array<mixed> $business The local_business setting.
+	 * @return array<string, mixed>
+	 */
+	private static function business_details( array $business ): array {
+		$text = static fn( string $key ): string => is_string( $business[ $key ] ?? null ) ? trim( $business[ $key ] ) : '';
+
+		$address = array_filter(
+			array(
+				'streetAddress'   => $text( 'street_address' ),
+				'addressLocality' => $text( 'locality' ),
+				'addressRegion'   => $text( 'region' ),
+				'postalCode'      => $text( 'postal_code' ),
+				'addressCountry'  => $text( 'country' ),
+			)
+		);
+
+		$details = array(
+			'address'   => array() === $address ? null : array( '@type' => 'PostalAddress' ) + $address,
+			'telephone' => '' !== $text( 'telephone' ) ? $text( 'telephone' ) : null,
+		);
+
+		if ( is_numeric( $business['latitude'] ?? null ) && is_numeric( $business['longitude'] ?? null ) ) {
+			$details['geo'] = array(
+				'@type'     => 'GeoCoordinates',
+				'latitude'  => (float) $business['latitude'],
+				'longitude' => (float) $business['longitude'],
+			);
+		}
+
+		// One specification per time range, listing every day that has it.
+		$ranges = array();
+		$hours  = is_array( $business['hours'] ?? null ) ? $business['hours'] : array();
+		foreach ( Settings::WEEKDAYS as $day ) {
+			foreach ( is_array( $hours[ $day ] ?? null ) ? $hours[ $day ] : array() as $range ) {
+				if ( is_string( $range ) && 1 === preg_match( '/^(\d\d:\d\d)-(\d\d:\d\d)$/', $range ) ) {
+					$ranges[ $range ][] = $day;
+				}
+			}
+		}
+		foreach ( $ranges as $range => $days ) {
+			list( $opens, $closes )                 = explode( '-', (string) $range );
+			$details['openingHoursSpecification'][] = array(
+				'@type'     => 'OpeningHoursSpecification',
+				'dayOfWeek' => $days,
+				'opens'     => $opens,
+				'closes'    => $closes,
+			);
+		}
+
+		return array_filter( $details, static fn( $value ): bool => null !== $value );
 	}
 
 	/**

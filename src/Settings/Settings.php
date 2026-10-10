@@ -34,6 +34,16 @@ final class Settings {
 	public const IMAGES = array( 'identity_logo', 'social_image' );
 
 	/**
+	 * Days of the opening hours, as schema.org names them.
+	 */
+	public const WEEKDAYS = array( 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday' );
+
+	/**
+	 * A schema.org type name, such as LocalBusiness, Restaurant or Dentist.
+	 */
+	public const BUSINESS_TYPE_PATTERN = '^[A-Z][A-Za-z]{1,49}$';
+
+	/**
 	 * Attachment meta that changes what a copied image shows.
 	 */
 	private const IMAGE_META = array( '_wp_attached_file', '_wp_attachment_metadata', '_wp_attachment_image_alt' );
@@ -52,6 +62,18 @@ final class Settings {
 		'identity_name'         => '',
 		'identity_logo'         => 0,
 		'same_as'               => array(),
+		'local_business'        => array(
+			'type'           => 'LocalBusiness',
+			'street_address' => '',
+			'locality'       => '',
+			'region'         => '',
+			'postal_code'    => '',
+			'country'        => '',
+			'telephone'      => '',
+			'latitude'       => null,
+			'longitude'      => null,
+			'hours'          => array(),
+		),
 		'breadcrumb_home_label' => '',
 		'breadcrumb_taxonomies' => array(),
 		'robots_txt'            => '',
@@ -183,9 +205,9 @@ final class Settings {
 				'default'     => self::DEFAULTS['x_username'],
 			),
 			'identity_type'         => array(
-				'description' => __( 'Whether the site represents an organization or a person (schema.org).', 'easyrankly' ),
+				'description' => __( 'Whether the site represents an organization, a local business or a person (schema.org).', 'easyrankly' ),
 				'type'        => 'string',
-				'enum'        => array( 'organization', 'person' ),
+				'enum'        => array( 'organization', 'local_business', 'person' ),
 				'default'     => self::DEFAULTS['identity_type'],
 			),
 			'identity_name'         => array(
@@ -213,6 +235,7 @@ final class Settings {
 				'uniqueItems' => true,
 				'default'     => self::DEFAULTS['same_as'],
 			),
+			'local_business'        => self::local_business_schema(),
 			'breadcrumb_home_label' => array(
 				'description' => __( 'Label of the first item of the breadcrumb block. Empty keeps the WordPress label.', 'easyrankly' ),
 				'type'        => 'string',
@@ -362,6 +385,70 @@ final class Settings {
 					'maxLength' => 400,
 				),
 			),
+		);
+	}
+
+	/**
+	 * Schema of the local business details, used when identity_type is local_business.
+	 *
+	 * Opening hours: weekday => up to two "HH:MM-HH:MM" ranges (a lunch break splits the day);
+	 * a day without ranges is closed.
+	 *
+	 * @return array<string, mixed>
+	 */
+	private static function local_business_schema(): array {
+		$text  = static fn( int $max ): array => array(
+			'type'      => 'string',
+			'format'    => 'text-field',
+			'maxLength' => $max,
+		);
+		$range = array(
+			'type'     => 'array',
+			'items'    => array(
+				'type'    => 'string',
+				'pattern' => '^([01][0-9]|2[0-3]):[0-5][0-9]-([01][0-9]|2[0-3]):[0-5][0-9]$',
+			),
+			'maxItems' => 2,
+		);
+
+		return array(
+			'description'          => __( 'Type, address, phone, coordinates and opening hours of the local business (schema.org LocalBusiness).', 'easyrankly' ),
+			'type'                 => 'object',
+			'additionalProperties' => false,
+			'properties'           => array(
+				'type'           => array(
+					'type'    => 'string',
+					'pattern' => self::BUSINESS_TYPE_PATTERN,
+				),
+				'street_address' => $text( 200 ),
+				'locality'       => $text( 100 ),
+				'region'         => $text( 100 ),
+				'postal_code'    => $text( 20 ),
+				'country'        => array(
+					'type'    => 'string',
+					'pattern' => '^([A-Z]{2})?$',
+				),
+				'telephone'      => array(
+					'type'    => 'string',
+					'pattern' => '^[0-9+()./ -]{0,30}$',
+				),
+				'latitude'       => array(
+					'type'    => array( 'number', 'null' ),
+					'minimum' => -90,
+					'maximum' => 90,
+				),
+				'longitude'      => array(
+					'type'    => array( 'number', 'null' ),
+					'minimum' => -180,
+					'maximum' => 180,
+				),
+				'hours'          => array(
+					'type'                 => 'object',
+					'properties'           => array_fill_keys( self::WEEKDAYS, $range ),
+					'additionalProperties' => false,
+				),
+			),
+			'default'              => self::DEFAULTS['local_business'],
 		);
 	}
 

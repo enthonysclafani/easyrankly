@@ -168,6 +168,106 @@ final class SchemaTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * A local business is the organization with its own type, address, phone, coordinates and hours.
+	 */
+	public function test_local_business_identity_from_settings(): void {
+		$logo = self::factory()->attachment->create_object( 'logo.jpg', 0, array( 'post_mime_type' => 'image/jpeg' ) );
+		update_option(
+			Settings::OPTION,
+			array(
+				'identity_type'  => 'local_business',
+				'identity_name'  => 'Studio Rossi',
+				'identity_logo'  => $logo,
+				'local_business' => array(
+					'type'           => 'Dentist',
+					'street_address' => 'Via Roma 1',
+					'locality'       => 'Milano',
+					'postal_code'    => '20121',
+					'country'        => 'IT',
+					'telephone'      => '+39 02 1234567',
+					'latitude'       => 45.4642,
+					'longitude'      => 9.19,
+					'hours'          => array(
+						'Monday'   => array( '09:00-13:00', '15:00-19:00' ),
+						'Tuesday'  => array( '09:00-13:00', '15:00-19:00' ),
+						'Saturday' => array( '09:00-13:00' ),
+					),
+				),
+			)
+		);
+
+		$this->go_to( home_url( '/' ) );
+		$nodes = $this->nodes( new Schema() );
+		$home  = home_url( '/' );
+
+		$this->assertArrayNotHasKey( 'Organization', $nodes );
+		$business = $nodes['Dentist'];
+		$this->assertSame( $home . '#organization', $business['@id'] );
+		$this->assertSame( 'Studio Rossi', $business['name'] );
+		$this->assertSame( array( '@id' => $home . '#logo' ), $business['image'] );
+		$this->assertSame(
+			array(
+				'@type'           => 'PostalAddress',
+				'streetAddress'   => 'Via Roma 1',
+				'addressLocality' => 'Milano',
+				'postalCode'      => '20121',
+				'addressCountry'  => 'IT',
+			),
+			$business['address']
+		);
+		$this->assertSame( '+39 02 1234567', $business['telephone'] );
+		$this->assertEquals(
+			array(
+				'@type'     => 'GeoCoordinates',
+				'latitude'  => 45.4642,
+				'longitude' => 9.19,
+			),
+			$business['geo']
+		);
+		$this->assertSame(
+			array(
+				array(
+					'@type'     => 'OpeningHoursSpecification',
+					'dayOfWeek' => array( 'Monday', 'Tuesday', 'Saturday' ),
+					'opens'     => '09:00',
+					'closes'    => '13:00',
+				),
+				array(
+					'@type'     => 'OpeningHoursSpecification',
+					'dayOfWeek' => array( 'Monday', 'Tuesday' ),
+					'opens'     => '15:00',
+					'closes'    => '19:00',
+				),
+			),
+			$business['openingHoursSpecification']
+		);
+		$this->assertSame( array( '@id' => $home . '#organization' ), $nodes['WebSite']['publisher'] );
+	}
+
+	/**
+	 * Without details a local business is a plain LocalBusiness; an organization ignores the details.
+	 */
+	public function test_local_business_without_details_and_organization_ignores_them(): void {
+		update_option( Settings::OPTION, array( 'identity_type' => 'local_business' ) );
+		$this->go_to( home_url( '/' ) );
+		$nodes = $this->nodes( new Schema() );
+		$this->assertSame( array( '@type', '@id', 'name', 'url' ), array_keys( $nodes['LocalBusiness'] ) );
+
+		update_option(
+			Settings::OPTION,
+			array(
+				'identity_type'  => 'organization',
+				'local_business' => array(
+					'type'      => 'Dentist',
+					'telephone' => '+39 02 1234567',
+				),
+			)
+		);
+		$nodes = $this->nodes( new Schema() );
+		$this->assertArrayNotHasKey( 'telephone', $nodes['Organization'] );
+	}
+
+	/**
 	 * When the page renders the breadcrumb block, the graph has the same trail.
 	 */
 	public function test_breadcrumb_list_matches_rendered_block(): void {

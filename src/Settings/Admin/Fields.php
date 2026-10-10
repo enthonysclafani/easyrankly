@@ -72,6 +72,7 @@ final class Fields {
 			'identity_name'         => __( 'Name', 'easyrankly' ),
 			'identity_logo'         => __( 'Logo or photo', 'easyrankly' ),
 			'same_as'               => __( 'Profiles on other sites', 'easyrankly' ),
+			'local_business'        => __( 'Local business', 'easyrankly' ),
 			'social_image'          => __( 'Default image', 'easyrankly' ),
 			'x_username'            => __( 'X username', 'easyrankly' ),
 			'languages'             => __( 'Languages', 'easyrankly' ),
@@ -393,6 +394,19 @@ final class Fields {
 			array( 'label_for' => self::id( 'same_as' ) )
 		);
 
+		add_settings_section(
+			'local_business',
+			self::label( 'local_business' ),
+			array( self::class, 'paragraph' ),
+			$page,
+			array( 'paragraph' => __( 'Used only when the site represents a local business. Google needs at least the address; fill in what applies.', 'easyrankly' ) )
+		);
+		add_settings_field( 'local_business_type', __( 'Type of business', 'easyrankly' ), array( self::class, 'business_type' ), $page, 'local_business', array( 'label_for' => self::id( 'local_business', 'type' ) ) );
+		add_settings_field( 'local_business_address', __( 'Address', 'easyrankly' ), array( self::class, 'business_address' ), $page, 'local_business' );
+		add_settings_field( 'local_business_telephone', __( 'Phone', 'easyrankly' ), array( self::class, 'business_telephone' ), $page, 'local_business', array( 'label_for' => self::id( 'local_business', 'telephone' ) ) );
+		add_settings_field( 'local_business_geo', __( 'Coordinates', 'easyrankly' ), array( self::class, 'business_geo' ), $page, 'local_business' );
+		add_settings_field( 'local_business_hours', __( 'Opening hours', 'easyrankly' ), array( self::class, 'business_hours' ), $page, 'local_business' );
+
 		add_settings_section( 'social', __( 'Social sharing', 'easyrankly' ), '__return_null', $page );
 		add_settings_field(
 			'social_image',
@@ -560,8 +574,9 @@ final class Fields {
 
 		printf( '<fieldset><legend class="screen-reader-text">%s</legend>', esc_html( self::label( 'identity_type' ) ) );
 		foreach ( array(
-			'organization' => __( 'An organization', 'easyrankly' ),
-			'person'       => __( 'A person', 'easyrankly' ),
+			'organization'   => __( 'An organization', 'easyrankly' ),
+			'local_business' => __( 'A local business (shop, restaurant, office…)', 'easyrankly' ),
+			'person'         => __( 'A person', 'easyrankly' ),
 		) as $value => $label ) {
 			printf(
 				'<label><input type="radio" name="%1$s" value="%2$s"%3$s /> %4$s</label><br />',
@@ -572,6 +587,138 @@ final class Fields {
 			);
 		}
 		echo '</fieldset>';
+	}
+
+	/**
+	 * Type of the local business: a schema.org type, with the common ones suggested.
+	 */
+	public static function business_type(): void {
+		$types = array( 'LocalBusiness', 'Store', 'ClothingStore', 'Restaurant', 'CafeOrCoffeeShop', 'BarOrPub', 'Bakery', 'Hotel', 'HairSalon', 'BeautySalon', 'ExerciseGym', 'Dentist', 'Physician', 'MedicalClinic', 'Pharmacy', 'LegalService', 'AccountingService', 'RealEstateAgent', 'AutoRepair', 'Electrician', 'Plumber' );
+
+		self::business_input( 'type', 'text', array( 'list' => self::id( 'local_business', 'types' ) ) );
+		printf( '<datalist id="%s">', esc_attr( self::id( 'local_business', 'types' ) ) );
+		foreach ( $types as $type ) {
+			printf( '<option value="%s"></option>', esc_attr( $type ) );
+		}
+		echo '</datalist>';
+		printf(
+			'<p class="description">%1$s <a href="https://schema.org/LocalBusiness#subtypes">%2$s</a></p>',
+			esc_html__( 'A schema.org type, in English and without spaces. LocalBusiness fits any business.', 'easyrankly' ),
+			esc_html__( 'All types', 'easyrankly' )
+		);
+	}
+
+	/**
+	 * Postal address of the local business.
+	 */
+	public static function business_address(): void {
+		printf( '<fieldset><legend class="screen-reader-text">%s</legend>', esc_html__( 'Address', 'easyrankly' ) );
+		foreach ( array(
+			'street_address' => array( __( 'Street and number', 'easyrankly' ), 200 ),
+			'postal_code'    => array( __( 'Postal code', 'easyrankly' ), 20 ),
+			'locality'       => array( __( 'City', 'easyrankly' ), 100 ),
+			'region'         => array( __( 'Region or province', 'easyrankly' ), 100 ),
+			'country'        => array( __( 'Country (two-letter code, e.g. IT)', 'easyrankly' ), 2 ),
+		) as $field => list( $label, $max ) ) {
+			printf( '<p><label for="%1$s">%2$s</label><br />', esc_attr( self::id( 'local_business', $field ) ), esc_html( $label ) );
+			self::business_input( $field, 'text', array( 'maxlength' => (string) $max ) );
+			echo '</p>';
+		}
+		echo '</fieldset>';
+	}
+
+	/**
+	 * Phone of the local business.
+	 */
+	public static function business_telephone(): void {
+		self::business_input( 'telephone', 'tel', array( 'maxlength' => '30' ) );
+		printf( '<p class="description">%s</p>', esc_html__( 'With the international prefix, e.g. +39 02 1234567.', 'easyrankly' ) );
+	}
+
+	/**
+	 * Latitude and longitude of the local business.
+	 */
+	public static function business_geo(): void {
+		printf( '<fieldset><legend class="screen-reader-text">%s</legend>', esc_html__( 'Coordinates', 'easyrankly' ) );
+		foreach ( array(
+			'latitude'  => __( 'Latitude', 'easyrankly' ),
+			'longitude' => __( 'Longitude', 'easyrankly' ),
+		) as $field => $label ) {
+			printf( '<label for="%1$s">%2$s</label> ', esc_attr( self::id( 'local_business', $field ) ), esc_html( $label ) );
+			self::business_input( $field, 'text', array( 'inputmode' => 'decimal' ), 'small-text' );
+			echo ' ';
+		}
+		echo '</fieldset>';
+		printf( '<p class="description">%s</p>', esc_html__( 'Decimal degrees, e.g. 45.4642 and 9.19. On Google Maps, right-click the place to copy them.', 'easyrankly' ) );
+	}
+
+	/**
+	 * Opening hours: up to two time ranges per day, in the order of the site's week.
+	 */
+	public static function business_hours(): void {
+		global $wp_locale;
+
+		$hours = (array) ( ( (array) Settings::value( 'local_business' ) )['hours'] ?? array() );
+		$start = (int) get_option( 'start_of_week', 1 );
+		$days  = array();
+		for ( $i = 0; $i < 7; $i++ ) {
+			$days[] = ( $start + $i ) % 7; // 0 is Sunday, as in core.
+		}
+
+		printf( '<fieldset><legend class="screen-reader-text">%s</legend><table role="presentation"><tbody>', esc_html__( 'Opening hours', 'easyrankly' ) );
+		foreach ( $days as $index ) {
+			$day    = Settings::WEEKDAYS[ ( $index + 6 ) % 7 ];
+			$ranges = is_array( $hours[ $day ] ?? null ) ? array_values( $hours[ $day ] ) : array();
+			$name   = $wp_locale instanceof \WP_Locale ? $wp_locale->get_weekday( $index ) : $day;
+
+			printf( '<tr><td>%s</td>', esc_html( $name ) );
+			for ( $slot = 0; $slot < 2; $slot++ ) {
+				echo '<td>';
+				$parts = is_string( $ranges[ $slot ] ?? null ) ? explode( '-', $ranges[ $slot ] ) : array( '', '' );
+				foreach ( array(
+					'opens'  => __( 'opens', 'easyrankly' ),
+					'closes' => __( 'closes', 'easyrankly' ),
+				) as $edge => $edge_label ) {
+					printf(
+						'<input type="time" name="%1$s" value="%2$s" aria-label="%3$s" /> ',
+						esc_attr( self::name( 'local_business', 'hours', $day, (string) $slot, $edge ) ),
+						esc_attr( (string) ( 'opens' === $edge ? $parts[0] : ( $parts[1] ?? '' ) ) ),
+						/* translators: 1: weekday name, 2: the word opens or closes, 3: number of the time range. */
+						esc_attr( sprintf( __( '%1$s, %2$s (%3$d)', 'easyrankly' ), $name, $edge_label, $slot + 1 ) )
+					);
+				}
+				echo '</td>';
+			}
+			echo '</tr>';
+		}
+		echo '</tbody></table></fieldset>';
+		printf( '<p class="description">%s</p>', esc_html__( 'Leave a day empty when the business is closed. Use the second range for a lunch break; 00:00 to 23:59 means open all day.', 'easyrankly' ) );
+	}
+
+	/**
+	 * One input of the local business details.
+	 *
+	 * @param string                $field Key inside local_business.
+	 * @param string                $type  Input type.
+	 * @param array<string, string> $attrs Extra attributes.
+	 * @param string                $input_class Input class.
+	 */
+	private static function business_input( string $field, string $type, array $attrs = array(), string $input_class = 'regular-text' ): void {
+		$business = (array) Settings::value( 'local_business' );
+		$value    = $business[ $field ] ?? '';
+
+		printf(
+			'<input type="%1$s" id="%2$s" name="%3$s" value="%4$s" class="%5$s"',
+			esc_attr( $type ),
+			esc_attr( self::id( 'local_business', $field ) ),
+			esc_attr( self::name( 'local_business', $field ) ),
+			esc_attr( is_scalar( $value ) ? (string) $value : '' ),
+			esc_attr( $input_class )
+		);
+		foreach ( $attrs as $name => $attr ) {
+			printf( ' %1$s="%2$s"', esc_attr( $name ), esc_attr( $attr ) );
+		}
+		echo ' />';
 	}
 
 	/**

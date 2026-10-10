@@ -224,6 +224,82 @@ final class FormTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Local business fields: decimal comma, country in capitals, time pairs as ranges, empty days left out.
+	 */
+	public function test_schema_page_saves_local_business(): void {
+		$stored = $this->save(
+			'easyrankly-schema',
+			array(
+				'identity_type'  => 'local_business',
+				'local_business' => array(
+					'type'           => 'Dentist',
+					'street_address' => ' Via Roma 1 ',
+					'postal_code'    => '20121',
+					'locality'       => 'Milano',
+					'region'         => 'MI',
+					'country'        => 'it',
+					'telephone'      => '+39 02 1234567',
+					'latitude'       => '45,4642',
+					'longitude'      => '',
+					'hours'          => array(
+						'Monday' => array(
+							array(
+								'opens'  => '09:00',
+								'closes' => '13:00',
+							),
+							array(
+								'opens'  => '15:00',
+								'closes' => '19:00',
+							),
+						),
+						'Sunday' => array(
+							array(
+								'opens'  => '',
+								'closes' => '',
+							),
+						),
+					),
+				),
+			)
+		);
+
+		$this->assertSame( 'local_business', $stored['identity_type'] );
+		$this->assertSame(
+			array(
+				'type'           => 'Dentist',
+				'street_address' => 'Via Roma 1',
+				'locality'       => 'Milano',
+				'region'         => 'MI',
+				'postal_code'    => '20121',
+				'country'        => 'IT',
+				'telephone'      => '+39 02 1234567',
+				'hours'          => array( 'Monday' => array( '09:00-13:00', '15:00-19:00' ) ),
+				'latitude'       => 45.4642,
+				'longitude'      => null,
+			),
+			$stored['local_business']
+		);
+		$this->assertSame( array(), $this->errors() );
+	}
+
+	/**
+	 * A time range with one end only, or coordinates out of range, are not saved, with an error.
+	 */
+	public function test_schema_page_rejects_incomplete_hours_and_bad_coordinates(): void {
+		foreach ( array(
+			array( 'hours' => array( 'Monday' => array( array( 'opens' => '09:00' ) ) ) ),
+			array( 'latitude' => '91' ),
+			array( 'longitude' => 'east' ),
+		) as $fields ) {
+			$GLOBALS['wp_settings_errors'] = array();
+			$stored                        = $this->save( 'easyrankly-schema', array( 'local_business' => $fields ) );
+
+			$this->assertSame( Settings::DEFAULTS['local_business'], $stored['local_business'] ?? Settings::DEFAULTS['local_business'] );
+			$this->assertSame( array( 'easyrankly_local_business' ), $this->errors() );
+		}
+	}
+
+	/**
 	 * An invalid value is not saved and the page says which one.
 	 */
 	public function test_invalid_value_keeps_current_value_with_error(): void {
