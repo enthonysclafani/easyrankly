@@ -8,7 +8,7 @@ sintassi, spegnimento automatico, modalità sicura, cache) sono nella sezione "C
 | `head` | `wp_head` | HTML, PHP | Pagine del frontend |
 | `body_open` | `wp_body_open` | HTML, PHP | Pagine del frontend (se il tema chiama `wp_body_open()`) |
 | `footer` | `wp_footer` | HTML, PHP | Pagine del frontend |
-| `everywhere` ("Ovunque, come functions.php") | `plugins_loaded` | Solo PHP | Ogni richiesta, tranne la schermata Custom code |
+| `everywhere` ("Everywhere (PHP only)") | `plugins_loaded` | Solo PHP | Ogni richiesta, tranne la schermata Custom code |
 
 Il Runner aggancia ogni hook con la priorità predefinita 10. La priorità dello snippet decide solo l'ordine tra gli
 snippet della stessa posizione, non la priorità sull'hook.

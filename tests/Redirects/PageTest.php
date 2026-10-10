@@ -140,7 +140,7 @@ final class PageTest extends WP_UnitTestCase {
 		$this->assertSame( $hooks, self::enqueue_hooks(), 'The list loads no asset.' );
 		$this->assertStringContainsString( 'class="page-title-action"', $html );
 		$this->assertStringContainsString( 'wp-list-table', $html );
-		$this->assertStringContainsString( '<code>/old-page</code>', $html );
+		$this->assertStringContainsString( '">/old-page</a>', $html );
 		$this->assertStringContainsString( 'name="s"', $html );
 		$this->assertStringContainsString( 'value="deactivate"', $html );
 		$this->assertMatchesRegularExpression( '/action=deactivate&(amp;|#038;)id=' . $id . '&(amp;|#038;)_wpnonce=/', $html );

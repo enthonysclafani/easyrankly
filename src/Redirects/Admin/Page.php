@@ -160,7 +160,7 @@ final class Page extends RecordsPage {
 		switch ( $column ) {
 			case 'source':
 				return sprintf(
-					'<strong><a class="row-title" href="%1$s"><code>%2$s</code></a></strong>%3$s',
+					'<strong><a class="row-title" href="%1$s">%2$s</a></strong>%3$s',
 					esc_url(
 						$this->url(
 							array(
