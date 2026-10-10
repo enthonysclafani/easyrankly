@@ -33,8 +33,8 @@ Meta del post type `erankly_redirect` (`src/Redirects/Redirects.php`), nel REST 
 
 | Chiave | Tipo | Contenuto | Introdotta in |
 |---|---|---|---|
-| `_easyrankly_redirect_target` | string | Destinazione: percorso che inizia con `/` o URL http/https. Vuota per 410. Con regex può contenere `$1`, `$2`… | 1.10 |
-| `_easyrankly_redirect_code` | integer | 301, 302, 307 o 410. Default 301. | 1.10 |
+| `_easyrankly_redirect_target` | string | Destinazione: percorso che inizia con `/` o URL http/https. Vuota per 410 e 451. Con regex può contenere `$1`, `$2`… | 1.10 |
+| `_easyrankly_redirect_code` | integer | 301, 302, 307, 410 o 451. Default 301. | 1.10 |
 | `_easyrankly_redirect_regex` | boolean | La sorgente è un'espressione regolare. | 1.10 |
 | `_easyrankly_redirect_forced` | boolean | Applica anche se la pagina esiste (non solo su 404). | 1.10 |
 

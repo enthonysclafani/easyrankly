@@ -19,9 +19,15 @@ defined( 'ABSPATH' ) || exit;
 final class Rule {
 
 	/**
-	 * Status codes a redirect can answer with. 410 means "gone" and has no target.
+	 * Status codes a redirect can answer with.
 	 */
-	public const CODES = array( 301, 302, 307, 410 );
+	public const CODES = array( 301, 302, 307, 410, 451 );
+
+	/**
+	 * Codes that answer with an error page instead of redirecting, so they have no target:
+	 * 410 "gone" and 451 "unavailable for legal reasons".
+	 */
+	public const NO_TARGET = array( 410, 451 );
 
 	/**
 	 * Longest accepted source or target, in characters.
@@ -171,7 +177,7 @@ final class Rule {
 	 * Checks a rule before saving it.
 	 *
 	 * @param string $source Source as typed (path, URL or regex).
-	 * @param string $target Target as typed (path or URL; empty for 410).
+	 * @param string $target Target as typed (path or URL; empty for 410 and 451).
 	 * @param int    $code   Status code.
 	 * @param bool   $regex  Whether the source is a regex.
 	 * @return array{source: string, target: string}|\WP_Error Normalized source and target, or the reason they are invalid.
@@ -200,7 +206,7 @@ final class Rule {
 			$source = self::normalize( $source );
 		}
 
-		if ( 410 === $code ) {
+		if ( in_array( $code, self::NO_TARGET, true ) ) {
 			return array(
 				'source' => $source,
 				'target' => '',

@@ -222,6 +222,27 @@ final class PageTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * A 451 is saved without a target, even if one was typed.
+	 */
+	public function test_legal_block_has_no_target(): void {
+		$this->load(
+			array( 'action' => 'new' ),
+			$this->form(
+				0,
+				array(
+					'source' => '/takedown',
+					'target' => '/elsewhere',
+					'code'   => '451',
+				)
+			)
+		);
+
+		$rule = Redirects::rule( (int) Redirects::find_id( Rule::hash( '/takedown' ) ) );
+		$this->assertSame( 451, $rule['code'] ?? 0 );
+		$this->assertSame( '', $rule['target'] ?? 'x' );
+	}
+
+	/**
 	 * Saving without a valid nonce stops.
 	 */
 	public function test_save_requires_nonce(): void {

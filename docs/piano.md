@@ -36,7 +36,7 @@ Search Console tiene già 16 mesi.
 | SEO | Title e description (template + override), robots, canonical, Open Graph e X, schema JSON-LD di base, robots.txt | Filtri del core: `document_title_parts`, `wp_robots`, `get_canonical_url`, `robots_txt` |
 | Breadcrumb | Usa il blocco `core/breadcrumbs` del core; il plugin aggiunge BreadcrumbList | Filtro `block_core_breadcrumbs_items` |
 | Sitemap | Estende le sitemap del core | `wp_sitemaps_*`, nessun generatore proprio |
-| Redirect | 301/302/307/410, esatti e regex | Post type `erankly_redirect`; hash della sorgente in `post_name` (indicizzato); ricerca solo su 404 più una piccola lista di "forzati" |
+| Redirect | 301/302/307/410/451, esatti e regex | Post type `erankly_redirect`; hash della sorgente in `post_name` (indicizzato); ricerca solo su 404 più una piccola lista di "forzati" |
 | Custom code | Snippet HTML e PHP in head, apertura del body, footer; PHP anche "ovunque", come `functions.php` | Post type `erankly_snippet`; PHP solo con `edit_plugins`, controllo della sintassi senza esecuzione, disattivazione automatica in caso di errore, modalità sicura |
 | Multilingua | Singolo sito: lingua per contenuto, gruppi di traduzioni, prefisso nella URL, hreflang, sitemap per lingua; menu e stringhe del tema per lingua (Fase 7) | Tassonomie nascoste (come Polylang); blocco selettore renderizzato lato server; menu e testi per lingua nella option e nei filtri del core, senza tabelle |
 | EasyRankly Pro (plugin a parte) | Agente AI con proposte da approvare (sezione 5) e lavoro operativo di un SEO di agenzia: Search Console, parole chiave e cluster, link interni, contenuti, report | Plugin separato e autonomo, fuori da WordPress.org; usa solo ciò che il gratuito espone già (sezione 6) |
@@ -402,6 +402,9 @@ nostro non coperto: da rivalutare dopo il lancio del Pro, con un test su 2–3 d
   Payments incassa e gestisce le tasse ma non le licenze: licenze, attivazione e download degli aggiornamenti li
   gestisce il backend, che serve comunque per DataForSEO e Search Console. Scartate SureCart e WooCommerce (con
   abbonamenti e un gestore di licenze): legherebbero la vendita a un sito WordPress.
+- **Redirect 451** (10 ottobre 2026): oltre al 410, i redirect possono rispondere 451 "non disponibile per motivi
+  legali", per le pagine tolte per un ordine legale (DMCA, diritto all'oblio). Come il 410 non ha destinazione e
+  mostra il template 404 con il suo codice; per i motori di ricerca vale come il 410, ma dice il motivo.
 
 ## 8. Decisioni aperte
 
