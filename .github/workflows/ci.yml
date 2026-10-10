@@ -9,6 +9,10 @@ on:
 permissions:
   contents: read
 
+# Every action is pinned to a full commit SHA, with its release in a comment: a moved tag
+# cannot change what runs here. SHAs read with `git ls-remote --tags` from each action's
+# repository on github.com (October 2026); Dependabot (.github/dependabot.yml) proposes updates.
+
 jobs:
   static:
     name: Architecture, PHPCS, PHPStan (PHP ${{ matrix.php }})
@@ -18,14 +22,14 @@ jobs:
       matrix:
         php: ['8.0', '8.4']
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
-      - uses: shivammathur/setup-php@v2
+      - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
         with:
           php-version: ${{ matrix.php }}
           coverage: none
 
-      - uses: ramsey/composer-install@v3
+      - uses: ramsey/composer-install@a8d0d959dab41457692a5e2041bd9b757a119e3f # 3.2.1
 
       - run: composer architecture
       - run: composer lint
@@ -35,10 +39,10 @@ jobs:
     name: Admin assets (lint and build)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
-      # https://github.com/actions/setup-node/releases (v6, stable since Oct 2025).
-      - uses: actions/setup-node@v6
+      # https://github.com/actions/setup-node/releases
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
           node-version: '24'
           cache: npm
@@ -48,17 +52,24 @@ jobs:
       - run: npm run build
 
   test:
-    name: PHPUnit (PHP ${{ matrix.php }}${{ matrix.multisite && ', multisite' || '' }})
+    name: PHPUnit (WordPress ${{ matrix.wp }}, PHP ${{ matrix.php }}${{ matrix.multisite && ', multisite' || '' }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         include:
+          # The declared minimum (Requires at least: 7.0, Requires PHP: 8.0): an API added in 7.1 fails here.
           - php: '8.0'
+            wp: '7.0.7'
+            multisite: false
+          - php: '8.0'
+            wp: '7.1.0'
             multisite: false
           - php: '8.4'
+            wp: '7.1.0'
             multisite: false
           - php: '8.4'
+            wp: '7.1.0'
             multisite: true
     services:
       mysql:
@@ -74,18 +85,18 @@ jobs:
           --health-timeout=5s
           --health-retries=20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
-      - uses: shivammathur/setup-php@v2
+      - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
         with:
           php-version: ${{ matrix.php }}
           extensions: dom, intl, mbstring, mysqli, xml
           coverage: none
 
-      - uses: ramsey/composer-install@v3
+      - uses: ramsey/composer-install@a8d0d959dab41457692a5e2041bd9b757a119e3f # 3.2.1
 
       - name: Install the WordPress test suite
-        run: tools/install-wp-tests.sh wordpress_test root '' 127.0.0.1 7.1.0
+        run: tools/install-wp-tests.sh wordpress_test root '' 127.0.0.1 ${{ matrix.wp }}
 
       - name: Run tests
         env:
@@ -97,9 +108,9 @@ jobs:
     name: Plugin Check (distributable)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
           node-version: '24'
           cache: npm
@@ -115,7 +126,7 @@ jobs:
           test ! -e dist-extracted/easyrankly/tests
           test ! -e dist-extracted/easyrankly/tools
 
-      - uses: wordpress/plugin-check-action@v1
+      - uses: wordpress/plugin-check-action@10857da14b6c2246d15402b3e69f777edcf8c12e # v1.1.9
         with:
           build-dir: ./dist-extracted/easyrankly
           slug: easyrankly
