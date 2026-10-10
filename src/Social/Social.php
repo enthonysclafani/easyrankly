@@ -52,9 +52,11 @@ final class Social {
 			return array();
 		}
 
-		$object  = get_queried_object();
-		$post    = $object instanceof \WP_Post ? $object : null;
-		$article = null !== $post && is_singular() && ! is_front_page() && 'page' !== $post->post_type;
+		$object = get_queried_object();
+		$post   = $object instanceof \WP_Post ? $object : null;
+
+		// Only posts are articles, as in the schema: pages, products and other types are websites.
+		$article = null !== $post && is_singular() && ! is_front_page() && 'post' === $post->post_type;
 
 		$title = (string) self::override( 'og_title' );
 		if ( '' === $title ) {

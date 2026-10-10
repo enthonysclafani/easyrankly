@@ -18,6 +18,7 @@ Documenti di riferimento (tutti in questo branch):
 - `docs/prompt.md`: come si avvia e si chiude il lavoro su un punto della roadmap.
 - `docs/sicurezza.md`: piano del controllo di sicurezza (snippet HTML e PHP per primi).
 - `docs/custom-code.md`: posizioni degli snippet e problemi noti della posizione "Ovunque".
+- `docs/compatibilita.md`: compatibilità con WooCommerce e ACF, cosa è fatto e cosa resta.
 
 Il vecchio EasyRankly vive nel branch `Alpha` di questo stesso repository ed è **solo un riferimento**: leggilo per
 capire la logica, poi riscrivi secondo queste regole. Non copiare file, tabelle, job o strutture a moduli.

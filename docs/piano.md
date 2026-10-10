@@ -420,6 +420,10 @@ nostro non coperto: da rivalutare dopo il lancio del Pro, con un test su 2–3 d
   persona. Una sola sede: tipo schema.org, indirizzo, telefono, coordinate e orari (al massimo due fasce al giorno)
   nell'option delle impostazioni, stampati nel nodo dell'organizzazione, che tiene l'`@id` `#organization`. Niente
   sedi multiple, niente post type.
+- **Compatibilità con WooCommerce e ACF** (10 ottobre 2026): il plugin convive con entrambi senza conflitti; con
+  WooCommerce si corregge il Negozio (campi SEO, canonical) e `og:type`, il resto si completa più avanti: campi SEO
+  dei prodotti nell'editor classico, sitemap senza carrello e checkout, multilingua sui negozi (oggi non supportato),
+  description da campi personalizzati e copia dei meta nelle traduzioni. Dettagli in `docs/compatibilita.md`.
 
 ## 8. Decisioni aperte
 
