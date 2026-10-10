@@ -138,6 +138,7 @@ final class TermFieldsTest extends WP_UnitTestCase {
 
 		$this->assertStringContainsString( 'name="easyrankly_term_seo"', $html );
 		$this->assertStringContainsString( 'value="a&quot;b&amp;c"', $html );
+		$this->assertStringContainsString( 'name="easyrankly[canonical]" value="" placeholder="Empty uses the term archive URL"', $html );
 	}
 
 	/**

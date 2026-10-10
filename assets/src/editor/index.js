@@ -37,12 +37,12 @@ function SeoPanel() {
 	const set = ( name ) => ( next ) =>
 		setMeta( { ...meta, [ PREFIX + name ]: next } );
 
-	const text = ( name, label, help, Control = TextControl ) => (
+	const text = ( name, label, placeholder, Control = TextControl ) => (
 		<Control
 			__next40pxDefaultSize={ Control === TextControl }
 			__nextHasNoMarginBottom
 			label={ label }
-			help={ help }
+			placeholder={ placeholder }
 			value={ value( name ) ?? '' }
 			onChange={ set( name ) }
 		/>
@@ -57,18 +57,18 @@ function SeoPanel() {
 				{ text(
 					'title',
 					__( 'SEO title', 'easyrankly' ),
-					__( 'Empty uses the title template.', 'easyrankly' )
+					__( 'Empty uses the title template', 'easyrankly' )
 				) }
 				{ text(
 					'description',
 					__( 'Meta description', 'easyrankly' ),
-					__( 'Empty uses the description template.', 'easyrankly' ),
+					__( 'Empty uses the description template', 'easyrankly' ),
 					TextareaControl
 				) }
 				{ text(
 					'canonical',
 					__( 'Canonical URL', 'easyrankly' ),
-					__( 'Empty uses the permalink.', 'easyrankly' )
+					__( 'Empty uses the permalink', 'easyrankly' )
 				) }
 				<ToggleControl
 					__nextHasNoMarginBottom
@@ -88,12 +88,12 @@ function SeoPanel() {
 				{ text(
 					'og_title',
 					__( 'Social title', 'easyrankly' ),
-					__( 'Empty uses the SEO title.', 'easyrankly' )
+					__( 'Empty uses the SEO title', 'easyrankly' )
 				) }
 				{ text(
 					'og_description',
 					__( 'Social description', 'easyrankly' ),
-					__( 'Empty uses the meta description.', 'easyrankly' ),
+					__( 'Empty uses the meta description', 'easyrankly' ),
 					TextareaControl
 				) }
 				<MediaUploadCheck>

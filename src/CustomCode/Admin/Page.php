@@ -36,7 +36,7 @@ final class Page extends RecordsPage {
 			'head'       => __( 'Head', 'easyrankly' ),
 			'body_open'  => __( 'After the opening body tag', 'easyrankly' ),
 			'footer'     => __( 'Footer', 'easyrankly' ),
-			'everywhere' => __( 'Everywhere, like functions.php (PHP only)', 'easyrankly' ),
+			'everywhere' => __( 'Everywhere (PHP only)', 'easyrankly' ),
 		);
 	}
 
