@@ -40,6 +40,10 @@ They are noindex and left out of the sitemap. Their automatic description is emp
 
 No. A category, tag, author or post type archive with nothing in it is noindex until it has content. A category or tag with its own description stays indexable, since the description is content.
 
+= Does it work with WooCommerce and ACF? =
+
+Yes, without conflicts. The shop page gives the product archive its SEO title, description and canonical, and WooCommerce keeps printing its own Product structured data. Not supported yet: SEO fields on the product edit screen (WooCommerce uses the classic editor there) and multilingual stores. With ACF, automatic descriptions are built from the post content and excerpt, not from custom fields.
+
 == External services ==
 
 EasyRankly does not connect to any external service.

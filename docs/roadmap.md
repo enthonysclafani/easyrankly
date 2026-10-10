@@ -162,6 +162,20 @@ Decisione di ottobre 2026: il più bassi possibile senza peggiorare il codice (v
       il minimo sarebbe 6.6 (`PluginDocumentSettingPanel` da `@wordpress/editor`), poi 6.5
       (`wp_is_serving_rest_request()`) e 6.3 (`wp_cache_set_last_changed()`)
 
+## Compatibilità con WooCommerce e ACF
+
+Analisi del 10 ottobre 2026, da completare più avanti. Dettagli, motivi e proposte: `docs/compatibilita.md`.
+
+- [x] W2 — La pagina Negozio dà all'archivio dei prodotti i suoi campi SEO
+- [x] W3 — Canonical, `og:url` e schema del Negozio, anche come pagina iniziale
+- [x] W6 — `og:type` `article` solo per gli articoli
+- [ ] W1 — Campi SEO e lingua dei prodotti (editor classico): richiede un'eccezione alla regola sulle meta box classiche
+- [ ] W4 — Carrello, checkout e account fuori dalla sitemap
+- [ ] W5 — Multilingua sui negozi (oggi non supportato)
+- [ ] A1 — Description da un campo personalizzato (ACF e altri)
+- [ ] A2 — "Crea traduzione" copia i meta (campi ACF), da decidere con W5
+- [ ] Verifica su Studio con WooCommerce e ACF attivi
+
 ## EasyRankly Pro (repository `easyrankly-pro`)
 
 Promemoria dei punti che erano qui come "Fase 4 — EasyRankly Cloud", più l'agente. La loro roadmap vive nel
