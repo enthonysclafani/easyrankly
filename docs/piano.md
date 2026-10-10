@@ -406,8 +406,13 @@ nostro non coperto: da rivalutare dopo il lancio del Pro, con un test su 2–3 d
 - **Redirect 451** (10 ottobre 2026): oltre al 410, i redirect possono rispondere 451 "non disponibile per motivi
   legali", per le pagine tolte per un ordine legale (DMCA, diritto all'oblio). Come il 410 non ha destinazione e
   mostra il template 404 con il suo codice; per i motori di ricerca vale come il 410, ma dice il motivo.
+- **Import da Yoast e Rank Math** (10 ottobre 2026): si fa, più avanti. Si importano solo meta (title, description,
+  robots, canonical e social di contenuti e termini) e redirect, non le impostazioni globali. Gira a lotti guidati
+  dall'admin via REST, con il cursore salvato in un'option, perché non ci sono cron. Altri plugin (SEOPress,
+  All in One SEO) eventualmente dopo. Riferimento Alpha: `includes/migrations/`.
+- **Schema Product per WooCommerce** (10 ottobre 2026): non si fa. WooCommerce stampa già il suo JSON-LD `Product`
+  nella pagina del prodotto e Google lo legge così com'è.
 
 ## 8. Decisioni aperte
 
-- Import da Yoast e Rank Math: solo meta e redirect, a lotti dall'admin?
-- Schema extra: Local Business, Product per WooCommerce.
+- Schema extra: Local Business.
