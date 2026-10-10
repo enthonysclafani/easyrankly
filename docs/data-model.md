@@ -29,7 +29,7 @@ Registrati (`src/Meta/Meta.php`) solo sui post type e sulle tassonomie visibili 
 | `_easyrankly_og_description` | post e termini | string | Descrizione per la condivisione social. Vuoto = meta description. | 1.2 |
 | `_easyrankly_og_image` | post e termini | integer | ID dell'allegato per la condivisione social. 0 = default. | 1.2 |
 
-Registrate con `register_post_meta( '', ... )` e `register_term_meta( '', ... )` in `src/Meta/Meta.php`; nel REST solo con `edit_post` / `edit_term` sull'oggetto.
+Registrate per ogni post type e tassonomia visibile con `register_post_meta()` e `register_term_meta()` in `src/Meta/Meta.php`; nel REST solo con `edit_post` / `edit_term` sull'oggetto.
 
 Meta del post type `erankly_redirect` (`src/Redirects/Redirects.php`), nel REST solo con `manage_options`:
 
