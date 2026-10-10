@@ -178,27 +178,6 @@ final class UninstallTest extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Language menu locations leave the theme mods; the theme locations stay.
-	 */
-	public function test_uninstall_removes_language_menu_locations(): void {
-		if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
-			define( 'WP_UNINSTALL_PLUGIN', 'easyrankly/easyrankly.php' );
-		}
-
-		set_theme_mod(
-			'nav_menu_locations',
-			array(
-				'primary'             => 3,
-				'primary__erankly_en' => 4,
-			)
-		);
-
-		require dirname( __DIR__ ) . '/uninstall.php';
-
-		$this->assertSame( array( 'primary' => 3 ), get_theme_mod( 'nav_menu_locations' ) );
-	}
-
-	/**
 	 * Notices about redirects not created are removed for every user who could get one.
 	 */
 	public function test_uninstall_removes_redirect_notices(): void {

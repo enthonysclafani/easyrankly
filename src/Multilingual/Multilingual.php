@@ -39,7 +39,6 @@ final class Multilingual {
 		( new Hreflang() )->register();
 		( new Switcher() )->register();
 		( new SiteIdentity() )->register();
-		( new Menus() )->register();
 		add_filter( 'render_block_data', array( $this, 'filter_block' ) );
 		add_action( 'wp_sitemaps_init', array( $this, 'register_sitemap' ) );
 	}

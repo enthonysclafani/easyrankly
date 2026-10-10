@@ -24,6 +24,13 @@ final class LanguageFields {
 	 * The languages, one row each, plus an empty row to add one.
 	 */
 	public static function languages_table(): void {
+		if ( ! wp_is_block_theme() ) {
+			printf(
+				'<div class="notice notice-warning inline"><p>%s</p></div>',
+				esc_html__( 'Multilingual needs a block theme. With a classic theme, contents, addresses, site title and tagline change with the language, but menus, widgets and texts set in the Customizer show the same text in every language.', 'easyrankly' )
+			);
+		}
+
 		printf(
 			'<p>%s</p>',
 			esc_html__( 'Add a second language to publish translations of your content. The first language is the default one: its addresses do not change. The others get their URL prefix, for example /en/.', 'easyrankly' )
@@ -151,23 +158,9 @@ final class LanguageFields {
 	}
 
 	/**
-	 * Menus of each language: the language locations of classic themes live in Appearance > Menus;
-	 * the navigation menus of block themes are chosen here, one per language.
+	 * Navigation menus of each language, chosen here for the navigation blocks.
 	 */
 	public static function menus_section(): void {
-		$locations = array_filter(
-			array_keys( get_registered_nav_menus() ),
-			static fn( $location ): bool => ! str_contains( (string) $location, Menus::SEPARATOR )
-		);
-		if ( array() !== $locations ) {
-			printf(
-				'<p>%1$s <a href="%2$s">%3$s</a></p>',
-				esc_html__( 'Every menu location of the theme has one location per language. A language location without a menu shows the menu of the default language.', 'easyrankly' ),
-				esc_url( admin_url( 'nav-menus.php?action=locations' ) ),
-				esc_html__( 'Manage menu locations', 'easyrankly' )
-			);
-		}
-
 		$navigations = get_posts(
 			array(
 				'post_type'      => 'wp_navigation',
@@ -179,9 +172,7 @@ final class LanguageFields {
 			)
 		);
 		if ( array() === $navigations ) {
-			if ( array() === $locations ) {
-				printf( '<p>%s</p>', esc_html__( 'The theme has no menu locations and the site has no navigation menus yet.', 'easyrankly' ) );
-			}
+			printf( '<p>%s</p>', esc_html__( 'The site has no navigation menus yet.', 'easyrankly' ) );
 			return;
 		}
 
@@ -229,18 +220,9 @@ final class LanguageFields {
 	}
 
 	/**
-	 * How the texts of the theme get a version per language: a naming rule in block themes, nothing to save
-	 * here; classic themes keep widgets and Customizer texts in every language.
+	 * How the texts of the theme get a version per language: a naming rule, nothing to save here.
 	 */
 	public static function theme_texts_section(): void {
-		if ( ! wp_is_block_theme() ) {
-			printf(
-				'<p>%s</p>',
-				esc_html__( 'Classic themes are not supported for theme texts: widgets and texts set in the Customizer show the same text in every language. Contents, menus, site title and tagline, and the texts the theme translates itself change with the language.', 'easyrankly' )
-			);
-			return;
-		}
-
 		$example = (string) array_key_first( array_diff_key( Languages::all(), array( Languages::default() => true ) ) );
 
 		printf(

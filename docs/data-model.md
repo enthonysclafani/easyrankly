@@ -63,12 +63,6 @@ Meta del post type `erankly_snippet` (`src/CustomCode/CustomCode.php`), nel REST
 | `erankly_language` | tipi di contenuto visualizzabili, tranne gli allegati | Lingua del contenuto: un termine per lingua, slug = prefisso URL della lingua (creato al primo uso). Al massimo un termine per post. Nessun termine, o una lingua tolta dalle impostazioni, = lingua predefinita. Registrata in `src/Multilingual/Multilingual.php`: niente UI, URL né REST; gestione dei termini solo con `manage_options`. | 2.1 |
 | `erankly_translation` | come sopra | Gruppo di traduzioni: un termine per gruppo (nome = UUID), assegnato a tutte le traduzioni dello stesso contenuto. Un gruppo ha almeno due post, tutti dello stesso tipo, al massimo uno per lingua (`src/Multilingual/Translations.php`); i gruppi rimasti con un solo post si eliminano. | 2.1 |
 
-## Dati del core scritti tramite il plugin
-
-| Dove | Contenuto | Introdotto in |
-|---|---|---|
-| Theme mod `nav_menu_locations` (option `theme_mods_{tema}`) | Le posizioni dei menu per lingua (`{posizione}__erankly_{lingua}`, registrate da `src/Multilingual/Menus.php` nei temi classici) e il menu assegnato a ognuna in Aspetto → Menu. Le salva il core come le altre posizioni; `uninstall.php` toglie solo queste chiavi dai theme mod di ogni tema. | 7.2 |
-
 ## Transient
 
 | Nome | Scadenza | Contenuto | Introdotto in |

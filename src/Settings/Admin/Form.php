@@ -366,7 +366,7 @@ final class Form {
 	}
 
 	/**
-	 * Gives the content and the menu locations of renamed languages their new prefix.
+	 * Gives the content of renamed languages their new prefix.
 	 *
 	 * @param array<string, string> $renamed Previous prefix => new prefix.
 	 * @return string|null Error message, or null when everything was renamed.
@@ -396,20 +396,6 @@ final class Form {
 			if ( is_wp_error( $result ) ) {
 				return $result->get_error_message();
 			}
-		}
-
-		// Menu locations of classic themes: "primary__erankly_en" becomes "primary__erankly_en-gb".
-		$locations = get_theme_mod( 'nav_menu_locations' );
-		if ( is_array( $locations ) ) {
-			$moved = array();
-			foreach ( $locations as $location => $menu ) {
-				$parts = explode( Menus::SEPARATOR, (string) $location );
-				if ( 2 === count( $parts ) && isset( $renamed[ $parts[1] ] ) ) {
-					$location = Menus::location( $parts[0], $renamed[ $parts[1] ] );
-				}
-				$moved[ $location ] = $menu;
-			}
-			set_theme_mod( 'nav_menu_locations', $moved );
 		}
 
 		return null;

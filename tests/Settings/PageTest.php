@@ -189,8 +189,8 @@ final class PageTest extends WP_UnitTestCase {
 	}
 
 	/**
-	 * With languages, the Languages page explains how theme texts change language: by name in block themes,
-	 * not at all in classic themes.
+	 * With languages, the Languages page explains how theme texts change language in block themes, and warns
+	 * that multilingual needs a block theme in classic themes.
 	 */
 	public function test_languages_page_explains_theme_texts(): void {
 		$this->login( 'administrator' );
@@ -212,8 +212,9 @@ final class PageTest extends WP_UnitTestCase {
 
 		$this->assertFalse( wp_is_block_theme() );
 		$classic = $this->page( 'easyrankly-languages' );
-		$this->assertStringContainsString( 'Classic themes are not supported for theme texts', $classic );
+		$this->assertStringContainsString( 'Multilingual needs a block theme.', $classic );
 		$this->assertStringNotContainsString( 'Banner - EN', $classic );
+		$this->assertStringNotContainsString( '>Theme texts</h2>', $classic );
 
 		$GLOBALS['wp_settings_sections'] = array();
 		$GLOBALS['wp_settings_fields']   = array();
@@ -223,7 +224,8 @@ final class PageTest extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'header-en for header', $block );
 		$this->assertStringContainsString( '&quot;Banner - EN&quot; replaces &quot;Banner&quot;', $block );
 		$this->assertStringContainsString( 'site-editor.php?p=/pattern', $block );
-		$this->assertStringNotContainsString( 'Classic themes are not supported', $block );
+		$this->assertStringContainsString( '>Theme texts</h2>', $block );
+		$this->assertStringNotContainsString( 'Multilingual needs a block theme', $block );
 	}
 
 	/**

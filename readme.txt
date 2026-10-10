@@ -26,7 +26,7 @@ In block themes, create a template part or a synced pattern with the same name f
 
 = Are classic themes supported? =
 
-Contents, menus, site title and tagline, and the texts the theme translates itself change with the language. Widgets and texts set in the Customizer do not: they show the same text in every language. Block themes are supported first.
+SEO, sitemap, redirects and custom code work with every theme. Multilingual needs a block theme: with a classic theme, contents, addresses, site title and tagline change with the language, but menus, widgets and texts set in the Customizer show the same text in every language.
 
 = What does the "Everywhere" position of Custom code do? =
 
