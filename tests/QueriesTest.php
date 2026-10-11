@@ -144,6 +144,87 @@ final class QueriesTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Pages other than a post (home, archives, empty archives, the posts page, a post type
+	 * archive), without and with a persistent object cache.
+	 *
+	 * @return array<string, array{string, bool}>
+	 */
+	public function pages(): array {
+		$pages = array();
+		foreach ( array( 'home', 'category', 'empty-category', 'author', 'posts-page', 'empty-posts-page', 'post-type-archive', 'page', 'front-page' ) as $kind ) {
+			$pages[ $kind ]           = array( $kind, false );
+			$pages[ $kind . ' warm' ] = array( $kind, true );
+		}
+
+		return $pages;
+	}
+
+	/**
+	 * Home, archives and pages cost the same queries with and without the plugin.
+	 *
+	 * On a term archive and on the posts page, the SEO fields of the queried term or page cost one
+	 * query for its meta, which core does not load there; core keeps it in the object cache and
+	 * expires it when the meta changes. So: that one query without a persistent object cache,
+	 * none with one.
+	 *
+	 * @dataProvider pages
+	 *
+	 * @param string $kind Kind of page.
+	 * @param bool   $warm Whether the object cache already holds what the page reads.
+	 */
+	public function test_other_pages( string $kind, bool $warm ): void {
+		$author   = self::factory()->user->create( array( 'role' => 'author' ) );
+		$category = self::factory()->category->create( array( 'slug' => 'news' ) );
+		$empty    = self::factory()->category->create(
+			array(
+				'slug'        => 'empty',
+				'description' => '',
+			)
+		);
+		if ( 'empty-posts-page' !== $kind ) {
+			self::factory()->post->create(
+				array(
+					'post_author'   => $author,
+					'post_category' => array( $category ),
+				)
+			);
+		}
+		register_post_type(
+			'book',
+			array(
+				'public'      => true,
+				'has_archive' => 'books',
+			)
+		);
+		flush_rewrite_rules( false );
+		self::factory()->post->create( array( 'post_type' => 'book' ) );
+		$page = self::factory()->post->create( array( 'post_type' => 'page' ) );
+
+		if ( in_array( $kind, array( 'posts-page', 'empty-posts-page', 'front-page' ), true ) ) {
+			update_option( 'show_on_front', 'page' );
+			update_option( 'page_on_front', self::factory()->post->create( array( 'post_type' => 'page' ) ) );
+			update_option( 'page_for_posts', $page );
+		}
+
+		$urls = array(
+			'home'              => home_url( '/' ),
+			'category'          => get_category_link( $category ),
+			'empty-category'    => get_category_link( $empty ),
+			'author'            => get_author_posts_url( $author ),
+			'posts-page'        => get_permalink( $page ),
+			'empty-posts-page'  => get_permalink( $page ),
+			'post-type-archive' => get_post_type_archive_link( 'book' ),
+			'page'              => get_permalink( $page ),
+			'front-page'        => home_url( '/' ),
+		);
+
+		[ $with, $without ] = $this->with_and_without( $urls[ $kind ], $warm );
+		$meta               = ! $warm && in_array( $kind, array( 'category', 'empty-category', 'posts-page', 'empty-posts-page' ), true ) ? 1 : 0;
+
+		$this->assertSame( $without + $meta, $with );
+	}
+
+	/**
 	 * A post on a site with a logo and a default social image.
 	 */
 	public function test_post_with_logo_and_social_image(): void {
