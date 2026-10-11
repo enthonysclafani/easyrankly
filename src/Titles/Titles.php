@@ -71,7 +71,7 @@ final class Titles {
 	 * @return string
 	 */
 	public static function title(): string {
-		return self::resolve( 'title' );
+		return (string) Settings::remember( 'title', static fn(): string => self::resolve( 'title' ) );
 	}
 
 	/**
@@ -80,7 +80,7 @@ final class Titles {
 	 * @return string
 	 */
 	public static function description(): string {
-		return self::resolve( 'description' );
+		return (string) Settings::remember( 'description', static fn(): string => self::resolve( 'description' ) );
 	}
 
 	/**

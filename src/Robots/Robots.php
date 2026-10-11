@@ -62,6 +62,15 @@ final class Robots {
 	 * @return bool
 	 */
 	public static function is_noindex(): bool {
+		return (bool) Settings::remember( 'noindex', static fn(): bool => self::compute_noindex() );
+	}
+
+	/**
+	 * Works out is_noindex().
+	 *
+	 * @return bool
+	 */
+	private static function compute_noindex(): bool {
 		$object = get_queried_object();
 		if ( is_singular() && $object instanceof \WP_Post && '' !== $object->post_password ) {
 			return true;
