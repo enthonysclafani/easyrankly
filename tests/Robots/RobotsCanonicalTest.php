@@ -88,6 +88,32 @@ final class RobotsCanonicalTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * The posts page uses its canonical override, in the tag and in og:url, like any other page.
+	 */
+	public function test_posts_page_canonical_override(): void {
+		$this->set_permalink_structure( '/%postname%/' );
+		$posts_page = self::factory()->post->create(
+			array(
+				'post_type' => 'page',
+				'post_name' => 'blog',
+			)
+		);
+		self::factory()->post->create();
+		update_option( 'show_on_front', 'page' );
+		update_option( 'page_on_front', self::factory()->post->create( array( 'post_type' => 'page' ) ) );
+		update_option( 'page_for_posts', $posts_page );
+
+		$this->go_to( get_permalink( $posts_page ) );
+		$this->assertStringContainsString( 'href="' . get_permalink( $posts_page ) . '"', $this->canonical() );
+
+		update_post_meta( $posts_page, '_easyrankly_canonical', 'https://example.org/original/' );
+		$this->go_to( get_permalink( $posts_page ) );
+		$this->assertTrue( is_home() );
+		$this->assertSame( '<link rel="canonical" href="https://example.org/original/" />' . "\n", $this->canonical() );
+		$this->assertContains( array( 'property', 'og:url', 'https://example.org/original/' ), \EasyRankly\Social\Social::tags() );
+	}
+
+	/**
 	 * Term archives get a canonical with the page number, never with stray query args.
 	 *
 	 * @dataProvider permalinks

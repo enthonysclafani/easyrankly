@@ -147,6 +147,11 @@ final class Canonical {
 		} elseif ( is_front_page() || ( is_home() && ! $object instanceof \WP_Post ) ) {
 			$base = home_url( '/' );
 		} elseif ( is_home() && $object instanceof \WP_Post ) {
+			// The posts page: its override counts, as the sitemap and hreflang already assume.
+			$override = (string) Meta::post( $object->ID, 'canonical' );
+			if ( '' !== $override ) {
+				return $override;
+			}
 			$base = get_permalink( $object );
 		} elseif ( is_post_type_archive() ) {
 			// The queried object may be the page standing for the archive (WooCommerce's shop page):
