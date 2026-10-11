@@ -97,7 +97,7 @@ final class Sitemap {
 
 	/**
 	 * Posts query: leaves out the password-protected posts (always noindex), the posts with their
-	 * own noindex or a canonical override, and the posts redirected by forced rules.
+	 * own noindex or a canonical override, the posts redirected by forced rules and an empty posts page.
 	 *
 	 * @param mixed $args Query arguments.
 	 * @return mixed
@@ -122,7 +122,33 @@ final class Sitemap {
 			)
 		);
 
-		return self::exclude( $args, 'post__not_in', array_merge( $excluded, self::redirected_post_ids() ) );
+		return self::exclude( $args, 'post__not_in', array_merge( $excluded, self::redirected_post_ids(), self::empty_posts_page( $args['post_type'] ) ) );
+	}
+
+	/**
+	 * The posts page, when there are no posts to list: Robots makes it noindex, as any empty archive.
+	 *
+	 * @param mixed $post_type Post type of the sitemap.
+	 * @return list<int>
+	 */
+	private static function empty_posts_page( $post_type ): array {
+		$page = (int) get_option( 'page_for_posts' );
+		if ( 'page' !== $post_type || $page < 1 || 'page' !== get_option( 'show_on_front' ) ) {
+			return array();
+		}
+
+		$posts = get_posts(
+			array(
+				'post_type'              => 'post',
+				'posts_per_page'         => 1,
+				'fields'                 => 'ids',
+				'no_found_rows'          => true,
+				'update_post_meta_cache' => false,
+				'update_post_term_cache' => false,
+			)
+		);
+
+		return array() === $posts ? array( $page ) : array();
 	}
 
 	/**

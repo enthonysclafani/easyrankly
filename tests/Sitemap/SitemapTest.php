@@ -207,6 +207,23 @@ final class SitemapTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * The posts page is left out while there are no posts, when Robots makes it noindex.
+	 */
+	public function test_empty_posts_page_is_left_out(): void {
+		$posts_page = self::factory()->post->create( array( 'post_type' => 'page' ) );
+		update_option( 'show_on_front', 'page' );
+		update_option( 'page_on_front', self::factory()->post->create( array( 'post_type' => 'page' ) ) );
+		update_option( 'page_for_posts', $posts_page );
+
+		$this->go_to( get_permalink( $posts_page ) );
+		$this->assertStringContainsString( 'noindex', get_echo( 'wp_robots' ) );
+		$this->assertNotContains( get_permalink( $posts_page ), $this->urls( 'posts', 'page' ) );
+
+		self::factory()->post->create();
+		$this->assertContains( get_permalink( $posts_page ), $this->urls( 'posts', 'page' ) );
+	}
+
+	/**
 	 * Without forced redirects the query gets no exclusion list.
 	 */
 	public function test_no_forced_redirects_adds_no_exclusion(): void {
