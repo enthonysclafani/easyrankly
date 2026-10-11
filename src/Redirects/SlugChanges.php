@@ -201,26 +201,30 @@ final class SlugChanges {
 			'capped' => array(),
 		);
 
-		$error = $this->save( $from, $to );
-		if ( null !== $error ) {
-			$problems['failed'][] = array( $from, $to, $error );
-		}
-
 		if ( count( $descendants ) > self::MAX_DESCENDANTS ) {
 			$problems['capped'][] = $to;
 			$descendants          = array_slice( $descendants, 0, self::MAX_DESCENDANTS );
 		}
 
-		foreach ( $descendants as $link ) {
-			$path = Rule::normalize( $link );
-			if ( str_starts_with( $path, $to . '/' ) ) {
-				$source = $from . substr( $path, strlen( $to ) );
-				$error  = $this->save( $source, $path );
+		Redirects::batch(
+			function () use ( $from, $to, $descendants, &$problems ): void {
+				$error = $this->save( $from, $to );
 				if ( null !== $error ) {
-					$problems['failed'][] = array( $source, $path, $error );
+					$problems['failed'][] = array( $from, $to, $error );
+				}
+
+				foreach ( $descendants as $link ) {
+					$path = Rule::normalize( $link );
+					if ( str_starts_with( $path, $to . '/' ) ) {
+						$source = $from . substr( $path, strlen( $to ) );
+						$error  = $this->save( $source, $path );
+						if ( null !== $error ) {
+							$problems['failed'][] = array( $source, $path, $error );
+						}
+					}
 				}
 			}
-		}
+		);
 
 		self::remember( $problems );
 	}

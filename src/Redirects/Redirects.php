@@ -70,6 +70,13 @@ final class Redirects {
 	private bool $rest_saving = false;
 
 	/**
+	 * Whether a batch of saves is under way (see batch()): the lists are rebuilt once, at the end.
+	 *
+	 * @var bool
+	 */
+	private static bool $batching = false;
+
+	/**
 	 * Hooks registration, validation, list rebuilds, the frontend runner and slug tracking.
 	 */
 	public function register(): void {
@@ -205,7 +212,7 @@ final class Redirects {
 	 * Rebuilds the lists when a redirect is saved outside REST, where the meta is already saved.
 	 */
 	public function on_save(): void {
-		if ( ! $this->rest_saving ) {
+		if ( ! $this->rest_saving && ! self::$batching ) {
 			self::rebuild_lists();
 		}
 	}
@@ -275,6 +282,29 @@ final class Redirects {
 		}
 
 		return $valid;
+	}
+
+	/**
+	 * Runs several saves outside REST and rebuilds the lists once at the end, not after each save.
+	 *
+	 * A page moved with 30 children saves 31 redirects: rebuilding after each one read every
+	 * forced and regex rule 31 times.
+	 *
+	 * @param callable $saves Work that saves redirects.
+	 */
+	public static function batch( callable $saves ): void {
+		if ( self::$batching ) {
+			$saves();
+			return;
+		}
+
+		self::$batching = true;
+		try {
+			$saves();
+		} finally {
+			self::$batching = false;
+			self::rebuild_lists();
+		}
 	}
 
 	/**
@@ -435,7 +465,7 @@ final class Redirects {
 	 * @param mixed $post_id Post ID.
 	 */
 	public function on_status_change( $post_id ): void {
-		if ( self::POST_TYPE === get_post_type( (int) $post_id ) ) {
+		if ( ! self::$batching && self::POST_TYPE === get_post_type( (int) $post_id ) ) {
 			self::rebuild_lists();
 		}
 	}
