@@ -145,6 +145,19 @@ final class SocialTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * A noindex post has no canonical but keeps og:url at its own address.
+	 */
+	public function test_noindex_post_keeps_og_url(): void {
+		$post_id = self::factory()->post->create();
+		update_post_meta( $post_id, Meta::PREFIX . 'noindex', true );
+
+		$this->go_to( get_permalink( $post_id ) );
+
+		$this->assertSame( '', (string) wp_get_canonical_url( $post_id ) );
+		$this->assertStringContainsString( '<meta property="og:url" content="' . esc_attr( get_permalink( $post_id ) ) . '" />', $this->head() );
+	}
+
+	/**
 	 * Search results and 404 pages are not shared.
 	 */
 	public function test_no_tags_on_search_and_404(): void {

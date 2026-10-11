@@ -9,6 +9,7 @@ namespace EasyRankly\Canonical;
 
 use EasyRankly\Meta\Meta;
 use EasyRankly\Robots\Robots;
+use EasyRankly\Settings\Settings;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -126,6 +127,15 @@ final class Canonical {
 	 * @return string
 	 */
 	public static function archive_url(): string {
+		return (string) Settings::remember( 'archive_url', static fn(): string => self::compute_archive_url() );
+	}
+
+	/**
+	 * Works out archive_url().
+	 *
+	 * @return string
+	 */
+	private static function compute_archive_url(): string {
 		$object = get_queried_object();
 
 		if ( is_404() || is_search() || ( is_singular() && ! is_front_page() ) ) {
@@ -147,6 +157,11 @@ final class Canonical {
 		} elseif ( is_front_page() || ( is_home() && ! $object instanceof \WP_Post ) ) {
 			$base = home_url( '/' );
 		} elseif ( is_home() && $object instanceof \WP_Post ) {
+			// The posts page: its override counts, as the sitemap and hreflang already assume.
+			$override = (string) Meta::post( $object->ID, 'canonical' );
+			if ( '' !== $override ) {
+				return $override;
+			}
 			$base = get_permalink( $object );
 		} elseif ( is_post_type_archive() ) {
 			// The queried object may be the page standing for the archive (WooCommerce's shop page):

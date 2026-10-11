@@ -83,6 +83,10 @@ final class Social {
 		}
 
 		$url = null !== $post && is_singular() ? (string) wp_get_canonical_url( $post ) : Canonical::archive_url();
+		if ( '' === $url && null !== $post && is_singular() ) {
+			// Noindex is for search engines, not for sharing: a noindex post keeps its own address, as in the schema.
+			$url = (string) get_permalink( $post );
+		}
 		if ( '' !== $url ) {
 			$tags[] = array( 'property', 'og:url', $url );
 		}

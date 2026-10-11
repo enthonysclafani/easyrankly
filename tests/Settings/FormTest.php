@@ -461,6 +461,68 @@ final class FormTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * The page lists only the first 50 published menus: saving it keeps the choices of the
+	 * others (a 51st menu, a draft one) and drops those of deleted menus.
+	 */
+	public function test_languages_page_keeps_menus_it_does_not_list(): void {
+		$menus = array();
+		for ( $i = 0; $i <= 50; $i++ ) {
+			$menus[] = self::factory()->post->create(
+				array(
+					'post_type'   => 'wp_navigation',
+					'post_title'  => sprintf( 'Menu %02d', $i ),
+					'post_status' => 'publish',
+				)
+			);
+		}
+		$draft   = self::factory()->post->create(
+			array(
+				'post_type'   => 'wp_navigation',
+				'post_status' => 'draft',
+			)
+		);
+		$deleted = self::factory()->post->create( array( 'post_type' => 'wp_navigation' ) );
+		$this->save(
+			'easyrankly-languages',
+			array(
+				'languages'        => $this->rows(),
+				'navigation_menus' => array(
+					'en' => array(
+						$menus[50] => $menus[0],
+						$draft     => $menus[1],
+						$deleted   => $menus[2],
+					),
+				),
+			)
+		);
+		wp_delete_post( $deleted, true );
+
+		$posted = array();
+		foreach ( array_slice( $menus, 0, 50 ) as $menu ) {
+			$posted['en'][ $menu ] = '';
+		}
+		$posted['en'][ $menus[3] ] = (string) $menus[4];
+		$stored                    = $this->save(
+			'easyrankly-languages',
+			array(
+				'languages'        => $this->rows(),
+				'navigation_menus' => $posted,
+			)
+		);
+
+		$this->assertSame(
+			array(
+				'en' => array(
+					$menus[50] => $menus[0],
+					$draft     => $menus[1],
+					$menus[3]  => $menus[4],
+				),
+			),
+			$stored['navigation_menus']
+		);
+	}
+
+	/**
 	 * Rows of the two current languages, as the page posts them.
 	 *
 	 * @param array<string, string> $en Fields that change in the English row.

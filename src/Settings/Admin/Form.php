@@ -359,8 +359,9 @@ final class Form {
 		);
 
 		// Navigation menus are posted only when the page lists some, keyed by the prefixes the page showed.
+		$saved                      = self::renamed_keys( (array) $current[ Menus::SETTING ], $renamed );
 		$posted                     = is_array( $value[ Menus::SETTING ] ?? null ) ? self::renamed_keys( $value[ Menus::SETTING ], $renamed ) : null;
-		$settings[ Menus::SETTING ] = null === $posted ? self::renamed_keys( (array) $current[ Menus::SETTING ], $renamed ) : self::navigation_menus( $posted, $languages );
+		$settings[ Menus::SETTING ] = null === $posted ? $saved : self::navigation_menus( $posted, $saved, $languages );
 
 		return $settings;
 	}
@@ -420,13 +421,34 @@ final class Form {
 	/**
 	 * Navigation menus chosen for each language other than the default; "Same menu" is not stored.
 	 *
+	 * The page lists only some menus (published, the first 50 by title): the choices of the menus
+	 * it did not show are kept, as long as both menus still exist.
+	 *
 	 * @param array<mixed>         $posted    Posted language => navigation menu ID => chosen ID.
+	 * @param array<mixed>         $saved     Saved choices, with the keys of renamed languages changed.
 	 * @param array<string, mixed> $languages Languages being saved, default first.
 	 * @return array<string, array<int, int>>
 	 */
-	private static function navigation_menus( array $posted, array $languages ): array {
+	private static function navigation_menus( array $posted, array $saved, array $languages ): array {
 		$default = array_key_first( $languages );
 		$menus   = array();
+		$shown   = array();
+		foreach ( $posted as $chosen ) {
+			$shown += is_array( $chosen ) ? array_fill_keys( array_map( 'intval', array_keys( $chosen ) ), true ) : array();
+		}
+
+		foreach ( $saved as $language => $chosen ) {
+			if ( ! is_string( $language ) || $default === $language || ! isset( $languages[ $language ] ) || ! is_array( $chosen ) ) {
+				continue;
+			}
+			foreach ( $chosen as $navigation => $target ) {
+				$navigation = (int) $navigation;
+				$target     = (int) $target;
+				if ( ! isset( $shown[ $navigation ] ) && 'wp_navigation' === get_post_type( $navigation ) && 'wp_navigation' === get_post_type( $target ) ) {
+					$menus[ $language ][ $navigation ] = $target;
+				}
+			}
+		}
 
 		foreach ( $posted as $language => $chosen ) {
 			if ( ! is_string( $language ) || $default === $language || ! isset( $languages[ $language ] ) || ! is_array( $chosen ) ) {

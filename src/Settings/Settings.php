@@ -29,6 +29,11 @@ final class Settings {
 	public const OPTION = 'easyrankly_settings';
 
 	/**
+	 * Object cache group that lives for one request only (registered as non-persistent).
+	 */
+	public const REQUEST_GROUP = 'easyrankly_request';
+
+	/**
 	 * Settings whose attachment is copied into `images`: see image().
 	 */
 	public const IMAGES = array( 'identity_logo', 'social_image' );
@@ -123,6 +128,15 @@ final class Settings {
 	 * images in step with their attachments.
 	 */
 	public function register(): void {
+		wp_cache_add_non_persistent_groups( array( self::REQUEST_GROUP ) );
+		foreach ( array( 'add_option_', 'update_option_', 'delete_option_' ) as $hook ) {
+			add_action( $hook . self::OPTION, array( self::class, 'forget' ), 0 );
+		}
+		// What the page shows can change with a new main query or new content.
+		foreach ( array( 'wp', 'clean_post_cache', 'clean_term_cache', 'added_post_meta', 'updated_post_meta', 'deleted_post_meta', 'added_term_meta', 'updated_term_meta', 'deleted_term_meta' ) as $hook ) {
+			add_action( $hook, array( self::class, 'forget_page' ), 0 );
+		}
+
 		// Late priority: later sections of the schema list post types and taxonomies.
 		add_action( 'init', array( $this, 'register_setting' ), 99 );
 		register_activation_hook( PLUGIN_FILE, array( self::class, 'create' ) );
@@ -498,6 +512,11 @@ final class Settings {
 	 * @return array<string, mixed>
 	 */
 	public static function get(): array {
+		$cached = wp_cache_get( 'settings', self::REQUEST_GROUP );
+		if ( is_array( $cached ) ) {
+			return $cached;
+		}
+
 		$defaults = self::defaults();
 		$stored   = get_option( self::OPTION, array() );
 		$settings = array_replace( $defaults, is_array( $stored ) ? array_intersect_key( $stored, $defaults ) : array() );
@@ -509,7 +528,54 @@ final class Settings {
 			}
 		}
 
+		wp_cache_set( 'settings', $settings, self::REQUEST_GROUP );
+
 		return $settings;
+	}
+
+	/**
+	 * Drops the settings kept for the request, and what was worked out from them: they changed.
+	 */
+	public static function forget(): void {
+		wp_cache_delete( 'settings', self::REQUEST_GROUP );
+		self::forget_page();
+	}
+
+	/**
+	 * Drops the values worked out for the current page (see remember()).
+	 */
+	public static function forget_page(): void {
+		$generation = (int) wp_cache_get( 'generation', self::REQUEST_GROUP );
+		wp_cache_set( 'generation', $generation + 1, self::REQUEST_GROUP );
+	}
+
+	/**
+	 * A value about the current page, worked out once per request.
+	 *
+	 * Title, description, robots and canonical are each asked for by several tags of the head.
+	 * Kept only on the frontend once the main query has run, and dropped when the main query,
+	 * the settings or any content change (see register()).
+	 *
+	 * @param string   $key     Name of the value.
+	 * @param callable $compute Works the value out.
+	 * @return mixed
+	 */
+	public static function remember( string $key, callable $compute ): mixed {
+		if ( is_admin() || ! did_action( 'wp' ) || ! isset( $GLOBALS['wp_query'], $GLOBALS['wp_the_query'] ) || $GLOBALS['wp_query'] !== $GLOBALS['wp_the_query'] ) {
+			return $compute();
+		}
+
+		$key   = $key . ':' . (int) wp_cache_get( 'generation', self::REQUEST_GROUP );
+		$found = false;
+		$value = wp_cache_get( $key, self::REQUEST_GROUP, false, $found );
+		if ( $found ) {
+			return $value;
+		}
+
+		$value = $compute();
+		wp_cache_set( $key, $value, self::REQUEST_GROUP );
+
+		return $value;
 	}
 
 	/**

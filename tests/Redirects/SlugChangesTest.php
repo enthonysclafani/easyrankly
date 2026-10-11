@@ -229,6 +229,42 @@ final class SlugChangesTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Moving a page with children rebuilds the redirect lists once, and the lists still drop
+	 * a forced rule for the new address, which the move deactivates.
+	 */
+	public function test_moving_a_page_with_children_rebuilds_lists_once(): void {
+		$forced = Redirects::save_exact( '/company', '/elsewhere' );
+		update_post_meta( $forced, Redirects::meta_key( 'forced' ), true );
+		Redirects::rebuild_lists();
+		$this->assertCount( 1, get_option( Redirects::FORCED_OPTION ) );
+
+		$about = $this->page( 'about' );
+		for ( $i = 0; $i < 5; $i++ ) {
+			$this->page( 'child-' . $i, $about );
+		}
+
+		$rebuilds = 0;
+		add_filter(
+			'pre_update_option_' . Redirects::FORCED_OPTION,
+			static function ( $value ) use ( &$rebuilds ) {
+				++$rebuilds;
+				return $value;
+			}
+		);
+		wp_update_post(
+			array(
+				'ID'        => $about,
+				'post_name' => 'company',
+			)
+		);
+
+		$this->assertSame( 1, $rebuilds );
+		$this->assertSame( '/company/child-4', $this->target( '/about/child-4' ) );
+		$this->assertSame( 'draft', get_post_status( $forced ) );
+		$this->assertSame( array(), get_option( Redirects::FORCED_OPTION ) );
+	}
+
+	/**
 	 * Child categories keep their old archive addresses when the parent is renamed.
 	 */
 	public function test_descendant_terms_follow_their_ancestor(): void {
