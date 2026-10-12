@@ -129,6 +129,37 @@ final class Titles {
 	}
 
 	/**
+	 * Name of the first term of a post in its main taxonomy: the one chosen for its breadcrumb
+	 * in the settings, then `category`, then its first public hierarchical taxonomy (as
+	 * `product_cat` for products).
+	 *
+	 * The post's terms are primed with the query that loaded it, so this costs no query.
+	 *
+	 * @param \WP_Post $post Post.
+	 * @return string
+	 */
+	private static function category( \WP_Post $post ): string {
+		$chosen     = Settings::value( 'breadcrumb_taxonomies' );
+		$taxonomies = array_merge(
+			is_array( $chosen ) && isset( $chosen[ $post->post_type ] ) ? array( (string) $chosen[ $post->post_type ] ) : array(),
+			array( 'category' ),
+			array_keys( get_object_taxonomies( $post->post_type, 'objects' ) )
+		);
+
+		foreach ( array_unique( $taxonomies ) as $taxonomy ) {
+			$object = get_taxonomy( $taxonomy );
+			if ( false === $object || ! $object->hierarchical || ! $object->public || ! is_object_in_taxonomy( $post->post_type, $taxonomy ) ) {
+				continue;
+			}
+
+			$terms = get_the_terms( $post, $taxonomy );
+			return is_array( $terms ) && isset( $terms[0] ) ? $terms[0]->name : '';
+		}
+
+		return '';
+	}
+
+	/**
 	 * Values of the template variables for the current request.
 	 *
 	 * Values that may cost a query (author, categories) or real work (excerpt) are closures,
@@ -162,10 +193,7 @@ final class Titles {
 			$variables['author']    = static fn(): string => (string) get_the_author_meta( 'display_name', (int) $object->post_author );
 			$variables['post_type'] = (string) ( get_post_type_object( $object->post_type )->labels->singular_name ?? '' );
 			$variables['date']      = static fn(): string => (string) get_the_date( '', $object );
-			$variables['category']  = static function () use ( $object ): string {
-				$categories = 'post' === $object->post_type ? get_the_category( $object->ID ) : array();
-				return isset( $categories[0] ) ? $categories[0]->name : '';
-			};
+			$variables['category']  = static fn(): string => self::category( $object );
 		} elseif ( $object instanceof \WP_Term ) {
 			$variables['title']            = $object->name;
 			$variables['term_description'] = Template::truncate( Template::plain( $object->description ), Template::EXCERPT_LENGTH );

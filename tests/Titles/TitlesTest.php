@@ -253,4 +253,41 @@ final class TitlesTest extends WP_UnitTestCase {
 
 		$this->assertEqualSets( Titles::VARIABLES, array_values( array_unique( $seen ) ) );
 	}
+
+	/**
+	 * The home listing posts tells its pages apart, like every other list.
+	 */
+	public function test_paged_home(): void {
+		update_option( 'posts_per_page', 1 );
+		self::factory()->post->create_many( 3 );
+
+		$this->go_to( add_query_arg( 'paged', 2, home_url( '/' ) ) );
+
+		$this->assertSame( 'Site Page 2 of 3 - Tagline', wp_get_document_title() );
+	}
+
+	/**
+	 * {{category}} is the first term of the main hierarchical taxonomy of any post type.
+	 */
+	public function test_category_variable_for_other_post_types(): void {
+		register_post_type( 'product', array( 'public' => true ) );
+		register_taxonomy(
+			'product_cat',
+			'product',
+			array(
+				'public'       => true,
+				'hierarchical' => true,
+			)
+		);
+		register_taxonomy( 'product_tag', 'product', array( 'public' => true ) );
+		$product = self::factory()->post->create( array( 'post_type' => 'product' ) );
+		wp_set_object_terms( $product, 'Tag', 'product_tag' );
+		wp_set_object_terms( $product, 'Shoes', 'product_cat' );
+		update_option( Settings::OPTION, array( 'templates' => array( 'single' => array( 'title' => '{{category}}' ) ) ) );
+
+		$this->go_to( get_permalink( $product ) );
+
+		$this->assertSame( 'Shoes', Titles::title() );
+		_unregister_post_type( 'product' );
+	}
 }

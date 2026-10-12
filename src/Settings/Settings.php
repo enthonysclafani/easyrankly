@@ -87,7 +87,7 @@ final class Settings {
 		'navigation_menus'      => array(),
 		'templates'             => array(
 			'home'    => array(
-				'title'       => '{{site_name}} {{sep}} {{tagline}}',
+				'title'       => '{{site_name}} {{page}} {{sep}} {{tagline}}',
 				'description' => '{{tagline}}',
 			),
 			'single'  => array(

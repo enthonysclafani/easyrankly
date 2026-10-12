@@ -142,7 +142,7 @@ final class PageTest extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'class="easyrankly-media-field"', $schema );
 
 		$titles = $this->page( 'easyrankly-titles' );
-		$this->assertStringContainsString( 'name="easyrankly_settings[templates][home][title]" value="{{site_name}} {{sep}} {{tagline}}"', $titles );
+		$this->assertStringContainsString( 'name="easyrankly_settings[templates][home][title]" value="{{site_name}} {{page}} {{sep}} {{tagline}}"', $titles );
 		$this->assertStringContainsString( 'name="easyrankly_settings[templates][single-page][title]"', $titles );
 		$this->assertStringNotContainsString( 'subsubsub', $titles );
 
@@ -185,7 +185,7 @@ final class PageTest extends WP_UnitTestCase {
 
 		$this->assertStringContainsString( 'name="easyrankly_settings[_language]" value="en"', $english );
 		// The templates of all languages show as placeholders of the empty fields.
-		$this->assertStringContainsString( 'name="easyrankly_settings[templates][home][title]" value="" placeholder="{{site_name}} {{sep}} {{tagline}}"', $english );
+		$this->assertStringContainsString( 'name="easyrankly_settings[templates][home][title]" value="" placeholder="{{site_name}} {{page}} {{sep}} {{tagline}}"', $english );
 	}
 
 	/**
