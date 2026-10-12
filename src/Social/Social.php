@@ -140,18 +140,35 @@ final class Social {
 	}
 
 	/**
-	 * Image to share: the object's social image, the featured image, then the default one.
+	 * Image to share: the page's own image (see own_image()), then the default one.
 	 *
-	 * Loading the featured image costs the same queries the theme makes to show it, and
-	 * they are cached for it. The default image is copied in the settings: no query.
+	 * The default image is copied in the settings: no query.
 	 *
 	 * @param \WP_Post|null $post Queried post, if any.
 	 * @return array{url: string, width: int, height: int, alt: string}|null
 	 */
 	private static function image( ?\WP_Post $post ): ?array {
+		return self::own_image( $post ) ?? Settings::image( 'social_image' );
+	}
+
+	/**
+	 * Image of the page itself: the object's social image, the image of an attachment page, then
+	 * the featured image of the queried post (also the posts page and a page standing for an
+	 * archive, like WooCommerce's shop page). The schema uses the same image.
+	 *
+	 * Loading the featured image costs the same queries the theme makes to show it, and
+	 * they are cached for it.
+	 *
+	 * @param \WP_Post|null $post Queried post, if any.
+	 * @return array{url: string, width: int, height: int, alt: string}|null
+	 */
+	public static function own_image( ?\WP_Post $post ): ?array {
 		$candidates = array( (int) self::override( 'og_image' ) );
 
-		if ( null !== $post && is_singular() ) {
+		if ( null !== $post && is_attachment() && wp_attachment_is_image( $post ) ) {
+			$candidates[] = $post->ID;
+		}
+		if ( null !== $post && ( is_singular() || is_home() || is_post_type_archive() ) ) {
 			$candidates[] = (int) get_post_thumbnail_id( $post );
 		}
 
@@ -162,6 +179,6 @@ final class Social {
 			}
 		}
 
-		return Settings::image( 'social_image' );
+		return null;
 	}
 }
