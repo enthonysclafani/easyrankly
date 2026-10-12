@@ -226,7 +226,7 @@ final class Fields {
 			self::label( 'breadcrumb_taxonomies' ),
 			array( self::class, 'paragraph' ),
 			$page,
-			array( 'paragraph' => __( 'These options change the WordPress Breadcrumbs block. The structured data follows the trail the block shows.', 'easyrankly' ) )
+			array( 'paragraph' => __( 'These options change the WordPress Breadcrumbs block. The structured data follows the trail the block shows, in block themes only: classic themes render the block after the page head.', 'easyrankly' ) )
 		);
 		add_settings_field(
 			'breadcrumb_home_label',

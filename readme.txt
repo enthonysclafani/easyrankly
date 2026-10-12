@@ -26,7 +26,7 @@ In block themes, create a template part or a synced pattern with the same name f
 
 = Are classic themes supported? =
 
-SEO, sitemap, redirects and custom code work with every theme. Multilingual needs a block theme: with a classic theme, contents, addresses, site title and tagline change with the language, but menus, widgets and texts set in the Customizer show the same text in every language.
+SEO, sitemap, redirects and custom code work with every theme. Two features need a block theme. The breadcrumb uses the WordPress Breadcrumbs block, and its structured data (BreadcrumbList) is printed only when the block is part of the template, which classic themes render after the page head. Multilingual needs a block theme too: with a classic theme, contents, addresses, site title and tagline change with the language, but menus, widgets and texts set in the Customizer show the same text in every language.
 
 = What does the "Everywhere" position of Custom code do? =
 
