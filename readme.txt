@@ -18,6 +18,10 @@ EasyRankly is in active development. This version is not ready for production si
 * **No cron jobs.** Nothing runs in the background on your server.
 * **No frontend scripts.** Your visitors download nothing extra.
 
+= Source code =
+
+The JavaScript of the admin screens and of the block editor panels ships compiled in the `build` folder. Its source code, with the build tools, is public on GitHub: [github.com/enthonysclafani/easyrankly](https://github.com/enthonysclafani/easyrankly/tree/Refactory), in the `assets/src` folder. To build it yourself, run `npm install` and `npm run build` in a copy of the repository.
+
 == Frequently Asked Questions ==
 
 = How do header, footer and patterns change language? =
