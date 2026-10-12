@@ -128,7 +128,7 @@ final class HreflangTest extends WP_UnitTestCase {
 			array_values( $tags )
 		);
 
-		$this->go_to( 'http://example.org/en/' . '?s=x' );
+		$this->go_to( 'http://example.org/en/?s=x' );
 		$this->assertSame( array(), Social::tags() );
 	}
 
