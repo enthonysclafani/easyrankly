@@ -245,13 +245,47 @@ final class TitlesTest extends WP_UnitTestCase {
 			)
 		);
 		$seen   = array( 'sep' );
+		register_post_type(
+			'book',
+			array(
+				'public'      => true,
+				'has_archive' => true,
+			)
+		);
 
-		foreach ( array( get_permalink( $post ), get_category_link( $term ), get_author_posts_url( $author ), home_url( '/?s=x' ), home_url( '/?m=' . gmdate( 'Y' ) ) ) as $url ) {
+		foreach ( array( get_permalink( $post ), get_category_link( $term ), get_author_posts_url( $author ), get_post_type_archive_link( 'book' ), home_url( '/?s=x' ), home_url( '/?m=' . gmdate( 'Y' ) ) ) as $url ) {
 			$this->go_to( $url );
 			$seen = array_merge( $seen, array_keys( Titles::variables() ) );
 		}
 
+		_unregister_post_type( 'book' );
 		$this->assertEqualSets( Titles::VARIABLES, array_values( array_unique( $seen ) ) );
+	}
+
+	/**
+	 * Post type and author archives get a description by default: the post type's description
+	 * and the author's biography.
+	 */
+	public function test_archive_descriptions(): void {
+		register_post_type(
+			'book',
+			array(
+				'public'      => true,
+				'has_archive' => true,
+				'description' => 'All the <b>books</b> we read.',
+			)
+		);
+		self::factory()->post->create( array( 'post_type' => 'book' ) );
+		$author = self::factory()->user->create( array( 'description' => 'Writes about books.' ) );
+		self::factory()->post->create( array( 'post_author' => $author ) );
+
+		$this->go_to( get_post_type_archive_link( 'book' ) );
+		$this->assertSame( 'All the books we read.', Titles::description() );
+
+		$this->go_to( get_author_posts_url( $author ) );
+		$this->assertSame( 'Writes about books.', Titles::description() );
+
+		_unregister_post_type( 'book' );
 	}
 
 	/**

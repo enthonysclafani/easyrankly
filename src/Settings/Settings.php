@@ -96,7 +96,7 @@ final class Settings {
 			),
 			'archive' => array(
 				'title'       => '{{title}} {{page}} {{sep}} {{site_name}}',
-				'description' => '',
+				'description' => '{{post_type_description}}',
 			),
 			'term'    => array(
 				'title'       => '{{title}} {{page}} {{sep}} {{site_name}}',
@@ -104,7 +104,7 @@ final class Settings {
 			),
 			'author'  => array(
 				'title'       => '{{title}} {{page}} {{sep}} {{site_name}}',
-				'description' => '',
+				'description' => '{{author_description}}',
 			),
 			'date'    => array(
 				'title'       => '{{title}} {{page}} {{sep}} {{site_name}}',

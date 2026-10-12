@@ -27,7 +27,7 @@ final class Titles {
 	 * Names of the template variables, as the settings screen lists them: those of
 	 * variables(), plus `sep`, which Template::render() fills in from the settings.
 	 */
-	public const VARIABLES = array( 'title', 'sep', 'site_name', 'tagline', 'page', 'excerpt', 'term_description', 'author', 'post_type', 'category', 'date', 'search_query' );
+	public const VARIABLES = array( 'title', 'sep', 'site_name', 'tagline', 'page', 'excerpt', 'term_description', 'post_type_description', 'author', 'author_description', 'post_type', 'category', 'date', 'search_query' );
 
 	/**
 	 * Hooks the title filter and the description tag.
@@ -200,11 +200,13 @@ final class Titles {
 			// Like the term's SEO fields, its description is written in the default language only.
 			$variables['term_description'] = Meta::is_other_language() ? '' : Template::truncate( Template::plain( $object->description ), Template::EXCERPT_LENGTH );
 		} elseif ( $object instanceof \WP_User ) {
-			$variables['title']  = $object->display_name;
-			$variables['author'] = $object->display_name;
+			$variables['title']              = $object->display_name;
+			$variables['author']             = $object->display_name;
+			$variables['author_description'] = static fn(): string => Template::truncate( Template::plain( (string) get_the_author_meta( 'description', $object->ID ) ), Template::EXCERPT_LENGTH );
 		} elseif ( $object instanceof \WP_Post_Type ) {
-			$variables['title']     = (string) $object->labels->name;
-			$variables['post_type'] = (string) $object->labels->name;
+			$variables['title']                 = (string) $object->labels->name;
+			$variables['post_type']             = (string) $object->labels->name;
+			$variables['post_type_description'] = Template::truncate( Template::plain( (string) $object->description ), Template::EXCERPT_LENGTH );
 		} elseif ( is_date() ) {
 			$variables['title'] = wp_strip_all_tags( get_the_archive_title() );
 			$variables['date']  = $variables['title'];
