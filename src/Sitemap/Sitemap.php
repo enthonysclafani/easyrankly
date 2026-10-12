@@ -8,6 +8,8 @@
 namespace EasyRankly\Sitemap;
 
 use EasyRankly\Meta\Meta;
+use EasyRankly\Multilingual\Languages;
+use EasyRankly\Multilingual\Translations;
 use EasyRankly\Redirects\Redirects;
 use EasyRankly\Redirects\Rule;
 use EasyRankly\Settings\Settings;
@@ -21,9 +23,12 @@ defined( 'ABSPATH' ) || exit;
  * - Post types, taxonomies and author archives set to noindex in the settings lose their sitemap.
  * - Single posts and terms with their own noindex or canonical are left out of the queries, and
  *   so are password-protected posts, which are always noindex.
- * - Posts whose address an exact "forced" redirect sends elsewhere are left out too: they
- *   would answer with a redirect. Regex forced rules can't be mapped to posts without
+ * - Posts and terms whose address an exact "forced" redirect sends elsewhere are left out too:
+ *   they would answer with a redirect. Regex forced rules can't be mapped to objects without
  *   scanning them all, so they are not considered.
+ * - The front page and the posts page follow their own contexts (`home`, `archive-post`,
+ *   `archive`), not the one of single pages: with pages set to noindex they stay listed, and
+ *   with their own context set to noindex they leave.
  * - lastmod: core already adds it to posts (post_modified_gmt). Terms and users have no
  *   modification date of their own; computing one would cost a query per entry.
  */
@@ -37,6 +42,7 @@ final class Sitemap {
 		add_filter( 'wp_sitemaps_taxonomies', array( $this, 'filter_taxonomies' ) );
 		add_filter( 'wp_sitemaps_add_provider', array( $this, 'filter_provider' ), 10, 2 );
 		add_filter( 'wp_sitemaps_posts_query_args', array( $this, 'filter_posts_query_args' ) );
+		add_filter( 'wp_sitemaps_posts_pre_max_num_pages', array( $this, 'filter_max_num_pages' ), 10, 2 );
 		add_filter( 'wp_sitemaps_taxonomies_query_args', array( $this, 'filter_query_args' ) );
 	}
 
@@ -47,7 +53,111 @@ final class Sitemap {
 	 * @return mixed
 	 */
 	public function filter_post_types( $post_types ) {
-		return is_array( $post_types ) ? $this->without_noindex( $post_types, 'single' ) : $post_types;
+		if ( ! is_array( $post_types ) ) {
+			return $post_types;
+		}
+
+		$kept = $this->without_noindex( $post_types, 'single' );
+
+		// The front page and the posts page are not single pages for the robots rules (Context):
+		// they keep the pages sitemap, with only them in it (filter_posts_query_args()).
+		if ( isset( $post_types['page'] ) && ! isset( $kept['page'] ) && self::lists_home_pages() ) {
+			$kept['page'] = $post_types['page'];
+		}
+
+		return $kept;
+	}
+
+	/**
+	 * One page for the pages sitemap that holds only the home listing the latest posts: core adds
+	 * its URL on the first page, but counts no page when the query finds no pages.
+	 *
+	 * @param mixed $max_num_pages Number of pages from earlier filters, null to let core count.
+	 * @param mixed $post_type     Post type of the sitemap.
+	 * @return mixed
+	 */
+	public function filter_max_num_pages( $max_num_pages, $post_type ) {
+		if ( null === $max_num_pages && 'page' === $post_type && array() === self::home_pages() && self::lists_home_pages() ) {
+			return 1;
+		}
+
+		return $max_num_pages;
+	}
+
+	/**
+	 * The front page and the posts page, with their translations, when single pages are noindex but
+	 * their own contexts (`home`, `archive-post`, `archive`) are not.
+	 *
+	 * @return list<int>|null Null when single pages are indexable: the pages sitemap is the core one.
+	 */
+	private static function home_pages(): ?array {
+		$rules = self::rules();
+		if ( array() === array_intersect( array( 'single', 'single-page' ), $rules ) ) {
+			return null;
+		}
+		if ( 'page' !== get_option( 'show_on_front' ) ) {
+			return array();
+		}
+
+		$pages = array();
+		if ( ! in_array( 'home', $rules, true ) ) {
+			$pages = self::with_translations( (int) get_option( 'page_on_front' ) );
+		}
+		if ( array() === array_intersect( array( 'archive', 'archive-post' ), $rules ) ) {
+			$pages = array_merge( $pages, self::with_translations( (int) get_option( 'page_for_posts' ) ) );
+		}
+
+		return $pages;
+	}
+
+	/**
+	 * Whether the pages sitemap has something to list while single pages are noindex: the front
+	 * page or the posts page (home_pages()), or the home that lists the latest posts.
+	 *
+	 * @return bool
+	 */
+	private static function lists_home_pages(): bool {
+		$pages = self::home_pages();
+
+		return null !== $pages
+			&& ( array() !== $pages || ( 'posts' === get_option( 'show_on_front' ) && ! in_array( 'home', self::rules(), true ) ) );
+	}
+
+	/**
+	 * The front page and the posts page with their translations, when their own context is noindex
+	 * in the settings: the posts page follows `archive-post` and `archive` (Context), the front page `home`.
+	 *
+	 * @return list<int>
+	 */
+	private static function noindex_home_pages(): array {
+		if ( 'page' !== get_option( 'show_on_front' ) ) {
+			return array();
+		}
+
+		$rules = self::rules();
+		$pages = array();
+		if ( in_array( 'home', $rules, true ) ) {
+			$pages = self::with_translations( (int) get_option( 'page_on_front' ) );
+		}
+		if ( array() !== array_intersect( array( 'archive', 'archive-post' ), $rules ) ) {
+			$pages = array_merge( $pages, self::with_translations( (int) get_option( 'page_for_posts' ) ) );
+		}
+
+		return $pages;
+	}
+
+	/**
+	 * A page and its translations, which stand for it in the other languages.
+	 *
+	 * @param int $page_id Page ID, 0 when the option is not set.
+	 * @return list<int>
+	 */
+	private static function with_translations( int $page_id ): array {
+		if ( $page_id < 1 ) {
+			return array();
+		}
+
+		return Languages::enabled() ? array_values( Translations::of( $page_id ) ) : array( $page_id );
 	}
 
 	/**
@@ -92,7 +202,7 @@ final class Sitemap {
 			)
 		);
 
-		return self::exclude( $args, 'exclude', is_array( $excluded ) ? $excluded : array() );
+		return self::exclude( $args, 'exclude', array_merge( is_array( $excluded ) ? $excluded : array(), self::redirected_term_ids( $args['taxonomy'] ) ) );
 	}
 
 	/**
@@ -109,6 +219,12 @@ final class Sitemap {
 
 		$args['has_password'] = false;
 
+		$home_pages = 'page' === $args['post_type'] ? self::home_pages() : null;
+		if ( null !== $home_pages ) {
+			// Single pages are noindex: only the front page and the posts page stay (filter_post_types()).
+			$args['post__in'] = array() === $home_pages ? array( 0 ) : $home_pages;
+		}
+
 		$excluded = get_posts(
 			array(
 				'post_type'              => $args['post_type'],
@@ -122,7 +238,7 @@ final class Sitemap {
 			)
 		);
 
-		return self::exclude( $args, 'post__not_in', array_merge( $excluded, self::redirected_post_ids(), self::empty_posts_page( $args['post_type'] ) ) );
+		return self::exclude( $args, 'post__not_in', array_merge( $excluded, self::redirected_post_ids(), self::empty_posts_page( $args['post_type'] ), 'page' === $args['post_type'] ? self::noindex_home_pages() : array() ) );
 	}
 
 	/**
@@ -224,6 +340,55 @@ final class Sitemap {
 		}
 
 		return array_values( array_unique( $ids ) );
+	}
+
+	/**
+	 * IDs of the terms whose address an active exact forced redirect sends elsewhere.
+	 *
+	 * The last segment of each source is a candidate slug: one query finds the terms with those
+	 * slugs, and only those whose link is exactly the source count. Sitemap requests only.
+	 *
+	 * @param mixed $taxonomy Taxonomy of the sitemap.
+	 * @return list<int>
+	 */
+	private static function redirected_term_ids( $taxonomy ): array {
+		$rules = get_option( Redirects::FORCED_OPTION, array() );
+		if ( ! is_string( $taxonomy ) || ! is_array( $rules ) ) {
+			return array();
+		}
+
+		$sources = array();
+		foreach ( $rules as $rule ) {
+			if ( is_array( $rule ) && empty( $rule['regex'] ) && isset( $rule['source'] ) && is_string( $rule['source'] ) ) {
+				$sources[ $rule['source'] ] = sanitize_title( basename( $rule['source'] ) );
+			}
+		}
+		$slugs = array_values( array_filter( array_unique( $sources ) ) );
+		if ( array() === $slugs ) {
+			return array();
+		}
+
+		$terms = get_terms(
+			array(
+				'taxonomy'               => $taxonomy,
+				'slug'                   => $slugs,
+				'hide_empty'             => false,
+				'update_term_meta_cache' => false,
+			)
+		);
+
+		$ids = array();
+		foreach ( is_array( $terms ) ? $terms : array() as $term ) {
+			if ( ! $term instanceof \WP_Term ) {
+				continue;
+			}
+			$link = get_term_link( $term );
+			if ( is_string( $link ) && isset( $sources[ Rule::normalize( $link ) ] ) ) {
+				$ids[] = $term->term_id;
+			}
+		}
+
+		return $ids;
 	}
 
 	/**
