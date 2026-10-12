@@ -33,6 +33,10 @@ Test: `tests/Canonical/ArchivePageTest.php` riproduce la query di WooCommerce se
   campi, solo per i tipi di contenuto che non usano l'editor a blocchi, salvato con nonce e `edit_post`. È
   un'eccezione alla regola "niente meta box classiche" di `CLAUDE.md`: va decisa. Coprirebbe anche Classic Editor e
   i tipi di contenuto senza supporto `editor`. Le categorie e i tag prodotto hanno già i campi.
+  Stesso nodo per gli **allegati**: i meta SEO sono registrati anche per `attachment`, ma la schermata dei media non
+  usa l'editor a blocchi, quindi la pagina di un allegato ha solo template e regole di contesto. Con W1 vanno decisi
+  anche i campi in `attachment_fields_to_edit` / `attachment_fields_to_save` (Enthony, 12 ottobre 2026: non ora,
+  insieme a W1).
 - **W4. Sitemap.** WooCommerce mette in noindex carrello, checkout e account (filtro `wp_robots`), ma la sitemap delle
   pagine del core li elenca. Proposta: escludere gli ID nelle option `woocommerce_cart_page_id`,
   `woocommerce_checkout_page_id` e `woocommerce_myaccount_page_id` (autoload, nessuna query), come già si fa per il
