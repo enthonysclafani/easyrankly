@@ -11,6 +11,7 @@ use EasyRankly\Meta\Meta;
 use EasyRankly\Multilingual\Hreflang;
 use EasyRankly\Multilingual\Translations;
 use EasyRankly\Settings\Settings;
+use EasyRankly\Social\Social;
 use WP_UnitTestCase;
 
 /**
@@ -110,6 +111,28 @@ final class HreflangTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Open Graph names the other languages of the page, those of its hreflang links.
+	 */
+	public function test_open_graph_lists_the_other_locales(): void {
+		$this->group();
+
+		$this->go_to( 'http://example.org/en/post-en/' );
+		$tags = array_filter( Social::tags(), static fn( array $tag ): bool => str_starts_with( $tag[1], 'og:locale' ) );
+
+		$this->assertSame(
+			array(
+				array( 'property', 'og:locale', 'en_US' ),
+				array( 'property', 'og:locale:alternate', 'it_IT' ),
+				array( 'property', 'og:locale:alternate', 'fr_FR' ),
+			),
+			array_values( $tags )
+		);
+
+		$this->go_to( 'http://example.org/en/' . '?s=x' );
+		$this->assertSame( array(), Social::tags() );
+	}
+
+	/**
 	 * Drafts, protected, noindex and canonicalized translations are left out.
 	 */
 	public function test_non_indexable_translations_are_left_out(): void {
@@ -186,6 +209,8 @@ final class HreflangTest extends WP_UnitTestCase {
 	 * unless it is noindex or has a canonical of its own.
 	 */
 	public function test_archives_have_every_language(): void {
+		create_initial_taxonomies(); // Re-adds the category permastruct for the new structure.
+		flush_rewrite_rules( false );
 		$category = self::factory()->category->create( array( 'slug' => 'news' ) );
 		self::factory()->post->create( array( 'post_category' => array( $category ) ) );
 

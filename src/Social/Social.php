@@ -10,6 +10,7 @@ namespace EasyRankly\Social;
 use EasyRankly\Canonical\Canonical;
 use EasyRankly\Context\Context;
 use EasyRankly\Meta\Meta;
+use EasyRankly\Multilingual\Hreflang;
 use EasyRankly\Settings\Settings;
 use EasyRankly\Titles\Titles;
 
@@ -71,12 +72,19 @@ final class Social {
 			$description = Titles::description();
 		}
 
-		$tags = array(
-			array( 'property', 'og:locale', get_locale() ),
-			array( 'property', 'og:site_name', html_entity_decode( (string) get_bloginfo( 'name' ), ENT_QUOTES | ENT_HTML5, 'UTF-8' ) ),
-			array( 'property', 'og:type', $article ? 'article' : 'website' ),
-			array( 'property', 'og:title', $title ),
-		);
+		$tags = array( array( 'property', 'og:locale', get_locale() ) );
+
+		// The other languages of the page: those of its hreflang links, already worked out and cached.
+		foreach ( array_keys( Hreflang::alternates() ) as $code ) {
+			$locale = str_replace( '-', '_', $code );
+			if ( 'x-default' !== $code && Hreflang::code( get_locale() ) !== $code ) {
+				$tags[] = array( 'property', 'og:locale:alternate', $locale );
+			}
+		}
+
+		$tags[] = array( 'property', 'og:site_name', html_entity_decode( (string) get_bloginfo( 'name' ), ENT_QUOTES | ENT_HTML5, 'UTF-8' ) );
+		$tags[] = array( 'property', 'og:type', $article ? 'article' : 'website' );
+		$tags[] = array( 'property', 'og:title', $title );
 
 		if ( '' !== $description ) {
 			$tags[] = array( 'property', 'og:description', $description );
