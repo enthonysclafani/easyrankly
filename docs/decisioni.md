@@ -99,6 +99,19 @@ documenti indicati.
   canonical e social di contenuti e termini) e redirect, non le impostazioni globali; a lotti guidati dall'admin via
   REST con il cursore in un'option (niente cron). SEOPress e All in One SEO eventualmente dopo. Riferimento Alpha:
   `includes/migrations/`. In roadmap, "Funzioni decise ma non ancora fatte".
+- **Funzioni SEO delle versioni precedenti** (12 ottobre 2026), dopo il confronto di `main`, `beta` e `Alpha` con
+  questo branch:
+  - *Pagine allegato*: si riporta, ma senza un'impostazione nostra. Una casella nella pagina Indicizzazione legge e
+    scrive l'option del core `wp_attachment_pages_enabled` (WordPress 6.4): spenta, il core porta l'indirizzo
+    dell'allegato al file. Serve ai siti nati prima della 6.4, che hanno ancora le pagine e nessuna schermata per
+    spegnerle. Non si cancella alla disinstallazione: è del core.
+  - *Feed*: `X-Robots-Tag: noindex, follow` su tutti i feed, sempre, senza impostazione.
+  - *Paginazione*: niente noindex né nofollow sulle pagine 2 e successive (Google lo sconsiglia: peggiora la
+    scoperta dei contenuti). Il suffisso del titolo c'è già come variabile `{{page}}`.
+  - *Direttive robots avanzate* (`max-snippet`, `max-video-preview`, `nosnippet`, `noimageindex`, `notranslate`,
+    `indexifembedded`): non si fanno. `max-image-preview:large` lo stampa già il core; i casi rari si coprono con uno
+    snippet PHP sul filtro `wp_robots`.
+  - *Categoria principale*: non si fa (non interessa).
 - **Custom code "Ovunque"** (9 ottobre 2026): una posizione solo per snippet PHP, su `plugins_loaded` in ogni
   richiesta come il `functions.php` di un tema, tranne sulla schermata Custom code. Serve a togliere o cambiare hook
   senza modificare file. Rischi: `docs/custom-code.md`.

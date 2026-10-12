@@ -48,6 +48,10 @@ They are noindex and left out of the sitemap. Their automatic description is emp
 
 No. A category, tag, author or post type archive with nothing in it is noindex until it has content. A category or tag with its own description stays indexable, since the description is content.
 
+= Are feeds and attachment pages indexed? =
+
+Feeds are never indexed: they send an `X-Robots-Tag: noindex, follow` header, so search engines still follow their links. Attachment pages, which show only the uploaded file, are off by default on sites created with WordPress 6.4 or later. On older sites, turn them off in EasyRankly > Indexing: their address then leads to the file. This is the WordPress setting, so it stays as you set it if you remove EasyRankly.
+
 = Does it work with WooCommerce and ACF? =
 
 Yes, without conflicts. The shop page gives the product archive its SEO title, description and canonical, and WooCommerce keeps printing its own Product structured data. Not supported yet: SEO fields on the product edit screen (WooCommerce uses the classic editor there) and multilingual stores. With ACF, automatic descriptions are built from the post content and excerpt, not from custom fields.

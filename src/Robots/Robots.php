@@ -22,6 +22,9 @@ defined( 'ABSPATH' ) || exit;
  *
  * It only ever adds restrictions: core keeps its own rules (search results,
  * embeds, sites hidden from search engines) and its other directives.
+ *
+ * Feeds have no robots meta tag: they get `X-Robots-Tag: noindex, follow`, so a feed never
+ * shows up in search results in place of the page it repeats, while its links are still followed.
  */
 final class Robots {
 
@@ -30,6 +33,25 @@ final class Robots {
 	 */
 	public function register(): void {
 		add_filter( 'wp_robots', array( $this, 'filter' ) );
+		add_filter( 'wp_headers', array( $this, 'feed_headers' ), 10, 2 );
+	}
+
+	/**
+	 * Adds noindex to the headers of every feed.
+	 *
+	 * The headers are sent before the main query runs, so is_feed() is not known yet: the parsed
+	 * `feed` query var is, and it is what core itself reads to send the feed's content type.
+	 *
+	 * @param mixed $headers Headers to send.
+	 * @param mixed $wp      Current WordPress environment.
+	 * @return mixed
+	 */
+	public function feed_headers( $headers, $wp ) {
+		if ( is_array( $headers ) && $wp instanceof \WP && ! empty( $wp->query_vars['feed'] ) ) {
+			$headers['X-Robots-Tag'] = 'noindex, follow';
+		}
+
+		return $headers;
 	}
 
 	/**

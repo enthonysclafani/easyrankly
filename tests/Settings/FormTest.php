@@ -131,6 +131,23 @@ final class FormTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * The attachment pages box writes the core option, never a setting of ours; other pages leave it alone.
+	 */
+	public function test_indexing_page_saves_core_attachment_pages_option(): void {
+		update_option( 'wp_attachment_pages_enabled', '1' );
+
+		$stored = $this->save( 'easyrankly-indexing', array( 'attachment_pages' => '1' ) );
+		$this->assertSame( '0', (string) get_option( 'wp_attachment_pages_enabled' ) );
+		$this->assertArrayNotHasKey( 'attachment_pages', $stored );
+
+		$this->save( Page::SLUG, array( 'title_separator' => '-' ) );
+		$this->assertSame( '0', (string) get_option( 'wp_attachment_pages_enabled' ) );
+
+		$this->save( 'easyrankly-indexing', array() );
+		$this->assertSame( '1', (string) get_option( 'wp_attachment_pages_enabled' ) );
+	}
+
+	/**
 	 * Templates of all languages: generic contexts keep empty fields, type contexts drop them.
 	 */
 	public function test_titles_page_saves_templates_of_all_languages(): void {
