@@ -179,6 +179,10 @@ Prima di scrivere codice, verifica se WordPress lo fa già. Se lo fa, usa o filt
 - **Percorso caldo (frontend)**: nessuna query SQL in più rispetto a WordPress senza plugin.
   I meta del contenuto sono già in cache con l'oggetto interrogato; le impostazioni stanno in **una** option
   autoload (`easyrankly_settings`). Ogni query aggiuntiva va motivata e messa in cache in `wp_cache` con invalidazione esplicita.
+- **Eccezione approvata (12 ottobre 2026)**: sugli archivi di termine (categorie, tag, tassonomie) e sulla pagina
+  articoli i campi SEO leggono i meta dell'oggetto interrogato, che il core lì non carica: è **una** query in più
+  senza cache persistente, nessuna con una cache persistente (il core tiene i meta in `wp_cache` e li invalida).
+  `tests/QueriesTest.php` la conta: qualsiasi altra query in più fa fallire il test.
 - **Redirect**: la ricerca avviene solo su `template_redirect` quando `is_404()`, più una lista piccola di
   "redirect forzati" nell'option autoload. Ricerca per hash della sorgente normalizzata in `post_name` (colonna indicizzata).
 - **Autoload**: solo dati piccoli e letti a ogni richiesta. Tutto il resto con `autoload = false`.

@@ -224,6 +224,31 @@ final class SitemapTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * WooCommerce's shop page is left out while there are no products; without the product
+	 * post type its option is not read.
+	 */
+	public function test_empty_shop_page_is_left_out(): void {
+		$shop = self::factory()->post->create( array( 'post_type' => 'page' ) );
+		update_option( 'woocommerce_shop_page_id', (string) $shop );
+
+		$this->assertContains( get_permalink( $shop ), $this->urls( 'posts', 'page' ) );
+
+		register_post_type(
+			'product',
+			array(
+				'public'      => true,
+				'has_archive' => 'shop',
+			)
+		);
+		$this->assertNotContains( get_permalink( $shop ), $this->urls( 'posts', 'page' ) );
+
+		self::factory()->post->create( array( 'post_type' => 'product' ) );
+		$this->assertContains( get_permalink( $shop ), $this->urls( 'posts', 'page' ) );
+
+		_unregister_post_type( 'product' );
+	}
+
+	/**
 	 * Without forced redirects the query gets no exclusion list.
 	 */
 	public function test_no_forced_redirects_adds_no_exclusion(): void {
