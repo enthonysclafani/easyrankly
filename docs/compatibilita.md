@@ -18,6 +18,10 @@ conflitti tecnici; restano due limiti (A1, A2).
   dall'oggetto: il Negozio ha canonical (con il numero di pagina), `og:url` e `@id` dello schema corretti. Con il
   Negozio come pagina iniziale (non singolare) il canonical della home lo stampa il plugin.
 - **W6. `og:type`.** `article` solo per i `post`, come lo schema `Article`: i prodotti sono `website`.
+- **W7. Negozio vuoto fuori dalla sitemap.** Senza prodotti pubblicati la pagina Negozio ha noindex (archivio vuoto),
+  quindi la sitemap delle pagine la toglie, come la pagina articoli senza articoli. La pagina si legge dall'option
+  `woocommerce_shop_page_id`, la stessa di `wc_get_page_id()`, solo nelle richieste di sitemap e solo se esiste il tipo
+  di contenuto `product`. È il primo codice che nomina WooCommerce (12 ottobre 2026, scelta di Enthony).
 
 Test: `tests/Canonical/ArchivePageTest.php` riproduce la query di WooCommerce senza WooCommerce.
 
@@ -31,8 +35,8 @@ Test: `tests/Canonical/ArchivePageTest.php` riproduce la query di WooCommerce se
   i tipi di contenuto senza supporto `editor`. Le categorie e i tag prodotto hanno già i campi.
 - **W4. Sitemap.** WooCommerce mette in noindex carrello, checkout e account (filtro `wp_robots`), ma la sitemap delle
   pagine del core li elenca. Proposta: escludere gli ID nelle option `woocommerce_cart_page_id`,
-  `woocommerce_checkout_page_id` e `woocommerce_myaccount_page_id` (autoload, nessuna query). Sarebbe il primo
-  codice che nomina WooCommerce.
+  `woocommerce_checkout_page_id` e `woocommerce_myaccount_page_id` (autoload, nessuna query), come già si fa per il
+  Negozio vuoto (W7).
 - **W5. Multilingua e negozio.** Oggi il multilingua non regge un negozio:
   - senza il pannello Lingua (W1) i prodotti restano nella lingua predefinita, quindi il negozio nelle altre lingue
     è vuoto;

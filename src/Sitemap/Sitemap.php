@@ -97,7 +97,8 @@ final class Sitemap {
 
 	/**
 	 * Posts query: leaves out the password-protected posts (always noindex), the posts with their
-	 * own noindex or a canonical override, the posts redirected by forced rules and an empty posts page.
+	 * own noindex or a canonical override, the posts redirected by forced rules and the posts or
+	 * shop page when it is empty.
 	 *
 	 * @param mixed $args Query arguments.
 	 * @return mixed
@@ -122,33 +123,56 @@ final class Sitemap {
 			)
 		);
 
-		return self::exclude( $args, 'post__not_in', array_merge( $excluded, self::redirected_post_ids(), self::empty_posts_page( $args['post_type'] ) ) );
+		return self::exclude( $args, 'post__not_in', array_merge( $excluded, self::redirected_post_ids(), self::empty_listing_pages( $args['post_type'] ) ) );
 	}
 
 	/**
-	 * The posts page, when there are no posts to list: Robots makes it noindex, as any empty archive.
+	 * Pages that stand for an archive with nothing to list: Robots makes them noindex, as any
+	 * empty archive. They are the posts page and WooCommerce's shop page.
+	 *
+	 * WooCommerce keeps the shop page in the `woocommerce_shop_page_id` option, which wc_get_page_id()
+	 * reads (woocommerce/includes/wc-page-functions.php). It is read only here and only while
+	 * the `product` post type exists, so without WooCommerce nothing changes.
 	 *
 	 * @param mixed $post_type Post type of the sitemap.
 	 * @return list<int>
 	 */
-	private static function empty_posts_page( $post_type ): array {
-		$page = (int) get_option( 'page_for_posts' );
-		if ( 'page' !== $post_type || $page < 1 || 'page' !== get_option( 'show_on_front' ) ) {
+	private static function empty_listing_pages( $post_type ): array {
+		if ( 'page' !== $post_type ) {
 			return array();
 		}
 
-		$posts = get_posts(
-			array(
-				'post_type'              => 'post',
-				'posts_per_page'         => 1,
-				'fields'                 => 'ids',
-				'no_found_rows'          => true,
-				'update_post_meta_cache' => false,
-				'update_post_term_cache' => false,
-			)
-		);
+		$pages = array();
+		if ( 'page' === get_option( 'show_on_front' ) ) {
+			$pages['post'] = (int) get_option( 'page_for_posts' );
+		}
+		if ( post_type_exists( 'product' ) ) {
+			$pages['product'] = (int) get_option( 'woocommerce_shop_page_id' );
+		}
 
-		return array() === $posts ? array( $page ) : array();
+		$empty = array();
+		foreach ( $pages as $listed => $page ) {
+			// A shop used as front page is the home: the sitemap lists it apart.
+			if ( $page < 1 || (int) get_option( 'page_on_front' ) === $page ) {
+				continue;
+			}
+
+			$posts = get_posts(
+				array(
+					'post_type'              => $listed,
+					'posts_per_page'         => 1,
+					'fields'                 => 'ids',
+					'no_found_rows'          => true,
+					'update_post_meta_cache' => false,
+					'update_post_term_cache' => false,
+				)
+			);
+			if ( array() === $posts ) {
+				$empty[] = $page;
+			}
+		}
+
+		return $empty;
 	}
 
 	/**
