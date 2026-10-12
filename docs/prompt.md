@@ -5,16 +5,12 @@ branch `Refactory`; il prompt lo controlla comunque, perché il branch predefini
 
 Un punto della roadmap per sessione: le sessioni corte restano precise.
 
-## Prima sessione nel cloud (una volta sola)
+## Prima sessione nel cloud
 
-```text
-Fai `git fetch origin Refactory` e passa al branch Refactory se non ci sei già.
-Leggi CLAUDE.md, poi verifica che l'ambiente sia pronto: controlla l'output di tools/cloud-setup.sh e lancia
-`composer check`. Fai lanciare `composer check` anche al subagente `verificatore`, per confermare che i subagenti
-su Haiku 5.5 funzionano. Se qualcosa fallisce, correggi lo script di setup o la configurazione dei subagenti (non le
-regole), apri una pull request verso Refactory e spunta "Prima sessione Claude Code nel cloud" in docs/roadmap.md.
-Dimmi cosa hai verificato.
-```
+Fatta l'8 ottobre 2026 (Fase 0). Per un ambiente nuovo: chiedi di passare a `Refactory`, controllare l'output di
+`tools/cloud-setup.sh`, lanciare `composer check` (anche tramite il subagente `verificatore`, per confermare che i
+subagenti su Haiku 5.5 funzionano) e, se qualcosa fallisce, correggere lo script di setup o la configurazione dei
+subagenti, non le regole.
 
 ## Una fase intera (Opus come responsabile, Haiku 5.5 per il lavoro meccanico)
 
@@ -29,7 +25,7 @@ sul piano, scrivilo nella descrizione della pull request.
 - Tu sei il responsabile tecnico. Delega ai subagenti di .claude/agents (ricercatore, esecutore, verificatore)
   il lavoro lungo e meccanico, come descritto in "Delega ai subagenti" di CLAUDE.md, e rivedi tutto ciò che producono.
 - Non serve il mio ok tra un punto e l'altro: apri una pull request verso Refactory per ogni punto.
-- Fermati e chiedimi solo davanti a una decisione aperta di docs/piano.md o a un'eccezione alle invarianti.
+- Fermati e chiedimi solo davanti a una decisione aperta di docs/decisioni.md o a un'eccezione alle invarianti.
 - Alla fine dimmi, per ogni punto: cosa hai fatto, cosa hai delegato, cosa hai verificato e cosa no.
 ```
 
@@ -42,7 +38,7 @@ Lavora sul punto <N> di docs/roadmap.md.
 
 Prima di scrivere codice:
 0. Fai `git fetch origin Refactory` e parti dal branch Refactory aggiornato.
-1. Leggi CLAUDE.md, docs/piano.md, docs/roadmap.md e docs/data-model.md.
+1. Leggi CLAUDE.md, docs/piano.md, docs/decisioni.md, docs/roadmap.md e docs/data-model.md.
 2. Se il punto ha riferimenti ad Alpha, leggi quei file con `git show origin/Alpha:<percorso>` solo per capire la
    logica e i casi limite già scoperti. Non copiarli: riscrivi secondo CLAUDE.md.
 3. Presentami un piano breve e aspetta il mio ok:

@@ -2,7 +2,8 @@
 
 Stato al 10 ottobre 2026. L'analisi è stata fatta leggendo il codice di **WooCommerce 11.x** (trunk 11.3.0-dev e
 tag 10.2–11.2) e di **ACF 6.8.10**, senza installarli: va confermata su un sito con i due plugin attivi.
-I punti aperti sono anche nella roadmap, sezione "Compatibilità con WooCommerce e ACF".
+I punti aperti sono anche nella roadmap, sezione "Compatibilità con WooCommerce e ACF"; quelli che aspettano una
+decisione (W1, W5, A1, A2) sono in `docs/decisioni.md`, "Da decidere".
 
 In breve: con **WooCommerce** non si rompe niente, ma il supporto non è completo (W1, W4, W5). Con **ACF** non ci sono
 conflitti tecnici; restano due limiti (A1, A2).
@@ -65,7 +66,7 @@ Test: `tests/Canonical/ArchivePageTest.php` riproduce la query di WooCommerce se
 ### Cosa convive già
 
 - Schema `Product`: lo stampa WooCommerce nel footer, separato dal nostro grafo (`#product` contro `#webpage`), senza
-  `@id` in conflitto. Non lo generiamo (decisione in `docs/piano.md`, sezione 7).
+  `@id` in conflitto. Non lo generiamo (decisione in `docs/decisioni.md`).
 - Robots: noi e WooCommerce aggiungiamo solo restrizioni con `wp_robots`. Gli endpoint mandano `X-Robots-Tag: noindex`.
 - Canonical di categorie, tag e filtri (`?filter_color=`, `?orderby=`): dal link del termine, senza parametri.
 - Redirect: solo su 404, non toccano carrello, checkout o `wc-ajax`.

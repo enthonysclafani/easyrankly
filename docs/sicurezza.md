@@ -1,10 +1,12 @@
 # Piano del controllo di sicurezza di EasyRankly (gratuito)
 
-Versione del 9 ottobre 2026, scritta su `Refactory` dopo i requisiti minimi (#42, #43). Il controllo parte dalla
-testa di `Refactory` del giorno in cui inizia.
+Scritto il 9 ottobre 2026, aggiornato il 12 ottobre 2026. È la lista di controllo della **Fase 8** di
+`docs/roadmap.md`, da chiudere prima della pubblicazione della 2.0.0 (decisione del 12 ottobre 2026). Il controllo
+parte dalla testa di `Refactory` del giorno in cui inizia.
 
-Questo documento è il **piano**: dice cosa controllare, come e in che ordine. Il controllo vero si fa dopo,
-punto per punto, e ogni problema trovato diventa una PR separata verso `Refactory` con il suo test di regressione.
+Questo documento dice cosa controllare, come e in che ordine. Modello di minaccia, cosa va protetto e la regola di
+fondo degli snippet stanno in `docs/piano.md`, sezione 5; le regole per chi scrive codice in `CLAUDE.md`. Ogni
+problema trovato diventa una PR separata verso `Refactory` con il suo test di regressione.
 
 ---
 
@@ -19,34 +21,10 @@ distribuito (non devono).
 
 ## 2. Modello di minaccia
 
-### Chi può attaccare
-
-| Attore | Cosa può fare oggi in WordPress |
-|---|---|
-| Visitatore anonimo | URL, query string, ricerca, intestazioni, commenti |
-| Iscritto, collaboratore, autore | Scrivere i propri contenuti e i loro meta, usare la REST API autenticata |
-| Editor | Contenuti di tutti, spesso `unfiltered_html` su sito singolo |
-| Admin di un sito in multisite | `manage_options` ma **né** `unfiltered_html` **né** `edit_plugins` |
-| Admin con `DISALLOW_FILE_EDIT` / `DISALLOW_FILE_MODS` / `DISALLOW_UNFILTERED_HTML` | Admin volutamente limitato dal proprietario del sito |
-| Chi fornisce un file WXR da importare | Contenuto arbitrario dentro l'importer del core |
-| Un altro plugin o una SQL injection altrove | Scrittura diretta di option e post |
-
-### Cosa va protetto, in ordine
-
-1. **Esecuzione di PHP** (snippet PHP, `eval` in `PhpRunner.php`): equivale al controllo totale del server.
-2. **HTML arbitrario in ogni pagina** (snippet HTML): equivale a XSS persistente su tutto il sito.
-3. **Redirect**: redirect aperti, phishing, blocco del sito (loop, ReDoS).
-4. **Uscita nel `<head>`** (titoli, meta, Open Graph, JSON-LD, hreflang, canonical): XSS riflessa o persistente.
-5. **Dati non pubblici** (bozze, contenuti privati, codice degli snippet) esposti via REST o sitemap.
-6. **Disponibilità**: un visitatore non deve poter spegnere funzioni o rompere pagine.
-
-### La regola di fondo per gli snippet
-
-> Può far girare PHP solo chi potrebbe già farlo modificando un plugin dall'editor del core (`edit_plugins`).
-> Può stampare HTML grezzo solo chi ha già `unfiltered_html`.
-
-Il controllo cerca **ogni strada** che permetta di scendere sotto questa soglia. Un admin che rispetta la soglia e
-scrive codice dannoso non è una vulnerabilità: è la funzione.
+In `docs/piano.md`, sezione 5: chi può attaccare (dal visitatore anonimo all'admin di un sito in multisite, a chi
+importa un WXR), cosa va protetto in ordine (esecuzione di PHP, HTML in ogni pagina, redirect, `<head>`, dati non
+pubblici, disponibilità) e la regola di fondo: PHP solo a chi ha `edit_plugins`, HTML grezzo solo a chi ha
+`unfiltered_html`. Il controllo cerca **ogni strada** che permetta di scendere sotto quella soglia.
 
 ---
 
@@ -99,7 +77,7 @@ quell'option ottiene esecuzione di PHP. Da verificare:
 - Un admin di sito in multisite o un ruolo senza `edit_plugins` ha una qualsiasi strada per scriverla?
 - Rischio accettato da documentare: con accesso diretto al DB (SQL injection altrove) l'option diventa esecuzione di
   codice. È lo stesso rischio di `active_plugins` nel core, ma va scritto in `CLAUDE.md`.
-- **Fatto il 12 ottobre 2026** (decisione 1 della sezione 7): ogni snippet in cache porta un HMAC fatto con
+- **Fatto il 12 ottobre 2026** (firma HMAC, PR #73; registro in `docs/decisioni.md`): ogni snippet in cache porta un HMAC fatto con
   `wp_salt( 'auth' )` su ID, tipo, posizione e codice. `Runner` esegue solo gli snippet la cui firma torna; se ne trova
   uno che non torna ricostruisce la cache dagli snippet salvati. Da verificare nel controllo: che nessuna strada di
   scrittura dell'option produca una firma valida senza passare da `rebuild_cache()`. La protezione vale quando le
@@ -134,8 +112,8 @@ quell'option ottiene esecuzione di PHP. Da verificare:
 `disable()` scrive nel DB su una richiesta del frontend, spesso anonima. Da valutare:
 
 - Un visitatore può spegnere di proposito uno snippet che lancia un'eccezione su certi input (es. legge `$_GET`)?
-  È un modo per togliere al sito, ad esempio, il codice di tracciamento o di consenso cookie. Accettato per ora
-  (decisione 2 della sezione 7), da rivedere.
+  È un modo per togliere al sito, ad esempio, il codice di tracciamento o di consenso cookie. Accettato per ora,
+  da rivedere: è la decisione aperta 5 di `docs/decisioni.md`.
 - `kses_remove_filters()` / `kses_init()`: se `wp_update_post()` lancia un'eccezione, i filtri restano tolti per il
   resto della richiesta? Altri plugin agganciati a `save_post` girano in shutdown con i filtri tolti?
 - `sanitize_text_field()` sul messaggio d'errore e `esc_html()` nell'avviso admin: il messaggio può contenere dati del
@@ -250,6 +228,8 @@ La PR di correzione descrive il rinforzo senza la ricetta d'attacco; il resocont
 
 ## 6. Ordine di lavoro
 
+Ogni passo è una casella della Fase 8 di `docs/roadmap.md`.
+
 1. Custom code: CC-01 (matrice), CC-02 (strade di scrittura), CC-03 (option). È dove un problema vale di più.
 2. Custom code: CC-04 … CC-09.
 3. Redirect (RD) e uscita nel `<head>` (HD): sono raggiungibili dai visitatori anonimi.
@@ -259,22 +239,12 @@ La PR di correzione descrive il rinforzo senza la ricetta d'attacco; il resocont
 
 Ogni area può andare in un thread a sé; le correzioni sono PR piccole, una per problema, verso `Refactory`.
 
-## 7. Decisioni per Enthony
+## 7. Decisioni
 
-1. **Firma della cache degli snippet (CC-03).** Decisa e fatta il 12 ottobre 2026: HMAC con `wp_salt( 'auth' )`
-   su ogni snippet in cache, controllato da `Runner` prima di eseguirlo. Nessuna option o meta nuova: cambia solo il
-   contenuto dell'option `easyrankly_snippets` (una chiave `sig` per snippet). Una cache senza firme (scritta da una
-   versione precedente) o con chiavi cambiate in `wp-config.php` viene ricostruita alla prima pagina visitata.
-2. **Spegnimento avviato dai visitatori (CC-06).** Accettato per ora il 12 ottobre 2026, da rivedere: resta annotato
-   in "In sospeso" di `docs/roadmap.md`. Esempio: uno snippet PHP con `echo strtoupper( $_GET['utm_source'] );`
-   aperto con `?utm_source[]=x` riceve un array, lancia un errore e si spegne per tutti finché un admin non lo
-   riattiva. L'alternativa resta spegnere lo snippet solo per gli errori fatali e limitarsi a registrare le eccezioni
-   (ma uno snippet davvero rotto fallirebbe a ogni pagina). Riguarda solo gli snippet PHP: gli snippet HTML non si
-   spengono mai da soli.
-3. **Strumenti esterni.** Decisa il 12 ottobre 2026: solo quelli già presenti (PHPCS con `WordPress.Security`,
-   PHPStan, Plugin Check, `composer architecture`). Semgrep aggiungerebbe regole per schemi di codice e un'analisi del
-   flusso dei dati dentro una stessa funzione, ma i controlli di sicurezza di WordPress li fa già PHPCS e le regole
-   proprie del progetto (es. `eval` solo in `PhpRunner.php`) stanno già in `composer architecture`. Da riconsiderare
-   solo se il controllo trova un tipo di problema che questi strumenti non vedono.
-4. **Dove vive questo piano.** Deciso il 9 ottobre 2026: il piano sta qui, in `docs/sicurezza.md`; i risultati
-   restano in note private fuori dal repository finché i problemi non sono corretti (sezione 5).
+Le quattro decisioni di questo piano sono state prese; il registro, con il perché, è in `docs/decisioni.md`
+("Sicurezza" tra le decise, CC-06 tra le aperte):
+
+1. Firma HMAC della cache degli snippet (CC-03): fatta il 12 ottobre 2026 (PR #73).
+2. Spegnimento avviato dai visitatori (CC-06): accettato per ora, da rivedere (decisione aperta 5).
+3. Strumenti: solo quelli già presenti (PHPCS con `WordPress.Security`, PHPStan, Plugin Check, `composer architecture`).
+4. Il piano sta qui, i risultati in note private fuori dal repository finché non sono corretti (sezione 5).

@@ -60,25 +60,37 @@ Riferimenti Alpha: `includes/multilingual/singlesite/`, `includes/hreflang.php`,
 - [x] 2.6 Template SEO per lingua
 - Decisione di ottobre 2026: il multilingua copre anche menu e stringhe del tema, senza tabelle. Lo fa la Fase 7.
 
-## Fase 3 — Agente AI nel plugin (chiavi dell'utente)
+## Fasi 3, 5 e 6 — Agente AI: costruito qui, poi portato in EasyRankly Pro
 
-Decisione di ottobre 2026: l'agente passa tutto a EasyRankly Pro e si toglie da qui con la Fase 6.
+Tutte chiuse. L'agente è stato costruito qui con le chiavi AI dell'utente (Fase 3, 8 ottobre 2026) e reso
+estendibile da un altro plugin (Fase 5); il 9 ottobre 2026 si è deciso che vive tutto nel Pro e la Fase 6 l'ha tolto,
+senza migrazione perché la riscrittura non era pubblicata. Il codice resta nella storia di `Refactory`: commit
+`2af2474`, ultimo con l'agente (`src/Agent/`, `assets/src/agent/`, `tests/Agent/`, circa 8.200 righe tra PHP, JS e
+test). Lo porta la Fase 1 della roadmap del Pro.
 
-- [x] 3.1 Categoria di ability `easyrankly` e ability di sola lettura: dati SEO di un contenuto, contesto del sito,
-      ricerca nei contenuti
-- [x] 3.2 Proposte: post type `erankly_proposal`, stati con `register_post_status()`, REST, dashboard con DataViews
-      (Accetta, Modifica e accetta, Rifiuta, Annulla), anteprima delle differenze. L'elenco usa
-      `@wordpress/components` come in 1.10: DataViews nel bundle porta lo script da 7 KB a 1,9 MB
-- [x] 3.3 `src/Agent/Allowlist.php`, validazione sullo schema, rilevamento delle proposte superate, tetto giornaliero
-- [x] 3.4 Memoria: post type `erankly_memory`, import/export in `.md`, apprendimento da rifiuti e modifiche
-- [x] 3.5 Prime proposte: meta e social, testo alternativo, redirect quando un contenuto viene cestinato
-- [x] 3.6 Inneschi senza cron: eventi editoriali e apertura della dashboard
-- [x] 3.7 Test dell'agente elencati in `CLAUDE.md`, inclusa la prompt injection nei contenuti
+- [x] Fase 3, l'agente. 3.1 categoria di ability `easyrankly` e ability di sola lettura (dati SEO di un contenuto,
+      contesto del sito, ricerca nei contenuti); 3.2 proposte nel post type `erankly_proposal` con stati
+      `register_post_status()`, REST, dashboard (Accetta, Modifica e accetta, Rifiuta, Annulla) e anteprima delle
+      differenze: l'elenco usava `@wordpress/components` perché DataViews nel bundle portava lo script da 7 KB a
+      1,9 MB; 3.3 `src/Agent/Allowlist.php`, validazione sullo schema, proposte superate, tetto giornaliero;
+      3.4 memoria nel post type `erankly_memory`, import/export in `.md`, apprendimento da rifiuti e modifiche;
+      3.5 prime proposte (meta e social, testo alternativo, redirect per un contenuto cestinato); 3.6 inneschi senza
+      cron (eventi editoriali, apertura della dashboard); 3.7 test, compresa la prompt injection nei contenuti
+- [x] Fase 5, i punti di estensione. 5.1 filtro `easyrankly_agent_actions` che aggiungeva all'allowlist un'azione
+      proponibile di un altro plugin (valori correnti per impronta e "Annulla", oggetto modificato, etichette e tipi
+      dei campi per l'anteprima; azioni `destructive` rifiutate); 5.2 funzione `easyrankly_create_proposal()` con le
+      stesse regole; test con un plugin di prova
+- [x] Fase 6, l'uscita. 6.1 tolti `src/Agent/`, l'entry point JS, la voce "AI agent", la chiave `agent_auto` di
+      `easyrankly_settings`, l'option `easyrankly_agent`, i post type `erankly_proposal` ed `erankly_memory` con stati e
+      meta, la loro pulizia in `uninstall.php`, i test, le voci di `docs/data-model.md` e la parte AI di `readme.txt`;
+      6.2 tolti i punti della Fase 5 (con `src/functions.php` e il plugin di prova) e aggiornato `CLAUDE.md`;
+      6.3 `composer architecture` rifiuta funzioni e hook di AI Client, Abilities API e Connectors API e i nomi
+      dell'agente e del Pro
 
 ## Fase 4 — Interfaccia admin in stile WordPress classico
 
-Decisione e dettagli: `docs/piano.md`, sezione 3, "Interfaccia admin". Viene prima dei punti di estensione perché la
-Fase 5 tocca la dashboard delle proposte: si cambia una volta sola, sulla nuova interfaccia.
+Decisione e dettagli: `docs/piano.md`, sezione 3, "Interfaccia admin". È venuta prima dei punti di estensione perché
+la Fase 5 toccava la dashboard delle proposte: si è cambiata una volta sola, sulla nuova interfaccia.
 
 - [x] 4.1 Impostazioni su più pagine brevi con la Settings API del core (Generali, Schema e social, Titoli e
       descrizioni, Indicizzazione, Lingue), markup `form-table`, nessun JS tranne la scelta dell'immagine. Test: ogni
@@ -96,40 +108,9 @@ Fase 5 tocca la dashboard delle proposte: si cambia una volta sola, sulla nuova 
       blocchi). Il core li carica comunque in tutto l'admin per la palette dei comandi (`wp_enqueue_command_palette_assets`,
       WordPress 7.0): conta ciò che accodiamo noi. Test: gli stili accodati dal plugin su ogni sua schermata.
 
-## Fase 5 — Punti di estensione per EasyRankly Pro
-
-Decisione di ottobre 2026: il Pro è autonomo e nel gratuito non resta nessun punto di estensione per lui. Questi due
-si tolgono con l'agente nella Fase 6.
-
-EasyRankly Pro è un plugin separato (repository `easyrankly-pro`) con un suo backend: vedi `docs/piano.md`, sezione 6.
-Qui solo il minimo che serve nel gratuito: punti di estensione generici, usabili da qualunque plugin, senza codice,
-nomi o licenze del Pro. Ogni punto aggiunge hook pubblici: il piano del punto li elenca per l'approvazione.
-
-- [x] 5.1 Azioni proponibili registrabili da un altro plugin: un filtro che aggiunge all'allowlist un'ability con la
-      sua definizione (valori correnti per impronta e "Annulla", oggetto modificato, etichette e tipo dei campi per
-      l'anteprima delle differenze, anche per testi lunghi). Le azioni `destructive` restano rifiutate; tutto il resto
-      passa dalla validazione di oggi. Tocca `src/Agent/Allowlist.php`, `src/Agent/Actions.php` e la dashboard delle proposte.
-- [x] 5.2 Funzione pubblica per creare una proposta, con le stesse regole di oggi (allowlist, schema, testi, tetto
-      giornaliero, proposte superate). Test di 5.1 e 5.2 con un'azione di prova registrata da un plugin di test.
-
-## Fase 6 — Agente AI fuori dal gratuito
-
-Decisione e perché: `docs/piano.md`, sezioni 5 e 6. L'agente vive tutto in EasyRankly Pro (repository
-`easyrankly-pro`); nessuna migrazione, perché la versione 3 non è ancora pubblicata. Il codice da portare resta nella
-storia di `Refactory` (ultimo commit con l'agente prima di 6.1).
-
-- [x] 6.1 Togliere l'agente: `src/Agent/`, l'entry point JS, la voce di menu "AI agent", la chiave `agent_auto` di
-      `easyrankly_settings`, l'option `easyrankly_agent`, i post type `erankly_proposal` ed `erankly_memory` con i
-      loro stati e meta, la pulizia in `uninstall.php`, i test, le voci di `docs/data-model.md` e la parte AI di `readme.txt`
-- [x] 6.2 Togliere i punti di estensione della Fase 5 (`easyrankly_agent_actions`, `easyrankly_create_proposal()`,
-      `src/functions.php` se resta vuoto, il plugin di prova) e aggiornare `CLAUDE.md` (sezioni "Agente AI",
-      "EasyRankly Pro", "Perimetro", invarianti 6 e 7)
-- [x] 6.3 Verifica: nessun riferimento ad agente, proposte, AI o Pro nel codice (`composer architecture` può
-      controllarlo); il plugin funziona uguale senza un provider AI
-
 ## Fase 7 — Multilingua: menu e stringhe del tema
 
-Decisione e strada proposta: `docs/piano.md`, sezione 7. Niente tabelle né moduli; option e meta nuovi si
+Decisioni e perché: `docs/decisioni.md`, "Multilingua". Niente tabelle né moduli; option e meta nuovi si
 approvano nel piano di ogni punto.
 
 - [x] 7.1 Titolo e descrizione del sito per lingua (pagina Lingue), letti con `option_blogname` e
@@ -143,7 +124,7 @@ approvano nel piano di ogni punto.
 - [x] 7.4 Pattern sincronizzati: sulle pagine di una lingua il blocco `core/block` mostra, al posto del pattern
       sincronizzato (`wp_block`) che richiama, la sua versione con lo slug `{slug}-{lingua}` (es. "Nome - IT" per
       "Nome") se esiste ed è pubblicata; nessun dato nuovo. I pattern non sincronizzati restano esclusi (vedi
-      `docs/piano.md`, sezione 7)
+      `docs/decisioni.md`, "Multilingua")
 - [x] 7.5 Aiuto nella pagina Lingue e in `readme.txt`: la convenzione `{slug}-{lingua}` per template part e pattern
       sincronizzati, e l'avviso che il multilingua richiede un tema a blocchi
 
@@ -153,7 +134,7 @@ Customizer, e la pagina Lingue lo dice con un avviso. SEO, sitemap, redirect e c
 
 ## Requisiti minimi
 
-Decisione di ottobre 2026: il più bassi possibile senza peggiorare il codice (vedi `docs/piano.md`, sezione 7).
+Decisione del 9 ottobre 2026: il più bassi possibile senza peggiorare il codice (vedi `docs/decisioni.md`).
 
 - [x] Minimo di PHP: 8.0 (`testVersion` in `phpcs.xml.dist`, intestazioni, Composer, CI su 8.0 e 8.4). Sotto non si
       scende senza riscrivere codice: `match`, operatore `?->` e tipo `mixed` sono di PHP 8.0. PHPCompatibility 9.3.5 non
@@ -162,6 +143,27 @@ Decisione di ottobre 2026: il più bassi possibile senza peggiorare il codice (v
       `core/breadcrumbs` e filtri `block_core_breadcrumbs_items` e `block_core_breadcrumbs_post_type_settings`. Senza,
       il minimo sarebbe 6.6 (`PluginDocumentSettingPanel` da `@wordpress/editor`), poi 6.5
       (`wp_is_serving_rest_request()`) e 6.3 (`wp_cache_set_last_changed()`)
+
+## Fase 8 — Controllo di sicurezza
+
+Da chiudere prima della pubblicazione della 2.0.0 (decisione del 12 ottobre 2026). Cosa controllare in ogni area e
+come: `docs/sicurezza.md`; modello di minaccia: `docs/piano.md`, sezione 5. Finora ci sono stati solo controlli
+mirati. I problemi trovati e non ancora corretti restano in note private fuori dal repository; ogni correzione è una
+PR a sé, con il suo test di regressione, che descrive il rinforzo senza la ricetta d'attacco.
+
+- [ ] 8.1 Custom code: CC-01 (matrice dei permessi, resa permanente da un test con data provider in
+      `tests/CustomCode/`), CC-02 (tutte le strade di scrittura del codice), CC-03 (l'option `easyrankly_snippets`
+      come confine di fiducia, firma HMAC compresa)
+- [ ] 8.2 Custom code: CC-04 … CC-09 (sintassi ed errori a runtime, dove girano, spegnimento avviato da un
+      visitatore, lettura del codice, schermata admin, disinstallazione)
+- [ ] 8.3 Redirect (RD) e uscita nel `<head>` (HD): le aree raggiungibili dai visitatori anonimi
+- [ ] 8.4 Multilingua (ML)
+- [ ] 8.5 Impostazioni (ST), sitemap (SM), admin generico e JS (AD)
+- [ ] 8.6 Resoconto finale; rischi accettati scritti in `CLAUDE.md`; correzione dei problemi trovati, compresi quelli
+      dei controlli mirati ancora aperti
+
+Criterio di uscita: ogni problema trovato è corretto, oppure accettato con una decisione scritta in
+`docs/decisioni.md`.
 
 ## Compatibilità con WooCommerce e ACF
 
@@ -178,22 +180,12 @@ Analisi del 10 ottobre 2026, da completare più avanti. Dettagli, motivi e propo
 - [ ] A2 — "Crea traduzione" copia i meta (campi ACF), da decidere con W5
 - [ ] Verifica su Studio con WooCommerce e ACF attivi
 
-## EasyRankly Pro (repository `easyrankly-pro`)
+## EasyRankly Pro
 
-Promemoria dei punti che erano qui come "Fase 4 — EasyRankly Cloud", più l'agente. La loro roadmap vive nel
-repository del Pro. Nome nel codice: `erankly-pro`; richiede il gratuito (`Requires Plugins: easyrankly`).
-
-- Agente AI portato dalle Fasi 3 e 5 (proposte, memoria, dashboard, allowlist con la validazione), prima funzione del
-  Pro; struttura per funzioni, pronta ad accoglierne altre senza un sistema a moduli
-
-- Licenza annuale e attivazione con l'email d'acquisto; aggiornamenti tramite `Update URI`; backend
-  (Cloudflare Workers) con Stripe Managed Payments
-- Search Console via OAuth tramite il backend; token cifrato sul sito
-- DataForSEO tramite il backend, con quote per sito e cache condivisa; mappa parola chiave → pagina; tassonomia
-  nascosta per i cluster
-- Mappa dei link interni con tassonomia nascosta; suggerimenti con embedding (AI dell'utente)
-- Piano editoriale, brief, bozze, link interni, report mensile
-- Noindex su pagine povere tra le azioni proponibili (rischio alto): l'AI propone, l'utente sceglie
+Il Pro ha la sua roadmap, a fasi, nel repository privato `easyrankly-pro` (`docs/roadmap.md`, branch `main`): agente
+AI portato da qui, backend di licenze e aggiornamenti, Search Console, DataForSEO, link interni, contenuti, vendita.
+Qui conta solo il contratto con il gratuito (`docs/piano.md`, sezione 6): se il Pro chiede di allargarlo, è una
+decisione (`docs/decisioni.md`).
 
 ## In sospeso
 
@@ -219,6 +211,7 @@ aggiorna dalla 1.0.0 non si fa niente (decisione del 12 ottobre 2026): meta `_er
       `Contributors` abbia accesso in scrittura all'SVN
 - [ ] Prova a mano su Studio con lo zip di `tools/build-dist.sh`, compreso l'aggiornamento da una 1.0.0 installata
       (vedi "Verifiche a mano su Studio" qui sotto)
+- [ ] Controllo di sicurezza completo e correzione dei problemi trovati (Fase 8)
 - [ ] Commit SVN su `trunk` e `tags/2.0.0`
 
 Miglioramenti non bloccanti, da fare quando capita:
@@ -248,14 +241,12 @@ browser dopo le PR che le hanno toccate.
 
 ### Da decidere
 
-- Le due della sezione "Decisioni aperte" qui sotto (modelli decisionali, multilingua sui siti che non lo usano).
-- Le eccezioni chieste da W1 e W5 (sezione "Compatibilità con WooCommerce e ACF" e `docs/compatibilita.md`).
+Tutte le decisioni aperte, del gratuito e del Pro, stanno in `docs/decisioni.md`, "Da decidere".
 
 ### Funzioni decise ma non ancora fatte
 
-- [ ] Import da Yoast e Rank Math: solo meta e redirect, a lotti dall'admin, senza cron (`docs/piano.md`, sezione 7)
-- [ ] Compatibilità W1, W4, W5, A1, A2 (sezione "Compatibilità con WooCommerce e ACF")
-- [ ] Prima di vendere il Pro: i punti di `docs/piano.md`, "Da verificare prima di vendere"
+- [ ] Import da Yoast e Rank Math: solo meta e redirect, a lotti dall'admin, senza cron (`docs/decisioni.md`)
+- [ ] Compatibilità W4 (deciso); W1, W5, A1, A2 dopo la loro decisione (sezione "Compatibilità con WooCommerce e ACF")
 
 ### Debito tecnico residuo
 
@@ -275,22 +266,5 @@ contenuti con un redirect forzato), liste dei redirect ricostruite solo quando s
 
 ### Controllo di sicurezza
 
-- [ ] Controllo di sicurezza completo da fare, secondo il piano in `docs/sicurezza.md` (CC-01…CC-09, poi RD, ML, HD,
-      ST, SM, AD). Finora ci sono stati solo controlli mirati; come da regola del piano, i risultati restano fuori dal
-      repository finché non sono corretti
-- [ ] Spegnimento di uno snippet PHP avviato da un visitatore (CC-06): accettato così com'è il 12 ottobre 2026, da
-      rivedere (alternativa: spegnere solo per gli errori fatali). Decise lo stesso giorno la firma HMAC della cache
-      degli snippet (fatta) e gli strumenti di analisi (solo quelli già presenti); `docs/sicurezza.md`, sezione 7
-
-## Decisioni aperte
-
-- Modelli decisionali (es. Jev di typesafe.ai): rimandati. Con l'AI pagata dall'utente, un modello sul backend
-  sarebbe un costo nostro; da rivalutare dopo il lancio del Pro, con un test su 2–3 decisioni reali.
-- Multilingua sui siti che non lo usano: spegnimento automatico sotto le due lingue e pagina Lingue nascosta sui temi
-  classici senza lingue. Annotate il 12 ottobre 2026, per ora non si fanno (dettagli in `docs/piano.md`, sezione 8).
-
-Decise a ottobre 2026 (dettagli in `docs/piano.md`, sezione 7): niente IndexNow; prezzi del Pro confermati; multilingua
-anche per menu e stringhe del tema (Fase 7), con i template part per lingua e senza i widget classici; requisiti minimi il più bassi possibile; noindex su pagine povere
-proponibile nel Pro; agente AI tutto nel Pro (Fase 6); vendita e licenze del Pro con il
-backend nostro e Stripe Managed Payments; import da Yoast e Rank Math (solo meta e redirect, a lotti
-dall'admin) da fare più avanti; niente schema Product, che WooCommerce genera già; Local Business fatto come terzo tipo di identità del sito.
+È la Fase 8, bloccante per la 2.0.0. Lo spegnimento di uno snippet PHP avviato da un visitatore (CC-06) è tra le
+decisioni aperte.

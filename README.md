@@ -2,11 +2,15 @@
 
 Plugin SEO per WordPress, riscritto da zero su sole API native: niente tabelle custom, niente cron, niente script nel frontend.
 
-- Piano e decisioni: [docs/piano.md](docs/piano.md)
 - Regole del progetto: [CLAUDE.md](CLAUDE.md)
-- Fasi di sviluppo: [docs/roadmap.md](docs/roadmap.md)
-- Prompt per lavorare con Claude Code: [docs/prompt.md](docs/prompt.md)
+- Piano (visione, principi, sicurezza, contratto con il Pro): [docs/piano.md](docs/piano.md)
+- Decisioni aperte e prese: [docs/decisioni.md](docs/decisioni.md)
+- Fasi di sviluppo e punti in sospeso: [docs/roadmap.md](docs/roadmap.md)
 - Modello dati: [docs/data-model.md](docs/data-model.md)
+- Controllo di sicurezza: [docs/sicurezza.md](docs/sicurezza.md)
+- Custom code, posizioni e problemi noti: [docs/custom-code.md](docs/custom-code.md)
+- Compatibilità con WooCommerce e ACF: [docs/compatibilita.md](docs/compatibilita.md)
+- Prompt per lavorare con Claude Code: [docs/prompt.md](docs/prompt.md)
 
 ## Sviluppo
 
