@@ -136,6 +136,10 @@ final class PageTest extends WP_UnitTestCase {
 		$this->assertMatchesRegularExpression( '/name="easyrankly_settings\[noindex\]\[author\]" value="1"\s+checked=\'checked\'/', $indexing );
 		$this->assertDoesNotMatchRegularExpression( '/name="easyrankly_settings\[noindex\]\[date\]" value="1"\s+checked/', $indexing );
 		$this->assertStringContainsString( 'Disallow: /x/</textarea>', $indexing );
+		$this->assertMatchesRegularExpression( '/name="easyrankly_settings\[attachment_pages\]" value="1"\s+checked/', $indexing, 'Off by default on new sites.' );
+
+		update_option( 'wp_attachment_pages_enabled', '1' );
+		$this->assertDoesNotMatchRegularExpression( '/name="easyrankly_settings\[attachment_pages\]" value="1"\s+checked/', $this->page( 'easyrankly-indexing' ) );
 
 		$schema = $this->page( 'easyrankly-schema' );
 		$this->assertStringContainsString( "https://example.org/a\nhttps://example.org/b</textarea>", $schema );

@@ -14,6 +14,10 @@ Regola: zero tabelle custom. Solo Options API, post meta, term meta, user meta, 
 | `easyrankly_snippets` | sì | Cache degli snippet: `positions` (posizione → snippet attivi ordinati per priorità, con `id`, `type`, `priority`, `code`) ed `errors` (ID → nome degli snippet disattivati da un errore). Letta nel frontend e per l'avviso in admin; ricostruita da `CustomCode::rebuild_cache()` a ogni modifica. | 1.11 |
 | `easyrankly_redirects_regex` | no | Lista dei redirect regex attivi non forzati, stessi campi. Letta solo su 404. | 1.10 |
 
+Option del core che il plugin scrive ma non crea né rimuove: `wp_attachment_pages_enabled` (WordPress 6.4), dalla
+casella "Pagine degli allegati" della pagina Indicizzazione (`Form::indexing()`). Resta alla disinstallazione, perché
+è un'impostazione di WordPress.
+
 ## Post meta e term meta
 
 Registrati (`src/Meta/Meta.php`) solo sui post type e sulle tassonomie visibili (`is_post_type_viewable()`, `is_taxonomy_viewable()`): contenuti con una pagina propria. Redirect, snippet, menu di navigazione e template non li hanno.

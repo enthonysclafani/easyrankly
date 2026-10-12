@@ -154,7 +154,7 @@ final class Form {
 	}
 
 	/**
-	 * Indexing page: noindex rules and extra robots.txt rules.
+	 * Indexing page: noindex rules, extra robots.txt rules and the core switch of attachment pages.
 	 *
 	 * @param array<mixed>         $value   Posted values.
 	 * @param array<string, mixed> $current Current settings.
@@ -170,6 +170,10 @@ final class Form {
 		$kept    = array_diff( array_map( 'strval', (array) $current['noindex'] ), $shown );
 
 		$settings['noindex'] = array_values( array_unique( array_merge( $kept, $checked ) ) );
+
+		// A core option, not one of ours (see Fields::attachment_pages()): saved here, left out of the settings.
+		// A string, as core stores it: some of its checks compare with '1'.
+		update_option( 'wp_attachment_pages_enabled', empty( $value['attachment_pages'] ) ? '1' : '0' );
 
 		return $settings;
 	}

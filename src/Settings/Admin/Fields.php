@@ -338,6 +338,7 @@ final class Fields {
 			array( 'paragraph' => __( 'Ask search engines not to index these pages (noindex) and leave them out of the sitemaps. Search results are never indexed. A single post or term can also be excluded from its own SEO settings.', 'easyrankly' ) )
 		);
 		add_settings_field( 'noindex', self::label( 'noindex' ), array( self::class, 'noindex' ), $page, 'noindex' );
+		add_settings_field( 'attachment_pages', __( 'Attachment pages', 'easyrankly' ), array( self::class, 'attachment_pages' ), $page, 'noindex', array( 'label_for' => self::id( 'attachment_pages' ) ) );
 
 		add_settings_section( 'robots', __( 'robots.txt', 'easyrankly' ), '__return_null', $page );
 		add_settings_field(
@@ -570,6 +571,26 @@ final class Fields {
 			);
 		}
 		echo '</fieldset>';
+	}
+
+	/**
+	 * Checkbox of the core option that turns attachment pages off.
+	 *
+	 * Not an EasyRankly setting: `wp_attachment_pages_enabled` belongs to WordPress (since 6.4), which
+	 * then sends attachment pages to the file. New sites start with it off; older ones keep the pages
+	 * and the core has no screen for it. Form::indexing() saves it.
+	 */
+	public static function attachment_pages(): void {
+		printf(
+			'<label><input type="checkbox" id="%1$s" name="%2$s" value="1"%3$s /> %4$s</label>',
+			esc_attr( self::id( 'attachment_pages' ) ),
+			esc_attr( self::name( 'attachment_pages' ) ),
+			checked( (bool) get_option( 'wp_attachment_pages_enabled' ), false, false ),
+			esc_html__( 'Redirect attachment pages to the file', 'easyrankly' )
+		);
+		self::description(
+			array( 'description' => __( 'WordPress gives every uploaded file a page that shows only the file: a thin page for search engines. This is the WordPress setting, off by default on sites created with WordPress 6.4 or later.', 'easyrankly' ) )
+		);
 	}
 
 	/**
