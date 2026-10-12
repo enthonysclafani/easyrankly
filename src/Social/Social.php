@@ -58,7 +58,7 @@ final class Social {
 		// Only posts are articles, as in the schema: pages, products and other types are websites.
 		$article = null !== $post && is_singular() && ! is_front_page() && 'post' === $post->post_type;
 
-		$title = (string) self::override( 'og_title' );
+		$title = Meta::queried_text( 'og_title' );
 		if ( '' === $title ) {
 			$title = Titles::title();
 		}
@@ -66,7 +66,7 @@ final class Social {
 			$title = html_entity_decode( wp_get_document_title(), ENT_QUOTES | ENT_HTML5, 'UTF-8' );
 		}
 
-		$description = (string) self::override( 'og_description' );
+		$description = Meta::queried_text( 'og_description' );
 		if ( '' === $description ) {
 			$description = Titles::description();
 		}

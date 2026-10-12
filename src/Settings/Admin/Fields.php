@@ -281,7 +281,7 @@ final class Fields {
 
 		$intro = __( 'Empty title: WordPress builds it. Empty description: none is printed. A value set on a single post or term always wins.', 'easyrankly' );
 		if ( '' !== $language ) {
-			$intro = __( 'Templates of one language are used on its pages. Empty fields use the templates of all languages.', 'easyrankly' );
+			$intro = __( 'Templates of one language are used on its pages. Empty fields use the templates of all languages. Categories and tags are not translated: in this language their pages ignore the title, description and social texts written on the term, and the term description, which are in the default language.', 'easyrankly' );
 		}
 
 		add_settings_section( 'templates', '', array( self::class, 'templates_intro' ), $page, array( 'paragraph' => $intro ) );

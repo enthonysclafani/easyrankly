@@ -119,13 +119,14 @@ final class Titles {
 	}
 
 	/**
-	 * Per-object override from the post or term meta (also a template).
+	 * Per-object override from the post or term meta (also a template). A term's own text is
+	 * in the default language only (Meta::queried_text()).
 	 *
 	 * @param string $field "title" or "description".
 	 * @return string
 	 */
 	private static function override( string $field ): string {
-		return (string) Meta::queried( $field );
+		return Meta::queried_text( $field );
 	}
 
 	/**
@@ -196,7 +197,8 @@ final class Titles {
 			$variables['category']  = static fn(): string => self::category( $object );
 		} elseif ( $object instanceof \WP_Term ) {
 			$variables['title']            = $object->name;
-			$variables['term_description'] = Template::truncate( Template::plain( $object->description ), Template::EXCERPT_LENGTH );
+			// Like the term's SEO fields, its description is written in the default language only.
+			$variables['term_description'] = Meta::is_other_language() ? '' : Template::truncate( Template::plain( $object->description ), Template::EXCERPT_LENGTH );
 		} elseif ( $object instanceof \WP_User ) {
 			$variables['title']  = $object->display_name;
 			$variables['author'] = $object->display_name;

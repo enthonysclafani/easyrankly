@@ -10,6 +10,7 @@ namespace EasyRankly\Tests\Multilingual;
 use EasyRankly\Meta\Meta;
 use EasyRankly\Multilingual\Translations;
 use EasyRankly\Settings\Settings;
+use EasyRankly\Social\Social;
 use EasyRankly\Titles\Titles;
 use WP_REST_Request;
 use WP_UnitTestCase;
@@ -119,6 +120,44 @@ final class TemplatesTest extends WP_UnitTestCase {
 		$this->go_to( 'http://example.org/en/hello/' );
 
 		$this->assertSame( 'Custom', Titles::title() );
+	}
+
+	/**
+	 * Terms are not translated: their own texts and description are in the default language,
+	 * so the other languages use their templates instead.
+	 */
+	public function test_term_texts_stay_in_the_default_language(): void {
+		create_initial_taxonomies(); // Re-adds the category permastruct for the new structure.
+		flush_rewrite_rules( false );
+		$settings = get_option( Settings::OPTION );
+		$settings['language_templates']['en']['term'] = array(
+			'title'       => '{{title}} {{sep}} Topic',
+			'description' => 'All posts about {{title}}{{term_description}}',
+		);
+		update_option( Settings::OPTION, $settings );
+
+		$term = self::factory()->category->create(
+			array(
+				'name'        => 'News',
+				'slug'        => 'news',
+				'description' => 'Notizie',
+			)
+		);
+		update_term_meta( $term, '_easyrankly_title', 'Notizie dal sito' );
+		update_term_meta( $term, '_easyrankly_description', 'Tutte le notizie' );
+		update_term_meta( $term, '_easyrankly_og_title', 'Le notizie' );
+		Translations::set_language( self::factory()->post->create( array( 'post_category' => array( $term ) ) ), 'it' );
+		Translations::set_language( self::factory()->post->create( array( 'post_category' => array( $term ) ) ), 'en' );
+
+		$this->go_to( 'http://example.org/category/news/' );
+		$this->assertSame( 'Notizie dal sito', Titles::title() );
+		$this->assertSame( 'Tutte le notizie', Titles::description() );
+		$this->assertContains( array( 'property', 'og:title', 'Le notizie' ), Social::tags() );
+
+		$this->go_to( 'http://example.org/en/category/news/' );
+		$this->assertSame( 'News | Topic', Titles::title() );
+		$this->assertSame( 'All posts about News', Titles::description() );
+		$this->assertContains( array( 'property', 'og:title', 'News | Topic' ), Social::tags() );
 	}
 
 	/**

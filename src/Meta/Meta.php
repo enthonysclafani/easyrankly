@@ -7,6 +7,9 @@
 
 namespace EasyRankly\Meta;
 
+use EasyRankly\Multilingual\Languages;
+use EasyRankly\Multilingual\Routing;
+
 defined( 'ABSPATH' ) || exit;
 
 /**
@@ -195,6 +198,32 @@ final class Meta {
 		}
 
 		return null;
+	}
+
+	/**
+	 * Reads a text field (title, description, social texts) of the object the page is about.
+	 *
+	 * Terms are not translated: their texts are written in the default language. On a term
+	 * archive in another language they are left out, so the templates of that language apply.
+	 *
+	 * @param string $name Field name without prefix.
+	 * @return string
+	 */
+	public static function queried_text( string $name ): string {
+		if ( get_queried_object() instanceof \WP_Term && self::is_other_language() ) {
+			return '';
+		}
+
+		return (string) self::queried( $name );
+	}
+
+	/**
+	 * Whether the page is in a language other than the default one.
+	 *
+	 * @return bool
+	 */
+	public static function is_other_language(): bool {
+		return Languages::enabled() && Routing::current() !== Languages::default();
 	}
 
 	/**
