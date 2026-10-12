@@ -56,9 +56,7 @@ final class Context {
 			return array( 'term-' . $object->taxonomy, 'term' );
 		}
 		if ( is_post_type_archive() ) {
-			$post_type = get_query_var( 'post_type' );
-			$post_type = is_array( $post_type ) ? (string) reset( $post_type ) : (string) $post_type;
-			return array( 'archive-' . $post_type, 'archive' );
+			return array( 'archive-' . self::archive_post_type(), 'archive' );
 		}
 		if ( is_author() ) {
 			return array( 'author' );
@@ -68,6 +66,29 @@ final class Context {
 		}
 
 		return array();
+	}
+
+	/**
+	 * Post type of the post type archive being viewed: the query var may hold several, the first counts.
+	 *
+	 * @return string
+	 */
+	public static function archive_post_type(): string {
+		$post_type = get_query_var( 'post_type' );
+
+		return is_array( $post_type ) ? (string) reset( $post_type ) : (string) $post_type;
+	}
+
+	/**
+	 * Whether the current page is an article: a single post of type `post`, not the front page.
+	 * Pages, products and other types are web pages. Social (og:type) and Schema (Article) both follow it.
+	 *
+	 * @return bool
+	 */
+	public static function is_article(): bool {
+		$object = get_queried_object();
+
+		return is_singular() && ! is_front_page() && $object instanceof \WP_Post && 'post' === $object->post_type;
 	}
 
 	/**

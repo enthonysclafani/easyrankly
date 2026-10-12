@@ -38,7 +38,7 @@ final class EditorPanel {
 	 */
 	public function enqueue(): void {
 		if ( $this->enqueue_panel() ) {
-			wp_add_inline_script( 'easyrankly-languages', self::languages_script(), 'before' );
+			wp_add_inline_script( 'easyrankly-language-panel', self::languages_script(), 'before' );
 			return;
 		}
 
@@ -61,7 +61,7 @@ final class EditorPanel {
 			return false;
 		}
 
-		return is_object_in_taxonomy( $screen->post_type, Translations::LANGUAGE ) && Assets::enqueue( 'languages' );
+		return is_object_in_taxonomy( $screen->post_type, Translations::LANGUAGE ) && Assets::enqueue( 'language-panel' );
 	}
 
 	/**

@@ -553,7 +553,7 @@ final class CustomCode {
 		update_post_meta( $id, self::meta_key( 'error' ), sanitize_text_field( $message ) );
 
 		kses_remove_filters();
-		wp_update_post(
+		$updated = wp_update_post(
 			array(
 				'ID'          => $id,
 				'post_status' => 'draft',
@@ -561,7 +561,10 @@ final class CustomCode {
 		);
 		kses_init();
 
-		self::rebuild_cache();
+		// The update fires save_post, whose on_save() rebuilds the cache: rebuild here only if it failed.
+		if ( 0 === $updated ) {
+			self::rebuild_cache();
+		}
 	}
 
 	/**

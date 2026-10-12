@@ -71,11 +71,12 @@ final class Redirects {
 	private bool $rest_saving = false;
 
 	/**
-	 * Whether a batch of saves is under way (see batch()): the lists are rebuilt once, at the end.
+	 * IDs saved by the batch under way (see batch()), null outside a batch: the lists are
+	 * refreshed once, at the end.
 	 *
-	 * @var bool
+	 * @var list<int>|null
 	 */
-	private static bool $batching = false;
+	private static ?array $batch = null;
 
 	/**
 	 * Hooks registration, validation, list rebuilds, the frontend runner and slug tracking.
@@ -210,20 +211,34 @@ final class Redirects {
 	}
 
 	/**
-	 * Rebuilds the lists when a redirect is saved outside REST, where the meta is already saved.
+	 * Refreshes the lists when a redirect is saved outside REST, where the meta is already saved.
+	 *
+	 * @param mixed $post_id Saved redirect ID.
 	 */
-	public function on_save(): void {
-		if ( ! $this->rest_saving && ! self::$batching ) {
-			self::rebuild_lists();
+	public function on_save( $post_id ): void {
+		if ( $this->rest_saving ) {
+			return;
 		}
+		if ( null !== self::$batch ) {
+			self::$batch[] = (int) $post_id;
+			return;
+		}
+
+		self::refresh( array( (int) $post_id ) );
 	}
 
 	/**
-	 * Rebuilds the lists once a REST save has written the post and its meta.
+	 * Refreshes the lists once a REST save has written the post and its meta.
+	 *
+	 * @param mixed $post Saved redirect.
 	 */
-	public function after_rest_save(): void {
+	public function after_rest_save( $post ): void {
 		$this->rest_saving = false;
-		self::rebuild_lists();
+		if ( $post instanceof \WP_Post ) {
+			self::refresh( array( $post->ID ) );
+		} else {
+			self::rebuild_lists();
+		}
 	}
 
 	/**
@@ -234,7 +249,8 @@ final class Redirects {
 	 */
 	public function after_rest_request( $response ) {
 		if ( $this->rest_saving ) {
-			$this->after_rest_save();
+			$this->rest_saving = false;
+			self::rebuild_lists();
 		}
 
 		return $response;
@@ -286,7 +302,7 @@ final class Redirects {
 	}
 
 	/**
-	 * Runs several saves outside REST and rebuilds the lists once at the end, not after each save.
+	 * Runs several saves outside REST and refreshes the lists once at the end, not after each save.
 	 *
 	 * A page moved with 30 children saves 31 redirects: rebuilding after each one read every
 	 * forced and regex rule 31 times.
@@ -294,17 +310,18 @@ final class Redirects {
 	 * @param callable $saves Work that saves redirects.
 	 */
 	public static function batch( callable $saves ): void {
-		if ( self::$batching ) {
+		if ( null !== self::$batch ) {
 			$saves();
 			return;
 		}
 
-		self::$batching = true;
+		self::$batch = array();
 		try {
 			$saves();
 		} finally {
-			self::$batching = false;
-			self::rebuild_lists();
+			$ids         = self::$batch;
+			self::$batch = null;
+			self::refresh( $ids );
 		}
 	}
 
@@ -393,6 +410,43 @@ final class Redirects {
 	}
 
 	/**
+	 * After some redirects changed: rebuilds the lists only when one of them is or was in them,
+	 * otherwise only invalidates the cached exact lookups.
+	 *
+	 * Most saves are plain exact rules (slug changes, the admin form), which no list holds:
+	 * rebuilding would read every forced and regex rule for nothing.
+	 *
+	 * @param int[] $ids Changed redirect IDs.
+	 */
+	private static function refresh( array $ids ): void {
+		if ( array() === $ids ) {
+			wp_cache_set_last_changed( self::CACHE_GROUP );
+			return;
+		}
+
+		foreach ( $ids as $id ) {
+			$rule = self::rule( $id );
+			if ( null !== $rule && ( $rule['forced'] || $rule['regex'] ) && 'publish' === get_post_status( $id ) ) {
+				self::rebuild_lists();
+				return;
+			}
+		}
+
+		foreach ( array( self::FORCED_OPTION, self::REGEX_OPTION ) as $option ) {
+			$list = get_option( $option, array() );
+			foreach ( is_array( $list ) ? $list : array() as $entry ) {
+				// An entry without its ID cannot be told apart: rebuild to be safe.
+				if ( ! is_array( $entry ) || ! isset( $entry['id'] ) || in_array( (int) $entry['id'], $ids, true ) ) {
+					self::rebuild_lists();
+					return;
+				}
+			}
+		}
+
+		wp_cache_set_last_changed( self::CACHE_GROUP );
+	}
+
+	/**
 	 * Rebuilds the forced and regex lists and invalidates cached exact lookups.
 	 *
 	 * Runs in admin or REST when a redirect changes, never on the frontend.
@@ -431,6 +485,7 @@ final class Redirects {
 			}
 
 			$compact = array(
+				'id'     => $rule['id'],
 				'source' => $rule['source'],
 				'regex'  => $rule['regex'],
 				'target' => $rule['target'],
@@ -451,26 +506,47 @@ final class Redirects {
 	}
 
 	/**
-	 * Rebuilds the lists when a redirect is deleted.
+	 * Refreshes the lists when a redirect is deleted.
 	 *
 	 * @param mixed $post_id Deleted post ID.
 	 * @param mixed $post    Deleted post.
 	 */
 	public function on_delete( $post_id, $post ): void {
 		if ( $post instanceof \WP_Post && self::POST_TYPE === $post->post_type ) {
-			self::rebuild_lists();
+			self::refresh( array( $post->ID ) );
 		}
 	}
 
 	/**
-	 * Rebuilds the lists when a redirect leaves or returns from the trash outside REST.
+	 * Refreshes the lists when a redirect leaves or returns from the trash outside REST.
 	 *
 	 * @param mixed $post_id Post ID.
 	 */
 	public function on_status_change( $post_id ): void {
-		if ( ! self::$batching && self::POST_TYPE === get_post_type( (int) $post_id ) ) {
-			self::rebuild_lists();
+		if ( null === self::$batch && self::POST_TYPE === get_post_type( (int) $post_id ) ) {
+			self::refresh( array( (int) $post_id ) );
 		}
+	}
+
+	/**
+	 * Sources of the active exact forced rules: the addresses they send elsewhere even when
+	 * the page exists. Regex rules are left out, as they may match any number of addresses.
+	 *
+	 * Read only from the autoloaded options: before the first redirect is saved the option does
+	 * not exist, and get_option() would query for it.
+	 *
+	 * @return list<string> Normalized paths.
+	 */
+	public static function forced_sources(): array {
+		$rules   = isset( wp_load_alloptions()[ self::FORCED_OPTION ] ) ? get_option( self::FORCED_OPTION, array() ) : array();
+		$sources = array();
+		foreach ( is_array( $rules ) ? $rules : array() as $rule ) {
+			if ( is_array( $rule ) && empty( $rule['regex'] ) && isset( $rule['source'] ) && is_string( $rule['source'] ) ) {
+				$sources[] = $rule['source'];
+			}
+		}
+
+		return $sources;
 	}
 
 	/**

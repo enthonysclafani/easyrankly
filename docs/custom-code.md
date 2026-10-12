@@ -11,7 +11,9 @@ sintassi, spegnimento automatico, modalità sicura, cache) sono nella sezione "C
 | `everywhere` ("Everywhere (PHP only)") | `plugins_loaded` | Solo PHP | Ogni richiesta, tranne la schermata Custom code |
 
 Il Runner aggancia ogni hook con la priorità predefinita 10. La priorità dello snippet decide solo l'ordine tra gli
-snippet della stessa posizione, non la priorità sull'hook.
+snippet della stessa posizione, non la priorità sull'hook. Il callback è il metodo statico `Runner::run_hook`, quindi
+un tema o un altro plugin può togliere una posizione con
+`remove_action( 'wp_footer', array( \EasyRankly\CustomCode\Runner::class, 'run_hook' ) )`.
 
 ## Perché esiste "Ovunque"
 

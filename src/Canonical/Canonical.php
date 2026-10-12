@@ -7,6 +7,7 @@
 
 namespace EasyRankly\Canonical;
 
+use EasyRankly\Context\Context;
 use EasyRankly\Meta\Meta;
 use EasyRankly\Robots\Robots;
 use EasyRankly\Settings\Settings;
@@ -170,8 +171,7 @@ final class Canonical {
 			if ( '' !== $override ) {
 				return $override;
 			}
-			$post_type = get_query_var( 'post_type' );
-			$base      = get_post_type_archive_link( is_array( $post_type ) ? (string) reset( $post_type ) : (string) $post_type );
+			$base = get_post_type_archive_link( Context::archive_post_type() );
 		} elseif ( is_author() && $object instanceof \WP_User ) {
 			$base = get_author_posts_url( $object->ID, $object->user_nicename );
 		} elseif ( is_day() ) {

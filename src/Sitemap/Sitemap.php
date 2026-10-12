@@ -255,6 +255,8 @@ final class Sitemap {
 	 * own noindex or a canonical override, the posts redirected by forced rules and the posts or
 	 * shop page when it is empty.
 	 *
+	 * The first four are Robots::is_indexable_post() written as queries: keep the two in step.
+	 *
 	 * @param mixed $args Query arguments.
 	 * @return mixed
 	 */
@@ -396,20 +398,12 @@ final class Sitemap {
 	 * @return list<int>
 	 */
 	private static function redirected_post_ids(): array {
-		$rules = get_option( Redirects::FORCED_OPTION, array() );
-		if ( ! is_array( $rules ) ) {
-			return array();
-		}
-
 		$ids = array();
-		foreach ( $rules as $rule ) {
-			if ( ! is_array( $rule ) || ! empty( $rule['regex'] ) || ! isset( $rule['source'] ) || ! is_string( $rule['source'] ) ) {
-				continue;
-			}
-
-			$id = url_to_postid( home_url( $rule['source'] ) );
-			// url_to_postid() is lenient (it ignores extra segments): keep only exact matches.
-			if ( $id > 0 && Rule::normalize( (string) get_permalink( $id ) ) === $rule['source'] ) {
+		foreach ( Redirects::forced_sources() as $source ) {
+			$id = url_to_postid( home_url( $source ) );
+			// url_to_postid() is lenient (it ignores extra segments): keep only exact matches,
+			// the same test as Robots::is_indexable_post().
+			if ( $id > 0 && Rule::normalize( (string) get_permalink( $id ) ) === $source ) {
 				$ids[] = $id;
 			}
 		}
@@ -427,16 +421,13 @@ final class Sitemap {
 	 * @return list<int>
 	 */
 	private static function redirected_term_ids( $taxonomy ): array {
-		$rules = get_option( Redirects::FORCED_OPTION, array() );
-		if ( ! is_string( $taxonomy ) || ! is_array( $rules ) ) {
+		if ( ! is_string( $taxonomy ) ) {
 			return array();
 		}
 
 		$sources = array();
-		foreach ( $rules as $rule ) {
-			if ( is_array( $rule ) && empty( $rule['regex'] ) && isset( $rule['source'] ) && is_string( $rule['source'] ) ) {
-				$sources[ $rule['source'] ] = sanitize_title( basename( $rule['source'] ) );
-			}
+		foreach ( Redirects::forced_sources() as $source ) {
+			$sources[ $source ] = sanitize_title( basename( $source ) );
 		}
 		$slugs = array_values( array_filter( array_unique( $sources ) ) );
 		if ( array() === $slugs ) {
