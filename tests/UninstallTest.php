@@ -212,6 +212,8 @@ final class UninstallTest extends WP_UnitTestCase {
 	 * On multisite every site of the network is cleaned, not only the one where the plugin is deleted.
 	 */
 	public function test_uninstall_cleans_every_site_of_the_network(): void {
+		global $wpdb;
+
 		if ( ! is_multisite() ) {
 			$this->markTestSkipped( 'Needs multisite.' );
 		}
@@ -236,7 +238,7 @@ final class UninstallTest extends WP_UnitTestCase {
 		$this->assertSame( $sites[0], get_current_blog_id() );
 		foreach ( $seeds as $site => list( $post, $redirect ) ) {
 			switch_to_blog( $site );
-			$this->assertFalse( get_option( 'easyrankly_settings' ), (string) $site );
+			$this->assertNull( $wpdb->get_var( "SELECT option_id FROM {$wpdb->options} WHERE option_name = 'easyrankly_settings'" ), (string) $site ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- The plugin fills a missing option with defaults, so only the raw table shows it is gone.
 			$this->assertFalse( metadata_exists( 'post', $post, '_easyrankly_title' ), (string) $site );
 			$this->assertNull( get_post( $redirect ), (string) $site );
 			$this->assertSame( array(), wp_get_object_terms( $post, 'erankly_language' ), (string) $site );
