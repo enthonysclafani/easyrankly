@@ -60,6 +60,14 @@ final class CustomCode {
 	);
 
 	/**
+	 * Capability behind every generic capability of the post type (create, publish, list…),
+	 * resolved in map_meta_cap() to `manage_options` plus `unfiltered_html`. Without it, paths
+	 * that check only those capabilities (XML-RPC) would let an administrator without
+	 * `unfiltered_html` publish an HTML snippet.
+	 */
+	private const MANAGE_CAP = 'manage_erankly_snippets';
+
+	/**
 	 * Whether a REST save of a snippet is under way: its post and meta writes wait for
 	 * after_rest_save(), which rebuilds the cache once.
 	 *
@@ -96,8 +104,8 @@ final class CustomCode {
 	/**
 	 * Registers the post type and its meta.
 	 *
-	 * Every capability maps to `manage_options`; each snippet also needs `unfiltered_html`
-	 * and, for PHP, `edit_plugins` (see map_meta_cap()), so DISALLOW_FILE_EDIT locks PHP.
+	 * Every capability needs `manage_options` and `unfiltered_html`; each PHP snippet also
+	 * needs `edit_plugins` (see map_meta_cap()), so DISALLOW_FILE_EDIT locks PHP.
 	 */
 	public function register_post_type(): void {
 		register_post_type(
@@ -121,7 +129,7 @@ final class CustomCode {
 				// Per-snippet capabilities get their own names, resolved in map_meta_cap().
 				'capabilities'          => self::META_CAPS + array_fill_keys(
 					array( 'edit_posts', 'edit_others_posts', 'publish_posts', 'read_private_posts', 'delete_posts', 'delete_private_posts', 'delete_published_posts', 'delete_others_posts', 'edit_private_posts', 'edit_published_posts', 'create_posts' ),
-					'manage_options'
+					self::MANAGE_CAP
 				),
 			)
 		);
@@ -175,9 +183,10 @@ final class CustomCode {
 	/**
 	 * Adds the real checks behind the capabilities of a snippet.
 	 *
-	 * Every snippet needs `manage_options` and `unfiltered_html`, mapped like core maps
-	 * it (DISALLOW_UNFILTERED_HTML, multisite rules). Writing or deleting a PHP snippet also
-	 * needs `edit_plugins`, mapped the same way (DISALLOW_FILE_EDIT, DISALLOW_FILE_MODS).
+	 * Every snippet, and every generic capability of the post type, needs `manage_options`
+	 * and `unfiltered_html`, mapped like core maps it (DISALLOW_UNFILTERED_HTML, multisite
+	 * rules). Writing or deleting a PHP snippet also needs `edit_plugins`, mapped the same
+	 * way (DISALLOW_FILE_EDIT, DISALLOW_FILE_MODS).
 	 *
 	 * @param mixed $caps    Primitive capabilities.
 	 * @param mixed $cap     Requested capability.
@@ -186,6 +195,10 @@ final class CustomCode {
 	 * @return mixed
 	 */
 	public function map_meta_cap( $caps, $cap, $user_id, $args ) {
+		if ( self::MANAGE_CAP === $cap ) {
+			return self::manage_caps( (int) $user_id );
+		}
+
 		if ( ! in_array( $cap, self::META_CAPS, true ) ) {
 			return $caps;
 		}
@@ -195,7 +208,7 @@ final class CustomCode {
 			return array( 'do_not_allow' );
 		}
 
-		$caps = array_merge( map_meta_cap( 'manage_options', (int) $user_id ), map_meta_cap( 'unfiltered_html', (int) $user_id ) );
+		$caps = self::manage_caps( (int) $user_id );
 
 		// Core resolves read_post without this filter for types with map_meta_cap off: reads of
 		// snippets go through RestController, which asks for the edit capability instead.
@@ -204,6 +217,16 @@ final class CustomCode {
 		}
 
 		return array_values( array_unique( $caps ) );
+	}
+
+	/**
+	 * Primitive capabilities behind `manage_options` plus `unfiltered_html`.
+	 *
+	 * @param int $user_id User ID.
+	 * @return list<string>
+	 */
+	private static function manage_caps( int $user_id ): array {
+		return array_values( array_unique( array_merge( map_meta_cap( 'manage_options', $user_id ), map_meta_cap( 'unfiltered_html', $user_id ) ) ) );
 	}
 
 	/**
