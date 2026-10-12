@@ -150,6 +150,7 @@ final class PageTest extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'name="easyrankly_settings[languages][0][slug]"', $languages );
 		$this->assertStringContainsString( 'name="easyrankly_settings[languages][0][site_title]"', $languages );
 		$this->assertStringContainsString( 'name="easyrankly_settings[languages][0][tagline]"', $languages );
+		$this->assertStringContainsString( 'name="easyrankly_settings[languages][0][breadcrumb_home_label]"', $languages );
 	}
 
 	/**

@@ -196,7 +196,7 @@ final class Titles {
 			$variables['date']      = static fn(): string => (string) get_the_date( '', $object );
 			$variables['category']  = static fn(): string => self::category( $object );
 		} elseif ( $object instanceof \WP_Term ) {
-			$variables['title']            = $object->name;
+			$variables['title'] = $object->name;
 			// Like the term's SEO fields, its description is written in the default language only.
 			$variables['term_description'] = Meta::is_other_language() ? '' : Template::truncate( Template::plain( $object->description ), Template::EXCERPT_LENGTH );
 		} elseif ( $object instanceof \WP_User ) {

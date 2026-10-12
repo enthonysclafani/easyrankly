@@ -7,6 +7,8 @@
 
 namespace EasyRankly\Breadcrumbs;
 
+use EasyRankly\Multilingual\Languages;
+use EasyRankly\Multilingual\Routing;
 use EasyRankly\Settings\Settings;
 
 defined( 'ABSPATH' ) || exit;
@@ -29,7 +31,8 @@ final class Breadcrumbs {
 	}
 
 	/**
-	 * Renames the home item when a label is set.
+	 * Renames the home item when a label is set: the one of the language being viewed, then
+	 * the one of all languages.
 	 *
 	 * The home item is the first one and links to the home page, except on the front
 	 * page itself, where it is the only item and has no link.
@@ -38,7 +41,10 @@ final class Breadcrumbs {
 	 * @return mixed
 	 */
 	public function filter_items( $items ) {
-		$label = (string) Settings::value( 'breadcrumb_home_label' );
+		$label = Languages::enabled() && Routing::is_frontend() ? ( Languages::all()[ Routing::current() ]['breadcrumb_home_label'] ?? '' ) : '';
+		if ( '' === $label ) {
+			$label = (string) Settings::value( 'breadcrumb_home_label' );
+		}
 
 		if ( '' === $label || ! is_array( $items ) || ! isset( $items[0] ) || ! is_array( $items[0] ) ) {
 			return $items;

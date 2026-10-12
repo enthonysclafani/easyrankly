@@ -41,13 +41,14 @@ final class Languages {
 	/**
 	 * Configured languages, keyed by slug, in display order.
 	 *
-	 * `site_title` and `tagline` are empty when the language uses those of Settings > General.
+	 * `site_title` and `tagline` are empty when the language uses those of Settings > General,
+	 * `breadcrumb_home_label` when it uses the label of all languages.
 	 *
 	 * The option is autoloaded, so this costs no query. Settings::get() builds nothing
 	 * translated, so the locale filter can read this. Kept for the request until the settings
 	 * change (see forget()).
 	 *
-	 * @return array<string, array{locale: string, name: string, site_title: string, tagline: string}>
+	 * @return array<string, array{locale: string, name: string, site_title: string, tagline: string, breadcrumb_home_label: string}>
 	 */
 	public static function all(): array {
 		$clean = wp_cache_get( 'languages', self::CACHE_GROUP );
@@ -61,10 +62,11 @@ final class Languages {
 		foreach ( is_array( $languages ) ? $languages : array() as $slug => $language ) {
 			if ( is_string( $slug ) && is_array( $language ) && isset( $language['locale'], $language['name'] ) ) {
 				$clean[ $slug ] = array(
-					'locale'     => (string) $language['locale'],
-					'name'       => (string) $language['name'],
-					'site_title' => (string) ( $language['site_title'] ?? '' ),
-					'tagline'    => (string) ( $language['tagline'] ?? '' ),
+					'locale'                => (string) $language['locale'],
+					'name'                  => (string) $language['name'],
+					'site_title'            => (string) ( $language['site_title'] ?? '' ),
+					'tagline'               => (string) ( $language['tagline'] ?? '' ),
+					'breadcrumb_home_label' => (string) ( $language['breadcrumb_home_label'] ?? '' ),
 				);
 			}
 		}

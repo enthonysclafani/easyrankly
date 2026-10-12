@@ -271,7 +271,7 @@ final class Form {
 			$name     = trim( is_string( $row['name'] ?? null ) ? $row['name'] : '' );
 			$previous = is_string( $row['previous'] ?? null ) ? $row['previous'] : $slug;
 			$texts    = array();
-			foreach ( array( 'site_title', 'tagline' ) as $key ) {
+			foreach ( array( 'site_title', 'tagline', 'breadcrumb_home_label' ) as $key ) {
 				$text = trim( is_string( $row[ $key ] ?? null ) ? $row[ $key ] : '' );
 				if ( '' !== $text ) {
 					$texts[ $key ] = $text;
@@ -336,7 +336,7 @@ final class Form {
 
 		$languages = array();
 		foreach ( $rows as $row ) {
-			// Site title and tagline only when set: empty means those of Settings > General.
+			// Site title, tagline and breadcrumb label only when set: empty means the general ones.
 			$languages[ $row['slug'] ] = array(
 				'locale' => $row['locale'],
 				'name'   => $row['name'],

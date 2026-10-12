@@ -375,9 +375,9 @@ final class FormTest extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Site title and tagline are saved trimmed, and only when filled in.
+	 * Site title, tagline and breadcrumb label are saved trimmed, and only when filled in.
 	 */
-	public function test_languages_page_saves_site_title_and_tagline(): void {
+	public function test_languages_page_saves_texts_of_each_language(): void {
 		$stored = $this->save(
 			'easyrankly-languages',
 			array(
@@ -391,12 +391,13 @@ final class FormTest extends WP_UnitTestCase {
 						'tagline'    => ' ',
 					),
 					array(
-						'order'      => '2',
-						'slug'       => 'en',
-						'locale'     => 'en_US',
-						'name'       => 'English',
-						'site_title' => ' My <b>site</b> ',
-						'tagline'    => 'Just another site',
+						'order'                 => '2',
+						'slug'                  => 'en',
+						'locale'                => 'en_US',
+						'name'                  => 'English',
+						'site_title'            => ' My <b>site</b> ',
+						'tagline'               => 'Just another site',
+						'breadcrumb_home_label' => ' Start ',
 					),
 				),
 			)
@@ -411,10 +412,11 @@ final class FormTest extends WP_UnitTestCase {
 		);
 		$this->assertSame(
 			array(
-				'locale'     => 'en_US',
-				'name'       => 'English',
-				'site_title' => 'My site',
-				'tagline'    => 'Just another site',
+				'locale'                => 'en_US',
+				'name'                  => 'English',
+				'site_title'            => 'My site',
+				'tagline'               => 'Just another site',
+				'breadcrumb_home_label' => 'Start',
 			),
 			$stored['languages']['en']
 		);

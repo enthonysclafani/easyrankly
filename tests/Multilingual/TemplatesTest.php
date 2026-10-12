@@ -129,7 +129,7 @@ final class TemplatesTest extends WP_UnitTestCase {
 	public function test_term_texts_stay_in_the_default_language(): void {
 		create_initial_taxonomies(); // Re-adds the category permastruct for the new structure.
 		flush_rewrite_rules( false );
-		$settings = get_option( Settings::OPTION );
+		$settings                                     = get_option( Settings::OPTION );
 		$settings['language_templates']['en']['term'] = array(
 			'title'       => '{{title}} {{sep}} Topic',
 			'description' => 'All posts about {{title}}{{term_description}}',
