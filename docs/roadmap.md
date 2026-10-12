@@ -135,7 +135,8 @@ approvano nel piano di ogni punto.
 - [x] 7.1 Titolo e descrizione del sito per lingua (pagina Lingue), letti con `option_blogname` e
       `option_blogdescription` sulle pagine di quella lingua
 - [x] 7.2 Menu per lingua: la navigazione per lingua del blocco `core/navigation` (temi a blocchi). Le posizioni di
-      menu per lingua dei temi classici sono state tolte il 10 ottobre 2026
+      menu per lingua dei temi classici sono state tolte il 10 ottobre 2026; il 12 ottobre 2026 è stata tolta anche la
+      scelta del menu per lingua: il menu di una lingua sta nel suo template part (`header-en`, punto 7.3)
 - [x] 7.3 Altre stringhe del tema: nei temi a blocchi il blocco `core/template-part` mostra, sulle pagine di una
       lingua, la sua versione `{slug}-{lingua}` (es. `header-en`) se esiste nell'Editor del sito o nel tema; nessun dato
       nuovo. Widget dei temi classici esclusi (decisione di ottobre 2026)

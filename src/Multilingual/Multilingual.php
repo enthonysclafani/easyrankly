@@ -93,27 +93,23 @@ final class Multilingual {
 	}
 
 	/**
-	 * On the pages of a language, points navigation, template part and synced pattern blocks
-	 * to the version of that language (see Menus, TemplateParts and SyncedPatterns).
+	 * On the pages of a language, points template part and synced pattern blocks to the version
+	 * of that language (see TemplateParts and SyncedPatterns).
 	 *
-	 * One filter for the three blocks: every other block leaves after one comparison.
+	 * One filter for the two blocks: every other block leaves after one comparison.
 	 *
 	 * @param mixed $block Parsed block.
 	 * @return mixed
 	 */
 	public function filter_block( $block ) {
 		$name = is_array( $block ) ? ( $block['blockName'] ?? null ) : null;
-		if ( ! in_array( $name, array( 'core/navigation', 'core/template-part', 'core/block' ), true ) || ! Languages::enabled() || ! Routing::is_frontend() ) {
+		if ( ! in_array( $name, array( 'core/template-part', 'core/block' ), true ) || ! Languages::enabled() || ! Routing::is_frontend() ) {
 			return $block;
 		}
 
 		$language = Routing::current();
 
-		return match ( $name ) {
-			'core/navigation'    => Menus::filter_block( $block, $language ),
-			'core/template-part' => TemplateParts::filter_block( $block, $language ),
-			default              => SyncedPatterns::filter_block( $block, $language ),
-		};
+		return 'core/template-part' === $name ? TemplateParts::filter_block( $block, $language ) : SyncedPatterns::filter_block( $block, $language );
 	}
 
 	/**

@@ -22,7 +22,7 @@ EasyRankly is in active development. This version is not ready for production si
 
 = How do header, footer and patterns change language? =
 
-In block themes, create a template part or a synced pattern with the same name followed by the language prefix: "header-en" for "header", "Banner - EN" for "Banner". On the English pages it replaces the original. Unsynced patterns become a copy where they are inserted, so they are translated with the page of each language.
+In block themes, create a template part or a synced pattern with the same name followed by the language prefix: "header-en" for "header", "Banner - EN" for "Banner". On the English pages it replaces the original. This is also how each language gets its own menu: the Navigation block in "header-en" shows the English menu. Unsynced patterns become a copy where they are inserted, so they are translated with the page of each language.
 
 = Are categories and tags translated? =
 
