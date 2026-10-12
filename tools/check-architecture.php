@@ -519,7 +519,7 @@ final class ArchitectureChecker {
 			}
 
 			// Comments are blanked, not removed, so line numbers stay right.
-			$css = (string) preg_replace_callback( '#/\*.*?\*/#s', static fn( array $m ): string => preg_replace( '/[^\n]/', ' ', $m[0] ), $css );
+			$css = (string) preg_replace_callback( '#/\*.*?\*/#s', static fn( array $m ): string => (string) preg_replace( '/[^\n]/', ' ', $m[0] ), $css );
 
 			if ( preg_match_all( '/!\s*important/i', $css, $matches, PREG_OFFSET_CAPTURE ) ) {
 				foreach ( $matches[0] as $match ) {
@@ -535,8 +535,8 @@ final class ArchitectureChecker {
 				}
 
 				// Commas inside :is() or :not() do not separate selectors.
-				foreach ( preg_split( '/,(?![^()]*\))/', $text ) as $selector ) {
-					if ( ! str_starts_with( trim( $selector ), self::STYLESHEET_SCOPE . ' ' ) ) {
+				foreach ( (array) preg_split( '/,(?![^()]*\))/', $text ) as $selector ) {
+					if ( ! str_starts_with( trim( (string) $selector ), self::STYLESHEET_SCOPE . ' ' ) ) {
 						$offset = $prelude[1] + strlen( $prelude[0] ) - strlen( ltrim( $prelude[0] ) );
 						$this->add( $relative, substr_count( $css, "\n", 0, $offset ) + 1, 'one-stylesheet', 'Every selector starts with `' . self::STYLESHEET_SCOPE . ' `, the wrapper of the plugin screens.' );
 						break;
