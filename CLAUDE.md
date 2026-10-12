@@ -135,8 +135,8 @@ Prima di scrivere codice, verifica se WordPress lo fa già. Se lo fa, usa o filt
 ## Stile admin
 
 Uno stile solo per tutte le schermate del plugin, deciso una volta (12 ottobre 2026): titolo della sezione grigio e
-maiuscolo, sezione in un box bianco largo al massimo 760px, etichetta sopra il campo, campi di testo e select larghi
-quanto il box, ogni checkbox un interruttore on/off.
+maiuscolo, pagina intera (testi e tabelle compresi) larga al massimo 760px, sezione in un box bianco, etichetta sopra
+il campo, ogni campo (anche `small-text`, numeri e orari) largo quanto il box, ogni checkbox un interruttore on/off.
 
 - **Un solo foglio di stile**, `assets/admin.css` (statico, niente build), caricato da `Admin\Assets::style()` sulle
   pagine di impostazioni e sui form di Redirect e Custom code, dentro `<div class="wrap easyrankly-admin">`.
@@ -144,7 +144,7 @@ quanto il box, ogni checkbox un interruttore on/off.
   (`add_settings_field()`, classi `regular-text`, `large-text`, `small-text`, `description`) prende già l'aspetto
   giusto. Una funzione nuova non aggiunge regole CSS: se sembra che serva, la si chiede prima a Enthony.
 - `composer architecture` (regola `one-stylesheet`) blocca: altri file `.css`/`.scss` nel plugin; `assets/admin.css`
-  oltre 4 KB, con `!important` o con selettori che non iniziano con `.easyrankly-admin `; `wp_enqueue_style()`,
+  oltre 4 KB, con `!important` o con selettori che non sono o non iniziano con `.easyrankly-admin`; `wp_enqueue_style()`,
   `wp_register_style()` e `wp_add_inline_style()` fuori da `src/Admin/Assets.php`; `style="…"` e `<style>` nel PHP;
   stili inline e import di CSS negli script di `assets/src/`. Unica eccezione: `assets/src/editor/index.js`
   (anteprima dell'immagine social nel pannello dell'editor a blocchi, dove il foglio admin non si carica).

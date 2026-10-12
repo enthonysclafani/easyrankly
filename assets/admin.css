@@ -4,8 +4,8 @@
  * needs no new rule. Limits checked by `composer architecture`: see CLAUDE.md, "Stile admin".
  */
 
-.easyrankly-admin form > h2,
-.easyrankly-admin .form-table {
+/* The whole page, intro texts and tables included, stays 760px wide. */
+.easyrankly-admin {
 	max-width: 760px;
 }
 
@@ -47,11 +47,34 @@
 	padding: 0 0 16px;
 }
 
-/* Text fields fill the box; .small-text keeps short values short. */
-.easyrankly-admin .form-table :is(input[type="text"], input[type="url"], input[type="email"], input[type="tel"], input[type="number"], textarea, select):not(.small-text) {
+/* Every field fills the box, .small-text too. */
+.easyrankly-admin .form-table :is(input[type="text"], input[type="url"], input[type="email"], input[type="tel"], input[type="number"], textarea, select) {
 	box-sizing: border-box;
 	max-width: none;
 	width: 100%;
+}
+
+/* A table inside a field (opening hours) fills the box too, two time fields per cell. */
+.easyrankly-admin .form-table td table {
+	width: 100%;
+}
+
+.easyrankly-admin .form-table td td input[type="time"] {
+	width: calc(50% - 4px);
+}
+
+/* A label of its own (not around a checkbox) goes above its field. */
+.easyrankly-admin .form-table td label:not(:has(input)) {
+	display: block;
+	margin: 8px 0 4px;
+}
+
+.easyrankly-admin .form-table td label:not(:has(input)):first-child {
+	margin-top: 0;
+}
+
+.easyrankly-admin .form-table td label:not(:has(input)) + br {
+	display: none;
 }
 
 /* Every checkbox is an on/off switch: still a native checkbox for keyboard and screen readers. */
