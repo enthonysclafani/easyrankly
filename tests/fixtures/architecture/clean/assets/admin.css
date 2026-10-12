@@ -1,4 +1,8 @@
 /* Scoped rules. */
+.easyrankly-admin {
+	max-width: 760px;
+}
+
 .easyrankly-admin .form-table :is(input, select):not(.small-text),
 .easyrankly-admin h2 {
 	width: 100%;

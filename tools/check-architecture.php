@@ -502,8 +502,8 @@ final class ArchitectureChecker {
 	}
 
 	/**
-	 * Allows one stylesheet, small and scoped to the plugin screens: every rule starts with STYLESHEET_SCOPE,
-	 * and no `!important`.
+	 * Allows one stylesheet, small and scoped to the plugin screens: every selector is STYLESHEET_SCOPE or starts
+	 * with it, and no `!important`.
 	 */
 	private function check_stylesheets(): void {
 		foreach ( $this->find_files( '', '/\.(css|scss|sass|less)$/', self::STYLESHEET_SKIPPED_DIRS ) as $relative ) {
@@ -536,9 +536,10 @@ final class ArchitectureChecker {
 
 				// Commas inside :is() or :not() do not separate selectors.
 				foreach ( (array) preg_split( '/,(?![^()]*\))/', $text ) as $selector ) {
-					if ( ! str_starts_with( trim( (string) $selector ), self::STYLESHEET_SCOPE . ' ' ) ) {
+					$selector = trim( (string) $selector );
+					if ( self::STYLESHEET_SCOPE !== $selector && ! str_starts_with( $selector, self::STYLESHEET_SCOPE . ' ' ) ) {
 						$offset = $prelude[1] + strlen( $prelude[0] ) - strlen( ltrim( $prelude[0] ) );
-						$this->add( $relative, substr_count( $css, "\n", 0, $offset ) + 1, 'one-stylesheet', 'Every selector starts with `' . self::STYLESHEET_SCOPE . ' `, the wrapper of the plugin screens.' );
+						$this->add( $relative, substr_count( $css, "\n", 0, $offset ) + 1, 'one-stylesheet', 'Every selector is `' . self::STYLESHEET_SCOPE . '`, the wrapper of the plugin screens, or starts with it.' );
 						break;
 					}
 				}
