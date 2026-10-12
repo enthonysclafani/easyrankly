@@ -157,13 +157,12 @@ export WXR (cap `export`), `get_posts()` pubblico tramite query var (`?post_type
 `uninstall.php` elimina snippet, revisioni, meta e option. Verificare che non resti codice eseguibile
 (option `easyrankly_snippets` inclusa) e che `UninstallTest.php` lo copra.
 
-### CC-10. Revisione di WordPress.org (punto aperto in `docs/piano.md`)
+### CC-10. Revisione di WordPress.org (non serve)
 
-Preparare il testo che giustifica gli snippet PHP per il team di revisione, basato sui risultati di CC-01…CC-09:
-`eval` isolato in un file, soglia `edit_plugins`, rispetto di `DISALLOW_FILE_EDIT`, controllo della sintassi,
-spegnimento automatico, modalità sicura, nessun codice remoto. Confronto con plugin già presenti nella directory
-che fanno lo stesso (Code Snippets, WPCode). Lanciare Plugin Check **anche** su `PhpRunner.php` e annotare l'elenco
-esatto dei messaggi, che la revisione vedrà.
+Tolto il 12 ottobre 2026: lo slug `easyrankly` ha già la 1.0.0 pubblicata e la 2.0.0 esce come aggiornamento, che non
+passa da una revisione del team di WordPress.org. Non serve quindi un testo che giustifichi gli snippet PHP. Le linee
+guida valgono comunque: resta il Plugin Check completo, **anche** su `PhpRunner.php`, prima del rilascio (sezione
+"In sospeso" di `docs/roadmap.md`).
 
 ---
 
@@ -246,11 +245,11 @@ La PR di correzione descrive il rinforzo senza la ricetta d'attacco; il resocont
 ## 6. Ordine di lavoro
 
 1. Custom code: CC-01 (matrice), CC-02 (strade di scrittura), CC-03 (option). È dove un problema vale di più.
-2. Custom code: CC-04 … CC-09, poi il testo CC-10 per WordPress.org.
+2. Custom code: CC-04 … CC-09.
 3. Redirect (RD) e uscita nel `<head>` (HD): sono raggiungibili dai visitatori anonimi.
 4. Multilingua (ML): REST con controlli per contenuto, la parte più recente.
 5. Impostazioni, sitemap, admin generico (ST, SM, AD).
-6. Resoconto finale, aggiornamento di `CLAUDE.md` (rischi accettati) e di `docs/piano.md` (punto WordPress.org chiuso).
+6. Resoconto finale e aggiornamento di `CLAUDE.md` (rischi accettati).
 
 Ogni area può andare in un thread a sé; le correzioni sono PR piccole, una per problema, verso `Refactory`.
 

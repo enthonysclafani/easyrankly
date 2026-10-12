@@ -122,9 +122,9 @@ Su `plugins_loaded`, priorità 10: tutti i plugin sono caricati, il tema no.
 - **Option degli snippet come confine di fiducia** (CC-03 di `docs/sicurezza.md`): con accesso diretto al database,
   l'option `easyrankly_snippets` diventa esecuzione di codice anche in admin, cron e WP-CLI, non più solo nel frontend.
   La decisione sulla firma HMAC della cache pesa di più.
-- **Revisione di WordPress.org** (CC-10): una posizione che esegue PHP a ogni richiesta, admin compreso, rende ancora
-  più centrale la giustificazione degli snippet PHP. Plugin come Code Snippets e WPCode offrono la stessa possibilità
-  ("Run everywhere").
+- **Linee guida di WordPress.org**: la 2.0.0 esce come aggiornamento e non passa da una revisione (CC-10 di
+  `docs/sicurezza.md`), ma le linee guida valgono comunque. Plugin come Code Snippets e WPCode offrono la stessa
+  possibilità ("Run everywhere").
 
 ### Da verificare a mano
 

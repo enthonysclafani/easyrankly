@@ -214,7 +214,7 @@ aggiorna dalla 1.0.0 non si fa niente (decisione del 12 ottobre 2026): meta `_er
 - [ ] Versione da 3.0.0 a 2.0.0: header di `easyrankly.php`, costante `VERSION`, `Stable tag`, changelog,
       `tests/PluginTest.php`; nei documenti "EasyRankly 3" diventa 2.0
 - [ ] Plugin Check completo, una volta, a mano: tutte le categorie, con i warning e senza escludere
-      `src/CustomCode/PhpRunner.php`; annotare l'elenco esatto dei messaggi (serve anche a CC-10 di `docs/sicurezza.md`)
+      `src/CustomCode/PhpRunner.php`; annotare l'elenco esatto dei messaggi
 - [ ] Controllare che `easyrankly.com` (`Plugin URI` e `Author URI`) risponda e che l'account `easyrankly` dei
       `Contributors` abbia accesso in scrittura all'SVN
 - [ ] Prova a mano su Studio con lo zip di `tools/build-dist.sh`, compreso l'aggiornamento da una 1.0.0 installata
@@ -282,10 +282,9 @@ Dalla seconda analisi del 10 ottobre 2026 sono stati corretti i punti scelti (PR
 
 ### Controllo di sicurezza
 
-- [ ] Controllo di sicurezza completo da fare, secondo il piano in `docs/sicurezza.md` (CC-01…CC-10, poi RD, ML, HD,
+- [ ] Controllo di sicurezza completo da fare, secondo il piano in `docs/sicurezza.md` (CC-01…CC-09, poi RD, ML, HD,
       ST, SM, AD). Finora ci sono stati solo controlli mirati; come da regola del piano, i risultati restano fuori dal
       repository finché non sono corretti
-- [ ] Testo per il team di WordPress.org che giustifica gli snippet PHP (CC-10)
 
 ## Decisioni aperte
 
