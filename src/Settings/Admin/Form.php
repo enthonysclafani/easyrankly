@@ -26,6 +26,14 @@ defined( 'ABSPATH' ) || exit;
 final class Form {
 
 	/**
+	 * Languages renamed by the Languages page being saved, previous prefix => new prefix: their
+	 * content takes the new prefix once the settings are saved (apply_renames()).
+	 *
+	 * @var array<string, string>
+	 */
+	private static array $renamed = array();
+
+	/**
 	 * Converts a submitted page; any other value passes through.
 	 *
 	 * @param mixed $value Value given to update_option(), already unslashed by options.php.
@@ -256,9 +264,10 @@ final class Form {
 	 * @return array<string, mixed>
 	 */
 	private static function languages( array $value, array $current ): array {
-		$existing = Languages::all();
-		$rows     = array();
-		$renamed  = array();
+		self::$renamed = array();
+		$existing      = Languages::all();
+		$rows          = array();
+		$renamed       = array();
 
 		foreach ( is_array( $value['languages'] ?? null ) ? $value['languages'] : array() as $index => $row ) {
 			if ( ! is_array( $row ) || ! empty( $row['remove'] ) ) {
@@ -346,10 +355,11 @@ final class Form {
 			if ( ! Settings::is_valid( 'languages', $languages ) ) {
 				return array( 'languages' => $languages );
 			}
-			$error = self::rename( $renamed );
+			$error = self::check_renames( $renamed );
 			if ( null !== $error ) {
 				return self::error( 'languages', $error );
 			}
+			self::$renamed = $renamed;
 		}
 
 		$settings = array(
@@ -361,13 +371,12 @@ final class Form {
 	}
 
 	/**
-	 * Gives the content of renamed languages their new prefix.
+	 * Whether the content of renamed languages can take their new prefixes. Changes nothing.
 	 *
 	 * @param array<string, string> $renamed Previous prefix => new prefix.
-	 * @return string|null Error message, or null when everything was renamed.
+	 * @return string|null Error message, or null when every rename can be done.
 	 */
-	private static function rename( array $renamed ): ?string {
-		// Every new prefix is checked before any term changes: a refused save moves no content.
+	private static function check_renames( array $renamed ): ?string {
 		foreach ( $renamed as $slug ) {
 			if ( get_term_by( 'slug', $slug, Translations::LANGUAGE ) instanceof \WP_Term ) {
 				/* translators: %s: URL prefix. */
@@ -375,9 +384,27 @@ final class Form {
 			}
 		}
 
+		return null;
+	}
+
+	/**
+	 * Gives the content of renamed languages their new prefix, once the settings are saved.
+	 *
+	 * Runs after the save, not while sanitizing: a save stopped after the sanitize filters
+	 * (another filter, a database error) leaves the content where it was. Only the prefixes
+	 * the saved settings really have are given.
+	 *
+	 * @param mixed $old_value Previous settings.
+	 * @param mixed $value     Saved settings.
+	 */
+	public static function apply_renames( $old_value, $value ): void {
+		$renamed       = self::$renamed;
+		self::$renamed = array();
+		$languages     = is_array( $value ) && is_array( $value['languages'] ?? null ) ? $value['languages'] : array();
+
 		foreach ( $renamed as $previous => $slug ) {
 			$term = get_term_by( 'slug', $previous, Translations::LANGUAGE );
-			if ( ! $term instanceof \WP_Term ) {
+			if ( ! isset( $languages[ $slug ] ) || ! $term instanceof \WP_Term ) {
 				continue;
 			}
 			$result = wp_update_term(
@@ -389,11 +416,9 @@ final class Form {
 				)
 			);
 			if ( is_wp_error( $result ) ) {
-				return $result->get_error_message();
+				self::error( 'languages', $result->get_error_message() );
 			}
 		}
-
-		return null;
 	}
 
 	/**

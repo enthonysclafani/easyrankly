@@ -132,6 +132,13 @@ abstract class RecordsPage {
 	protected function enqueue_form( ?\WP_Post $post ): void {}
 
 	/**
+	 * Enqueues the assets of the form being shown, for the record asked for (none when new).
+	 */
+	public function enqueue_current_form(): void {
+		$this->enqueue_form( $this->record() );
+	}
+
+	/**
 	 * One text of the screen.
 	 *
 	 * @param string $key Text key.
@@ -172,7 +179,7 @@ abstract class RecordsPage {
 		// phpcs:enable WordPress.Security.NonceVerification
 
 		if ( in_array( $this->action(), array( 'new', 'edit' ), true ) ) {
-			add_action( 'admin_enqueue_scripts', fn() => $this->enqueue_form( $this->record() ) );
+			add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_current_form' ) );
 		}
 	}
 

@@ -213,7 +213,8 @@ guida valgono comunque: resta il Plugin Check completo, **anche** su `PhpRunner.
 ### SM. Sitemap (`src/Sitemap/`)
 
 Nessun contenuto privato, in bozza, protetto da password o `noindex`; nessun `erankly_snippet` o
-`erankly_redirect`; nessun termine vuoto o di tassonomie nascoste; sitemap per lingua coerenti.
+`erankly_redirect`; nessun termine vuoto senza descrizione propria né di tassonomie nascoste; sitemap per lingua
+coerenti.
 
 ### AD. Admin generico e JS (`src/Admin/`, `assets/`, `blocks/`)
 

@@ -161,7 +161,7 @@ final class Schema {
 
 		$graph[] = array_filter( $page );
 
-		if ( null !== $post && 'post' === $post->post_type && ! is_front_page() ) {
+		if ( null !== $post && Context::is_article() ) {
 			$graph[] = $this->article( $post, $url, $identity['@id'], null !== $image );
 		}
 

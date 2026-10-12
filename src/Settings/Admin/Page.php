@@ -54,6 +54,7 @@ final class Page {
 		add_action( 'admin_menu', array( $this, 'add_menu' ) );
 		// Before Settings::sanitize() (priority 10), which validates what the form became.
 		add_filter( 'sanitize_option_' . Settings::OPTION, array( Form::class, 'normalize' ), 5 );
+		add_action( 'update_option_' . Settings::OPTION, array( Form::class, 'apply_renames' ), 10, 2 );
 	}
 
 	/**
@@ -104,12 +105,7 @@ final class Page {
 			$hook = add_submenu_page( self::SLUG, $page['title'], $page['menu'], 'manage_options', $slug, array( $this, 'render_current' ) );
 
 			if ( false !== $hook ) {
-				add_action(
-					'load-' . $hook,
-					function () use ( $slug ): void {
-						$this->load( $slug );
-					}
-				);
+				add_action( 'load-' . $hook, array( $this, 'load_current' ) );
 			}
 		}
 	}
@@ -124,6 +120,16 @@ final class Page {
 
 		if ( self::SCHEMA === $slug ) {
 			add_action( 'admin_enqueue_scripts', array( MediaField::class, 'enqueue' ) );
+		}
+	}
+
+	/**
+	 * Sets up the page the admin is loading (the core calls `load-{$hook}` without arguments).
+	 */
+	public function load_current(): void {
+		$slug = (string) ( $GLOBALS['plugin_page'] ?? '' );
+		if ( isset( self::pages()[ $slug ] ) ) {
+			$this->load( $slug );
 		}
 	}
 

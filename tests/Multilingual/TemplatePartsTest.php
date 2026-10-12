@@ -83,7 +83,8 @@ final class TemplatePartsTest extends WP_UnitTestCase {
 	}
 
 	/**
-	 * However many template parts the page has, the language versions cost one query.
+	 * However many template parts the page has, the language versions cost no query more than the
+	 * template parts themselves: one query finds the versions and loads the parts the core renders.
 	 */
 	public function test_one_query_for_all_template_parts(): void {
 		$this->part( 'footer', 'Piede' );
@@ -99,8 +100,8 @@ final class TemplatePartsTest extends WP_UnitTestCase {
 
 		$default = $count( 'http://example.org/' );
 
-		$this->assertLessThanOrEqual( $default + 1, $count( 'http://example.org/fr/' ) );
-		$this->assertLessThanOrEqual( $default + 1, $count( 'http://example.org/en/' ) );
+		$this->assertLessThanOrEqual( $default, $count( 'http://example.org/fr/' ) );
+		$this->assertLessThanOrEqual( $default, $count( 'http://example.org/en/' ) );
 	}
 
 	/**

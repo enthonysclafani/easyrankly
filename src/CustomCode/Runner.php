@@ -22,8 +22,21 @@ final class Runner {
 	 * Hooks every position.
 	 */
 	public function register(): void {
-		foreach ( CustomCode::POSITIONS as $position => $hook ) {
-			add_action( $hook, fn() => $this->run( $position ) );
+		foreach ( CustomCode::POSITIONS as $hook ) {
+			add_action( $hook, array( self::class, 'run_hook' ) );
+		}
+	}
+
+	/**
+	 * Runs the position of the hook being fired.
+	 *
+	 * A static method, not a closure, so a theme, a plugin or a snippet can take a position off:
+	 * `remove_action( 'wp_footer', array( \EasyRankly\CustomCode\Runner::class, 'run_hook' ) )`.
+	 */
+	public static function run_hook(): void {
+		$position = array_search( current_filter(), CustomCode::POSITIONS, true );
+		if ( is_string( $position ) ) {
+			( new self() )->run( $position );
 		}
 	}
 

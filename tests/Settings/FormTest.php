@@ -26,6 +26,7 @@ final class FormTest extends WP_UnitTestCase {
 		parent::set_up();
 
 		add_filter( 'sanitize_option_' . Settings::OPTION, array( Form::class, 'normalize' ), 5 );
+		add_action( 'update_option_' . Settings::OPTION, array( Form::class, 'apply_renames' ), 10, 2 );
 		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
 		update_option(
 			Settings::OPTION,
@@ -488,6 +489,20 @@ final class FormTest extends WP_UnitTestCase {
 		$this->assertSame( array( 'it', 'en-gb' ), array_keys( $stored['languages'] ) );
 		$this->assertSame( 'en-gb', Translations::language( $post ) );
 		$this->assertSame( array( 'en-gb' ), array_keys( $stored['language_templates'] ) );
+	}
+
+	/**
+	 * Content takes the new prefix only once the settings are saved: a save stopped after the
+	 * sanitize filters moves nothing.
+	 */
+	public function test_languages_page_rename_waits_for_the_save(): void {
+		$post = self::factory()->post->create();
+		Translations::set_language( $post, 'en' );
+		add_filter( 'pre_update_option_' . Settings::OPTION, static fn( $value, $old ) => $old, 20, 2 );
+
+		$this->save( 'easyrankly-languages', array( 'languages' => $this->rows( array( 'slug' => 'en-gb' ) ) ) );
+
+		$this->assertSame( 'en', Translations::language( $post ) );
 	}
 
 	/**
