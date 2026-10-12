@@ -99,8 +99,12 @@ quell'option ottiene esecuzione di PHP. Da verificare:
 - Un admin di sito in multisite o un ruolo senza `edit_plugins` ha una qualsiasi strada per scriverla?
 - Rischio accettato da documentare: con accesso diretto al DB (SQL injection altrove) l'option diventa esecuzione di
   codice. È lo stesso rischio di `active_plugins` nel core, ma va scritto in `CLAUDE.md`.
-- **Decisione da prendere** (vedi sezione 7): firmare il contenuto della cache con un HMAC basato su `wp_salt()` e
-  rifiutare in `Runner` ciò che non torna. Costa poche righe e una funzione hash per richiesta.
+- **Fatto il 12 ottobre 2026** (decisione 1 della sezione 7): ogni snippet in cache porta un HMAC fatto con
+  `wp_salt( 'auth' )` su ID, tipo, posizione e codice. `Runner` esegue solo gli snippet la cui firma torna; se ne trova
+  uno che non torna ricostruisce la cache dagli snippet salvati. Da verificare nel controllo: che nessuna strada di
+  scrittura dell'option produca una firma valida senza passare da `rebuild_cache()`. La protezione vale quando le
+  chiavi stanno in `wp-config.php` (è così in ogni installazione normale); senza, WordPress le tiene nel database e
+  chi scrive le option potrebbe leggerle o cambiarle.
 
 ### CC-04. Validazione della sintassi e errori a runtime
 
@@ -255,11 +259,17 @@ Ogni area può andare in un thread a sé; le correzioni sono PR piccole, una per
 
 ## 7. Decisioni per Enthony
 
-1. **Firma della cache degli snippet (CC-03).** Aggiungere un HMAC con `wp_salt()` così che un'option scritta da
-   fuori non venga eseguita, oppure accettare il rischio e documentarlo. Consiglio: aggiungerla, è poco codice.
+1. **Firma della cache degli snippet (CC-03).** Decisa e fatta il 12 ottobre 2026: HMAC con `wp_salt( 'auth' )`
+   su ogni snippet in cache, controllato da `Runner` prima di eseguirlo. Nessuna option o meta nuova: cambia solo il
+   contenuto dell'option `easyrankly_snippets` (una chiave `sig` per snippet). Una cache senza firme (scritta da una
+   versione precedente) o con chiavi cambiate in `wp-config.php` viene ricostruita alla prima pagina visitata.
 2. **Spegnimento avviato dai visitatori (CC-06).** Accettarlo (lo snippet è difettoso comunque) o spegnere lo
    snippet solo per gli errori fatali e limitarsi a registrare le eccezioni. Consiglio: accettarlo e documentarlo.
-3. **Strumenti esterni.** Usare solo quelli già presenti (PHPCS, PHPStan, Plugin Check) o aggiungere strumenti di
-   analisi come Semgrep in CI (nuova dipendenza di sviluppo). Consiglio: solo quelli presenti.
+   Riguarda solo gli snippet PHP: gli snippet HTML non si spengono mai da soli.
+3. **Strumenti esterni.** Decisa il 12 ottobre 2026: solo quelli già presenti (PHPCS con `WordPress.Security`,
+   PHPStan, Plugin Check, `composer architecture`). Semgrep aggiungerebbe regole per schemi di codice e un'analisi del
+   flusso dei dati dentro una stessa funzione, ma i controlli di sicurezza di WordPress li fa già PHPCS e le regole
+   proprie del progetto (es. `eval` solo in `PhpRunner.php`) stanno già in `composer architecture`. Da riconsiderare
+   solo se il controllo trova un tipo di problema che questi strumenti non vedono.
 4. **Dove vive questo piano.** Deciso il 9 ottobre 2026: il piano sta qui, in `docs/sicurezza.md`; i risultati
    restano in note private fuori dal repository finché i problemi non sono corretti (sezione 5).

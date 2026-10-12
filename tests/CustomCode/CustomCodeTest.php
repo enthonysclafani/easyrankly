@@ -483,4 +483,56 @@ final class CustomCodeTest extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'early', get_post_meta( $id, CustomCode::meta_key( 'error' ), true ) );
 		$this->assertSame( array(), get_option( CustomCode::OPTION )['positions']['everywhere'] );
 	}
+
+	/**
+	 * Only snippets this plugin cached run: anything else written into the option is skipped and
+	 * the cache is rebuilt from the snippets.
+	 */
+	public function test_cache_runs_only_signed_snippets(): void {
+		$this->rest( 'POST', $this->body( 'php', "echo 'saved';", 'publish', 'footer' ) );
+		$this->rest( 'POST', $this->body( 'html', '<i>head</i>', 'publish', 'head' ) );
+		$saved = get_option( CustomCode::OPTION );
+
+		// Code changed in the option: the saved code runs and the option is repaired.
+		$cache                                   = $saved;
+		$cache['positions']['footer'][0]['code'] = "echo 'changed';";
+		update_option( CustomCode::OPTION, $cache );
+		$this->assertSame( 'saved', $this->output( 'footer' ) );
+		$this->assertSame( $saved, get_option( CustomCode::OPTION ) );
+
+		// A new unsigned or forged snippet never runs.
+		$cache                              = $saved;
+		$cache['positions']['everywhere'][] = array(
+			'id'   => 999,
+			'type' => 'php',
+			'code' => "echo 'forged';",
+			'sig'  => hash_hmac( 'sha256', "999\nphp\neverywhere\necho 'forged';", 'guess' ),
+		);
+		update_option( CustomCode::OPTION, $cache );
+		$this->assertSame( '', $this->output( 'everywhere' ) );
+		$this->assertSame( $saved, get_option( CustomCode::OPTION ) );
+
+		// A signed snippet moved to another position, or turned into PHP, does not run there.
+		$cache                                 = $saved;
+		$cache['positions']['body_open'][]     = $saved['positions']['head'][0];
+		$cache['positions']['head'][0]['type'] = 'php';
+		update_option( CustomCode::OPTION, $cache );
+		$this->assertSame( '', $this->output( 'body_open' ) );
+		$this->assertSame( "<i>head</i>\n", $this->output( 'head' ) );
+	}
+
+	/**
+	 * A cache written before signatures, or with other salts, is rebuilt and its snippets keep running.
+	 */
+	public function test_unsigned_cache_is_rebuilt(): void {
+		$this->rest( 'POST', $this->body( 'html', '<i>kept</i>', 'publish', 'head' ) );
+		$saved = get_option( CustomCode::OPTION );
+
+		$cache = $saved;
+		unset( $cache['positions']['head'][0]['sig'] );
+		update_option( CustomCode::OPTION, $cache );
+
+		$this->assertSame( "<i>kept</i>\n", $this->output( 'head' ) );
+		$this->assertSame( $saved, get_option( CustomCode::OPTION ) );
+	}
 }

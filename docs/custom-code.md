@@ -121,7 +121,8 @@ Su `plugins_loaded`, priorità 10: tutti i plugin sono caricati, il tema no.
   pagina (creare utenti, cambiare opzioni). È lo stesso rischio del `functions.php`.
 - **Option degli snippet come confine di fiducia** (CC-03 di `docs/sicurezza.md`): con accesso diretto al database,
   l'option `easyrankly_snippets` diventa esecuzione di codice anche in admin, cron e WP-CLI, non più solo nel frontend.
-  La decisione sulla firma HMAC della cache pesa di più.
+  Dal 12 ottobre 2026 ogni snippet in cache è firmato con un HMAC basato sulle chiavi di `wp-config.php`: un'option
+  scritta da fuori non viene eseguita. Resta il rischio di chi può scrivere direttamente gli snippet nel database.
 - **Linee guida di WordPress.org**: la 2.0.0 esce come aggiornamento e non passa da una revisione (CC-10 di
   `docs/sicurezza.md`), ma le linee guida valgono comunque. Plugin come Code Snippets e WPCode offrono la stessa
   possibilità ("Run everywhere").

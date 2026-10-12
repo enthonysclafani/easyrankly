@@ -527,6 +527,7 @@ final class CustomCode {
 				'type'     => $type,
 				'priority' => (int) get_post_meta( $post->ID, self::meta_key( 'priority' ), true ),
 				'code'     => $post->post_content,
+				'sig'      => self::signature( $post->ID, $type, $position, $post->post_content ),
 			);
 		}
 
@@ -536,6 +537,22 @@ final class CustomCode {
 		unset( $snippets );
 
 		update_option( self::OPTION, $cache, true );
+	}
+
+	/**
+	 * Signature of a cached snippet, so that the cache runs only what this plugin wrote there.
+	 *
+	 * Whoever writes the option some other way (an options screen, another plugin, an import)
+	 * does not know the salts in wp-config.php: Runner skips what does not match.
+	 *
+	 * @param int    $id       Snippet ID.
+	 * @param string $type     html or php.
+	 * @param string $position Position key.
+	 * @param string $code     Code.
+	 * @return string
+	 */
+	public static function signature( int $id, string $type, string $position, string $code ): string {
+		return hash_hmac( 'sha256', $id . "\n" . $type . "\n" . $position . "\n" . $code, wp_salt( 'auth' ) );
 	}
 
 	/**
