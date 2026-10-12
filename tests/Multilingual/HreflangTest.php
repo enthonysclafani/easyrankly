@@ -167,7 +167,7 @@ final class HreflangTest extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Content without translations, archives and later pages get no alternates.
+	 * Content without translations, later pages and search results get no alternates.
 	 */
 	public function test_other_pages_have_no_alternates(): void {
 		self::factory()->post->create( array( 'post_name' => 'alone' ) );
@@ -175,10 +175,39 @@ final class HreflangTest extends WP_UnitTestCase {
 		self::factory()->post->create_many( 3, array( 'post_category' => array( $category ) ) );
 		update_option( 'posts_per_page', 1 );
 
-		foreach ( array( '/alone/', '/en/category/news/', '/en/page/2/', '/?s=x' ) as $path ) {
+		foreach ( array( '/alone/', '/en/category/news/page/2/', '/en/page/2/', '/?s=x' ) as $path ) {
 			$this->go_to( 'http://example.org' . $path );
 			$this->assertSame( array(), Hreflang::alternates(), $path );
 		}
+	}
+
+	/**
+	 * Archives exist in every language: a term archive links its versions under every prefix,
+	 * unless it is noindex or has a canonical of its own.
+	 */
+	public function test_archives_have_every_language(): void {
+		$category = self::factory()->category->create( array( 'slug' => 'news' ) );
+		self::factory()->post->create( array( 'post_category' => array( $category ) ) );
+
+		$this->go_to( 'http://example.org/en/category/news/' );
+		$this->assertSame(
+			array(
+				'it-IT'     => 'http://example.org/category/news/',
+				'en-US'     => 'http://example.org/en/category/news/',
+				'fr-FR'     => 'http://example.org/fr/category/news/',
+				'x-default' => 'http://example.org/category/news/',
+			),
+			Hreflang::alternates()
+		);
+
+		update_term_meta( $category, Meta::PREFIX . 'canonical', 'https://example.org/elsewhere/' );
+		$this->go_to( 'http://example.org/en/category/news/' );
+		$this->assertSame( array(), Hreflang::alternates() );
+
+		delete_term_meta( $category, Meta::PREFIX . 'canonical' );
+		update_term_meta( $category, Meta::PREFIX . 'noindex', true );
+		$this->go_to( 'http://example.org/en/category/news/' );
+		$this->assertSame( array(), Hreflang::alternates() );
 	}
 
 	/**

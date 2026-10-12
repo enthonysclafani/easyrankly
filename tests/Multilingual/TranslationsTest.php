@@ -290,4 +290,16 @@ final class TranslationsTest extends WP_UnitTestCase {
 	private function error_code( $result ): string {
 		return is_wp_error( $result ) ? (string) $result->get_error_code() : '';
 	}
+
+	/**
+	 * The copy of protected content stays protected.
+	 */
+	public function test_translation_keeps_the_password(): void {
+		$source = self::factory()->post->create( array( 'post_password' => 'secret' ) );
+
+		$copy = Translations::create_translation( $source, 'en' );
+
+		$this->assertIsInt( $copy );
+		$this->assertSame( 'secret', get_post( $copy )->post_password );
+	}
 }

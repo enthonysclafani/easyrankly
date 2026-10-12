@@ -19,6 +19,8 @@ defined( 'ABSPATH' ) || exit;
  * - single content: its published translation, or the language home when there is none;
  * - home, archives and search: the same page under the language prefix (first page);
  * - 404: the language home.
+ * A language whose home would be a 404 (a static front page not translated into it) gets no
+ * link where the home stands in.
  */
 final class Switcher {
 
@@ -115,7 +117,11 @@ final class Switcher {
 				$version = $versions[ $language ] ?? null;
 				$url     = $version instanceof \WP_Post && ( $version->ID === $object->ID || Translations::is_public( $version ) ) ? get_permalink( $version ) : false;
 
-				$links[ $language ] = is_string( $url ) ? $url : Routing::home( $language );
+				if ( is_string( $url ) ) {
+					$links[ $language ] = $url;
+				} elseif ( self::has_home( $language ) ) {
+					$links[ $language ] = Routing::home( $language );
+				}
 			}
 
 			return $links;
@@ -123,9 +129,29 @@ final class Switcher {
 
 		$page = is_404() || is_singular() ? '' : get_pagenum_link( 1, false );
 		foreach ( array_keys( Languages::all() ) as $language ) {
-			$links[ $language ] = '' === $page ? Routing::home( $language ) : Routing::url( $page, $language );
+			if ( '' !== $page ) {
+				$links[ $language ] = Routing::url( $page, $language );
+			} elseif ( self::has_home( $language ) ) {
+				$links[ $language ] = Routing::home( $language );
+			}
 		}
 
 		return $links;
+	}
+
+	/**
+	 * Whether a language has a home: with a static front page, only the languages it is translated
+	 * into (Requests answers 404 for the others). Its group is cached with the front page.
+	 *
+	 * @param string $language Language slug.
+	 * @return bool
+	 */
+	private static function has_home( string $language ): bool {
+		$front = (int) get_option( 'page_on_front' );
+		if ( 'page' !== get_option( 'show_on_front' ) || $front < 1 ) {
+			return true;
+		}
+
+		return isset( Translations::of( $front )[ $language ] );
 	}
 }

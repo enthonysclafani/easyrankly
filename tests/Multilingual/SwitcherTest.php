@@ -186,4 +186,37 @@ final class SwitcherTest extends WP_UnitTestCase {
 
 		$this->assertSame( '', $this->render() );
 	}
+
+	/**
+	 * With a static front page, a language it is not translated into (French here) has no home: the
+	 * switcher does not link that 404 where the home would stand in.
+	 */
+	public function test_language_without_home_gets_no_home_link(): void {
+		$front = self::factory()->post->create( array( 'post_type' => 'page' ) );
+		$en    = self::factory()->post->create( array( 'post_type' => 'page' ) );
+		Translations::link(
+			array(
+				'it' => $front,
+				'en' => $en,
+			)
+		);
+		update_option( 'show_on_front', 'page' );
+		update_option( 'page_on_front', $front );
+		self::factory()->post->create(
+			array(
+				'post_type' => 'page',
+				'post_name' => 'about',
+			)
+		);
+
+		$this->go_to( 'http://example.org/about/' );
+
+		$this->assertSame(
+			array(
+				'it' => 'http://example.org/about/',
+				'en' => 'http://example.org/en/',
+			),
+			Switcher::links()
+		);
+	}
 }

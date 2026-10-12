@@ -254,9 +254,10 @@ final class Translations {
 	/**
 	 * Creates a draft copy of a post in another language and links it to the post's group.
 	 *
-	 * The copy keeps title, content, excerpt, template, featured image, order and terms
+	 * The copy keeps title, content, excerpt, password, template, featured image, order and terms
 	 * (terms are shared by all languages); its parent is the translation of the source's
-	 * parent, if there is one. SEO fields are not copied: they need translating.
+	 * parent, if there is one. SEO fields are not copied: they need translating. The password is,
+	 * so that the copy of protected content does not become readable by everyone once published.
 	 * Content passes the same filters as if the current user had typed it.
 	 *
 	 * @param int    $source_id Post to translate.
@@ -286,6 +287,7 @@ final class Translations {
 					'post_title'     => $source->post_title,
 					'post_content'   => $source->post_content,
 					'post_excerpt'   => $source->post_excerpt,
+					'post_password'  => $source->post_password,
 					'post_parent'    => $source->post_parent > 0 ? ( self::of( $source->post_parent )[ $language ] ?? 0 ) : 0,
 					'menu_order'     => $source->menu_order,
 					'comment_status' => $source->comment_status,
