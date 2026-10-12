@@ -76,9 +76,12 @@ una pagina di impostazioni lunga, a schede grandi, con un aspetto diverso dal re
   (`wp_enqueue_code_editor()`), che rispetta la preferenza dell'utente di spegnere l'evidenziazione.
 - **Editor a blocchi e schermate dei termini**: il pannello nell'editor usa i componenti che l'editor carica comunque;
   i campi dei termini sono PHP classico.
-- **CSS**: nessun foglio di stile del plugin, e il plugin non accoda `wp-components` sulle sue schermate (il core lo
-  carica comunque in tutto l'admin per la palette dei comandi). Una regola CSS nostra va motivata. Gli entry point
-  `settings`, `redirects` e `snippets` sono spariti da `package.json`.
+- **CSS**: un solo foglio di stile, `assets/admin.css` (circa 3 KB, nessun JS), che veste il markup del core sulle
+  schermate del plugin: titolo della sezione grigio e maiuscolo, box bianco largo al massimo 760px, etichetta sopra il
+  campo, campi larghi quanto il box, checkbox come interruttori on/off (12 ottobre 2026). `composer architecture`
+  impedisce altri fogli, CSS inline e regole fuori dal wrapper `.easyrankly-admin` (CLAUDE.md, "Stile admin"). Il
+  plugin non accoda `wp-components` sulle sue schermate (il core lo carica comunque in tutto l'admin per la palette
+  dei comandi). Gli entry point `settings`, `redirects` e `snippets` sono spariti da `package.json`.
 
 ## 4. Dove vivono i dati
 

@@ -1,0 +1,127 @@
+/*
+ * The only stylesheet of EasyRankly, on the plugin screens. It dresses the core markup
+ * (the h2 and form-table of the Settings API, the core input classes), so a new field
+ * needs no new rule. Limits checked by `composer architecture`: see CLAUDE.md, "Stile admin".
+ */
+
+.easyrankly-admin form > h2,
+.easyrankly-admin .form-table {
+	max-width: 760px;
+}
+
+.easyrankly-admin form > h2 {
+	color: #646970;
+	font-size: 12px;
+	letter-spacing: 0.04em;
+	margin: 2em 0 8px;
+	text-transform: uppercase;
+}
+
+/* A section becomes a box: label above the field, as the core does on narrow screens. */
+.easyrankly-admin .form-table {
+	background: #fff;
+	border: 1px solid #dcdcde;
+	border-radius: 4px;
+	box-sizing: border-box;
+	display: block;
+	margin-bottom: 24px;
+	padding: 8px 24px;
+}
+
+.easyrankly-admin .form-table > tbody,
+.easyrankly-admin .form-table > tbody > tr,
+.easyrankly-admin .form-table > tbody > tr > th,
+.easyrankly-admin .form-table > tbody > tr > td {
+	display: block;
+	padding-left: 0;
+	padding-right: 0;
+	width: auto;
+}
+
+.easyrankly-admin .form-table > tbody > tr > th {
+	padding: 16px 0 6px;
+}
+
+.easyrankly-admin .form-table > tbody > tr > td {
+	margin: 0;
+	padding: 0 0 16px;
+}
+
+/* Text fields fill the box; .small-text keeps short values short. */
+.easyrankly-admin .form-table :is(input[type="text"], input[type="url"], input[type="email"], input[type="tel"], input[type="number"], textarea, select):not(.small-text) {
+	box-sizing: border-box;
+	max-width: none;
+	width: 100%;
+}
+
+/* Every checkbox is an on/off switch: still a native checkbox for keyboard and screen readers. */
+.easyrankly-admin .form-table input[type="checkbox"] {
+	appearance: none;
+	background: #8c8f94;
+	border: 0;
+	border-radius: 10px;
+	box-shadow: none;
+	cursor: pointer;
+	height: 20px;
+	margin: 3px 8px 3px 0;
+	position: relative;
+	transition: background-color 0.15s ease-in-out;
+	vertical-align: middle;
+	width: 36px;
+}
+
+.easyrankly-admin .form-table input[type="checkbox"]::before,
+.easyrankly-admin .form-table input[type="checkbox"]:checked::before {
+	background: #fff;
+	border-radius: 50%;
+	content: "";
+	height: 16px;
+	left: 2px;
+	margin: 0;
+	position: absolute;
+	top: 2px;
+	transition: left 0.15s ease-in-out;
+	width: 16px;
+}
+
+.easyrankly-admin .form-table input[type="checkbox"]:checked {
+	background: #00a32a;
+}
+
+.easyrankly-admin .form-table input[type="checkbox"]:checked::before {
+	left: 18px;
+}
+
+.easyrankly-admin .form-table input[type="checkbox"]:focus-visible {
+	box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--wp-admin-theme-color, #3858e9);
+	outline: 2px solid transparent;
+}
+
+.easyrankly-admin .form-table input[type="checkbox"]:disabled {
+	cursor: not-allowed;
+	opacity: 0.5;
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+	.easyrankly-admin .form-table input[type="checkbox"],
+	.easyrankly-admin .form-table input[type="checkbox"]::before {
+		transition: none;
+	}
+}
+
+@media (forced-colors: active) {
+
+	.easyrankly-admin .form-table input[type="checkbox"] {
+		border: 1px solid CanvasText;
+		forced-color-adjust: none;
+	}
+
+	.easyrankly-admin .form-table input[type="checkbox"]::before {
+		background: CanvasText;
+	}
+
+	.easyrankly-admin .form-table input[type="checkbox"]:checked {
+		background: Highlight;
+	}
+}

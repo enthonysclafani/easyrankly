@@ -20,6 +20,8 @@ final class Bad {
 		add_action( 'wp_abilities_api_init', array( $this, 'abilities' ) );
 		register_post_type( 'erankly_proposal' );
 		update_option( 'easyrankly_agent_actions', array() );
+		wp_add_inline_style( 'fixture', 'p { color: red; }' );
+		echo '<p style="color: red">fixture</p>';
 		$this->copy( 'a method, not the global function' );
 		// wp_schedule_event() inside a comment is ignored.
 	}

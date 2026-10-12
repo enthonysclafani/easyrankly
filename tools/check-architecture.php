@@ -43,6 +43,47 @@ final class ArchitectureChecker {
 	private const WPDB_ALLOWLIST = array();
 
 	/**
+	 * The only stylesheet of the plugin, the file that loads it and its size limit in bytes (see CLAUDE.md,
+	 * "Stile admin").
+	 */
+	private const STYLESHEET = 'assets/admin.css';
+
+	private const STYLESHEET_LOADER = 'src/Admin/Assets.php';
+
+	private const STYLESHEET_MAX_BYTES = 4096;
+
+	/**
+	 * Selector that every rule of the stylesheet starts with: the wrapper of the plugin screens.
+	 */
+	private const STYLESHEET_SCOPE = '.easyrankly-admin';
+
+	/**
+	 * Functions that load or print CSS: allowed only in STYLESHEET_LOADER.
+	 *
+	 * @var list<string>
+	 */
+	private const STYLE_FUNCTIONS = array( 'wp_enqueue_style', 'wp_register_style', 'wp_add_inline_style' );
+
+	/**
+	 * Directories never searched for stylesheets: dependencies, build output, test fixtures.
+	 *
+	 * @var list<string>
+	 */
+	private const STYLESHEET_SKIPPED_DIRS = array( '.git', 'vendor', 'node_modules', 'build', 'tests' );
+
+	/**
+	 * Admin script sources, searched for inline styles.
+	 */
+	private const SCRIPT_SOURCES = 'assets/src';
+
+	/**
+	 * Admin scripts allowed inline styles. Each entry needs a reason in CLAUDE.md.
+	 *
+	 * @var list<string>
+	 */
+	private const INLINE_STYLE_SCRIPT_ALLOWLIST = array( 'assets/src/editor/index.js' );
+
+	/**
 	 * Functions forbidden everywhere, grouped by the rule they break.
 	 *
 	 * @var array<string, list<string>>
@@ -181,6 +222,8 @@ final class ArchitectureChecker {
 		}
 
 		$this->check_composer_json();
+		$this->check_stylesheets();
+		$this->check_script_styles();
 
 		return $this->violations;
 	}
@@ -299,7 +342,7 @@ final class ArchitectureChecker {
 				continue;
 			}
 
-			if ( T_CONSTANT_ENCAPSED_STRING === $id || T_ENCAPSED_AND_WHITESPACE === $id ) {
+			if ( T_CONSTANT_ENCAPSED_STRING === $id || T_ENCAPSED_AND_WHITESPACE === $id || T_INLINE_HTML === $id ) {
 				$this->check_string( $relative, $line, $text );
 				continue;
 			}
@@ -340,6 +383,11 @@ final class ArchitectureChecker {
 			}
 		}
 
+		if ( in_array( $function_name, self::STYLE_FUNCTIONS, true ) && self::STYLESHEET_LOADER !== $relative ) {
+			$this->add( $relative, $line, 'one-stylesheet', "`{$function_name}()` is allowed only in " . self::STYLESHEET_LOADER . ': the plugin has one stylesheet, ' . self::STYLESHEET . '.' );
+			return;
+		}
+
 		if ( preg_match( self::AI_FUNCTION_PATTERN, $function_name ) ) {
 			$this->add( $relative, $line, 'no-ai', "`{$function_name}()` is forbidden: the free plugin has no AI (see CLAUDE.md)." );
 			return;
@@ -371,6 +419,11 @@ final class ArchitectureChecker {
 	private function check_string( string $relative, int $line, string $text ): void {
 		if ( preg_match( '/\b(CREATE|ALTER|DROP)\s+TABLE\b/i', $text ) ) {
 			$this->add( $relative, $line, 'no-custom-tables', 'SQL schema changes are forbidden: store data with the native APIs.' );
+			return;
+		}
+
+		if ( preg_match( '/\sstyle\s*=|<style\b/i', $text ) ) {
+			$this->add( $relative, $line, 'one-stylesheet', 'Inline CSS is forbidden: use the core admin classes, styled by ' . self::STYLESHEET . '.' );
 			return;
 		}
 
@@ -446,6 +499,100 @@ final class ArchitectureChecker {
 				$this->add( 'composer.json', 1, 'no-runtime-deps', "Runtime dependency `{$package}` is forbidden: move it to require-dev or remove it." );
 			}
 		}
+	}
+
+	/**
+	 * Allows one stylesheet, small and scoped to the plugin screens: every rule starts with STYLESHEET_SCOPE,
+	 * and no `!important`.
+	 */
+	private function check_stylesheets(): void {
+		foreach ( $this->find_files( '', '/\.(css|scss|sass|less)$/', self::STYLESHEET_SKIPPED_DIRS ) as $relative ) {
+			if ( self::STYLESHEET !== $relative ) {
+				$this->add( $relative, 1, 'one-stylesheet', 'The plugin has one stylesheet, ' . self::STYLESHEET . ': add rules there only if the core markup cannot do it.' );
+				continue;
+			}
+
+			$css = (string) file_get_contents( $this->root . '/' . $relative );
+
+			if ( strlen( $css ) > self::STYLESHEET_MAX_BYTES ) {
+				$this->add( $relative, 1, 'one-stylesheet', sprintf( 'The stylesheet is %d bytes, over the limit of %d.', strlen( $css ), self::STYLESHEET_MAX_BYTES ) );
+			}
+
+			// Comments are blanked, not removed, so line numbers stay right.
+			$css = (string) preg_replace_callback( '#/\*.*?\*/#s', static fn( array $m ): string => (string) preg_replace( '/[^\n]/', ' ', $m[0] ), $css );
+
+			if ( preg_match_all( '/!\s*important/i', $css, $matches, PREG_OFFSET_CAPTURE ) ) {
+				foreach ( $matches[0] as $match ) {
+					$this->add( $relative, substr_count( $css, "\n", 0, $match[1] ) + 1, 'one-stylesheet', '`!important` is forbidden in the stylesheet.' );
+				}
+			}
+
+			preg_match_all( '/([^{};]+)\{/', $css, $preludes, PREG_OFFSET_CAPTURE );
+			foreach ( $preludes[1] as $prelude ) {
+				$text = trim( $prelude[0] );
+				if ( str_starts_with( $text, '@' ) ) {
+					continue;
+				}
+
+				// Commas inside :is() or :not() do not separate selectors.
+				foreach ( (array) preg_split( '/,(?![^()]*\))/', $text ) as $selector ) {
+					if ( ! str_starts_with( trim( (string) $selector ), self::STYLESHEET_SCOPE . ' ' ) ) {
+						$offset = $prelude[1] + strlen( $prelude[0] ) - strlen( ltrim( $prelude[0] ) );
+						$this->add( $relative, substr_count( $css, "\n", 0, $offset ) + 1, 'one-stylesheet', 'Every selector starts with `' . self::STYLESHEET_SCOPE . ' `, the wrapper of the plugin screens.' );
+						break;
+					}
+				}
+			}
+		}
+	}
+
+	/**
+	 * Forbids inline styles in the admin scripts, except in the allowlisted files.
+	 */
+	private function check_script_styles(): void {
+		foreach ( $this->find_files( self::SCRIPT_SOURCES, '/\.(js|jsx|ts|tsx)$/', array() ) as $relative ) {
+			if ( $this->is_allowlisted( $relative, self::INLINE_STYLE_SCRIPT_ALLOWLIST ) ) {
+				continue;
+			}
+
+			$lines = file( $this->root . '/' . $relative );
+			foreach ( false === $lines ? array() : $lines as $index => $code ) {
+				if ( preg_match( '/\bstyle\s*=\s*\{|\.style\b|\bcssText\b|\.css[\'"]/', $code ) ) {
+					$this->add( $relative, $index + 1, 'one-stylesheet', 'Inline styles and stylesheet imports are forbidden in admin scripts: use the core classes.' );
+				}
+			}
+		}
+	}
+
+	/**
+	 * Files under a directory (relative to the root, '' for the root) whose name matches a pattern, sorted.
+	 *
+	 * @param string   $directory Directory relative to the root.
+	 * @param string   $pattern   Regular expression for the file name.
+	 * @param string[] $skipped   Directory names never entered.
+	 * @return list<string>
+	 */
+	private function find_files( string $directory, string $pattern, array $skipped ): array {
+		$absolute = rtrim( $this->root . '/' . $directory, '/' );
+		if ( ! is_dir( $absolute ) ) {
+			return array();
+		}
+
+		$filter = new \RecursiveCallbackFilterIterator(
+			new \RecursiveDirectoryIterator( $absolute, \FilesystemIterator::SKIP_DOTS ),
+			static fn( \SplFileInfo $file ): bool => ! ( $file->isDir() && in_array( $file->getFilename(), $skipped, true ) )
+		);
+
+		$files = array();
+		foreach ( new \RecursiveIteratorIterator( $filter ) as $file ) {
+			if ( $file instanceof \SplFileInfo && $file->isFile() && preg_match( $pattern, $file->getFilename() ) ) {
+				$files[] = substr( $file->getPathname(), strlen( $this->root ) + 1 );
+			}
+		}
+
+		sort( $files );
+
+		return $files;
 	}
 
 	/**

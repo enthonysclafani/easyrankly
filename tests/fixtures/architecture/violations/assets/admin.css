@@ -1,0 +1,8 @@
+.easyrankly-admin .box {
+	color: #000;
+}
+
+.box,
+.easyrankly-admin .other {
+	color: red !important;
+}

@@ -27,7 +27,7 @@
 		]
 	},
 	"scripts-descriptions": {
-		"architecture": "Fails on custom tables, cron, frontend assets, direct DB access and other invariants from CLAUDE.md.",
+		"architecture": "Fails on custom tables, cron, frontend assets, direct DB access, styles outside assets/admin.css and other invariants from CLAUDE.md.",
 		"lint": "WordPress Coding Standards and PHP compatibility.",
 		"analyse": "PHPStan level 8 with WordPress stubs, from tools/phpstan (installed on first use; skipped with a notice in cloud sessions, where CI runs it).",
 		"test": "PHPUnit against the WordPress test suite (needs WP_TESTS_DIR).",
