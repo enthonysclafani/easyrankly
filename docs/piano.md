@@ -427,4 +427,16 @@ nostro non coperto: da rivalutare dopo il lancio del Pro, con un test su 2–3 d
 
 ## 8. Decisioni aperte
 
-- Nessuna per ora (Local Business deciso il 10 ottobre 2026, sezione 7).
+- Multilingua sui siti che non lo usano (discussa il 10 ottobre 2026, rimandata dall'utente il 12 ottobre: per ora
+  non si fa niente). Oggi con meno di due lingue il multilingua non cambia nulla: nessuna query, nessuna rewrite rule,
+  nessun pannello nell'editor (`Languages::enabled()`). Restano circa 42 callback che escono dopo un controllo, le due
+  tassonomie nascoste, la route REST e il blocco "Language switcher" nell'inserter. Un interruttore esplicito è
+  scartato: sarebbe un'option nuova e un passo verso un sistema a moduli. Due possibilità annotate:
+  1. **Spegnimento automatico sotto le due lingue**, senza option nuove: con meno di due lingue `Multilingual::register()`
+     aggancia solo ciò che serve ad accorgersi dell'aggiunta di una lingua (salvataggio delle impostazioni, rewrite
+     rule) e non registra il blocco. Guadagno di prestazioni minimo e non misurato (frazioni di millisecondo, quasi
+     tutto dal filtro `home_url`, che parte a ogni link); lo stesso guadagno si ottiene anche solo mettendo il
+     controllo delle lingue in testa a quel filtro. Il vantaggio vero è un editor senza il blocco quando non serve.
+  2. **Pagina Lingue nascosta sui temi classici**: il sottomenu si salta nel ciclo di `Settings\Admin\Page`. Solo se il
+     tema è classico **e** non ci sono lingue configurate: un sito che passa a un tema classico con le lingue già
+     attive deve poterle ancora gestire o togliere (contenuti, indirizzi e hreflang continuano a funzionare).
