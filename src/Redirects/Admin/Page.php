@@ -28,7 +28,7 @@ final class Page extends RecordsPage {
 	/**
 	 * Rules of the rows already printed, by ID: each row asks for one per column.
 	 *
-	 * @var array<int, array{id: int, source: string, target: string, code: int, regex: bool, forced: bool}|null>
+	 * @var array<int, array{id: int, source: string, target: string, code: int, regex: bool, forced: bool, query: bool}|null>
 	 */
 	private array $rules = array();
 
@@ -203,6 +203,7 @@ final class Page extends RecordsPage {
 			'code'   => $rule['code'] ?? 301,
 			'regex'  => $rule['regex'] ?? false,
 			'forced' => $rule['forced'] ?? false,
+			'query'  => $rule['query'] ?? false,
 			'active' => null === $post || 'publish' === $post->post_status,
 			'notes'  => null === $post ? '' : $post->post_excerpt,
 		);
@@ -229,6 +230,7 @@ final class Page extends RecordsPage {
 			'code'   => array_key_exists( $code, self::codes() ) ? $code : 301,
 			'regex'  => ! empty( $_POST['regex'] ),
 			'forced' => ! empty( $_POST['forced'] ),
+			'query'  => ! empty( $_POST['query'] ),
 			'active' => ! empty( $_POST['active'] ),
 			'notes'  => isset( $_POST['notes'] ) ? sanitize_textarea_field( wp_unslash( $_POST['notes'] ) ) : '',
 		);
@@ -252,6 +254,7 @@ final class Page extends RecordsPage {
 				Redirects::meta_key( 'code' )   => (int) $values['code'],
 				Redirects::meta_key( 'regex' )  => (bool) $values['regex'],
 				Redirects::meta_key( 'forced' ) => (bool) $values['forced'],
+				Redirects::meta_key( 'query' )  => (bool) $values['query'],
 			),
 		);
 	}
@@ -283,10 +286,16 @@ final class Page extends RecordsPage {
 		echo '</select></td></tr>';
 
 		printf(
-			'<tr><th scope="row"><label for="easyrankly-target">%1$s</label></th><td><input type="text" id="easyrankly-target" name="target" value="%2$s" class="regular-text code" /><p class="description">%3$s</p></td></tr>',
+			'<tr><th scope="row"><label for="easyrankly-target">%1$s</label></th><td><input type="text" id="easyrankly-target" name="target" value="%2$s" class="regular-text code" /><p class="description">%3$s</p>',
 			esc_html__( 'Target', 'easyrankly' ),
 			esc_attr( (string) $values['target'] ),
 			esc_html__( 'Path on this site or full URL. Ignored for 410 and 451.', 'easyrankly' )
+		);
+		printf(
+			'<p><label><input type="checkbox" name="query" value="1"%1$s /> %2$s</label></p><p class="description">%3$s</p></td></tr>',
+			checked( (bool) $values['query'], true, false ),
+			esc_html__( 'Keep the query string', 'easyrankly' ),
+			esc_html__( 'Adds the parameters of the visited address, such as ?utm_source=newsletter, to the target, so campaigns keep their tracking. Not when the target has parameters of its own.', 'easyrankly' )
 		);
 
 		printf(

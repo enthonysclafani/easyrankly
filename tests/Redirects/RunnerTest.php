@@ -61,6 +61,7 @@ final class RunnerTest extends WP_UnitTestCase {
 				'code'   => 301,
 				'regex'  => false,
 				'forced' => false,
+				'query'  => false,
 			),
 			$meta
 		);
@@ -106,6 +107,30 @@ final class RunnerTest extends WP_UnitTestCase {
 		$this->rule( '/old-page', '/new-page' );
 
 		$this->assertSame( '301 ' . home_url( '/new-page' ), $this->visit( '/Old-Page/?utm_source=x' ) );
+	}
+
+	/**
+	 * A rule that keeps the query string adds it to the target, unless the target has its own.
+	 */
+	public function test_query_string_is_passed_on_when_asked(): void {
+		$this->rule( '/campaign', '/landing', array( 'query' => true ) );
+		$this->rule( '/with-query', '/landing?ref=old', array( 'query' => true ) );
+		$this->rule( '/with-anchor', '/landing#form', array( 'query' => true ) );
+		$this->rule(
+			'^/shop/(.*)$',
+			'https://store.example.com/$1',
+			array(
+				'regex' => true,
+				'query' => true,
+			)
+		);
+
+		// visit() escapes the location: & is &amp; there.
+		$this->assertSame( '301 ' . home_url( '/landing?utm_source=news&amp;utm_medium=email' ), $this->visit( '/campaign/?utm_source=news&utm_medium=email' ) );
+		$this->assertSame( '301 ' . home_url( '/landing' ), $this->visit( '/campaign/' ) );
+		$this->assertSame( '301 ' . home_url( '/landing?ref=old' ), $this->visit( '/with-query/?utm_source=news' ) );
+		$this->assertSame( '301 ' . home_url( '/landing?utm_source=news#form' ), $this->visit( '/with-anchor/?utm_source=news' ) );
+		$this->assertSame( '301 https://store.example.com/shoes?utm_source=news', $this->visit( '/shop/shoes?utm_source=news' ) );
 	}
 
 	/**

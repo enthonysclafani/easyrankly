@@ -18,7 +18,7 @@ defined( 'ABSPATH' ) || exit;
  * - post_name: md5 of the normalized source for exact rules (indexed lookup), "regex-…" otherwise;
  * - post_status: publish = active, draft = inactive;
  * - post_excerpt: notes, shown only in the admin;
- * - meta: target, status code, regex flag, forced flag.
+ * - meta: target, status code, regex flag, forced flag, query flag (pass the query string on).
  *
  * Exact rules are looked up only on 404. Regex rules live in a non-autoloaded option
  * read only on 404; "forced" rules (applied even when the page exists) live in a small
@@ -59,6 +59,7 @@ final class Redirects {
 		'code'   => 'integer',
 		'regex'  => 'boolean',
 		'forced' => 'boolean',
+		'query'  => 'boolean',
 	);
 
 	/**
@@ -372,7 +373,7 @@ final class Redirects {
 	 * A redirect as a plain rule.
 	 *
 	 * @param int $id Redirect ID.
-	 * @return array{id: int, source: string, target: string, code: int, regex: bool, forced: bool}|null
+	 * @return array{id: int, source: string, target: string, code: int, regex: bool, forced: bool, query: bool}|null
 	 */
 	public static function rule( int $id ): ?array {
 		$post = get_post( $id );
@@ -387,6 +388,7 @@ final class Redirects {
 			'code'   => (int) get_post_meta( $id, self::meta_key( 'code' ), true ),
 			'regex'  => (bool) get_post_meta( $id, self::meta_key( 'regex' ), true ),
 			'forced' => (bool) get_post_meta( $id, self::meta_key( 'forced' ), true ),
+			'query'  => (bool) get_post_meta( $id, self::meta_key( 'query' ), true ),
 		);
 	}
 
@@ -433,6 +435,7 @@ final class Redirects {
 				'regex'  => $rule['regex'],
 				'target' => $rule['target'],
 				'code'   => $rule['code'],
+				'query'  => $rule['query'],
 			);
 
 			if ( $rule['forced'] ) {

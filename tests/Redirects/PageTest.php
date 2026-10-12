@@ -182,6 +182,32 @@ final class PageTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * "Keep the query string" is off by default and saved when checked.
+	 */
+	public function test_form_saves_the_query_option(): void {
+		$this->load( array( 'action' => 'new' ), $this->form( 0, array() ) );
+		$id = (int) Redirects::find_id( Rule::hash( '/old-page' ) );
+		$this->assertFalse( Redirects::rule( $id )['query'] ?? true );
+
+		$this->load(
+			array(
+				'action' => 'edit',
+				'id'     => (string) $id,
+			),
+			$this->form( $id, array( 'query' => '1' ) )
+		);
+		$this->assertTrue( Redirects::rule( $id )['query'] ?? false );
+
+		$this->load(
+			array(
+				'action' => 'edit',
+				'id'     => (string) $id,
+			)
+		);
+		$this->assertMatchesRegularExpression( '/name="query" value="1"\s*checked/', $this->render() );
+	}
+
+	/**
 	 * An invalid form comes back with the error and the values typed.
 	 */
 	public function test_invalid_redirect_comes_back_with_error(): void {
