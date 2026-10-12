@@ -153,6 +153,23 @@ final class PageTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * A static posts page gets its own context in Indexing and Titles; without one it is not listed.
+	 */
+	public function test_posts_page_has_its_own_context(): void {
+		$this->login( 'administrator' );
+		$field = 'name="easyrankly_settings[noindex][archive-post]"';
+
+		$this->assertStringNotContainsString( $field, $this->page( 'easyrankly-indexing' ) );
+
+		update_option( 'show_on_front', 'page' );
+		update_option( 'page_on_front', self::factory()->post->create( array( 'post_type' => 'page' ) ) );
+		update_option( 'page_for_posts', self::factory()->post->create( array( 'post_type' => 'page' ) ) );
+
+		$this->assertStringContainsString( $field, $this->page( 'easyrankly-indexing' ) );
+		$this->assertStringContainsString( 'name="easyrankly_settings[templates][archive-post][title]"', $this->page( 'easyrankly-titles' ) );
+	}
+
+	/**
 	 * With languages, the Titles page links each language and edits one at a time.
 	 */
 	public function test_titles_page_edits_one_language_at_a_time(): void {

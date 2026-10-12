@@ -123,7 +123,8 @@ final class Fields {
 	}
 
 	/**
-	 * Contexts of each viewable post type and public taxonomy, with their labels.
+	 * Contexts of each viewable post type and public taxonomy, with their labels, plus the
+	 * posts page when the site has one.
 	 *
 	 * @return array<string, string>
 	 */
@@ -139,6 +140,9 @@ final class Fields {
 			if ( $type->has_archive ) {
 				/* translators: %s: post type name. */
 				$contexts[ 'archive-' . $type->name ] = sprintf( __( 'Archive: %s', 'easyrankly' ), $type->labels->name );
+			} elseif ( 'post' === $type->name && 'page' === get_option( 'show_on_front' ) && (int) get_option( 'page_for_posts' ) > 0 ) {
+				// The static posts page is the archive of posts (Context).
+				$contexts['archive-post'] = __( 'Posts page', 'easyrankly' );
 			}
 		}
 
