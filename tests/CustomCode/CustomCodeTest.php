@@ -208,6 +208,63 @@ final class CustomCodeTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * XML-RPC checks only the capabilities of the post type: an administrator without
+	 * unfiltered_html cannot create a snippet there either.
+	 */
+	public function test_xmlrpc_needs_unfiltered_html(): void {
+		require_once ABSPATH . WPINC . '/class-IXR.php';
+		require_once ABSPATH . WPINC . '/class-wp-xmlrpc-server.php';
+		add_filter( 'pre_option_enable_xmlrpc', '__return_true' );
+
+		// Like a site administrator on multisite, or a site with DISALLOW_UNFILTERED_HTML.
+		add_role(
+			'easyrankly_no_html',
+			'No HTML',
+			array(
+				'read'           => true,
+				'manage_options' => true,
+				'edit_posts'     => true,
+			)
+		);
+		$user = self::factory()->user->create(
+			array(
+				'role'       => 'easyrankly_no_html',
+				'user_login' => 'nohtml',
+				'user_pass'  => 'password',
+			)
+		);
+		wp_set_current_user( $user );
+		$this->assertFalse( current_user_can( 'unfiltered_html' ) );
+
+		$result = ( new \wp_xmlrpc_server() )->wp_newPost(
+			array(
+				1,
+				'nohtml',
+				'password',
+				array(
+					'post_type'    => CustomCode::POST_TYPE,
+					'post_status'  => 'publish',
+					'post_title'   => 'Link',
+					'post_content' => '<a href="https://example.org">link</a>',
+				),
+			)
+		);
+		remove_role( 'easyrankly_no_html' );
+
+		$this->assertInstanceOf( \IXR_Error::class, $result );
+		$this->assertSame(
+			array(),
+			get_posts(
+				array(
+					'post_type'   => CustomCode::POST_TYPE,
+					'post_status' => 'any',
+				)
+			)
+		);
+		$this->assertSame( '', $this->output( 'head' ) );
+	}
+
+	/**
 	 * Snippets are deleted, never trashed; deleting one updates the cache.
 	 */
 	public function test_delete(): void {
