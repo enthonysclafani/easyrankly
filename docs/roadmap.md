@@ -169,6 +169,7 @@ Analisi del 10 ottobre 2026, da completare più avanti. Dettagli, motivi e propo
 - [x] W2 — La pagina Negozio dà all'archivio dei prodotti i suoi campi SEO
 - [x] W3 — Canonical, `og:url` e schema del Negozio, anche come pagina iniziale
 - [x] W6 — `og:type` `article` solo per gli articoli
+- [x] W7 — Pagina Negozio senza prodotti fuori dalla sitemap
 - [ ] W1 — Campi SEO e lingua dei prodotti (editor classico): richiede un'eccezione alla regola sulle meta box classiche
 - [ ] W4 — Carrello, checkout e account fuori dalla sitemap
 - [ ] W5 — Multilingua sui negozi (oggi non supportato)

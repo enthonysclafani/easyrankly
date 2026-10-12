@@ -224,6 +224,31 @@ final class SitemapTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * WooCommerce's shop page is left out while there are no products; without the product
+	 * post type its option is not read.
+	 */
+	public function test_empty_shop_page_is_left_out(): void {
+		$shop = self::factory()->post->create( array( 'post_type' => 'page' ) );
+		update_option( 'woocommerce_shop_page_id', (string) $shop );
+
+		$this->assertContains( get_permalink( $shop ), $this->urls( 'posts', 'page' ) );
+
+		register_post_type(
+			'product',
+			array(
+				'public'      => true,
+				'has_archive' => 'shop',
+			)
+		);
+		$this->assertNotContains( get_permalink( $shop ), $this->urls( 'posts', 'page' ) );
+
+		self::factory()->post->create( array( 'post_type' => 'product' ) );
+		$this->assertContains( get_permalink( $shop ), $this->urls( 'posts', 'page' ) );
+
+		_unregister_post_type( 'product' );
+	}
+
+	/**
 	 * Without forced redirects the query gets no exclusion list.
 	 */
 	public function test_no_forced_redirects_adds_no_exclusion(): void {
@@ -301,6 +326,11 @@ final class SitemapTest extends WP_UnitTestCase {
 		$this->assertContains( get_permalink( $blog ), $urls );
 		$this->assertNotContains( get_permalink( $other ), $urls );
 
+		// Their own noindex still removes them, even though the query lists them by ID.
+		update_post_meta( $front, '_easyrankly_noindex', '1' );
+		$this->assertSame( array( get_permalink( $blog ) ), $this->urls( 'posts', 'page' ) );
+		delete_post_meta( $front, '_easyrankly_noindex' );
+
 		// "Post type archives" covers the posts page (Context): noindex there, out of the sitemap.
 		update_option( Settings::OPTION, array( 'noindex' => array( 'archive' ) ) );
 		$GLOBALS['wp_sitemaps'] = null;
@@ -319,6 +349,7 @@ final class SitemapTest extends WP_UnitTestCase {
 	 */
 	public function test_terms_redirected_by_forced_rules_are_left_out(): void {
 		$this->set_permalink_structure( '/%postname%/' );
+		create_initial_taxonomies(); // Re-adds the category permastruct for the new structure.
 		$moved = self::factory()->category->create( array( 'slug' => 'old-news' ) );
 		$kept  = self::factory()->category->create( array( 'slug' => 'news' ) );
 		self::factory()->post->create( array( 'post_category' => array( $moved, $kept ) ) );
