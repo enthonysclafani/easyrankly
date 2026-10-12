@@ -423,108 +423,6 @@ final class FormTest extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Navigation menus: only other languages, only real choices; not posted = kept as they are.
-	 */
-	public function test_languages_page_saves_navigation_menus(): void {
-		$rows = array(
-			array(
-				'order'  => '1',
-				'slug'   => 'it',
-				'locale' => 'it_IT',
-				'name'   => 'Italiano',
-			),
-			array(
-				'order'  => '2',
-				'slug'   => 'en',
-				'locale' => 'en_US',
-				'name'   => 'English',
-			),
-		);
-
-		$stored = $this->save(
-			'easyrankly-languages',
-			array(
-				'languages'        => $rows,
-				'navigation_menus' => array(
-					'it' => array( '10' => '11' ),
-					'en' => array(
-						'10' => '12',
-						'11' => '',
-						'12' => '12',
-					),
-					'fr' => array( '10' => '13' ),
-				),
-			)
-		);
-		$this->assertSame( array( 'en' => array( 10 => 12 ) ), $stored['navigation_menus'] );
-
-		$stored = $this->save( 'easyrankly-languages', array( 'languages' => $rows ) );
-		$this->assertSame( array( 'en' => array( 10 => 12 ) ), $stored['navigation_menus'] );
-	}
-
-	/**
-	 * The page lists only the first 50 published menus: saving it keeps the choices of the
-	 * others (a 51st menu, a draft one) and drops those of deleted menus.
-	 */
-	public function test_languages_page_keeps_menus_it_does_not_list(): void {
-		$menus = array();
-		for ( $i = 0; $i <= 50; $i++ ) {
-			$menus[] = self::factory()->post->create(
-				array(
-					'post_type'   => 'wp_navigation',
-					'post_title'  => sprintf( 'Menu %02d', $i ),
-					'post_status' => 'publish',
-				)
-			);
-		}
-		$draft   = self::factory()->post->create(
-			array(
-				'post_type'   => 'wp_navigation',
-				'post_status' => 'draft',
-			)
-		);
-		$deleted = self::factory()->post->create( array( 'post_type' => 'wp_navigation' ) );
-		$this->save(
-			'easyrankly-languages',
-			array(
-				'languages'        => $this->rows(),
-				'navigation_menus' => array(
-					'en' => array(
-						$menus[50] => $menus[0],
-						$draft     => $menus[1],
-						$deleted   => $menus[2],
-					),
-				),
-			)
-		);
-		wp_delete_post( $deleted, true );
-
-		$posted = array();
-		foreach ( array_slice( $menus, 0, 50 ) as $menu ) {
-			$posted['en'][ $menu ] = '';
-		}
-		$posted['en'][ $menus[3] ] = (string) $menus[4];
-		$stored                    = $this->save(
-			'easyrankly-languages',
-			array(
-				'languages'        => $this->rows(),
-				'navigation_menus' => $posted,
-			)
-		);
-
-		$this->assertSame(
-			array(
-				'en' => array(
-					$menus[50] => $menus[0],
-					$draft     => $menus[1],
-					$menus[3]  => $menus[4],
-				),
-			),
-			$stored['navigation_menus']
-		);
-	}
-
-	/**
 	 * Rows of the two current languages, as the page posts them.
 	 *
 	 * @param array<string, string> $en Fields that change in the English row.
@@ -576,7 +474,7 @@ final class FormTest extends WP_UnitTestCase {
 	}
 
 	/**
-	 * A new prefix renames the language: its content, title templates and menus follow it.
+	 * A new prefix renames the language: its content and title templates follow it.
 	 */
 	public function test_languages_page_renames_a_language(): void {
 		$post = self::factory()->post->create();
@@ -584,16 +482,12 @@ final class FormTest extends WP_UnitTestCase {
 
 		$stored = $this->save(
 			'easyrankly-languages',
-			array(
-				'languages'        => $this->rows( array( 'slug' => 'en-gb' ) ),
-				'navigation_menus' => array( 'en' => array( '10' => '12' ) ),
-			)
+			array( 'languages' => $this->rows( array( 'slug' => 'en-gb' ) ) )
 		);
 
 		$this->assertSame( array( 'it', 'en-gb' ), array_keys( $stored['languages'] ) );
 		$this->assertSame( 'en-gb', Translations::language( $post ) );
 		$this->assertSame( array( 'en-gb' ), array_keys( $stored['language_templates'] ) );
-		$this->assertSame( array( 'en-gb' => array( 10 => 12 ) ), $stored['navigation_menus'] );
 	}
 
 	/**
@@ -639,22 +533,15 @@ final class FormTest extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Removing a language removes its title templates and menu choices.
+	 * Removing a language removes its title templates.
 	 */
 	public function test_languages_page_removal_drops_language_data(): void {
-		$this->save(
-			'easyrankly-languages',
-			array(
-				'languages'        => $this->rows(),
-				'navigation_menus' => array( 'en' => array( '10' => '12' ) ),
-			)
-		);
+		$this->save( 'easyrankly-languages', array( 'languages' => $this->rows() ) );
 
 		$stored = $this->save( 'easyrankly-languages', array( 'languages' => $this->rows( array( 'remove' => '1' ) ) ) );
 
 		$this->assertSame( array( 'it' ), array_keys( $stored['languages'] ) );
 		$this->assertSame( array(), $stored['language_templates'] );
-		$this->assertSame( array(), $stored['navigation_menus'] );
 	}
 
 	/**

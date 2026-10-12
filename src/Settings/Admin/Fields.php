@@ -10,7 +10,6 @@ namespace EasyRankly\Settings\Admin;
 use EasyRankly\Admin\MediaField;
 use EasyRankly\Context\Context;
 use EasyRankly\Multilingual\Languages;
-use EasyRankly\Multilingual\Menus;
 use EasyRankly\Settings\Settings;
 use EasyRankly\Titles\Titles;
 
@@ -45,9 +44,12 @@ final class Fields {
 				break;
 			case Page::LANGUAGES:
 				add_settings_section( 'languages', '', array( LanguageFields::class, 'languages_table' ), $slug );
-				// Menus and theme texts change language only in block themes.
+				// Posted with the languages: shown whenever a language is saved, so saving keeps them.
+				if ( array() !== Languages::all() ) {
+					add_settings_section( 'strings', __( 'Strings', 'easyrankly' ), array( LanguageFields::class, 'strings_table' ), $slug );
+				}
+				// Theme texts change language only in block themes.
 				if ( Languages::enabled() && wp_is_block_theme() ) {
-					add_settings_section( 'menus', self::label( Menus::SETTING ), array( LanguageFields::class, 'menus_section' ), $slug );
 					add_settings_section( 'theme_texts', __( 'Theme texts', 'easyrankly' ), array( LanguageFields::class, 'theme_texts_section' ), $slug );
 				}
 				break;
@@ -77,7 +79,6 @@ final class Fields {
 			'social_image'          => __( 'Default image', 'easyrankly' ),
 			'x_username'            => __( 'X username', 'easyrankly' ),
 			'languages'             => __( 'Languages', 'easyrankly' ),
-			Menus::SETTING          => __( 'Menus', 'easyrankly' ),
 		);
 
 		return $labels[ $key ] ?? $key;

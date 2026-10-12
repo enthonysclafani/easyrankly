@@ -8,13 +8,12 @@
 namespace EasyRankly\Settings\Admin;
 
 use EasyRankly\Multilingual\Languages;
-use EasyRankly\Multilingual\Menus;
 use EasyRankly\Settings\Settings;
 
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Prints the languages table, the menus of each language and the help on theme texts.
+ * Prints the languages table, the strings of each language and the help on theme texts.
  *
  * Fields::add() registers these sections; Form::languages() reads what they post.
  */
@@ -38,19 +37,8 @@ final class LanguageFields {
 
 		$rows   = Languages::all();
 		$rows[] = array(
-			'locale'                => '',
-			'name'                  => '',
-			'site_title'            => '',
-			'tagline'               => '',
-			'breadcrumb_home_label' => '',
-		);
-		// Empty fields use the site title and tagline of Settings > General and the breadcrumb
-		// label of the General page (or the WordPress one): shown as placeholders.
-		$breadcrumb = (string) Settings::value( 'breadcrumb_home_label' );
-		$general    = array(
-			'site_title'            => wp_specialchars_decode( (string) get_option( 'blogname' ), ENT_QUOTES ),
-			'tagline'               => wp_specialchars_decode( (string) get_option( 'blogdescription' ), ENT_QUOTES ),
-			'breadcrumb_home_label' => '' !== $breadcrumb ? $breadcrumb : __( 'Home', 'easyrankly' ),
+			'locale' => '',
+			'name'   => '',
 		);
 
 		echo '<table class="widefat striped"><thead><tr>';
@@ -59,9 +47,6 @@ final class LanguageFields {
 			__( 'Name', 'easyrankly' ),
 			__( 'URL prefix', 'easyrankly' ),
 			__( 'Locale', 'easyrankly' ),
-			__( 'Site Title', 'easyrankly' ),
-			__( 'Tagline', 'easyrankly' ),
-			__( 'Breadcrumb home label', 'easyrankly' ),
 			__( 'Remove', 'easyrankly' ),
 		) as $heading ) {
 			printf( '<th scope="col">%s</th>', esc_html( $heading ) );
@@ -87,56 +72,40 @@ final class LanguageFields {
 				esc_attr( Fields::name( 'languages', (string) $index, 'previous' ) ),
 				esc_attr( $is_new ? '' : (string) $slug )
 			);
+			// Short values: the size attribute keeps the table narrow without CSS of ours.
 			$fields = array(
-				'name'                  => array(
+				'name'   => array(
 					'value'       => $language['name'],
 					'maxlength'   => 50,
+					'size'        => 15,
 					'placeholder' => '',
 					/* translators: %s: language name. */
 					'aria'        => sprintf( __( 'Name of %s', 'easyrankly' ), $label ),
 				),
-				'slug'                  => array(
+				'slug'   => array(
 					'value'       => $is_new ? '' : (string) $slug,
 					'maxlength'   => 12,
+					'size'        => 8,
 					'placeholder' => '',
 					/* translators: %s: language name. */
 					'aria'        => sprintf( __( 'URL prefix of %s', 'easyrankly' ), $label ),
 				),
-				'locale'                => array(
+				'locale' => array(
 					'value'       => $language['locale'],
 					'maxlength'   => 20,
+					'size'        => 8,
 					'placeholder' => 'en_US',
 					/* translators: %s: language name. */
 					'aria'        => sprintf( __( 'Locale of %s', 'easyrankly' ), $label ),
 				),
-				'site_title'            => array(
-					'value'       => $language['site_title'],
-					'maxlength'   => 200,
-					'placeholder' => $general['site_title'],
-					/* translators: %s: language name. */
-					'aria'        => sprintf( __( 'Site title of %s', 'easyrankly' ), $label ),
-				),
-				'tagline'               => array(
-					'value'       => $language['tagline'],
-					'maxlength'   => 400,
-					'placeholder' => $general['tagline'],
-					/* translators: %s: language name. */
-					'aria'        => sprintf( __( 'Tagline of %s', 'easyrankly' ), $label ),
-				),
-				'breadcrumb_home_label' => array(
-					'value'       => $language['breadcrumb_home_label'],
-					'maxlength'   => 60,
-					'placeholder' => $general['breadcrumb_home_label'],
-					/* translators: %s: language name. */
-					'aria'        => sprintf( __( 'Breadcrumb home label of %s', 'easyrankly' ), $label ),
-				),
 			);
 			foreach ( $fields as $field => $input ) {
 				printf(
-					'<td><input type="text" name="%1$s" value="%2$s" maxlength="%3$d" placeholder="%4$s" aria-label="%5$s" /></td>',
+					'<td><input type="text" name="%1$s" value="%2$s" maxlength="%3$d" size="%4$d" placeholder="%5$s" aria-label="%6$s" /></td>',
 					esc_attr( Fields::name( 'languages', (string) $index, $field ) ),
 					esc_attr( $input['value'] ),
 					(int) $input['maxlength'],
+					(int) $input['size'],
 					esc_attr( $input['placeholder'] ),
 					esc_attr( $input['aria'] )
 				);
@@ -161,71 +130,78 @@ final class LanguageFields {
 		);
 		printf(
 			'<p class="description">%s</p>',
-			esc_html__( 'Changing a URL prefix moves the content, title templates and menus of the language to the new prefix; rename its template parts and synced patterns too (for example header-en). Removing a language deletes its title templates and menu choices, and its content is shown in the default language.', 'easyrankly' )
-		);
-		printf(
-			'<p class="description">%s</p>',
-			esc_html__( 'Site title and tagline replace those of Settings > General on the pages of the language. Leave them empty to use the same ones in every language.', 'easyrankly' )
+			esc_html__( 'Changing a URL prefix moves the content and title templates of the language to the new prefix; rename its template parts and synced patterns too (for example header-en). Removing a language deletes its title templates and strings, and its content is shown in the default language.', 'easyrankly' )
 		);
 	}
 
 	/**
-	 * Navigation menus of each language, chosen here for the navigation blocks.
+	 * The strings of each saved language, one row each, posted with the row of the languages table.
+	 *
+	 * A new language gets its strings once saved.
 	 */
-	public static function menus_section(): void {
-		$navigations = get_posts(
-			array(
-				'post_type'      => 'wp_navigation',
-				'post_status'    => 'publish',
-				'posts_per_page' => 50,
-				'orderby'        => 'title',
-				'order'          => 'ASC',
-				'no_found_rows'  => true,
-			)
+	public static function strings_table(): void {
+		// Empty fields use the site title and tagline of Settings > General and the breadcrumb
+		// label of the General page (or the WordPress one): shown as placeholders.
+		$breadcrumb = (string) Settings::value( 'breadcrumb_home_label' );
+		$general    = array(
+			'site_title'            => wp_specialchars_decode( (string) get_option( 'blogname' ), ENT_QUOTES ),
+			'tagline'               => wp_specialchars_decode( (string) get_option( 'blogdescription' ), ENT_QUOTES ),
+			'breadcrumb_home_label' => '' !== $breadcrumb ? $breadcrumb : __( 'Home', 'easyrankly' ),
 		);
-		if ( array() === $navigations ) {
-			printf( '<p>%s</p>', esc_html__( 'The site has no navigation menus yet.', 'easyrankly' ) );
-			return;
-		}
 
 		printf(
 			'<p>%s</p>',
-			esc_html__( 'Navigation blocks show, on the pages of a language, the navigation menu chosen for it. "Same menu" keeps the menu of the block.', 'easyrankly' )
+			esc_html__( 'Site title and tagline replace those of Settings > General on the pages of the language, the breadcrumb label the one of the General page. Leave them empty to use the same ones in every language.', 'easyrankly' )
 		);
 
-		$languages = array_diff_key( Languages::all(), array( Languages::default() => true ) );
-		$current   = (array) Settings::value( Menus::SETTING );
-		$titles    = array();
-		foreach ( $navigations as $navigation ) {
-			$titles[ $navigation->ID ] = '' !== $navigation->post_title ? $navigation->post_title : __( '(no title)', 'easyrankly' );
-		}
-
 		echo '<table class="widefat striped"><thead><tr>';
-		printf( '<th scope="col">%s</th>', esc_html__( 'Navigation menu', 'easyrankly' ) );
-		foreach ( $languages as $language ) {
-			printf( '<th scope="col">%s</th>', esc_html( $language['name'] ) );
+		foreach ( array(
+			__( 'Language', 'easyrankly' ),
+			__( 'Site Title', 'easyrankly' ),
+			__( 'Tagline', 'easyrankly' ),
+			__( 'Breadcrumb home label', 'easyrankly' ),
+		) as $heading ) {
+			printf( '<th scope="col">%s</th>', esc_html( $heading ) );
 		}
 		echo '</tr></thead><tbody>';
 
-		foreach ( $titles as $id => $title ) {
-			printf( '<tr><th scope="row">%s</th>', esc_html( $title ) );
-			foreach ( $languages as $slug => $language ) {
-				$chosen = (int) ( ( (array) ( $current[ $slug ] ?? array() ) )[ $id ] ?? 0 );
+		// Same index as the row of the language in the languages table, which comes first there.
+		$index = 0;
+		foreach ( Languages::all() as $language ) {
+			printf( '<tr><th scope="row">%s</th>', esc_html( $language['name'] ) );
+			$fields = array(
+				'site_title'            => array(
+					'maxlength' => 200,
+					'class'     => 'large-text',
+					/* translators: %s: language name. */
+					'aria'      => sprintf( __( 'Site title of %s', 'easyrankly' ), $language['name'] ),
+				),
+				'tagline'               => array(
+					'maxlength' => 400,
+					'class'     => 'large-text',
+					/* translators: %s: language name. */
+					'aria'      => sprintf( __( 'Tagline of %s', 'easyrankly' ), $language['name'] ),
+				),
+				'breadcrumb_home_label' => array(
+					'maxlength' => 60,
+					'class'     => '',
+					/* translators: %s: language name. */
+					'aria'      => sprintf( __( 'Breadcrumb home label of %s', 'easyrankly' ), $language['name'] ),
+				),
+			);
+			foreach ( $fields as $field => $input ) {
 				printf(
-					'<td><select name="%1$s" aria-label="%2$s"><option value="">%3$s</option>',
-					esc_attr( Fields::name( Menus::SETTING, $slug, (string) $id ) ),
-					/* translators: 1: navigation menu title, 2: language name. */
-					esc_attr( sprintf( __( '%1$s in %2$s', 'easyrankly' ), $title, $language['name'] ) ),
-					esc_html__( 'Same menu', 'easyrankly' )
+					'<td><input type="text" name="%1$s" value="%2$s" maxlength="%3$d" size="15" class="%4$s" placeholder="%5$s" aria-label="%6$s" /></td>',
+					esc_attr( Fields::name( 'languages', (string) $index, $field ) ),
+					esc_attr( $language[ $field ] ),
+					(int) $input['maxlength'],
+					esc_attr( $input['class'] ),
+					esc_attr( $general[ $field ] ),
+					esc_attr( $input['aria'] )
 				);
-				foreach ( $titles as $option => $option_title ) {
-					if ( $option !== $id ) {
-						printf( '<option value="%1$d"%2$s>%3$s</option>', (int) $option, selected( $option, $chosen, false ), esc_html( $option_title ) );
-					}
-				}
-				echo '</select></td>';
 			}
 			echo '</tr>';
+			++$index;
 		}
 
 		echo '</tbody></table>';
@@ -242,7 +218,7 @@ final class LanguageFields {
 			esc_html(
 				sprintf(
 					/* translators: 1: language URL prefix, e.g. "en". */
-					__( 'To change a template part on the pages of a language, create a template part with the same name followed by a hyphen and the URL prefix of the language, for example header-%1$s for header. Without it, the pages of the language show the template part of the default language.', 'easyrankly' ),
+					__( 'To change a template part on the pages of a language, create a template part with the same name followed by a hyphen and the URL prefix of the language, for example header-%1$s for header. Without it, the pages of the language show the template part of the default language. A language gets its own menu the same way: the navigation block in its header shows the menu of that language.', 'easyrankly' ),
 					$example
 				)
 			)

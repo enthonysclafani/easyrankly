@@ -189,7 +189,7 @@ esatto dei messaggi, che la revisione vedrà.
   contenuti privati?
 - `Routing.php`: lettura di `REQUEST_URI`, `?lang=`, `rest_route`, redirect 301 (`wp_safe_redirect`), loop di redirect,
   cache poisoning se la lingua dipende da intestazioni.
-- `TemplateParts.php` e `Menus.php`: lo slug della lingua finisce nel nome di una template part o di un menu: può
+- `TemplateParts.php` e `SyncedPatterns.php`: lo slug della lingua finisce nel nome di una template part o di un pattern: può
   contenere `../` o caratteri che portano a file o parti di altri temi?
 - `SiteIdentity.php`, `Switcher.php`, `Hreflang.php`, `HomesSitemap.php`: escaping di nomi, URL e attributi del blocco.
 - `Translations.php`: contenuti di altre lingue in bozza o privati che compaiono in hreflang o nel selettore.

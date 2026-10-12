@@ -84,7 +84,6 @@ final class Settings {
 		'robots_txt'            => '',
 		'noindex'               => array(),
 		'languages'             => array(),
-		'navigation_menus'      => array(),
 		'templates'             => array(
 			'home'    => array(
 				'title'       => '{{site_name}} {{page}} {{sep}} {{tagline}}',
@@ -331,26 +330,6 @@ final class Settings {
 				'additionalProperties' => false,
 				'maxProperties'        => 20,
 				'default'              => self::DEFAULTS['languages'],
-			),
-			'navigation_menus'      => array(
-				'description'          => __( 'Navigation menus of block themes shown on the pages of one language (language slug => navigation menu ID => ID of the navigation menu shown in its place).', 'easyrankly' ),
-				'type'                 => 'object',
-				'patternProperties'    => array(
-					Languages::SLUG_PATTERN => array(
-						'type'                 => 'object',
-						'patternProperties'    => array(
-							'^[1-9][0-9]*$' => array(
-								'type'    => 'integer',
-								'minimum' => 1,
-							),
-						),
-						'additionalProperties' => false,
-						'maxProperties'        => 50,
-					),
-				),
-				'additionalProperties' => false,
-				'maxProperties'        => 20,
-				'default'              => self::DEFAULTS['navigation_menus'],
 			),
 			'templates'             => array(
 				'description'          => __( 'Title and description templates per context. Keys: home, single, archive, term, author, date, search, 404, or single-{post type}, archive-{post type}, term-{taxonomy}.', 'easyrankly' ),
@@ -628,10 +607,9 @@ final class Settings {
 			}
 		}
 
-		// Templates and menus of a language that is gone go with it (Form moves those of a renamed one).
+		// Templates of a language that is gone go with it (Form moves those of a renamed one).
 		$languages                   = array_keys( (array) $clean['languages'] );
 		$clean['language_templates'] = array_intersect_key( (array) $clean['language_templates'], array_flip( $languages ) );
-		$clean['navigation_menus']   = array_intersect_key( (array) $clean['navigation_menus'], array_flip( array_slice( $languages, 1 ) ) );
 
 		$clean['images'] = self::copy_images( $clean );
 

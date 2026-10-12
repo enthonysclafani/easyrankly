@@ -8,7 +8,6 @@
 namespace EasyRankly\Settings\Admin;
 
 use EasyRankly\Multilingual\Languages;
-use EasyRankly\Multilingual\Menus;
 use EasyRankly\Multilingual\Translations;
 use EasyRankly\Settings\Settings;
 
@@ -248,7 +247,7 @@ final class Form {
 	 * Languages page: the rows in order, without removed and empty rows.
 	 *
 	 * Each row posts the prefix it had (`previous`): a new prefix renames the language, and its
-	 * content, title templates and menus follow it. The language that comes first cannot change
+	 * content and title templates follow it. The language that comes first cannot change
 	 * while some content has no language, since that content belongs to the first language.
 	 * A row that cannot be saved leaves the languages as they are, with an error that says why.
 	 *
@@ -358,11 +357,6 @@ final class Form {
 			'language_templates' => self::renamed_keys( (array) $current['language_templates'], $renamed ),
 		);
 
-		// Navigation menus are posted only when the page lists some, keyed by the prefixes the page showed.
-		$saved                      = self::renamed_keys( (array) $current[ Menus::SETTING ], $renamed );
-		$posted                     = is_array( $value[ Menus::SETTING ] ?? null ) ? self::renamed_keys( $value[ Menus::SETTING ], $renamed ) : null;
-		$settings[ Menus::SETTING ] = null === $posted ? $saved : self::navigation_menus( $posted, $saved, $languages );
-
 		return $settings;
 	}
 
@@ -416,54 +410,6 @@ final class Form {
 		}
 
 		return $moved;
-	}
-
-	/**
-	 * Navigation menus chosen for each language other than the default; "Same menu" is not stored.
-	 *
-	 * The page lists only some menus (published, the first 50 by title): the choices of the menus
-	 * it did not show are kept, as long as both menus still exist.
-	 *
-	 * @param array<mixed>         $posted    Posted language => navigation menu ID => chosen ID.
-	 * @param array<mixed>         $saved     Saved choices, with the keys of renamed languages changed.
-	 * @param array<string, mixed> $languages Languages being saved, default first.
-	 * @return array<string, array<int, int>>
-	 */
-	private static function navigation_menus( array $posted, array $saved, array $languages ): array {
-		$default = array_key_first( $languages );
-		$menus   = array();
-		$shown   = array();
-		foreach ( $posted as $chosen ) {
-			$shown += is_array( $chosen ) ? array_fill_keys( array_map( 'intval', array_keys( $chosen ) ), true ) : array();
-		}
-
-		foreach ( $saved as $language => $chosen ) {
-			if ( ! is_string( $language ) || $default === $language || ! isset( $languages[ $language ] ) || ! is_array( $chosen ) ) {
-				continue;
-			}
-			foreach ( $chosen as $navigation => $target ) {
-				$navigation = (int) $navigation;
-				$target     = (int) $target;
-				if ( ! isset( $shown[ $navigation ] ) && 'wp_navigation' === get_post_type( $navigation ) && 'wp_navigation' === get_post_type( $target ) ) {
-					$menus[ $language ][ $navigation ] = $target;
-				}
-			}
-		}
-
-		foreach ( $posted as $language => $chosen ) {
-			if ( ! is_string( $language ) || $default === $language || ! isset( $languages[ $language ] ) || ! is_array( $chosen ) ) {
-				continue;
-			}
-			foreach ( $chosen as $navigation => $target ) {
-				$navigation = (int) $navigation;
-				$target     = is_numeric( $target ) ? (int) $target : 0;
-				if ( $navigation > 0 && $target > 0 && $navigation !== $target ) {
-					$menus[ $language ][ $navigation ] = $target;
-				}
-			}
-		}
-
-		return $menus;
 	}
 
 	/**

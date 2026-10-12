@@ -148,9 +148,39 @@ final class PageTest extends WP_UnitTestCase {
 
 		$languages = $this->page( 'easyrankly-languages' );
 		$this->assertStringContainsString( 'name="easyrankly_settings[languages][0][slug]"', $languages );
-		$this->assertStringContainsString( 'name="easyrankly_settings[languages][0][site_title]"', $languages );
-		$this->assertStringContainsString( 'name="easyrankly_settings[languages][0][tagline]"', $languages );
-		$this->assertStringContainsString( 'name="easyrankly_settings[languages][0][breadcrumb_home_label]"', $languages );
+		$this->assertStringNotContainsString( '[site_title]', $languages, 'Strings come once a language is saved.' );
+	}
+
+	/**
+	 * The strings of each saved language sit in their own table, posted with the row of the language.
+	 */
+	public function test_languages_page_lists_strings_of_saved_languages(): void {
+		$this->login( 'administrator' );
+		update_option(
+			Settings::OPTION,
+			array(
+				'languages' => array(
+					'it' => array(
+						'locale' => 'it_IT',
+						'name'   => 'Italiano',
+					),
+					'en' => array(
+						'locale'     => 'en_US',
+						'name'       => 'English',
+						'site_title' => 'My site',
+					),
+				),
+			)
+		);
+
+		$languages = $this->page( 'easyrankly-languages' );
+		$this->assertStringContainsString( '>Strings</h2>', $languages );
+		$this->assertStringContainsString( '<th scope="row">English</th>', $languages );
+		$this->assertStringContainsString( 'name="easyrankly_settings[languages][1][site_title]" value="My site"', $languages );
+		$this->assertStringContainsString( 'name="easyrankly_settings[languages][1][tagline]"', $languages );
+		$this->assertStringContainsString( 'name="easyrankly_settings[languages][1][breadcrumb_home_label]"', $languages );
+		$this->assertStringNotContainsString( '[languages][2][site_title]', $languages, 'The row of a new language has no strings.' );
+		$this->assertStringContainsString( 'name="easyrankly_settings[languages][2][slug]"', $languages );
 	}
 
 	/**

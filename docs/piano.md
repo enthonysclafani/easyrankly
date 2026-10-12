@@ -375,8 +375,13 @@ nostro non coperto: da rivalutare dopo il lancio del Pro, con un test su 2–3 d
   - categorie e tag non si traducono: valgono per tutte le lingue e i loro archivi mostrano i contenuti della lingua corrente.
 
   Strada proposta: titolo e descrizione del sito per lingua nella option `easyrankly_settings` (filtri
-  `option_blogname` e `option_blogdescription`); un menu per lingua, scelto con il filtro sugli attributi del blocco `core/navigation` (temi a blocchi; le
-  posizioni di menu per lingua dei temi classici sono state tolte il 10 ottobre 2026). Ogni option o meta nuovo va approvato nel piano del punto.
+  `option_blogname` e `option_blogdescription`). Ogni option o meta nuovo va approvato nel piano del punto.
+  Menu per lingua (deciso il 12 ottobre 2026): nessuna impostazione dedicata. Il menu di una lingua sta nel suo template
+  part (`header-en` con il blocco Navigazione che punta al menu inglese). La scelta di un menu per lingua dalla pagina
+  Lingue (punto 7.2, scambio del menu nel blocco `core/navigation`) è stata tolta: faceva la stessa cosa dei template
+  part per lingua, risparmiando solo di duplicare l'header ai siti con un header unico. Le scelte salvate vengono
+  ignorate e spariscono dall'option al primo salvataggio, senza migrazione. Le posizioni di menu per lingua dei temi
+  classici erano già state tolte il 10 ottobre 2026.
   Stringhe del tema (deciso il 9 ottobre 2026): nei temi a blocchi i testi scritti a mano stanno nei template part, e
   ogni template part può avere una versione per lingua con il prefisso della lingua dopo un trattino (`header-en`),
   creata nell'Editor del sito; il blocco `core/template-part` la usa sulle pagine di quella lingua, senza dati nuovi.
