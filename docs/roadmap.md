@@ -252,9 +252,6 @@ browser dopo le PR che le hanno toccate.
 - Le tre ancora aperte del piano di sicurezza: firma della cache degli snippet, spegnimento avviato da un visitatore,
   strumenti esterni (`docs/sicurezza.md`, sezione 7).
 - Le eccezioni chieste da W1 e W5 (sezione "Compatibilità con WooCommerce e ACF" e `docs/compatibilita.md`).
-- Termine vuoto con descrizione: resta indicizzabile ma la sitemap del core non lo elenca (usa `hide_empty`).
-  Accettarlo, perché è raro, oppure filtrare i termini vuoti senza descrizione al costo di una query in più solo nella
-  sitemap.
 - Disinstallazione in multisite: `uninstall.php` pulisce solo il sito su cui gira, per la regola "nessuna funzione
   multisite"; sugli altri siti della rete restano option, meta, snippet e redirect. Lasciarlo così o ciclare su
   `get_sites()`.
