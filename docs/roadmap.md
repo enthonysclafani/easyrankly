@@ -11,7 +11,7 @@ I riferimenti ad Alpha indicano file del vecchio plugin (branch `Alpha` di quest
 - [x] Repository, `CLAUDE.md`, bootstrap minimo con autoloader PSR-4
 - [x] `composer check`: architettura, PHPCS, PHPStan, PHPUnit
 - [x] `tools/check-architecture.php` con test sui casi vietati e consentiti
-- [x] CI su GitHub: controlli statici su PHP 8.1 e 8.4, test anche su multisite (solo anti-conflitto), Plugin Check
+- [x] CI su GitHub: controlli statici su PHP 8.1 e 8.4, test anche su multisite (anti-conflitto e disinstallazione su tutta la rete), Plugin Check
 - [x] `composer.lock` generato e committato
 - [x] Primo run verde della CI su GitHub (branch `Refactory`)
 - [x] Branch autonomo: piano in `docs/piano.md`, preparazione automatica delle sessioni cloud (`tools/cloud-setup.sh`)
@@ -252,12 +252,6 @@ browser dopo le PR che le hanno toccate.
 - Spegnimento di uno snippet PHP avviato da un visitatore (CC-06, `docs/sicurezza.md` sezione 7). Firma della cache
   degli snippet e strumenti esterni decisi il 12 ottobre 2026: firma fatta, si usano solo gli strumenti già presenti.
 - Le eccezioni chieste da W1 e W5 (sezione "Compatibilità con WooCommerce e ACF" e `docs/compatibilita.md`).
-- Termine vuoto con descrizione: resta indicizzabile ma la sitemap del core non lo elenca (usa `hide_empty`).
-  Accettarlo, perché è raro, oppure filtrare i termini vuoti senza descrizione al costo di una query in più solo nella
-  sitemap.
-- Disinstallazione in multisite: `uninstall.php` pulisce solo il sito su cui gira, per la regola "nessuna funzione
-  multisite"; sugli altri siti della rete restano option, meta, snippet e redirect. Lasciarlo così o ciclare su
-  `get_sites()`.
 
 ### Funzioni decise ma non ancora fatte
 
@@ -267,18 +261,19 @@ browser dopo le PR che le hanno toccate.
 
 ### Debito tecnico residuo
 
-Dalla seconda analisi del 10 ottobre 2026 sono stati corretti i punti scelti (PR #62). Restano, nessuno bloccante:
+Dalla seconda analisi del 10 ottobre 2026 sono stati corretti i punti scelti (PR #62) e, il 12 ottobre 2026, i
+cinque punti rimasti: una sola regola di "indicizzabile" (`Robots::is_indexable_post()`, l'hreflang ora esclude i
+contenuti con un redirect forzato), liste dei redirect ricostruite solo quando serve, una sola ricostruzione in
+`CustomCode::disable()`, le piccole duplicazioni. Restano, accettati e senza lavoro previsto:
 
-- [ ] Una sola definizione di "indicizzabile" per sitemap, hreflang e robots: oggi l'hreflang non esclude i contenuti
-      con un redirect forzato, che restano tra le alternate delle traduzioni (il più utile)
-- [ ] Nelle lingue non predefinite si caricano tutti i pattern sincronizzati e fino a 100 template part a ogni pagina:
-      pesa sugli hosting senza cache persistente; prima va esteso il test "nessuna query in più"
-- [ ] Ogni salvataggio di un redirect ricostruisce le liste anche quando non serve
-- [ ] `CustomCode::disable()` ricostruisce la cache degli snippet due volte
-- [ ] Piccole duplicazioni e smell da sistemare quando si tocca il file: regola "è un articolo" in Social e Schema,
-      reset della query var `post_type` in Context e Canonical, impianto REST e admin comune a Redirect e Custom code,
-      hook registrati come closure, rinomina dei termini lingua dentro il filtro di sanitize, nome dell'entry webpack
-      `languages`, stile inline nel JS dell'editor
+- Pattern sincronizzati e template part nelle lingue non predefinite: una query carica tutti i pattern pubblicati e
+  fino a 100 template part. Misurato, non aggiunge query (le precarica per il core, che poi non le chiede); pesa solo
+  sui siti con moltissimi pattern. Se servirà, l'alternativa è una mappa delle versioni in un'option autoload.
+- Redirect e Custom code tengono controller REST e salvataggio separati: le regole dei permessi sono diverse
+  (`manage_options` contro `unfiltered_html` ed `edit_plugins`) e il codice in comune è poco; le schermate
+  condividono già `Admin/RecordsPage`.
+- Lo stile dell'anteprima dell'immagine social nel pannello dell'editor resta inline: il plugin non carica fogli
+  di stile propri (`Admin/Assets`), e un file CSS per sette regole costerebbe di più.
 
 ### Controllo di sicurezza
 

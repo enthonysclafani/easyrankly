@@ -371,6 +371,48 @@ final class SitemapTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Empty terms with a description of their own stay listed, as their page stays indexable
+	 * (Robots); empty terms without one are still left out, and other terms queries keep `hide_empty`.
+	 */
+	public function test_empty_terms_with_description_are_listed(): void {
+		$described = self::factory()->category->create( array( 'description' => 'A guide to the topic.' ) );
+		$blank     = self::factory()->category->create( array( 'description' => '   ' ) );
+		$empty     = self::factory()->category->create( array( 'description' => '' ) ); // The factory writes one by default.
+		$full      = self::factory()->category->create();
+		self::factory()->post->create( array( 'post_category' => array( $full ) ) );
+
+		$urls = $this->urls( 'taxonomies', 'category' );
+
+		$this->assertContains( get_category_link( $described ), $urls );
+		$this->assertContains( get_category_link( $full ), $urls );
+		$this->assertNotContains( get_category_link( $blank ), $urls );
+		$this->assertNotContains( get_category_link( $empty ), $urls );
+
+		$others = get_terms(
+			array(
+				'taxonomy'   => 'category',
+				'hide_empty' => true,
+				'fields'     => 'ids',
+			)
+		);
+		$this->assertIsArray( $others );
+		$this->assertNotContains( $described, $others );
+	}
+
+	/**
+	 * A taxonomy whose only listed term is empty with a description gets its sitemap: core counts
+	 * the pages with the same arguments.
+	 */
+	public function test_taxonomy_with_only_described_empty_terms_has_a_sitemap(): void {
+		self::factory()->tag->create( array( 'description' => 'Everything about this tag.' ) );
+
+		$provider = wp_sitemaps_get_server()->registry->get_provider( 'taxonomies' );
+		$this->assertNotNull( $provider );
+		$this->assertSame( 1, $provider->get_max_num_pages( 'post_tag' ) );
+		$this->assertStringContainsString( 'sitemap-subtype=post_tag', implode( ' ', $this->index() ) );
+	}
+
+	/**
 	 * Generic rules remove every post type or taxonomy.
 	 */
 	public function test_generic_rules_remove_all(): void {

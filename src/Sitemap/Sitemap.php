@@ -29,10 +29,17 @@ defined( 'ABSPATH' ) || exit;
  * - The front page and the posts page follow their own contexts (`home`, `archive-post`,
  *   `archive`), not the one of single pages: with pages set to noindex they stay listed, and
  *   with their own context set to noindex they leave.
+ * - Empty terms with a description of their own stay listed: Robots keeps their page indexable,
+ *   while core leaves every empty term out (`hide_empty`).
  * - lastmod: core already adds it to posts (post_modified_gmt). Terms and users have no
  *   modification date of their own; computing one would cost a query per entry.
  */
 final class Sitemap {
+
+	/**
+	 * Query argument that marks the terms queries of the sitemaps (filter_terms_clauses()).
+	 */
+	private const DESCRIBED_ARG = 'easyrankly_described';
 
 	/**
 	 * Hooks the core sitemap filters.
@@ -182,7 +189,15 @@ final class Sitemap {
 	}
 
 	/**
-	 * Terms query: leaves out the terms with their own noindex or a canonical override.
+	 * Terms query: leaves out the terms with their own noindex or a canonical override and keeps
+	 * the empty terms with a description of their own, as Robots does.
+	 *
+	 * Core asks for `hide_empty`, which drops every term without posts. Instead of excluding the
+	 * empty terms without a description by ID (one more query, and a list as long as the empty
+	 * tags), the condition goes into the same query: the argument marks it for
+	 * filter_terms_clauses(), which is hooked only here, on sitemap requests. Core also counts the
+	 * sitemap pages with these arguments (wp_count_terms()), so the count matches the list.
+	 * With `hierarchical` core keeps the parents of non-empty terms in PHP: that case is left as is.
 	 *
 	 * @param mixed $args Query arguments.
 	 * @return mixed
@@ -190,6 +205,12 @@ final class Sitemap {
 	public function filter_query_args( $args ) {
 		if ( ! is_array( $args ) || ! isset( $args['taxonomy'] ) ) {
 			return $args;
+		}
+
+		if ( ! empty( $args['hide_empty'] ) && empty( $args['hierarchical'] ) ) {
+			$args['hide_empty']          = false;
+			$args[ self::DESCRIBED_ARG ] = true;
+			add_filter( 'terms_clauses', array( self::class, 'filter_terms_clauses' ), 10, 3 );
 		}
 
 		$excluded = get_terms(
@@ -206,9 +227,35 @@ final class Sitemap {
 	}
 
 	/**
+	 * Terms with posts or with a description of their own, for the terms queries marked by
+	 * filter_query_args(). It replaces the `tt.count > 0` that `hide_empty` would add.
+	 *
+	 * Robots trims the description in PHP; TRIM() in SQL removes only spaces, so a description
+	 * made only of line breaks or tabs counts here: rare enough to accept.
+	 *
+	 * @param mixed $clauses    Query clauses.
+	 * @param mixed $taxonomies Taxonomies of the query.
+	 * @param mixed $args       Query arguments.
+	 * @return mixed
+	 */
+	public static function filter_terms_clauses( $clauses, $taxonomies, $args ) {
+		if ( ! is_array( $clauses ) || ! is_array( $args ) || empty( $args[ self::DESCRIBED_ARG ] ) ) {
+			return $clauses;
+		}
+
+		$where            = isset( $clauses['where'] ) && is_string( $clauses['where'] ) ? trim( $clauses['where'] ) : '';
+		$condition        = "( tt.count > 0 OR TRIM( tt.description ) <> '' )";
+		$clauses['where'] = '' === $where ? $condition : $where . ' AND ' . $condition;
+
+		return $clauses;
+	}
+
+	/**
 	 * Posts query: leaves out the password-protected posts (always noindex), the posts with their
 	 * own noindex or a canonical override, the posts redirected by forced rules and the posts or
 	 * shop page when it is empty.
+	 *
+	 * The first four are Robots::is_indexable_post() written as queries: keep the two in step.
 	 *
 	 * @param mixed $args Query arguments.
 	 * @return mixed
@@ -351,20 +398,12 @@ final class Sitemap {
 	 * @return list<int>
 	 */
 	private static function redirected_post_ids(): array {
-		$rules = get_option( Redirects::FORCED_OPTION, array() );
-		if ( ! is_array( $rules ) ) {
-			return array();
-		}
-
 		$ids = array();
-		foreach ( $rules as $rule ) {
-			if ( ! is_array( $rule ) || ! empty( $rule['regex'] ) || ! isset( $rule['source'] ) || ! is_string( $rule['source'] ) ) {
-				continue;
-			}
-
-			$id = url_to_postid( home_url( $rule['source'] ) );
-			// url_to_postid() is lenient (it ignores extra segments): keep only exact matches.
-			if ( $id > 0 && Rule::normalize( (string) get_permalink( $id ) ) === $rule['source'] ) {
+		foreach ( Redirects::forced_sources() as $source ) {
+			$id = url_to_postid( home_url( $source ) );
+			// url_to_postid() is lenient (it ignores extra segments): keep only exact matches,
+			// the same test as Robots::is_indexable_post().
+			if ( $id > 0 && Rule::normalize( (string) get_permalink( $id ) ) === $source ) {
 				$ids[] = $id;
 			}
 		}
@@ -382,16 +421,13 @@ final class Sitemap {
 	 * @return list<int>
 	 */
 	private static function redirected_term_ids( $taxonomy ): array {
-		$rules = get_option( Redirects::FORCED_OPTION, array() );
-		if ( ! is_string( $taxonomy ) || ! is_array( $rules ) ) {
+		if ( ! is_string( $taxonomy ) ) {
 			return array();
 		}
 
 		$sources = array();
-		foreach ( $rules as $rule ) {
-			if ( is_array( $rule ) && empty( $rule['regex'] ) && isset( $rule['source'] ) && is_string( $rule['source'] ) ) {
-				$sources[ $rule['source'] ] = sanitize_title( basename( $rule['source'] ) );
-			}
+		foreach ( Redirects::forced_sources() as $source ) {
+			$sources[ $source ] = sanitize_title( basename( $source ) );
 		}
 		$slugs = array_values( array_filter( array_unique( $sources ) ) );
 		if ( array() === $slugs ) {

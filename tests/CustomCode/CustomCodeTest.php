@@ -98,6 +98,43 @@ final class CustomCodeTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Turning a snippet off after an error writes the cache once.
+	 */
+	public function test_disable_rebuilds_cache_once(): void {
+		$id = $this->rest( 'POST', $this->body( 'php', "echo 'x';", 'publish', 'footer' ) )->get_data()['id'];
+
+		$writes = 0;
+		add_filter(
+			'pre_update_option_' . CustomCode::OPTION,
+			static function ( $value ) use ( &$writes ) {
+				++$writes;
+				return $value;
+			}
+		);
+		CustomCode::disable( $id, 'Error: boom' );
+
+		$this->assertSame( 1, $writes );
+		$this->assertSame( 'draft', get_post_status( $id ) );
+		$this->assertSame( '', $this->output( 'footer' ) );
+	}
+
+	/**
+	 * Each position runs from a named callback, which a theme or a snippet can take off its hook.
+	 */
+	public function test_positions_can_be_removed(): void {
+		$this->rest( 'POST', $this->body( 'html', '<p>end</p>', 'publish', 'footer' ) );
+
+		$GLOBALS['wp_current_filter'][] = 'wp_footer';
+		$output                         = get_echo( array( Runner::class, 'run_hook' ) );
+		array_pop( $GLOBALS['wp_current_filter'] );
+		$this->assertSame( "<p>end</p>\n", $output );
+
+		$this->assertSame( 10, has_action( 'wp_footer', array( Runner::class, 'run_hook' ) ) );
+		remove_action( 'wp_footer', array( Runner::class, 'run_hook' ) );
+		$this->assertFalse( has_action( 'wp_footer', array( Runner::class, 'run_hook' ) ) );
+	}
+
+	/**
 	 * PHP is parsed, never run, to find syntax errors.
 	 */
 	public function test_syntax_error(): void {

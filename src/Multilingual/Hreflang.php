@@ -19,8 +19,8 @@ defined( 'ABSPATH' ) || exit;
  * language, plus `x-default` pointing to the default language.
  *
  * Only indexable pages that are their own canonical get the links, and they list only
- * versions that are published, public, indexable and their own canonical: search engines
- * ignore alternates that are not. Pages printed:
+ * versions that are indexable as Robots::is_indexable_post() defines it: search engines
+ * ignore alternates that are not, or that redirect. Pages printed:
  * - single content with translations, the static front page and the posts page;
  * - the home that lists posts and the archives (terms, post types, authors, dates), which exist
  *   in every language. An archive with nothing in one language still gets its link there: knowing
@@ -143,7 +143,7 @@ final class Hreflang {
 
 		$urls = array();
 		foreach ( Translations::versions( $post->ID ) as $language => $member ) {
-			if ( ! self::indexable( $member ) ) {
+			if ( ! Robots::is_indexable_post( $member ) ) {
 				continue;
 			}
 			$url = get_permalink( $member );
@@ -158,17 +158,5 @@ final class Hreflang {
 		wp_cache_set( $key, $urls, 'easyrankly' );
 
 		return isset( $urls[ $post->ID ] ) ? array_column( $urls, 'url', 'language' ) : array();
-	}
-
-	/**
-	 * Whether a version may be an alternate: published, without password, indexable and its own canonical.
-	 *
-	 * @param \WP_Post $post Version of the content.
-	 * @return bool
-	 */
-	private static function indexable( \WP_Post $post ): bool {
-		return Translations::is_public( $post )
-			&& ! (bool) Meta::post( $post->ID, 'noindex' )
-			&& '' === (string) Meta::post( $post->ID, 'canonical' );
 	}
 }

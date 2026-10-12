@@ -56,8 +56,7 @@ final class Social {
 		$object = get_queried_object();
 		$post   = $object instanceof \WP_Post ? $object : null;
 
-		// Only posts are articles, as in the schema: pages, products and other types are websites.
-		$article = null !== $post && is_singular() && ! is_front_page() && 'post' === $post->post_type;
+		$article = Context::is_article();
 
 		$title = Meta::queried_text( 'og_title' );
 		if ( '' === $title ) {
