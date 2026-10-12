@@ -198,6 +198,8 @@ repository del Pro. Nome nel codice: `erankly-pro`; richiede il gratuito (`Requi
 
 - Modelli decisionali (es. Jev di typesafe.ai): rimandati. Con l'AI pagata dall'utente, un modello sul backend
   sarebbe un costo nostro; da rivalutare dopo il lancio del Pro, con un test su 2–3 decisioni reali.
+- Multilingua sui siti che non lo usano: spegnimento automatico sotto le due lingue e pagina Lingue nascosta sui temi
+  classici senza lingue. Annotate il 12 ottobre 2026, per ora non si fanno (dettagli in `docs/piano.md`, sezione 8).
 
 Decise a ottobre 2026 (dettagli in `docs/piano.md`, sezione 7): niente IndexNow; prezzi del Pro confermati; multilingua
 anche per menu e stringhe del tema (Fase 7), con i template part per lingua e senza i widget classici; requisiti minimi il più bassi possibile; noindex su pagine povere
