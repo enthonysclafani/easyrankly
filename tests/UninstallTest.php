@@ -207,4 +207,40 @@ final class UninstallTest extends WP_UnitTestCase {
 			$this->assertFalse( get_transient( 'easyrankly_redirect_notice_' . $user ), (string) $user );
 		}
 	}
+
+	/**
+	 * On multisite every site of the network is cleaned, not only the one where the plugin is deleted.
+	 */
+	public function test_uninstall_cleans_every_site_of_the_network(): void {
+		if ( ! is_multisite() ) {
+			$this->markTestSkipped( 'Needs multisite.' );
+		}
+		if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
+			define( 'WP_UNINSTALL_PLUGIN', 'easyrankly/easyrankly.php' );
+		}
+
+		$sites = array( get_current_blog_id(), self::factory()->blog->create() );
+		$seeds = array();
+		foreach ( $sites as $site ) {
+			switch_to_blog( $site );
+			update_option( 'easyrankly_settings', array( 'title_separator' => '|' ) );
+			$post     = self::factory()->post->create( array( 'meta_input' => array( '_easyrankly_title' => 'x' ) ) );
+			$redirect = self::factory()->post->create( array( 'post_type' => 'erankly_redirect' ) );
+			wp_set_object_terms( $post, 'en', 'erankly_language' );
+			$seeds[ $site ] = array( $post, $redirect );
+			restore_current_blog();
+		}
+
+		require dirname( __DIR__ ) . '/uninstall.php';
+
+		$this->assertSame( $sites[0], get_current_blog_id() );
+		foreach ( $seeds as $site => list( $post, $redirect ) ) {
+			switch_to_blog( $site );
+			$this->assertFalse( get_option( 'easyrankly_settings' ), (string) $site );
+			$this->assertFalse( metadata_exists( 'post', $post, '_easyrankly_title' ), (string) $site );
+			$this->assertNull( get_post( $redirect ), (string) $site );
+			$this->assertSame( array(), wp_get_object_terms( $post, 'erankly_language' ), (string) $site );
+			restore_current_blog();
+		}
+	}
 }
