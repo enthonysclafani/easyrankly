@@ -1,8 +1,9 @@
 # Piano di EasyRankly 3
 
-Questo documento raccoglie la visione del prodotto e le decisioni prese, con il loro perché.
-`CLAUDE.md` contiene le regole operative; `docs/roadmap.md` l'avanzamento. Se una decisione cambia,
-si aggiorna prima questo file, poi le regole e la roadmap.
+Questo documento raccoglie la visione del prodotto: perché esiste, i principi, le funzioni, dove vivono i dati, la
+sicurezza e il contratto con EasyRankly Pro. Le singole decisioni, aperte e prese, con data e perché, stanno in
+`docs/decisioni.md`; `CLAUDE.md` contiene le regole operative; `docs/roadmap.md` l'avanzamento. Se una decisione
+cambia, si aggiorna prima `docs/decisioni.md` (e questo file, se tocca un principio), poi le regole e la roadmap.
 
 ## 1. Perché un nuovo plugin
 
@@ -21,7 +22,7 @@ testata (meta, schema, sitemap, matching dei redirect, editor del multilingua). 
 4. **Solo API native di WordPress**, comprese quelle AI nel Pro: AI Client, Connectors, Abilities API.
 5. **Nessun sistema a moduli.** Il plugin gratuito è unico e definito. L'unica estensione è EasyRankly Pro,
    un plugin separato e autonomo: nel gratuito non c'è nessun codice per il Pro, nemmeno punti di estensione dedicati
-   (decisione di ottobre 2026, sezione 6).
+   (decisione del 9 ottobre 2026, sezione 6).
 6. **Nessuna funzione dedicata a multisite**, ma nessun conflitto: solo API per sito. Eccezione: la disinstallazione
    pulisce ogni sito della rete con `get_sites()`, perché una disinstallazione incompleta lascerebbe dati ovunque
    (decisione del 12 ottobre 2026).
@@ -41,7 +42,7 @@ Search Console tiene già 16 mesi.
 | Redirect | 301/302/307/410/451, esatti e regex | Post type `erankly_redirect`; hash della sorgente in `post_name` (indicizzato); ricerca solo su 404 più una piccola lista di "forzati" |
 | Custom code | Snippet HTML e PHP in head, apertura del body, footer; PHP anche "ovunque", come `functions.php` | Post type `erankly_snippet`; PHP solo con `edit_plugins`, controllo della sintassi senza esecuzione, disattivazione automatica in caso di errore, modalità sicura |
 | Multilingua | Singolo sito: lingua per contenuto, gruppi di traduzioni, prefisso nella URL, hreflang, sitemap per lingua; menu e stringhe del tema per lingua (Fase 7) | Tassonomie nascoste (come Polylang); blocco selettore renderizzato lato server; menu e testi per lingua nella option e nei filtri del core, senza tabelle |
-| EasyRankly Pro (plugin a parte) | Agente AI con proposte da approvare (sezione 5) e lavoro operativo di un SEO di agenzia: Search Console, parole chiave e cluster, link interni, contenuti, report | Plugin separato e autonomo, fuori da WordPress.org; usa solo ciò che il gratuito espone già (sezione 6) |
+| EasyRankly Pro (plugin a parte) | Agente AI con proposte da approvare e lavoro operativo di un SEO di agenzia: Search Console, parole chiave e cluster, link interni, contenuti, report | Plugin separato e autonomo, fuori da WordPress.org; usa solo ciò che il gratuito espone già (sezione 6) |
 
 **Fuori perimetro**, con il motivo:
 
@@ -49,42 +50,35 @@ Search Console tiene già 16 mesi.
 |---|---|
 | Log dei 404, contatori di visite | Scrivono nel DB a ogni visita e rompono la cache; Search Console fornisce i 404 visti da Google |
 | Punteggio SEO / analisi di leggibilità in tempo reale | Molto JS, valore discutibile; le proposte dell'agente del Pro fanno meglio lo stesso lavoro |
-| Indice dei link in tabella | Sostituito da una tassonomia nascosta (vedi sezione 5) |
+| Indice dei link in tabella | Nel Pro la mappa dei link è una tassonomia nascosta |
 | Sitemap news e video, form, pulizia "bloat" | Fuori dalla direzione del prodotto |
 | Funzioni multisite | Decisione esplicita: nessun codice dedicato, tranne la pulizia di ogni sito in `uninstall.php` |
 | Google Indexing API | Google la consente solo per offerte di lavoro e dirette |
-| IndexNow | Decisione di ottobre 2026: non interessa. Le sitemap del core bastano per la scoperta dei contenuti |
+| IndexNow | Decisione del 9 ottobre 2026: non interessa. Le sitemap del core bastano per la scoperta dei contenuti |
 | Pubblicazione automatica | Rischio "scaled content abuse": i contenuti AI nascono bozze |
 
 ### Interfaccia admin: stile WordPress classico
 
-Decisione di ottobre 2026. Le prime schermate (impostazioni, redirect, custom code, agente) sono app React con i
-componenti di `@wordpress/components`: una pagina di impostazioni lunga, a schede grandi, e un aspetto diverso da
-quello del resto dell'admin. Si torna allo stile delle schermate di WordPress, per uniformità e leggerezza.
+Fatta con la Fase 4 (decisione del 9 ottobre 2026). Le prime schermate erano app React con `@wordpress/components`:
+una pagina di impostazioni lunga, a schede grandi, con un aspetto diverso dal resto dell'admin. Oggi:
 
-- **Impostazioni su più pagine brevi**, come Impostazioni → Generali, Lettura, Permalink. Proposta:
-  - *Generali*: separatore del titolo, breadcrumb (etichetta della home, tassonomia per tipo di contenuto);
-  - *Schema e social*: identità (organizzazione o persona, nome, logo, profili), immagine social predefinita, utente X;
-  - *Titoli e descrizioni*: template per contesto, una lingua per volta (scelta con un selettore che ricarica la pagina);
-  - *Indicizzazione*: noindex per contesto, regole aggiunte a robots.txt;
-  - *Lingue*: elenco delle lingue, una riga per lingua più una riga vuota per aggiungerne una.
-- **Impostazioni con la Settings API del core**: `add_settings_section()`, `add_settings_field()`, `settings_fields()`,
-  form inviato a `options.php`, markup `form-table` e `submit_button()`. Nessun JS, tranne la scelta di un'immagine
-  dalla libreria media. Resta una sola option, `easyrankly_settings`: ogni pagina invia solo i suoi campi e
-  `Settings::sanitize()` li unisce a quelli salvati (lo fa già). `/wp/v2/settings` resta com'è.
-- **Redirect e Custom code** come Articoli e Utenti: elenco con `WP_List_Table` (azioni di riga, ricerca,
-  paginazione, azioni di gruppo) e una schermata "Aggiungi" / "Modifica" con un form classico inviato alla
-  schermata stessa (nonce, capability), che salva tramite le route REST esistenti con `rest_do_request()`.
-  Il codice degli snippet si scrive con l'editor del core (`wp_enqueue_code_editor()`, lo stesso dell'editor dei
-  temi), che rispetta la preferenza dell'utente di disattivare l'evidenziazione.
-- **Agente AI** (passa al Pro con la Fase 6): resta in JS, perché l'analisi a lotti la guida il browser e le proposte si accettano senza ricaricare,
-  ma con markup classico (`nav-tab-wrapper` per Proposte e Memoria, `wp-list-table`, `notice`, `button`).
-  "Modifica e accetta" si apre nella riga, come la Modifica rapida degli articoli.
-- **Editor a blocchi e schermate dei termini** non cambiano: il pannello nell'editor usa già i componenti che l'editor
-  carica comunque; i campi dei termini sono già PHP classico.
-- **CSS**: nessun foglio di stile del plugin e il plugin non accoda `wp-components` sulle sue schermate, solo le classi
-  dell'admin del core (il core carica comunque `wp-components` in tutto l'admin per la palette dei comandi). Una regola CSS nostra va motivata. Gli entry point `settings`, `redirects` e `snippets`
-  spariscono da `package.json`: meno JS da compilare e da caricare.
+- **Impostazioni su pagine brevi**, come Impostazioni → Generali, Lettura, Permalink: *Generali* (separatore del
+  titolo, breadcrumb), *Schema e social* (identità: organizzazione, Local Business o persona; immagine social, utente
+  X), *Titoli e descrizioni* (template per contesto, una lingua per volta), *Indicizzazione* (noindex per contesto,
+  pagina articoli, regole di robots.txt), *Lingue* (tabella delle lingue e tabella Strings).
+- **Settings API del core**: `add_settings_section()`, `add_settings_field()`, `settings_fields()`, form verso
+  `options.php`, markup `form-table`, `submit_button()`. Nessun JS tranne la scelta di un'immagine. Resta una sola
+  option, `easyrankly_settings`: ogni pagina invia solo i suoi campi e `Settings::sanitize()` li unisce a quelli
+  salvati. `/wp/v2/settings` resta com'è.
+- **Redirect e Custom code** come Articoli e Utenti: `WP_List_Table` (azioni di riga, ricerca, paginazione, azioni di
+  gruppo) e una schermata "Aggiungi" / "Modifica" con un form inviato alla schermata stessa (nonce, capability), che
+  salva tramite le route REST con `rest_do_request()`. Il codice degli snippet usa l'editor del core
+  (`wp_enqueue_code_editor()`), che rispetta la preferenza dell'utente di spegnere l'evidenziazione.
+- **Editor a blocchi e schermate dei termini**: il pannello nell'editor usa i componenti che l'editor carica comunque;
+  i campi dei termini sono PHP classico.
+- **CSS**: nessun foglio di stile del plugin, e il plugin non accoda `wp-components` sulle sue schermate (il core lo
+  carica comunque in tutto l'admin per la palette dei comandi). Una regola CSS nostra va motivata. Gli entry point
+  `settings`, `redirects` e `snippets` sono spariti da `package.json`.
 
 ## 4. Dove vivono i dati
 
@@ -92,358 +86,70 @@ quello del resto dell'admin. Si torna allo stile delle schermate di WordPress, p
 |---|---|
 | Impostazioni | Una option autoload `easyrankly_settings` |
 | SEO per contenuto | Post meta e term meta registrati con schema |
-| Redirect, snippet | Post type non pubblici |
-| Proposte e memoria dell'agente (Pro) | Post type non pubblici del Pro; stati delle proposte con `register_post_status()` |
+| Redirect, snippet | Post type non pubblici, con le loro cache in option autoload |
 | Lingue | Option + tassonomia `erankly_language` |
 | Gruppi di traduzione | Tassonomia `erankly_translation` |
-| Cluster di parole chiave, mappa dei link interni | Tassonomie nascoste del Pro |
-| Chiavi AI dell'utente (Pro) | Connectors del core (Impostazioni → Connettori) |
-| Token di Search Console e della licenza | Option del Pro cifrate con `sodium_crypto_secretbox()` |
-| Storico del traffico | Nessuno: Search Console conserva già 16 mesi, si confrontano i periodi al momento |
-| Dati remoti (Search Console, DataForSEO, AI) | Transient con scadenza |
 
-## 5. Agente AI (EasyRankly Pro)
+L'elenco completo, chiave per chiave, è `docs/data-model.md`. I dati del Pro li registra e li rimuove il Pro: sono
+nel suo piano (sezione 4) e nel suo `docs/data-model.md`.
 
-Decisione di ottobre 2026: l'agente vive tutto in EasyRankly Pro, anche le funzioni che prima erano nel gratuito
-(meta e social, testo alternativo, redirect per contenuti cestinati, memoria). Il gratuito non ha AI. Il codice scritto
-nelle Fasi 3 e 5 si porta nel repository del Pro e si toglie da qui (Fase 6 della roadmap). Questa sezione è il
-progetto dell'agente: vale per il Pro.
+## 5. Sicurezza
 
-### Ciclo
+Le regole per chi scrive codice stanno in `CLAUDE.md` (sezioni "Sicurezza" e "Custom code"); il piano del controllo
+completo, area per area, in `docs/sicurezza.md`; il controllo è la Fase 8 della roadmap, da chiudere prima della
+2.0.0 (decisione del 12 ottobre 2026). Il repository è pubblico: i problemi trovati e non ancora corretti restano in
+note private fuori dal repository, e la PR di correzione descrive il rinforzo senza la ricetta d'attacco.
 
-**Osserva → Proponi → Approvi tu → Esegue → Impara.**
+### Chi può attaccare
 
-### Le "mani": Abilities API
-
-Ogni azione è un'ability con schema di input e output, `permission_callback` e annotazioni
-`readonly`/`destructive`. Le ability di sola lettura l'AI le usa liberamente; quelle che scrivono generano solo proposte.
-L'AI Client del core sa fare function calling con le ability (`using_abilities()`).
-
-### Proposte e dashboard Accetta / Rifiuta
-
-- Post type `erankly_proposal`; stati: in attesa, accettata, rifiutata, superata, fallita.
-- Ogni proposta contiene: azione e parametri validati, motivazione, dati a supporto (es. "1.240 impressioni, CTR 0,8%"),
-  confidenza, anteprima delle differenze, impronta dell'oggetto originale, valore precedente.
-- **Accetta**: rivalida tutto con i permessi di chi accetta; se l'oggetto è cambiato, la proposta è "superata".
-- **Modifica e accetta**, **Rifiuta** (con motivo facoltativo), **Annulla** (ripristina il valore precedente).
-- Lo storico delle proposte è anche il registro di tutto ciò che è stato fatto.
-- Approvazione automatica: **spenta**. In futuro, eventualmente, per categoria con soglia di confidenza scelta dall'utente.
-
-### Cosa può proporre
-
-| Area | Esempi | Dove | Rischio |
-|---|---|---|---|
-| Meta e social | Title e description mancanti o deboli; con Search Console, per query con molte impressioni e pochi clic | Pro | basso |
-| Immagini | Testo alternativo mancante | Pro | basso |
-| Redirect | Contenuto cestinato → redirect; 404 visto da Google → pagina più simile | Pro | medio |
-| Link interni | "Aggiungi un link da A a B in questo paragrafo"; pagine pilastro per cluster | Pro | medio |
-| Contenuti | Aggiornamento di sezioni datate, rafforzamento delle pagine in posizione 8–20 | Pro | medio |
-| Contenuti nuovi | Piano editoriale → brief → bozza (mai pubblicata), con i punti da verificare | Pro | medio |
-| Multilingua | Bozza tradotta collegata al gruppo di traduzioni | Pro | medio |
-| Indicizzazione | Noindex su pagine povere: l'AI lo propone, l'utente sceglie (decisione di ottobre 2026) | Pro | alto |
-
-**Mai proponibili**: custom code, impostazioni, robots.txt, cancellazioni, pubblicazione, utenti e ruoli.
-
-### Il lavoro da "SEO di agenzia"
-
-Tutto lavoro di EasyRankly Pro.
-
-1. **Onboarding**: domande su attività, pubblico, servizi, concorrenti; lettura del sito; tutto in memoria.
-2. **Strategia keyword**: mappa parola chiave → pagina (una keyword principale per pagina), cannibalizzazioni,
-   lacune rispetto ai concorrenti.
-3. **Piano editoriale** mensile con brief.
-4. **Contenuti nuovi**: bozze in blocchi nativi con link interni, meta, social, testo alternativo, schema.
-5. **Interconnessioni**: alla pubblicazione, link dagli articoli correlati; pagine pilastro.
-   Mappa dei link senza tabella: tassonomia nascosta dove ogni termine è una pagina di destinazione; il conteggio
-   dei post per termine è il numero di pagine che la linkano. Suggerimenti semantici con embedding (AI Client) salvati nei meta.
-6. **Ottimizzazione continua** con i dati di Search Console.
-7. **Report mensile**: cosa è stato fatto e con quali risultati.
-
-Cosa resta all'umano: link building e digital PR, esperienza reale nei contenuti (E-E-A-T), decisioni di business,
-SEO tecnica lato server. Posizionamento: **l'agente fa il lavoro operativo, l'utente è il direttore che approva**.
-
-### Memoria del progetto
-
-- Post type `erankly_memory`: una voce per fatto, in Markdown (tono, pubblico, regole del brand, pagine strategiche,
-  preferenze apprese, decisioni). Revisioni native come cronologia; import/export in `.md`.
-- Non su disco: filesystem in sola lettura su molti hosting, più server, backup che escludono i file, rischio di lettura dal web.
-- **Auto-apprendimento tramite contesto**, non riaddestramento: rifiuti motivati e modifiche alle proposte diventano
-  preferenze visibili e modificabili; il tasso di accettazione per tipo regola cosa proporre.
-
-### Proattività senza cron
-
-| Innesco | Dove | Esempi |
-|---|---|---|
-| Eventi editoriali (pubblicazione, cestino, cambio slug) | Gratuito e Pro | Redirect per contenuto cestinato; meta e alt mancanti; link dagli articoli correlati (Pro) |
-| Apertura della dashboard | Gratuito e Pro | Analisi a lotti dal browser se l'ultima ha più di 24 ore; dati di Search Console (Pro) |
-
-Nessuna analisi pianificata, nemmeno nel Pro: senza cron, l'agente lavora quando qualcuno usa il sito o la dashboard.
-I flussi in più passi (ricerca → brief → bozza → link → meta) sono sequenze di richieste REST guidate dall'admin:
-mai un'unica richiesta lunga.
-
-### Sicurezza dell'agente
-
-- Contenuti, query di Search Console, SERP e pagine esterne sono **dati non fidati** (prompt injection).
-- Validazione deterministica fuori dal modello: allowlist delle azioni, schema, domini esterni bloccati o segnalati,
-  tetto giornaliero di proposte.
-- Esecuzione sempre con i permessi di chi accetta.
-
-## 6. EasyRankly Pro e monetizzazione
-
-Decisione di ottobre 2026. Sostituisce "EasyRankly Cloud": niente più abbonamento che rivende AI e dati con un
-ricarico. Si vende un plugin, con una licenza annuale che include i dati che costano.
-
-### Modello
-
-- **Gratuito, su WordPress.org, completo**: SEO, sitemap, redirect, custom code e multilingua, senza AI. Nessuna
-  funzione bloccata, nessun riferimento al Pro nel codice.
-- **EasyRankly Pro, plugin a parte con licenza annuale**: l'agente AI della sezione 5, con il lavoro da "SEO di
-  agenzia" (Search Console, parole chiave e cluster, link interni, contenuti, report). L'agente è la prima funzione del
-  Pro, non l'unica: il Pro è organizzato per funzioni (cartella e namespace propri per ciascuna) così che se ne possano
-  aggiungere altre, senza un sistema a moduli. Nome nel codice: `erankly-pro`. Venduto fuori da WordPress.org, come raccomandano le sue
-  [linee guida](https://developer.wordpress.org/plugins/wordpress-org/detailed-plugin-guidelines/) per il codice a
-  pagamento. Richiede il gratuito (`Requires Plugins: easyrankly`, supportato dal core dalla 6.5).
-- **AI sempre con le chiavi dell'utente**, anche nel Pro (Impostazioni → Connettori). Non rivendiamo l'AI: niente
-  costi variabili che non controlliamo.
-- **Search Console e DataForSEO inclusi nel prezzo**: li paghiamo noi. Search Console è gratuita (solo quote);
-  DataForSEO ha un costo per richiesta, tenuto sotto controllo da quote per licenza e da una cache condivisa.
-- La licenza dà diritto ad aggiornamenti, assistenza e dati inclusi. Il codice è GPL come quello del gratuito.
-  A licenza scaduta il Pro resta installato: si fermano aggiornamenti, Search Console e DataForSEO (passano dal
-  backend); ciò che usa solo l'AI dell'utente continua a funzionare.
-
-### Prezzo
-
-Confermato a ottobre 2026. I prezzi vivono solo sul backend e in Stripe, non nel codice dei plugin: cambiarli
-non richiede un rilascio. Restano da verificare i prezzi e i termini di DataForSEO (vedi "Da verificare prima di vendere").
-
-Licenza annuale con rinnovo automatico, prezzi IVA esclusa (l'IVA la aggiunge e la versa Stripe al checkout):
-
-| Licenza | Siti | Prezzo all'anno | Dati DataForSEO inclusi (tetto di spesa nostro) |
-|---|---|---|---|
-| Personale | 1 | €99 | $1 al mese |
-| Professionale | 5 | €249 | $2,50 al mese, condivisi tra i siti |
-| Agenzia | 20 | €599 | $6 al mese, condivisi tra i siti |
-
-Regola: il costo dei dati resta intorno al 12% di quanto incassiamo, e la cache condivisa lo abbassa ancora.
-Conto per la licenza Personale, con IVA italiana: Stripe trattiene circa €6 (3,5% di Managed Payments e commissione
-della carta), restano circa €93. Il tetto di DataForSEO vale circa $12 all'anno. Il backend costa $5 al mese per tutti
-i clienti insieme. Margine per licenza: circa €80, prima delle tasse e del nostro tempo.
-
-Cosa compra $1 al mese, con i prezzi di DataForSEO stimati più avanti: circa 10 ricerche di idee per parole chiave
-(100 risultati ciascuna), 2 aggiornamenti dei volumi di ricerca (fino a 1.000 parole chiave ciascuno), 1 analisi delle
-parole chiave posizionate del sito e 200 controlli di SERP. È più di quanto serve a un sito per la mappa parola chiave →
-pagina e il piano editoriale del mese. Le quote si mostrano nel Pro come azioni (es. "ricerche di parole chiave
-rimaste"), non in dollari. Quando finiscono, le funzioni che usano DataForSEO aspettano il mese successivo; il resto
-del Pro continua a funzionare.
-
-Confronto (prezzi di listino per un sito, da recensioni di terze parti, non verificati sui siti dei produttori):
-Yoast SEO Premium circa $119 all'anno, Rank Math Pro circa $96 il primo anno e $108 dal rinnovo (siti personali
-illimitati), SEOPress Pro $49. €99 sta nella stessa fascia di Yoast e Rank Math; il valore del Pro sono i dati delle
-parole chiave già inclusi e l'agente che lavora con Search Console.
-
-Stima dei prezzi di DataForSEO (pay-as-you-go, in dollari, **da verificare**: il sito di DataForSEO non era
-raggiungibile dall'ambiente di lavoro e i valori vengono dai riassunti dei risultati di ricerca; dal 1° luglio 2026
-DataForSEO ha alzato del 20% i prezzi di Labs e Keywords Data, e la stima lo include per prudenza):
-
-| Richiesta | Prezzo stimato |
+| Attore | Cosa può fare oggi in WordPress |
 |---|---|
-| Idee e suggerimenti di parole chiave (Labs) | circa $0,0144 a richiesta + $0,000144 per risultato |
-| Volumi di ricerca (Google Ads, fino a 1.000 parole chiave) | circa $0,07 (coda standard) – $0,11 (live) |
-| Parole chiave posizionate di un sito (Labs, 1.000 risultati) | circa $0,16 |
-| SERP di Google, prime 10 posizioni | $0,0006 (coda standard) – $0,002 (live) |
+| Visitatore anonimo | URL, query string, ricerca, intestazioni, commenti |
+| Iscritto, collaboratore, autore | Scrivere i propri contenuti e i loro meta, usare la REST API autenticata |
+| Editor | Contenuti di tutti, spesso `unfiltered_html` su sito singolo |
+| Admin di un sito in multisite | `manage_options` ma **né** `unfiltered_html` **né** `edit_plugins` |
+| Admin con `DISALLOW_FILE_EDIT` / `DISALLOW_FILE_MODS` / `DISALLOW_UNFILTERED_HTML` | Admin volutamente limitato dal proprietario del sito |
+| Chi fornisce un file WXR da importare | Contenuto arbitrario dentro l'importer del core |
+| Un altro plugin o una SQL injection altrove | Scrittura diretta di option e post |
 
-Fonti: [prezzi di Labs](https://dataforseo.com/pricing/dataforseo-labs/dataforseo-google-api),
-[Google Ads](https://dataforseo.com/pricing/keywords-data/google-ads),
-[SERP](https://dataforseo.com/pricing/google-serp/google-organic-serp-api),
-[aggiornamento di luglio 2026](https://dataforseo.com/update/pricing-update-in-dataforseo-apis),
-[pagamento minimo](https://dataforseo.com/help-center/minimum-payment).
+### Cosa va protetto, in ordine
 
-### Cosa sta nel gratuito per il Pro
+1. **Esecuzione di PHP** (snippet PHP, `eval` in `PhpRunner.php`): equivale al controllo totale del server.
+2. **HTML arbitrario in ogni pagina** (snippet HTML): equivale a XSS persistente su tutto il sito.
+3. **Redirect**: redirect aperti, phishing, blocco del sito (loop, ReDoS).
+4. **Uscita nel `<head>`** (titoli, meta, Open Graph, JSON-LD, hreflang, canonical): XSS riflessa o persistente.
+5. **Dati non pubblici** (bozze, contenuti privati o protetti da password, codice degli snippet) esposti via REST,
+   sitemap o meta.
+6. **Disponibilità**: un visitatore non deve poter spegnere funzioni o rompere pagine.
 
-Niente (decisione di ottobre 2026): il Pro è autonomo e nel gratuito non c'è codice scritto per lui, nemmeno punti di
-estensione generici. I due della Fase 5 (filtro `easyrankly_agent_actions` e `easyrankly_create_proposal()`) si
-tolgono con l'agente. Il collegamento è il minimo:
+### La regola di fondo per gli snippet
 
-- il Pro dichiara `Requires Plugins: easyrankly` e aggiunge le sue pagine come sottomenu di EasyRankly (slug `easyrankly`);
-- legge e scrive i dati del gratuito con le API che il gratuito espone già per sé: i meta registrati con schema (anche
-  via REST) e il post type `erankly_redirect` con la sua route `/wp/v2/easyrankly-redirects`, che applica le stesse
-  regole dell'admin.
+> Può far girare PHP solo chi potrebbe già farlo modificando un plugin dall'editor del core (`edit_plugins`).
+> Può stampare HTML grezzo solo chi ha già `unfiltered_html`.
 
-Questi nomi diventano un contratto: cambiarli nel gratuito rompe il Pro, quindi si cambiano solo con una decisione.
+Ogni strada che permette di scendere sotto questa soglia è un problema. Un admin che rispetta la soglia e scrive
+codice dannoso non è una vulnerabilità: è la funzione.
 
-### Il backend del Pro
+## 6. EasyRankly Pro: il contratto con il gratuito
 
-Cloudflare Workers con D1 (database) e KV (cache), in un repository separato. Costo fisso di partenza: piano Workers
-Paid da $5 al mese per tutto l'account, con 10 milioni di richieste incluse
-([prezzi](https://developers.cloudflare.com/workers/platform/pricing/)). Nessuna interfaccia web: fa quattro cose,
-tutte come API chiamate dal Pro (solo da admin, REST o WP-CLI).
+EasyRankly Pro è un plugin a pagamento con licenza annuale, venduto fuori da WordPress.org come raccomandano le sue
+[linee guida](https://developer.wordpress.org/plugins/wordpress-org/detailed-plugin-guidelines/) per il codice a
+pagamento: agente AI con proposte da approvare, Search Console, parole chiave (DataForSEO), link interni, contenuti,
+report. Richiede il gratuito (`Requires Plugins: easyrankly`, supportato dal core dalla 6.5). Il suo progetto
+(agente, modello, prezzi, licenza, backend, pagamenti) e la sua roadmap vivono nel repository privato
+`easyrankly-pro`, branch `main`: `docs/piano.md` e `docs/roadmap.md`. Fino al 12 ottobre 2026 erano le sezioni 5 e 6
+di questo file.
 
-1. **Licenze**: riceve i webhook di Stripe, attiva i siti, risponde sullo stato della licenza.
-2. **Aggiornamenti**: il Pro dichiara `Update URI` e risponde al filtro `update_plugins_{$hostname}` del core
-   (dalla 5.8): il controllo degli aggiornamenti resta quello di WordPress. Lo zip si scarica solo con una licenza valida.
-   Durante il cron del core il Pro usa solo la risposta in cache: la chiamata al backend parte dalle pagine admin.
-3. **DataForSEO**: unico punto con la nostra chiave. Quote per licenza, cache condivisa tra i clienti (una parola
-   chiave cercata da più siti si paga una volta), limiti anti-abuso.
-4. **OAuth di Search Console** su `connect.easyrankly.com`: Google accetta solo redirect URI registrati e ogni cliente
-   ha un dominio diverso. Il client secret resta sul server; il refresh token si salva cifrato sul sito e si rinnova
-   tramite il backend; i dati di Search Console vanno dal sito a Google senza passare da noi.
+Il gratuito resta completo: nessuna funzione bloccata, nessun riferimento al Pro nel codice, nessun punto di
+estensione scritto per lui (decisione del 9 ottobre 2026; i due della Fase 5, `easyrankly_agent_actions` ed
+`easyrankly_create_proposal()`, sono stati tolti con l'agente). Il collegamento è il minimo, e usa solo ciò che il
+gratuito espone già per sé:
 
-### Licenza senza un'applicazione custom
+- il Pro aggiunge le sue pagine come sottomenu di EasyRankly (slug `easyrankly`);
+- legge e scrive i meta registrati con schema (anche via REST);
+- legge e scrive i redirect con il post type `erankly_redirect` e la route `/wp/v2/easyrankly-redirects`, che
+  applica le stesse regole dell'admin.
 
-L'utente non ha un "account" da noi. Ogni cosa ha già un posto:
-
-| Cosa | Dove |
-|---|---|
-| Acquisto | Stripe Checkout con Managed Payments (link dal sito easyrankly.com) |
-| Abbonamento, carta, disdetta, ricevute e fatture | Sito di Link (link.com), incluso in Managed Payments; in più il Customer Portal di Stripe, aperto dal Pro |
-| Attivazione e dati della licenza | Pagina "Licenza" del Pro, dentro WordPress |
-
-Attivazione con l'email d'acquisto, senza chiavi da copiare o da perdere:
-
-1. Nel Pro, l'amministratore scrive l'email usata per l'acquisto.
-2. Il backend controlla che a quell'email corrisponda una licenza attiva e invia un codice di 6 cifre.
-3. L'amministratore inserisce il codice; il backend registra il sito e restituisce un token per quel sito, che il Pro
-   salva cifrato con `sodium_crypto_secretbox()`.
-
-La pagina "Licenza" del Pro mostra stato e scadenza, siti attivi (con "Scollega"), consumo delle quote del mese e il
-pulsante "Gestisci abbonamento", che apre il Customer Portal di Stripe con una sessione creata dal backend. Se i siti
-sono al limite, l'attivazione propone di scollegarne uno. Serve solo un servizio di email transazionale per i codici
-(da scegliere).
-
-Alternative scartate:
-
-- **Freemius**: licenze, aggiornamenti, portale clienti e merchant of record già pronti, ma richiede il suo SDK nel
-  plugin (dipendenza PHP a runtime, contro l'invariante 5) e costa circa il 7% più le commissioni di pagamento
-  ([prezzi](https://freemius.com/help/documentation/getting-started/our-pricing/)).
-- **Lemon Squeezy**: chiavi di licenza e portale clienti inclusi, senza SDK. Ma Stripe, che l'ha acquisita, sta
-  portando i suoi venditori su Managed Payments: rischioso per un prodotto nuovo.
-- **Servizi di licenze dedicati** (Keygen e simili): un fornitore in più, mentre il backend serve comunque per
-  DataForSEO e Search Console.
-
-### Pagamenti: Stripe Managed Payments
-
-Managed Payments è il *merchant of record* di Stripe: il venditore legale è Stripe, che gestisce IVA UE, sales tax e
-GST (oltre 80 paesi), frodi e contestazioni. Così non serve registrarsi all'OSS né gestire l'IVA in proprio.
-
-- **Costo**: 3,5% per transazione riuscita, calcolato sull'importo IVA inclusa, più le commissioni di pagamento di
-  Stripe ([prezzi di Managed Payments](https://support.stripe.com/questions/managed-payments-pricing)).
-- **Vincoli**: solo prodotti digitali (software e servizi web rientrano), solo Checkout Sessions e Payment Links,
-  verifica di idoneità da parte di Stripe ([idoneità](https://docs.stripe.com/payments/managed-payments/eligibility),
-  [changelog](https://docs.stripe.com/payments/managed-payments/changelog)). L'Italia è tra i paesi ammessi.
-- Rinnovo automatico annuale. Ricevute, fatture, rimborsi e assistenza sui pagamenti li gestisce Stripe tramite Link
-  ([come funziona](https://docs.stripe.com/payments/managed-payments/how-it-works)).
-- **I plugin non parlano mai con Stripe**: nessuna chiave Stripe, nessun webhook sul sito. Parla con Stripe solo il backend.
-
-### Regole
-
-- Le chiavi nostre (DataForSEO, Stripe, client secret di Google) **stanno solo sul backend**: il codice PHP è leggibile da chiunque.
-- Il sito non espone endpoint pubblici: è sempre il Pro a chiamare il backend, da admin, REST o WP-CLI.
-- Cache aggressiva sul backend: i dati delle parole chiave cambiano poco (buona parte del margine).
-- Quote per licenza e protezioni anti-abuso: il costo dei dati deve restare una piccola parte del prezzo.
-
-### Search Console
-
-- OAuth 2.0 con scope `webmasters.readonly`; l'API è gratuita (solo quote).
-- Server OAuth centrale (`connect.easyrankly.com`), come Site Kit e Rank Math. Il client secret resta sul server.
-- Scope "sensibile": serve la verifica dell'app (dominio verificato, privacy policy, video). Senza verifica: avviso
-  "app non verificata" e limite di 100 utenti. Non serve l'audit CASA (riguarda gli scope "restricted").
-
-### Da verificare prima di vendere
-
-- **WordPress.org**: il gratuito resta completo, senza funzioni bloccate né trialware; il codice a pagamento sta solo
-  nel Pro, ospitato altrove.
-- **Termini di DataForSEO** sull'uso dei dati dentro un prodotto venduto a terzi.
-- **Verifica di idoneità di Stripe Managed Payments** dell'account. Se l'esito è negativo, si passa a Paddle: nel
-  plugin non cambia nulla, perché la licenza la gestisce il backend.
-- **GDPR**: il backend tratta email dei clienti, indirizzi dei siti e parole chiave cercate; servono privacy policy e
-  registro dei trattamenti. Per l'AI, far scegliere all'utente il provider (evitare chi tratta dati fuori da UE/USA senza garanzie).
-
-### Modelli decisionali
-
-Rimandati. L'idea era un "sistema 1" sul backend (regole deterministiche → modello decisionale → LLM solo se serve),
-con candidato Jev di typesafe.ai. Con l'AI pagata dall'utente, un modello decisionale sul backend sarebbe un costo
-nostro non coperto: da rivalutare dopo il lancio del Pro, con un test su 2–3 decisioni reali.
-
-## 7. Decisioni di ottobre 2026 (dalle decisioni aperte)
-
-- **IndexNow**: non si fa (vedi "Fuori perimetro").
-- **Prezzi del Pro**: confermati quelli della sezione 6; si aggiornano sul backend e in Stripe senza toccare i plugin.
-- **Noindex su pagine povere**: azione proponibile del Pro, rischio alto. L'AI la propone con i dati a supporto,
-  l'utente sceglie; nessuna approvazione automatica.
-- **Multilingua**: copre anche menu e stringhe del tema, senza tabelle né moduli (Fase 7 della roadmap).
-  Prima della Fase 7 (stato superato: titolo, motto, menu e testi del tema per lingua sono fatti, punti 7.1–7.5):
-  - menu, titolo e descrizione del sito erano gli stessi in tutte le lingue (quelli della lingua predefinita);
-  - le stringhe del tema e di WordPress seguono il locale della pagina, se il pacchetto di lingua è installato;
-  - categorie e tag non si traducono: valgono per tutte le lingue e i loro archivi mostrano i contenuti della lingua corrente.
-
-  Strada proposta: titolo e descrizione del sito per lingua nella option `easyrankly_settings` (filtri
-  `option_blogname` e `option_blogdescription`). Ogni option o meta nuovo va approvato nel piano del punto.
-  Menu per lingua (deciso il 12 ottobre 2026): nessuna impostazione dedicata. Il menu di una lingua sta nel suo template
-  part (`header-en` con il blocco Navigazione che punta al menu inglese). La scelta di un menu per lingua dalla pagina
-  Lingue (punto 7.2, scambio del menu nel blocco `core/navigation`) è stata tolta: faceva la stessa cosa dei template
-  part per lingua, risparmiando solo di duplicare l'header ai siti con un header unico. Le scelte salvate vengono
-  ignorate e spariscono dall'option al primo salvataggio, senza migrazione. Le posizioni di menu per lingua dei temi
-  classici erano già state tolte il 10 ottobre 2026.
-  Stringhe del tema (deciso il 9 ottobre 2026): nei temi a blocchi i testi scritti a mano stanno nei template part, e
-  ogni template part può avere una versione per lingua con il prefisso della lingua dopo un trattino (`header-en`),
-  creata nell'Editor del sito; il blocco `core/template-part` la usa sulle pagine di quella lingua, senza dati nuovi.
-  Lo stesso vale per i pattern sincronizzati (`wp_block`): "Nome - IT" è la versione italiana di "Nome", e il blocco
-  `core/block` la usa sulle pagine di quella lingua. I pattern non sincronizzati no: inseriti, diventano una copia dei
-  blocchi dentro la pagina o il template, modificabile; sostituirla con un'altra versione cancellerebbe le modifiche.
-  Nelle pagine non serve (ogni lingua ha la sua pagina), i pattern del tema hanno testi tradotti dal locale, e un testo
-  in un template va spostato in un template part o in un pattern sincronizzato.
-  Temi classici (deciso il 9 ottobre 2026, rivisto il 10 ottobre 2026): il multilingua richiede un tema a blocchi.
-  SEO, sitemap, redirect e custom code funzionano con qualsiasi tema; con un tema classico cambiano lingua contenuti,
-  indirizzi, titolo e motto del sito, ma menu, widget e testi del Customizer restano uguali in tutte le lingue. Le
-  posizioni di menu per lingua dei temi classici (punto 7.2) sono state tolte: coprivano solo i menu e lasciavano il
-  resto del tema in una lingua, quindi un sito classico in più lingue restava comunque a metà. Il plugin lo dichiara
-  con un avviso nella pagina Lingue e nel readme. Perché: il codice solo per i temi classici era circa l'1% del plugin,
-  ma escludere i temi classici da tutto il plugin avrebbe escluso la maggior parte dei siti WordPress (analisi del
-  10 ottobre 2026).
-- **Requisiti minimi**: il minimo è quello che il codice richiede davvero, il più basso possibile senza peggiorare il
-  codice né aggiungere compatibilità a mano. WordPress resta 7.0 (decisione del 9 ottobre 2026): uscito l'agente, lo
-  richiede solo il breadcrumb (blocco `core/breadcrumbs` e i suoi filtri), mentre il resto delle API usate scende fino
-  a 6.6; scendere vorrebbe dire rinunciare al breadcrumb del core o scriverne uno nostro. Il codice
-  PHP richiede PHP 8.0 (`match`, `?->`, `mixed`): è il minimo dal 9 ottobre 2026, verificato dalla CI su PHP 8.0.
-- **Agente AI**: tutto in EasyRankly Pro, niente nel gratuito, nessuna migrazione (sezione 5 e Fase 6 della roadmap).
-  Il Pro sta nel repository `easyrankly-pro`, si scarica dal sito di EasyRankly e richiede il gratuito.
-- **Custom code "Ovunque"** (9 ottobre 2026): una posizione in più, solo per snippet PHP, che gira su
-  `plugins_loaded` in ogni richiesta come il `functions.php` di un tema, tranne sulla schermata Custom code. Serve a
-  togliere o cambiare hook senza modificare file. Ogni problema possibile è in `docs/custom-code.md`.
-- **Vendita, download e licenze del Pro**: backend nostro con Stripe Managed Payments, come nella sezione 6. Managed
-  Payments incassa e gestisce le tasse ma non le licenze: licenze, attivazione e download degli aggiornamenti li
-  gestisce il backend, che serve comunque per DataForSEO e Search Console. Scartate SureCart e WooCommerce (con
-  abbonamenti e un gestore di licenze): legherebbero la vendita a un sito WordPress.
-- **Redirect 451** (10 ottobre 2026): oltre al 410, i redirect possono rispondere 451 "non disponibile per motivi
-  legali", per le pagine tolte per un ordine legale (DMCA, diritto all'oblio). Come il 410 non ha destinazione e
-  mostra il template 404 con il suo codice; per i motori di ricerca vale come il 410, ma dice il motivo.
-- **Import da Yoast e Rank Math** (10 ottobre 2026): si fa, più avanti. Si importano solo meta (title, description,
-  robots, canonical e social di contenuti e termini) e redirect, non le impostazioni globali. Gira a lotti guidati
-  dall'admin via REST, con il cursore salvato in un'option, perché non ci sono cron. Altri plugin (SEOPress,
-  All in One SEO) eventualmente dopo. Riferimento Alpha: `includes/migrations/`.
-- **Schema Product per WooCommerce** (10 ottobre 2026): non si fa. WooCommerce stampa già il suo JSON-LD `Product`
-  nella pagina del prodotto e Google lo legge così com'è.
-- **Local Business** (10 ottobre 2026): si fa, come terzo tipo di identità del sito accanto a organizzazione e
-  persona. Una sola sede: tipo schema.org, indirizzo, telefono, coordinate e orari (al massimo due fasce al giorno)
-  nell'option delle impostazioni, stampati nel nodo dell'organizzazione, che tiene l'`@id` `#organization`. Niente
-  sedi multiple, niente post type.
-- **Compatibilità con WooCommerce e ACF** (10 ottobre 2026): il plugin convive con entrambi senza conflitti; con
-  WooCommerce si corregge il Negozio (campi SEO, canonical) e `og:type`, il resto si completa più avanti: campi SEO
-  dei prodotti nell'editor classico, sitemap senza carrello e checkout, multilingua sui negozi (oggi non supportato),
-  description da campi personalizzati e copia dei meta nelle traduzioni. Dettagli in `docs/compatibilita.md`.
-
-## 8. Decisioni aperte
-
-- Multilingua sui siti che non lo usano (discussa il 10 ottobre 2026, rimandata dall'utente il 12 ottobre: per ora
-  non si fa niente). Oggi con meno di due lingue il multilingua non cambia nulla: nessuna query, nessuna rewrite rule,
-  nessun pannello nell'editor (`Languages::enabled()`). Restano circa 42 callback che escono dopo un controllo, le due
-  tassonomie nascoste, la route REST e il blocco "Language switcher" nell'inserter. Un interruttore esplicito è
-  scartato: sarebbe un'option nuova e un passo verso un sistema a moduli. Due possibilità annotate:
-  1. **Spegnimento automatico sotto le due lingue**, senza option nuove: con meno di due lingue `Multilingual::register()`
-     aggancia solo ciò che serve ad accorgersi dell'aggiunta di una lingua (salvataggio delle impostazioni, rewrite
-     rule) e non registra il blocco. Guadagno di prestazioni minimo e non misurato (frazioni di millisecondo, quasi
-     tutto dal filtro `home_url`, che parte a ogni link); lo stesso guadagno si ottiene anche solo mettendo il
-     controllo delle lingue in testa a quel filtro. Il vantaggio vero è un editor senza il blocco quando non serve.
-  2. **Pagina Lingue nascosta sui temi classici**: il sottomenu si salta nel ciclo di `Settings\Admin\Page`. Solo se il
-     tema è classico **e** non ci sono lingue configurate: un sito che passa a un tema classico con le lingue già
-     attive deve poterle ancora gestire o togliere (contenuti, indirizzi e hreflang continuano a funzionare).
+Questi nomi sono un contratto: cambiarli nel gratuito rompe il Pro, quindi si cambiano solo con una decisione. Un test
+del Pro (sua Fase 0.5) li verifica contro il gratuito. Se allargare il contratto con `easyrankly_settings` e le
+tassonomie del multilingua è la decisione aperta 6 di `docs/decisioni.md`.
