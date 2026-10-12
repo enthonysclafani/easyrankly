@@ -170,6 +170,8 @@ Prima di scrivere codice, verifica se WordPress lo fa già. Se lo fa, usa o filt
   tranne sulla schermata Custom code (`admin.php?page=easyrankly-snippets`), da cui si rimedia sempre a uno snippet
   rotto. Quello che stampa viene scartato. Problemi noti e rischi accettati: `docs/custom-code.md`.
 - Gli snippet attivi stanno in cache in un'unica option autoload, aggiornata al salvataggio: zero query nel frontend.
+  Ogni snippet in cache è firmato con un HMAC (`wp_salt( 'auth' )`): `Runner` non esegue ciò che non torna e in quel
+  caso ricostruisce la cache dagli snippet. L'option si scrive solo da `CustomCode::rebuild_cache()`.
 - Plugin Check (CI) esclude solo `src/CustomCode/PhpRunner.php`, perché segnala ogni `eval` come errore: eccezione
   approvata l'8 ottobre 2026. Gli altri controlli (PHPCS, PHPStan, `composer architecture`) continuano a leggerlo.
 - Gli snippet importati arrivano sempre disattivati.

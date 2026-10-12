@@ -10,7 +10,8 @@ namespace EasyRankly\CustomCode;
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Outputs the snippets of each position from the autoloaded cache: no query.
+ * Outputs the snippets of each position from the autoloaded cache: no query. Each cached
+ * snippet carries an HMAC made with the salts of wp-config.php, checked before it runs.
  *
  * The page positions never run in the admin. The `everywhere` position runs PHP on every
  * request, admin, REST, AJAX, cron and WP-CLI included, like functions.php, but never on the
@@ -51,17 +52,7 @@ final class Runner {
 			return;
 		}
 
-		// Read only from the autoloaded options: before the first snippet the option does not exist.
-		$cache = isset( wp_load_alloptions()[ CustomCode::OPTION ] ) ? get_option( CustomCode::OPTION ) : null;
-		if ( ! is_array( $cache ) || empty( $cache['positions'][ $position ] ) || ! is_array( $cache['positions'][ $position ] ) ) {
-			return;
-		}
-
-		foreach ( $cache['positions'][ $position ] as $snippet ) {
-			if ( ! is_array( $snippet ) || ! isset( $snippet['id'], $snippet['code'] ) ) {
-				continue;
-			}
-
+		foreach ( self::snippets( $position ) as $snippet ) {
 			if ( 'php' === ( $snippet['type'] ?? '' ) ) {
 				if ( CustomCode::php_allowed() ) {
 					// Output at load time would come before the headers (or inside a JSON response): it is
@@ -85,6 +76,71 @@ final class Runner {
 			// Raw HTML written by a user with unfiltered_html: printing it as is is the feature.
 			echo $snippet['code'] . "\n"; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Snippet saved by a user with unfiltered_html.
 		}
+	}
+
+	/**
+	 * Signed snippets of a position from the cache.
+	 *
+	 * A snippet whose signature does not match is never run. When there is one, the cache is
+	 * rebuilt from the snippets themselves: it was written before signatures existed, the salts
+	 * in wp-config.php changed, or something other than this plugin wrote the option.
+	 *
+	 * @param string $position Position key.
+	 * @return array<int, array<mixed>>
+	 */
+	private static function snippets( string $position ): array {
+		$signed = self::signed( self::cached( $position ), $position, $all );
+		if ( $all ) {
+			return $signed;
+		}
+
+		CustomCode::rebuild_cache();
+
+		return self::signed( self::cached( $position ), $position, $all );
+	}
+
+	/**
+	 * Cached entries of a position, unchecked.
+	 *
+	 * @param string $position Position key.
+	 * @return array<mixed>
+	 */
+	private static function cached( string $position ): array {
+		// Read only from the autoloaded options: before the first snippet the option does not exist.
+		$cache = isset( wp_load_alloptions()[ CustomCode::OPTION ] ) ? get_option( CustomCode::OPTION ) : null;
+		if ( ! is_array( $cache ) || empty( $cache['positions'][ $position ] ) || ! is_array( $cache['positions'][ $position ] ) ) {
+			return array();
+		}
+
+		return $cache['positions'][ $position ];
+	}
+
+	/**
+	 * Cached entries that are snippets this plugin wrote for this position.
+	 *
+	 * @param array<mixed> $cached   Cached entries.
+	 * @param string       $position Position key.
+	 * @param bool|null    $all      Set to whether every entry was signed.
+	 * @param-out bool     $all
+	 * @return array<int, array<mixed>>
+	 */
+	private static function signed( array $cached, string $position, ?bool &$all ): array {
+		$all    = true;
+		$signed = array();
+		foreach ( $cached as $snippet ) {
+			$type = is_array( $snippet ) ? ( $snippet['type'] ?? '' ) : null;
+			if (
+				is_array( $snippet ) && is_string( $type ) && isset( $snippet['id'], $snippet['code'], $snippet['sig'] )
+				&& is_numeric( $snippet['id'] ) && is_string( $snippet['code'] ) && is_string( $snippet['sig'] )
+				&& hash_equals( CustomCode::signature( (int) $snippet['id'], $type, $position, $snippet['code'] ), $snippet['sig'] )
+			) {
+				$signed[] = $snippet;
+			} else {
+				$all = false;
+			}
+		}
+
+		return $signed;
 	}
 
 	/**
