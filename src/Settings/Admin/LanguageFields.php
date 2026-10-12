@@ -38,15 +38,19 @@ final class LanguageFields {
 
 		$rows   = Languages::all();
 		$rows[] = array(
-			'locale'     => '',
-			'name'       => '',
-			'site_title' => '',
-			'tagline'    => '',
+			'locale'                => '',
+			'name'                  => '',
+			'site_title'            => '',
+			'tagline'               => '',
+			'breadcrumb_home_label' => '',
 		);
-		// Empty fields use the site title and tagline of Settings > General: shown as placeholders.
-		$general = array(
-			'site_title' => wp_specialchars_decode( (string) get_option( 'blogname' ), ENT_QUOTES ),
-			'tagline'    => wp_specialchars_decode( (string) get_option( 'blogdescription' ), ENT_QUOTES ),
+		// Empty fields use the site title and tagline of Settings > General and the breadcrumb
+		// label of the General page (or the WordPress one): shown as placeholders.
+		$breadcrumb = (string) Settings::value( 'breadcrumb_home_label' );
+		$general    = array(
+			'site_title'            => wp_specialchars_decode( (string) get_option( 'blogname' ), ENT_QUOTES ),
+			'tagline'               => wp_specialchars_decode( (string) get_option( 'blogdescription' ), ENT_QUOTES ),
+			'breadcrumb_home_label' => '' !== $breadcrumb ? $breadcrumb : __( 'Home', 'easyrankly' ),
 		);
 
 		echo '<table class="widefat striped"><thead><tr>';
@@ -57,6 +61,7 @@ final class LanguageFields {
 			__( 'Locale', 'easyrankly' ),
 			__( 'Site Title', 'easyrankly' ),
 			__( 'Tagline', 'easyrankly' ),
+			__( 'Breadcrumb home label', 'easyrankly' ),
 			__( 'Remove', 'easyrankly' ),
 		) as $heading ) {
 			printf( '<th scope="col">%s</th>', esc_html( $heading ) );
@@ -83,40 +88,47 @@ final class LanguageFields {
 				esc_attr( $is_new ? '' : (string) $slug )
 			);
 			$fields = array(
-				'name'       => array(
+				'name'                  => array(
 					'value'       => $language['name'],
 					'maxlength'   => 50,
 					'placeholder' => '',
 					/* translators: %s: language name. */
 					'aria'        => sprintf( __( 'Name of %s', 'easyrankly' ), $label ),
 				),
-				'slug'       => array(
+				'slug'                  => array(
 					'value'       => $is_new ? '' : (string) $slug,
 					'maxlength'   => 12,
 					'placeholder' => '',
 					/* translators: %s: language name. */
 					'aria'        => sprintf( __( 'URL prefix of %s', 'easyrankly' ), $label ),
 				),
-				'locale'     => array(
+				'locale'                => array(
 					'value'       => $language['locale'],
 					'maxlength'   => 20,
 					'placeholder' => 'en_US',
 					/* translators: %s: language name. */
 					'aria'        => sprintf( __( 'Locale of %s', 'easyrankly' ), $label ),
 				),
-				'site_title' => array(
+				'site_title'            => array(
 					'value'       => $language['site_title'],
 					'maxlength'   => 200,
 					'placeholder' => $general['site_title'],
 					/* translators: %s: language name. */
 					'aria'        => sprintf( __( 'Site title of %s', 'easyrankly' ), $label ),
 				),
-				'tagline'    => array(
+				'tagline'               => array(
 					'value'       => $language['tagline'],
 					'maxlength'   => 400,
 					'placeholder' => $general['tagline'],
 					/* translators: %s: language name. */
 					'aria'        => sprintf( __( 'Tagline of %s', 'easyrankly' ), $label ),
+				),
+				'breadcrumb_home_label' => array(
+					'value'       => $language['breadcrumb_home_label'],
+					'maxlength'   => 60,
+					'placeholder' => $general['breadcrumb_home_label'],
+					/* translators: %s: language name. */
+					'aria'        => sprintf( __( 'Breadcrumb home label of %s', 'easyrankly' ), $label ),
 				),
 			);
 			foreach ( $fields as $field => $input ) {

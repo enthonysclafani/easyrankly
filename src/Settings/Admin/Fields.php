@@ -123,7 +123,8 @@ final class Fields {
 	}
 
 	/**
-	 * Contexts of each viewable post type and public taxonomy, with their labels.
+	 * Contexts of each viewable post type and public taxonomy, with their labels, plus the
+	 * posts page when the site has one.
 	 *
 	 * @return array<string, string>
 	 */
@@ -139,6 +140,9 @@ final class Fields {
 			if ( $type->has_archive ) {
 				/* translators: %s: post type name. */
 				$contexts[ 'archive-' . $type->name ] = sprintf( __( 'Archive: %s', 'easyrankly' ), $type->labels->name );
+			} elseif ( 'post' === $type->name && 'page' === get_option( 'show_on_front' ) && (int) get_option( 'page_for_posts' ) > 0 ) {
+				// The static posts page is the archive of posts (Context).
+				$contexts['archive-post'] = __( 'Posts page', 'easyrankly' );
 			}
 		}
 
@@ -226,7 +230,7 @@ final class Fields {
 			self::label( 'breadcrumb_taxonomies' ),
 			array( self::class, 'paragraph' ),
 			$page,
-			array( 'paragraph' => __( 'These options change the WordPress Breadcrumbs block. The structured data follows the trail the block shows.', 'easyrankly' ) )
+			array( 'paragraph' => __( 'These options change the WordPress Breadcrumbs block. The structured data follows the trail the block shows, in block themes only: classic themes render the block after the page head.', 'easyrankly' ) )
 		);
 		add_settings_field(
 			'breadcrumb_home_label',
@@ -277,7 +281,7 @@ final class Fields {
 
 		$intro = __( 'Empty title: WordPress builds it. Empty description: none is printed. A value set on a single post or term always wins.', 'easyrankly' );
 		if ( '' !== $language ) {
-			$intro = __( 'Templates of one language are used on its pages. Empty fields use the templates of all languages.', 'easyrankly' );
+			$intro = __( 'Templates of one language are used on its pages. Empty fields use the templates of all languages. Categories and tags are not translated: in this language their pages ignore the title, description and social texts written on the term, and the term description, which are in the default language.', 'easyrankly' );
 		}
 
 		add_settings_section( 'templates', '', array( self::class, 'templates_intro' ), $page, array( 'paragraph' => $intro ) );

@@ -245,12 +245,83 @@ final class TitlesTest extends WP_UnitTestCase {
 			)
 		);
 		$seen   = array( 'sep' );
+		register_post_type(
+			'book',
+			array(
+				'public'      => true,
+				'has_archive' => true,
+			)
+		);
 
-		foreach ( array( get_permalink( $post ), get_category_link( $term ), get_author_posts_url( $author ), home_url( '/?s=x' ), home_url( '/?m=' . gmdate( 'Y' ) ) ) as $url ) {
+		foreach ( array( get_permalink( $post ), get_category_link( $term ), get_author_posts_url( $author ), get_post_type_archive_link( 'book' ), home_url( '/?s=x' ), home_url( '/?m=' . gmdate( 'Y' ) ) ) as $url ) {
 			$this->go_to( $url );
 			$seen = array_merge( $seen, array_keys( Titles::variables() ) );
 		}
 
+		_unregister_post_type( 'book' );
 		$this->assertEqualSets( Titles::VARIABLES, array_values( array_unique( $seen ) ) );
+	}
+
+	/**
+	 * Post type and author archives get a description by default: the post type's description
+	 * and the author's biography.
+	 */
+	public function test_archive_descriptions(): void {
+		register_post_type(
+			'book',
+			array(
+				'public'      => true,
+				'has_archive' => true,
+				'description' => 'All the <b>books</b> we read.',
+			)
+		);
+		self::factory()->post->create( array( 'post_type' => 'book' ) );
+		$author = self::factory()->user->create( array( 'description' => 'Writes about books.' ) );
+		self::factory()->post->create( array( 'post_author' => $author ) );
+
+		$this->go_to( get_post_type_archive_link( 'book' ) );
+		$this->assertSame( 'All the books we read.', Titles::description() );
+
+		$this->go_to( get_author_posts_url( $author ) );
+		$this->assertSame( 'Writes about books.', Titles::description() );
+
+		_unregister_post_type( 'book' );
+	}
+
+	/**
+	 * The home listing posts tells its pages apart, like every other list.
+	 */
+	public function test_paged_home(): void {
+		update_option( 'posts_per_page', 1 );
+		self::factory()->post->create_many( 3 );
+
+		$this->go_to( add_query_arg( 'paged', 2, home_url( '/' ) ) );
+
+		$this->assertSame( 'Site Page 2 of 3 - Tagline', wp_get_document_title() );
+	}
+
+	/**
+	 * {{category}} is the first term of the main hierarchical taxonomy of any post type.
+	 */
+	public function test_category_variable_for_other_post_types(): void {
+		register_post_type( 'product', array( 'public' => true ) );
+		register_taxonomy(
+			'product_cat',
+			'product',
+			array(
+				'public'       => true,
+				'hierarchical' => true,
+			)
+		);
+		register_taxonomy( 'product_tag', 'product', array( 'public' => true ) );
+		$product = self::factory()->post->create( array( 'post_type' => 'product' ) );
+		wp_set_object_terms( $product, 'Tag', 'product_tag' );
+		wp_set_object_terms( $product, 'Shoes', 'product_cat' );
+		update_option( Settings::OPTION, array( 'templates' => array( 'single' => array( 'title' => '{{category}}' ) ) ) );
+
+		$this->go_to( get_permalink( $product ) );
+
+		$this->assertSame( 'Shoes', Titles::title() );
+		_unregister_post_type( 'product' );
 	}
 }

@@ -327,4 +327,34 @@ final class SchemaTest extends WP_UnitTestCase {
 		$this->assertSame( 'organization', Settings::value( 'identity_type' ) );
 		$this->assertSame( array(), Settings::value( 'same_as' ) );
 	}
+
+	/**
+	 * The page's image is the one it is shared with: the social image wins over the featured one,
+	 * it is the WebPage's primary image and the Article points to it; the author is the Person
+	 * of the author archive.
+	 */
+	public function test_post_image_follows_social_image_and_author_has_archive_id(): void {
+		$author   = self::factory()->user->create( array( 'display_name' => 'Ann' ) );
+		$post_id  = self::factory()->post->create( array( 'post_author' => $author ) );
+		$social   = self::factory()->attachment->create_object( 'social.jpg', 0, array( 'post_mime_type' => 'image/jpeg' ) );
+		$featured = self::factory()->attachment->create_object( 'featured.jpg', 0, array( 'post_mime_type' => 'image/jpeg' ) );
+		set_post_thumbnail( $post_id, $featured );
+		update_post_meta( $post_id, Meta::PREFIX . 'og_image', $social );
+		$url = get_permalink( $post_id );
+
+		$this->go_to( $url );
+		$nodes = $this->nodes( new Schema() );
+
+		$this->assertSame( $url . '#primaryimage', $nodes['WebPage']['primaryImageOfPage']['@id'] );
+		$this->assertStringEndsWith( 'social.jpg', $nodes['WebPage']['primaryImageOfPage']['url'] );
+		$this->assertSame( array( '@id' => $url . '#primaryimage' ), $nodes['Article']['image'] );
+		$this->assertSame( get_author_posts_url( $author ) . '#author', $nodes['Article']['author']['@id'] );
+
+		// A page has no Article, but its featured image is the primary image of the WebPage.
+		$page = self::factory()->post->create( array( 'post_type' => 'page' ) );
+		set_post_thumbnail( $page, $featured );
+		$this->go_to( get_permalink( $page ) );
+		$nodes = $this->nodes( new Schema() );
+		$this->assertStringEndsWith( 'featured.jpg', $nodes['WebPage']['primaryImageOfPage']['url'] );
+	}
 }

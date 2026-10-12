@@ -27,7 +27,7 @@ final class Titles {
 	 * Names of the template variables, as the settings screen lists them: those of
 	 * variables(), plus `sep`, which Template::render() fills in from the settings.
 	 */
-	public const VARIABLES = array( 'title', 'sep', 'site_name', 'tagline', 'page', 'excerpt', 'term_description', 'author', 'post_type', 'category', 'date', 'search_query' );
+	public const VARIABLES = array( 'title', 'sep', 'site_name', 'tagline', 'page', 'excerpt', 'term_description', 'post_type_description', 'author', 'author_description', 'post_type', 'category', 'date', 'search_query' );
 
 	/**
 	 * Hooks the title filter and the description tag.
@@ -119,13 +119,45 @@ final class Titles {
 	}
 
 	/**
-	 * Per-object override from the post or term meta (also a template).
+	 * Per-object override from the post or term meta (also a template). A term's own text is
+	 * in the default language only (Meta::queried_text()).
 	 *
 	 * @param string $field "title" or "description".
 	 * @return string
 	 */
 	private static function override( string $field ): string {
-		return (string) Meta::queried( $field );
+		return Meta::queried_text( $field );
+	}
+
+	/**
+	 * Name of the first term of a post in its main taxonomy: the one chosen for its breadcrumb
+	 * in the settings, then `category`, then its first public hierarchical taxonomy (as
+	 * `product_cat` for products).
+	 *
+	 * The post's terms are primed with the query that loaded it, so this costs no query.
+	 *
+	 * @param \WP_Post $post Post.
+	 * @return string
+	 */
+	private static function category( \WP_Post $post ): string {
+		$chosen     = Settings::value( 'breadcrumb_taxonomies' );
+		$taxonomies = array_merge(
+			is_array( $chosen ) && isset( $chosen[ $post->post_type ] ) ? array( (string) $chosen[ $post->post_type ] ) : array(),
+			array( 'category' ),
+			array_keys( get_object_taxonomies( $post->post_type, 'objects' ) )
+		);
+
+		foreach ( array_unique( $taxonomies ) as $taxonomy ) {
+			$object = get_taxonomy( $taxonomy );
+			if ( false === $object || ! $object->hierarchical || ! $object->public || ! is_object_in_taxonomy( $post->post_type, $taxonomy ) ) {
+				continue;
+			}
+
+			$terms = get_the_terms( $post, $taxonomy );
+			return is_array( $terms ) && isset( $terms[0] ) ? $terms[0]->name : '';
+		}
+
+		return '';
 	}
 
 	/**
@@ -162,19 +194,19 @@ final class Titles {
 			$variables['author']    = static fn(): string => (string) get_the_author_meta( 'display_name', (int) $object->post_author );
 			$variables['post_type'] = (string) ( get_post_type_object( $object->post_type )->labels->singular_name ?? '' );
 			$variables['date']      = static fn(): string => (string) get_the_date( '', $object );
-			$variables['category']  = static function () use ( $object ): string {
-				$categories = 'post' === $object->post_type ? get_the_category( $object->ID ) : array();
-				return isset( $categories[0] ) ? $categories[0]->name : '';
-			};
+			$variables['category']  = static fn(): string => self::category( $object );
 		} elseif ( $object instanceof \WP_Term ) {
-			$variables['title']            = $object->name;
-			$variables['term_description'] = Template::truncate( Template::plain( $object->description ), Template::EXCERPT_LENGTH );
+			$variables['title'] = $object->name;
+			// Like the term's SEO fields, its description is written in the default language only.
+			$variables['term_description'] = Meta::is_other_language() ? '' : Template::truncate( Template::plain( $object->description ), Template::EXCERPT_LENGTH );
 		} elseif ( $object instanceof \WP_User ) {
-			$variables['title']  = $object->display_name;
-			$variables['author'] = $object->display_name;
+			$variables['title']              = $object->display_name;
+			$variables['author']             = $object->display_name;
+			$variables['author_description'] = static fn(): string => Template::truncate( Template::plain( (string) get_the_author_meta( 'description', $object->ID ) ), Template::EXCERPT_LENGTH );
 		} elseif ( $object instanceof \WP_Post_Type ) {
-			$variables['title']     = (string) $object->labels->name;
-			$variables['post_type'] = (string) $object->labels->name;
+			$variables['title']                 = (string) $object->labels->name;
+			$variables['post_type']             = (string) $object->labels->name;
+			$variables['post_type_description'] = Template::truncate( Template::plain( (string) $object->description ), Template::EXCERPT_LENGTH );
 		} elseif ( is_date() ) {
 			$variables['title'] = wp_strip_all_tags( get_the_archive_title() );
 			$variables['date']  = $variables['title'];

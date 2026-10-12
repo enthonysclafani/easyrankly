@@ -8,6 +8,8 @@
 namespace EasyRankly\Tests\Breadcrumbs;
 
 use EasyRankly\Meta\Meta;
+use EasyRankly\Multilingual\Routing;
+use EasyRankly\Multilingual\Translations;
 use EasyRankly\Schema\Schema;
 use EasyRankly\Settings\Settings;
 use WP_UnitTestCase;
@@ -76,6 +78,45 @@ final class BreadcrumbsTest extends WP_UnitTestCase {
 
 		$this->assertStringContainsString( '>Start &amp; go</a>', $html );
 		$this->assertStringNotContainsString( '>Home<', $html );
+	}
+
+	/**
+	 * Each language can have its own home label; without one it uses the label of all languages.
+	 */
+	public function test_home_label_per_language(): void {
+		update_option(
+			Settings::OPTION,
+			array(
+				'breadcrumb_home_label' => 'Inizio',
+				'languages'             => array(
+					'it' => array(
+						'locale' => 'it_IT',
+						'name'   => 'Italiano',
+					),
+					'en' => array(
+						'locale'                => 'en_US',
+						'name'                  => 'English',
+						'breadcrumb_home_label' => 'Start',
+					),
+					'fr' => array(
+						'locale' => 'fr_FR',
+						'name'   => 'Français',
+					),
+				),
+			)
+		);
+		$post = $this->post();
+
+		$this->go_to( get_permalink( $post ) );
+		$this->assertStringContainsString( '>Inizio</a>', $this->render() );
+
+		Translations::set_language( $post, 'en' );
+		$this->go_to( add_query_arg( Routing::QUERY_VAR, 'en', get_permalink( $post ) ) );
+		$this->assertStringContainsString( '>Start</a>', $this->render() );
+
+		Translations::set_language( $post, 'fr' );
+		$this->go_to( add_query_arg( Routing::QUERY_VAR, 'fr', get_permalink( $post ) ) );
+		$this->assertStringContainsString( '>Inizio</a>', $this->render() );
 	}
 
 	/**

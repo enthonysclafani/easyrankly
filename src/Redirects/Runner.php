@@ -37,15 +37,38 @@ final class Runner {
 
 		$rule = $this->find( Rule::normalize( Context::request_uri() ) );
 		if ( null !== $rule ) {
-			$this->send( $rule['code'], $rule['target'] );
+			$this->send( $rule['code'], $rule['query'] ? self::with_query( $rule['target'] ) : $rule['target'] );
 		}
+	}
+
+	/**
+	 * Target with the query string of the request, for rules that pass it on (`?utm_source=…`).
+	 *
+	 * A target with a query string of its own keeps it as it is: merging the two could
+	 * override the parameters the rule was written for.
+	 *
+	 * @param string $target Target path or URL.
+	 * @return string
+	 */
+	public static function with_query( string $target ): string {
+		$query = (string) wp_parse_url( Context::request_uri(), PHP_URL_QUERY );
+		if ( '' === $query || '' === $target || str_contains( $target, '?' ) ) {
+			return $target;
+		}
+
+		$hash = strpos( $target, '#' );
+		if ( false === $hash ) {
+			return $target . '?' . $query;
+		}
+
+		return substr( $target, 0, $hash ) . '?' . $query . substr( $target, $hash );
 	}
 
 	/**
 	 * Rule matching a path: forced rules first, then (on 404 only) exact and regex rules.
 	 *
 	 * @param string $path Normalized request path.
-	 * @return array{code: int, target: string}|null
+	 * @return array{code: int, target: string, query: bool}|null
 	 */
 	public function find( string $path ): ?array {
 		// Read the forced list only from the autoloaded options: before the first redirect is
@@ -68,7 +91,7 @@ final class Runner {
 	 * Exact rule for a path, cached until a redirect changes.
 	 *
 	 * @param string $path Normalized request path.
-	 * @return array{code: int, target: string}|null
+	 * @return array{code: int, target: string, query: bool}|null
 	 */
 	private function exact( string $path ): ?array {
 		$key    = Rule::hash( $path ) . ':' . wp_cache_get_last_changed( Redirects::CACHE_GROUP );
@@ -78,6 +101,7 @@ final class Runner {
 			return array() === $cached ? null : array(
 				'code'   => (int) $cached['code'],
 				'target' => (string) $cached['target'],
+				'query'  => ! empty( $cached['query'] ),
 			);
 		}
 
@@ -86,6 +110,7 @@ final class Runner {
 		$hit  = null !== $rule ? array(
 			'code'   => $rule['code'],
 			'target' => $rule['target'],
+			'query'  => $rule['query'],
 		) : null;
 
 		// Every distinct address without a rule adds an entry: misses expire sooner than hits.
@@ -99,7 +124,7 @@ final class Runner {
 	 *
 	 * @param mixed  $rules Stored list of rules.
 	 * @param string $path  Normalized request path.
-	 * @return array{code: int, target: string}|null
+	 * @return array{code: int, target: string, query: bool}|null
 	 */
 	private function first_match( $rules, string $path ): ?array {
 		if ( ! is_array( $rules ) ) {
@@ -138,6 +163,7 @@ final class Runner {
 				return array(
 					'code'   => (int) $rule['code'],
 					'target' => $target,
+					'query'  => ! empty( $rule['query'] ),
 				);
 			}
 		}

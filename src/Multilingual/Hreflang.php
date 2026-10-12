@@ -7,6 +7,7 @@
 
 namespace EasyRankly\Multilingual;
 
+use EasyRankly\Canonical\Canonical;
 use EasyRankly\Meta\Meta;
 use EasyRankly\Robots\Robots;
 use EasyRankly\Settings\Settings;
@@ -21,8 +22,10 @@ defined( 'ABSPATH' ) || exit;
  * versions that are published, public, indexable and their own canonical: search engines
  * ignore alternates that are not. Pages printed:
  * - single content with translations, the static front page and the posts page;
- * - the home that lists posts, which exists in every language.
- * Archives, search, 404 and pages after the first get none.
+ * - the home that lists posts and the archives (terms, post types, authors, dates), which exist
+ *   in every language. An archive with nothing in one language still gets its link there: knowing
+ *   it would cost a query per language.
+ * Search, 404 and pages after the first get none.
  */
 final class Hreflang {
 
@@ -74,6 +77,14 @@ final class Hreflang {
 			$urls = array();
 			foreach ( array_keys( Languages::all() ) as $language ) {
 				$urls[ $language ] = Routing::home( $language );
+			}
+		} elseif ( is_archive() && '' === (string) Meta::queried( 'canonical' ) ) {
+			// Terms are shared by all languages, and so are post type, author and date archives:
+			// each exists under every prefix and lists the content of that language.
+			$base = Canonical::archive_url();
+			$urls = array();
+			foreach ( '' === $base ? array() : array_keys( Languages::all() ) as $language ) {
+				$urls[ $language ] = Routing::url( $base, $language );
 			}
 		} else {
 			return array();

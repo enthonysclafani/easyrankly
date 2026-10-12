@@ -296,10 +296,78 @@ final class SitemapTest extends WP_UnitTestCase {
 		$GLOBALS['wp_sitemaps'] = null;
 
 		$after = implode( ' ', $this->index() );
-		$this->assertStringNotContainsString( 'sitemap-subtype=page', $after );
 		$this->assertStringNotContainsString( 'post_tag', $after );
 		$this->assertStringNotContainsString( 'users', $after );
 		$this->assertStringContainsString( 'sitemap-subtype=post', $after );
+
+		// The home listing the latest posts is not a single page: it stays, alone in the pages sitemap.
+		$this->assertStringContainsString( 'sitemap-subtype=page', $after );
+		$this->assertSame( array( home_url( '/' ) ), $this->urls( 'posts', 'page' ) );
+	}
+
+	/**
+	 * With single pages noindex, the static front page and the posts page stay in the pages sitemap,
+	 * since their own contexts are indexable; with those contexts noindex they leave.
+	 */
+	public function test_front_page_and_posts_page_follow_their_own_contexts(): void {
+		$front = self::factory()->post->create( array( 'post_type' => 'page' ) );
+		$blog  = self::factory()->post->create( array( 'post_type' => 'page' ) );
+		$other = self::factory()->post->create( array( 'post_type' => 'page' ) );
+		self::factory()->post->create();
+		update_option( 'show_on_front', 'page' );
+		update_option( 'page_on_front', $front );
+		update_option( 'page_for_posts', $blog );
+
+		update_option( Settings::OPTION, array( 'noindex' => array( 'single-page' ) ) );
+		$GLOBALS['wp_sitemaps'] = null;
+		$this->assertStringContainsString( 'sitemap-subtype=page', implode( ' ', $this->index() ) );
+		$urls = $this->urls( 'posts', 'page' );
+		$this->assertContains( get_permalink( $front ), $urls );
+		$this->assertContains( get_permalink( $blog ), $urls );
+		$this->assertNotContains( get_permalink( $other ), $urls );
+
+		// Their own noindex still removes them, even though the query lists them by ID.
+		update_post_meta( $front, '_easyrankly_noindex', '1' );
+		$this->assertSame( array( get_permalink( $blog ) ), $this->urls( 'posts', 'page' ) );
+		delete_post_meta( $front, '_easyrankly_noindex' );
+
+		// "Post type archives" covers the posts page (Context): noindex there, out of the sitemap.
+		update_option( Settings::OPTION, array( 'noindex' => array( 'archive' ) ) );
+		$GLOBALS['wp_sitemaps'] = null;
+		$urls                   = $this->urls( 'posts', 'page' );
+		$this->assertNotContains( get_permalink( $blog ), $urls );
+		$this->assertContains( get_permalink( $front ), $urls );
+		$this->assertContains( get_permalink( $other ), $urls );
+
+		update_option( Settings::OPTION, array( 'noindex' => array( 'single-page', 'archive' ) ) );
+		$GLOBALS['wp_sitemaps'] = null;
+		$this->assertSame( array( get_permalink( $front ) ), $this->urls( 'posts', 'page' ) );
+	}
+
+	/**
+	 * A term whose address an exact forced redirect sends elsewhere is left out, like a post.
+	 */
+	public function test_terms_redirected_by_forced_rules_are_left_out(): void {
+		$this->set_permalink_structure( '/%postname%/' );
+		create_initial_taxonomies(); // Re-adds the category permastruct for the new structure.
+		$moved = self::factory()->category->create( array( 'slug' => 'old-news' ) );
+		$kept  = self::factory()->category->create( array( 'slug' => 'news' ) );
+		self::factory()->post->create( array( 'post_category' => array( $moved, $kept ) ) );
+		update_option(
+			Redirects::FORCED_OPTION,
+			array(
+				array(
+					'source' => '/category/old-news',
+					'regex'  => false,
+					'target' => '/category/news/',
+					'code'   => 301,
+				),
+			)
+		);
+
+		$urls = $this->urls( 'taxonomies', 'category' );
+		$this->assertNotContains( get_category_link( $moved ), $urls );
+		$this->assertContains( get_category_link( $kept ), $urls );
 	}
 
 	/**

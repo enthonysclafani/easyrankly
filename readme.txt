@@ -24,9 +24,13 @@ EasyRankly is in active development. This version is not ready for production si
 
 In block themes, create a template part or a synced pattern with the same name followed by the language prefix: "header-en" for "header", "Banner - EN" for "Banner". On the English pages it replaces the original. Unsynced patterns become a copy where they are inserted, so they are translated with the page of each language.
 
+= Are categories and tags translated? =
+
+No, each category or tag is the same in every language, with its address in each language. Its SEO title, description and social texts, and its description, are written in the default language: on the pages of the other languages they are ignored and the title and description templates of that language are used.
+
 = Are classic themes supported? =
 
-SEO, sitemap, redirects and custom code work with every theme. Multilingual needs a block theme: with a classic theme, contents, addresses, site title and tagline change with the language, but menus, widgets and texts set in the Customizer show the same text in every language.
+SEO, sitemap, redirects and custom code work with every theme. Two features need a block theme. The breadcrumb uses the WordPress Breadcrumbs block, and its structured data (BreadcrumbList) is printed only when the block is part of the template, which classic themes render after the page head. Multilingual needs a block theme too: with a classic theme, contents, addresses, site title and tagline change with the language, but menus, widgets and texts set in the Customizer show the same text in every language.
 
 = What does the "Everywhere" position of Custom code do? =
 

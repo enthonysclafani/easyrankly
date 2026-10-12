@@ -9,8 +9,8 @@ namespace EasyRankly\Schema;
 
 use EasyRankly\Canonical\Canonical;
 use EasyRankly\Context\Context;
-use EasyRankly\Meta\Meta;
 use EasyRankly\Settings\Settings;
+use EasyRankly\Social\Social;
 use EasyRankly\Titles\Template;
 use EasyRankly\Titles\Titles;
 
@@ -149,6 +149,11 @@ final class Schema {
 		if ( is_front_page() ) {
 			$page['about'] = array( '@id' => $identity['@id'] );
 		}
+		// The image the page is shared with, when it has one of its own (Social::own_image()).
+		$image = null !== $post ? Social::own_image( $post ) : null;
+		if ( null !== $image ) {
+			$page['primaryImageOfPage'] = self::image_object( $image, $url . '#primaryimage' );
+		}
 		if ( 'ProfilePage' === $page['@type'] && $object instanceof \WP_User ) {
 			// Google requires mainEntity on a ProfilePage: the person the archive is about.
 			$page['mainEntity'] = $this->profile( $object );
@@ -157,7 +162,7 @@ final class Schema {
 		$graph[] = array_filter( $page );
 
 		if ( null !== $post && 'post' === $post->post_type && ! is_front_page() ) {
-			$graph[] = $this->article( $post, $url, $identity['@id'] );
+			$graph[] = $this->article( $post, $url, $identity['@id'], null !== $image );
 		}
 
 		if ( null !== $breadcrumb ) {
@@ -272,11 +277,11 @@ final class Schema {
 	 * @param \WP_Post $post        Post.
 	 * @param string   $url         URL of the page.
 	 * @param string   $publisher   @id of the Organization or Person.
+	 * @param bool     $has_image   Whether the page has a primary image (#primaryimage).
 	 * @return array<string, mixed>
 	 */
-	private function article( \WP_Post $post, string $url, string $publisher ): array {
+	private function article( \WP_Post $post, string $url, string $publisher, bool $has_image ): array {
 		$author = get_userdata( (int) $post->post_author );
-		$image  = $this->image( (int) get_post_thumbnail_id( $post ), $url . '#primaryimage' );
 
 		return array_filter(
 			array(
@@ -288,12 +293,14 @@ final class Schema {
 				'mainEntityOfPage' => array( '@id' => $url . '#webpage' ),
 				'isPartOf'         => array( '@id' => $url . '#webpage' ),
 				'publisher'        => array( '@id' => $publisher ),
+				// Same @id as the Person of the author archive (profile()): one node for both.
 				'author'           => false === $author ? null : array(
 					'@type' => 'Person',
+					'@id'   => get_author_posts_url( $author->ID, $author->user_nicename ) . '#author',
 					'name'  => $author->display_name,
 					'url'   => get_author_posts_url( $author->ID, $author->user_nicename ),
 				),
-				'image'            => $image,
+				'image'            => $has_image ? array( '@id' => $url . '#primaryimage' ) : null,
 				'inLanguage'       => get_bloginfo( 'language' ),
 			),
 			static fn( $value ): bool => null !== $value && '' !== $value
@@ -370,19 +377,6 @@ final class Schema {
 			'home'                    => is_front_page() && is_home() ? 'CollectionPage' : 'WebPage',
 			default                   => 'WebPage',
 		};
-	}
-
-	/**
-	 * ImageObject of an attachment, or null when it is not an image.
-	 *
-	 * @param int    $attachment_id Attachment ID.
-	 * @param string $id            @id of the node.
-	 * @return array<string, mixed>|null
-	 */
-	private function image( int $attachment_id, string $id ): ?array {
-		$image = Meta::image( $attachment_id );
-
-		return null === $image ? null : self::image_object( $image, $id );
 	}
 
 	/**

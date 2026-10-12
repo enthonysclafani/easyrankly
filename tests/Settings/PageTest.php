@@ -142,7 +142,7 @@ final class PageTest extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'class="easyrankly-media-field"', $schema );
 
 		$titles = $this->page( 'easyrankly-titles' );
-		$this->assertStringContainsString( 'name="easyrankly_settings[templates][home][title]" value="{{site_name}} {{sep}} {{tagline}}"', $titles );
+		$this->assertStringContainsString( 'name="easyrankly_settings[templates][home][title]" value="{{site_name}} {{page}} {{sep}} {{tagline}}"', $titles );
 		$this->assertStringContainsString( 'name="easyrankly_settings[templates][single-page][title]"', $titles );
 		$this->assertStringNotContainsString( 'subsubsub', $titles );
 
@@ -150,6 +150,24 @@ final class PageTest extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'name="easyrankly_settings[languages][0][slug]"', $languages );
 		$this->assertStringContainsString( 'name="easyrankly_settings[languages][0][site_title]"', $languages );
 		$this->assertStringContainsString( 'name="easyrankly_settings[languages][0][tagline]"', $languages );
+		$this->assertStringContainsString( 'name="easyrankly_settings[languages][0][breadcrumb_home_label]"', $languages );
+	}
+
+	/**
+	 * A static posts page gets its own context in Indexing and Titles; without one it is not listed.
+	 */
+	public function test_posts_page_has_its_own_context(): void {
+		$this->login( 'administrator' );
+		$field = 'name="easyrankly_settings[noindex][archive-post]"';
+
+		$this->assertStringNotContainsString( $field, $this->page( 'easyrankly-indexing' ) );
+
+		update_option( 'show_on_front', 'page' );
+		update_option( 'page_on_front', self::factory()->post->create( array( 'post_type' => 'page' ) ) );
+		update_option( 'page_for_posts', self::factory()->post->create( array( 'post_type' => 'page' ) ) );
+
+		$this->assertStringContainsString( $field, $this->page( 'easyrankly-indexing' ) );
+		$this->assertStringContainsString( 'name="easyrankly_settings[templates][archive-post][title]"', $this->page( 'easyrankly-titles' ) );
 	}
 
 	/**
@@ -185,7 +203,7 @@ final class PageTest extends WP_UnitTestCase {
 
 		$this->assertStringContainsString( 'name="easyrankly_settings[_language]" value="en"', $english );
 		// The templates of all languages show as placeholders of the empty fields.
-		$this->assertStringContainsString( 'name="easyrankly_settings[templates][home][title]" value="" placeholder="{{site_name}} {{sep}} {{tagline}}"', $english );
+		$this->assertStringContainsString( 'name="easyrankly_settings[templates][home][title]" value="" placeholder="{{site_name}} {{page}} {{sep}} {{tagline}}"', $english );
 	}
 
 	/**

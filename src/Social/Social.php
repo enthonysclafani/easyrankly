@@ -10,6 +10,7 @@ namespace EasyRankly\Social;
 use EasyRankly\Canonical\Canonical;
 use EasyRankly\Context\Context;
 use EasyRankly\Meta\Meta;
+use EasyRankly\Multilingual\Hreflang;
 use EasyRankly\Settings\Settings;
 use EasyRankly\Titles\Titles;
 
@@ -58,7 +59,7 @@ final class Social {
 		// Only posts are articles, as in the schema: pages, products and other types are websites.
 		$article = null !== $post && is_singular() && ! is_front_page() && 'post' === $post->post_type;
 
-		$title = (string) self::override( 'og_title' );
+		$title = Meta::queried_text( 'og_title' );
 		if ( '' === $title ) {
 			$title = Titles::title();
 		}
@@ -66,17 +67,24 @@ final class Social {
 			$title = html_entity_decode( wp_get_document_title(), ENT_QUOTES | ENT_HTML5, 'UTF-8' );
 		}
 
-		$description = (string) self::override( 'og_description' );
+		$description = Meta::queried_text( 'og_description' );
 		if ( '' === $description ) {
 			$description = Titles::description();
 		}
 
-		$tags = array(
-			array( 'property', 'og:locale', get_locale() ),
-			array( 'property', 'og:site_name', html_entity_decode( (string) get_bloginfo( 'name' ), ENT_QUOTES | ENT_HTML5, 'UTF-8' ) ),
-			array( 'property', 'og:type', $article ? 'article' : 'website' ),
-			array( 'property', 'og:title', $title ),
-		);
+		$tags = array( array( 'property', 'og:locale', get_locale() ) );
+
+		// The other languages of the page: those of its hreflang links, already worked out and cached.
+		foreach ( array_keys( Hreflang::alternates() ) as $code ) {
+			$locale = str_replace( '-', '_', $code );
+			if ( 'x-default' !== $code && Hreflang::code( get_locale() ) !== $code ) {
+				$tags[] = array( 'property', 'og:locale:alternate', $locale );
+			}
+		}
+
+		$tags[] = array( 'property', 'og:site_name', html_entity_decode( (string) get_bloginfo( 'name' ), ENT_QUOTES | ENT_HTML5, 'UTF-8' ) );
+		$tags[] = array( 'property', 'og:type', $article ? 'article' : 'website' );
+		$tags[] = array( 'property', 'og:title', $title );
 
 		if ( '' !== $description ) {
 			$tags[] = array( 'property', 'og:description', $description );
@@ -140,18 +148,35 @@ final class Social {
 	}
 
 	/**
-	 * Image to share: the object's social image, the featured image, then the default one.
+	 * Image to share: the page's own image (see own_image()), then the default one.
 	 *
-	 * Loading the featured image costs the same queries the theme makes to show it, and
-	 * they are cached for it. The default image is copied in the settings: no query.
+	 * The default image is copied in the settings: no query.
 	 *
 	 * @param \WP_Post|null $post Queried post, if any.
 	 * @return array{url: string, width: int, height: int, alt: string}|null
 	 */
 	private static function image( ?\WP_Post $post ): ?array {
+		return self::own_image( $post ) ?? Settings::image( 'social_image' );
+	}
+
+	/**
+	 * Image of the page itself: the object's social image, the image of an attachment page, then
+	 * the featured image of the queried post (also the posts page and a page standing for an
+	 * archive, like WooCommerce's shop page). The schema uses the same image.
+	 *
+	 * Loading the featured image costs the same queries the theme makes to show it, and
+	 * they are cached for it.
+	 *
+	 * @param \WP_Post|null $post Queried post, if any.
+	 * @return array{url: string, width: int, height: int, alt: string}|null
+	 */
+	public static function own_image( ?\WP_Post $post ): ?array {
 		$candidates = array( (int) self::override( 'og_image' ) );
 
-		if ( null !== $post && is_singular() ) {
+		if ( null !== $post && is_attachment() && wp_attachment_is_image( $post ) ) {
+			$candidates[] = $post->ID;
+		}
+		if ( null !== $post && ( is_singular() || is_home() || is_post_type_archive() ) ) {
 			$candidates[] = (int) get_post_thumbnail_id( $post );
 		}
 
@@ -162,6 +187,6 @@ final class Social {
 			}
 		}
 
-		return Settings::image( 'social_image' );
+		return null;
 	}
 }

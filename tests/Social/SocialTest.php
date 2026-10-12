@@ -176,4 +176,28 @@ final class SocialTest extends WP_UnitTestCase {
 
 		$this->assertSame( '', Settings::value( 'x_username' ) );
 	}
+
+	/**
+	 * An image attachment page is shared with the image itself; the posts page with its featured image.
+	 */
+	public function test_attachment_page_and_posts_page_use_their_own_image(): void {
+		update_option( Settings::OPTION, array( 'social_image' => $this->image( 'default.jpg', '' ) ) );
+		update_option( 'wp_attachment_pages_enabled', 1 );
+		$photo = $this->image( 'photo.jpg', 'A photo' );
+
+		$this->go_to( get_permalink( $photo ) );
+		$this->assertTrue( is_attachment() );
+		$this->assertStringContainsString( 'photo.jpg" />', $this->head() );
+
+		$blog = self::factory()->post->create( array( 'post_type' => 'page' ) );
+		set_post_thumbnail( $blog, $this->image( 'blog.jpg', '' ) );
+		self::factory()->post->create();
+		update_option( 'show_on_front', 'page' );
+		update_option( 'page_on_front', self::factory()->post->create( array( 'post_type' => 'page' ) ) );
+		update_option( 'page_for_posts', $blog );
+
+		$this->go_to( get_permalink( $blog ) );
+		$this->assertTrue( is_home() );
+		$this->assertStringContainsString( '<meta property="og:image" content="http://example.org/wp-content/uploads/blog.jpg" />', $this->head() );
+	}
 }
