@@ -294,13 +294,13 @@ final class PageTest extends WP_UnitTestCase {
 			)
 		);
 
-		$this->assertStringContainsString( 'HTML is printed as it is on every page of the site.</p>', $html );
+		$this->assertStringContainsString( 'Printed as it is on every page.</p>', $html );
 		$this->assertStringNotContainsString( 'value="everywhere"', $html );
-		$this->assertStringNotContainsString( 'Everywhere runs the PHP', $html );
+		$this->assertStringNotContainsString( 'Everywhere runs on every request', $html );
 
 		[ , $html ] = $this->request( array( 'action' => 'new' ) );
 		$this->assertStringContainsString( 'value="everywhere"', $html );
-		$this->assertStringContainsString( 'Everywhere runs the PHP', $html );
+		$this->assertStringContainsString( 'Everywhere runs on every request', $html );
 	}
 
 	/**

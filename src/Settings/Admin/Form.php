@@ -342,7 +342,7 @@ final class Form {
 			return self::error(
 				'languages',
 				/* translators: %s: name of the default language. */
-				sprintf( __( 'Some content has no language, so it is shown as %s, the first language. Another language can come first only once every content has its language.', 'easyrankly' ), $existing[ $default ]['name'] )
+				sprintf( __( 'Some content has no language and belongs to %s: another language can come first only once all content has a language.', 'easyrankly' ), $existing[ $default ]['name'] )
 			);
 		}
 
@@ -467,7 +467,7 @@ final class Form {
 	 */
 	private static function invalid_message( string $key ): string {
 		/* translators: %s: name of a setting. */
-		return sprintf( __( '%s: the value is not valid and was not saved.', 'easyrankly' ), Fields::label( $key ) );
+		return sprintf( __( '%s: invalid value, not saved.', 'easyrankly' ), Fields::label( $key ) );
 	}
 
 	/**
