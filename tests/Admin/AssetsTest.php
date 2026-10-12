@@ -7,6 +7,7 @@
 
 namespace EasyRankly\Tests\Admin;
 
+use EasyRankly\Admin\Assets;
 use EasyRankly\CustomCode\Admin\Page as SnippetsPage;
 use EasyRankly\CustomCode\CustomCode;
 use EasyRankly\Redirects\Admin\Page as RedirectsPage;
@@ -18,7 +19,7 @@ use WP_UnitTestCase;
 use const EasyRankly\PLUGIN_FILE;
 
 /**
- * The screens of the plugin use only the admin styles of the core: no `wp-components`, no stylesheet of ours.
+ * The screens of the plugin use the admin styles of the core plus one stylesheet of ours: no `wp-components`.
  */
 final class AssetsTest extends WP_UnitTestCase {
 
@@ -45,12 +46,14 @@ final class AssetsTest extends WP_UnitTestCase {
 	 */
 	public function tear_down(): void {
 		global $menu, $submenu, $_registered_pages, $wp_settings_sections, $wp_settings_fields;
-		$menu                  = array();
-		$submenu               = array();
-		$_registered_pages     = array();
-		$wp_settings_sections  = array();
-		$wp_settings_fields    = array();
-		$_GET                  = array();
+		$menu                 = array();
+		$submenu              = array();
+		$_registered_pages    = array();
+		$wp_settings_sections = array();
+		$wp_settings_fields   = array();
+		$_GET                 = array();
+		$_REQUEST             = array();
+		unset( $GLOBALS['plugin_page'] );
 		$GLOBALS['wp_scripts'] = null;
 		$GLOBALS['wp_styles']  = null;
 		set_current_screen( 'front' );
@@ -79,15 +82,15 @@ final class AssetsTest extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Loading a screen as the core does queues no `wp-components` and no stylesheet of the plugin,
-	 * not even as a dependency of what the screen loads.
+	 * Loading a screen as the core does queues no `wp-components`, not even as a dependency of what the screen
+	 * loads, and no stylesheet of the plugin but `assets/admin.css` on the screens with a form.
 	 *
 	 * @dataProvider screens
 	 *
 	 * @param string                $slug Page slug.
 	 * @param array<string, string> $args Query arguments.
 	 */
-	public function test_screen_loads_no_styles_of_ours( string $slug, array $args ): void {
+	public function test_screen_loads_only_the_admin_stylesheet( string $slug, array $args ): void {
 		( new SettingsPage() )->add_menu();
 		( new RedirectsPage() )->add_menu();
 		( new SnippetsPage() )->add_menu();
@@ -98,8 +101,11 @@ final class AssetsTest extends WP_UnitTestCase {
 			$args['id'] = (string) $id;
 		}
 
-		$_GET = array( 'page' => $slug ) + $args;
-		$hook = (string) get_plugin_page_hookname( $slug, SettingsPage::SLUG );
+		// As the core does: the page slug in $plugin_page, the query arguments also in $_REQUEST.
+		$_GET                   = array( 'page' => $slug ) + $args;
+		$_REQUEST               = $_GET; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Test setup.
+		$GLOBALS['plugin_page'] = $slug;
+		$hook                   = (string) get_plugin_page_hookname( $slug, SettingsPage::SLUG );
 		$this->assertTrue( has_action( 'load-' . $hook ), $hook );
 
 		set_current_screen( $hook );
@@ -113,10 +119,19 @@ final class AssetsTest extends WP_UnitTestCase {
 		$this->assertNotContains( 'wp-components', self::queued( wp_scripts() ), 'A script of ours renders no components.' );
 
 		$plugin = plugins_url( '', PLUGIN_FILE );
+		$ours   = array();
 		foreach ( $styles as $handle ) {
 			$src = wp_styles()->registered[ $handle ]->src ?? '';
-			$this->assertStringStartsNotWith( $plugin, is_string( $src ) ? $src : '', $handle );
-			$this->assertStringStartsNotWith( 'easyrankly', $handle );
+			if ( str_starts_with( $handle, 'easyrankly' ) || str_starts_with( is_string( $src ) ? $src : '', $plugin ) ) {
+				$ours[] = $handle;
+			}
+		}
+
+		// The lists of redirects and snippets are WP_List_Table screens: nothing to dress.
+		$list = in_array( $slug, array( RedirectsPage::SLUG, SnippetsPage::SLUG ), true ) && ! isset( $args['action'] );
+		$this->assertSame( $list ? array() : array( Assets::STYLE ), $ours );
+		if ( ! $list ) {
+			$this->assertSame( $plugin . '/assets/admin.css', wp_styles()->registered[ Assets::STYLE ]->src );
 		}
 	}
 

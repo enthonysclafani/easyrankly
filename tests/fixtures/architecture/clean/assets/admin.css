@@ -1,0 +1,12 @@
+/* Scoped rules. */
+.easyrankly-admin .form-table :is(input, select):not(.small-text),
+.easyrankly-admin h2 {
+	width: 100%;
+}
+
+@media (forced-colors: active) {
+
+	.easyrankly-admin h2 {
+		color: CanvasText;
+	}
+}

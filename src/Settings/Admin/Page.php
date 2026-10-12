@@ -7,6 +7,7 @@
 
 namespace EasyRankly\Settings\Admin;
 
+use EasyRankly\Admin\Assets;
 use EasyRankly\Admin\MediaField;
 use EasyRankly\Multilingual\Languages;
 use EasyRankly\Settings\Settings;
@@ -117,6 +118,7 @@ final class Page {
 	 */
 	public function load( string $slug ): void {
 		Fields::add( $slug );
+		add_action( 'admin_enqueue_scripts', array( Assets::class, 'style' ) );
 
 		if ( self::SCHEMA === $slug ) {
 			add_action( 'admin_enqueue_scripts', array( MediaField::class, 'enqueue' ) );
@@ -153,7 +155,7 @@ final class Page {
 
 		$language = self::TITLES === $slug ? Fields::language() : '';
 
-		echo '<div class="wrap">';
+		echo '<div class="wrap easyrankly-admin">';
 		printf( '<h1>%s</h1>', esc_html( self::pages()[ $slug ]['title'] ) );
 		settings_errors();
 

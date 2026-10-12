@@ -179,6 +179,7 @@ abstract class RecordsPage {
 		// phpcs:enable WordPress.Security.NonceVerification
 
 		if ( in_array( $this->action(), array( 'new', 'edit' ), true ) ) {
+			add_action( 'admin_enqueue_scripts', array( Assets::class, 'style' ) );
 			add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_current_form' ) );
 		}
 	}
@@ -191,7 +192,7 @@ abstract class RecordsPage {
 			return;
 		}
 
-		echo '<div class="wrap">';
+		echo '<div class="wrap easyrankly-admin">';
 		switch ( $this->action() ) {
 			case 'new':
 			case 'edit':

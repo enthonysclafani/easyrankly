@@ -127,10 +127,28 @@ Prima di scrivere codice, verifica se WordPress lo fa già. Se lo fa, usa o filt
 | HTTP verso terzi | `wp_safe_remote_get/post()` (URL dell'utente), `wp_remote_*()` (host fissi) | cURL, `file_get_contents()` |
 | Cache | `wp_cache_*()` (gruppo `easyrankly`; `easyrankly_redirects` per i redirect, invalidato dal suo `last_changed`; `easyrankly_request`, non persistente, per ciò che vale una sola richiesta), transient per dati remoti | cache su file, variabili statiche globali |
 | Endpoint | `register_rest_route()` con `permission_callback` e `args` con schema | `admin-ajax.php` |
-| Schermate admin | Stile WordPress classico: Settings API (`add_settings_section()`, `add_settings_field()`, `options.php`) su più pagine brevi, `WP_List_Table` per gli elenchi, markup e classi del core (`wrap`, `form-table`, `wp-list-table`, `notice`, `nav-tab-wrapper`); JS solo dove serve interazione (editor a blocchi, scelta dell'immagine) | pagine lunghe a schede, `wp-components` e CSS nostri sulle schermate del plugin, jQuery, librerie UI esterne |
+| Schermate admin | Stile WordPress classico: Settings API (`add_settings_section()`, `add_settings_field()`, `options.php`) su più pagine brevi, `WP_List_Table` per gli elenchi, markup e classi del core (`wrap`, `form-table`, `wp-list-table`, `notice`, `nav-tab-wrapper`), vestiti dall'unico foglio di stile `assets/admin.css` (vedi "Stile admin"); JS solo dove serve interazione (editor a blocchi, scelta dell'immagine) | pagine lunghe a schede, `wp-components` sulle schermate del plugin, altri fogli di stile, CSS inline, classi CSS per una sola funzione, jQuery, librerie UI esterne |
 | Editor a blocchi | `@wordpress/components` nei pannelli dell'editor (`PluginDocumentSettingPanel`) | meta box classiche |
 | Build JS | `@wordpress/scripts` (`wp-scripts build`), dipendenze da `*.asset.php` | bundler custom |
 | Traduzioni | `__()`, `_x()`, `_n()`, `wp_set_script_translations()` | stringhe fisse |
+
+## Stile admin
+
+Uno stile solo per tutte le schermate del plugin, deciso una volta (12 ottobre 2026): titolo della sezione grigio e
+maiuscolo, sezione in un box bianco largo al massimo 760px, etichetta sopra il campo, campi di testo e select larghi
+quanto il box, ogni checkbox un interruttore on/off.
+
+- **Un solo foglio di stile**, `assets/admin.css` (statico, niente build), caricato da `Admin\Assets::style()` sulle
+  pagine di impostazioni e sui form di Redirect e Custom code, dentro `<div class="wrap easyrankly-admin">`.
+- **Lo stile si applica al markup del core, non a classi nostre**: un campo nuovo fatto con la Settings API
+  (`add_settings_field()`, classi `regular-text`, `large-text`, `small-text`, `description`) prende già l'aspetto
+  giusto. Una funzione nuova non aggiunge regole CSS: se sembra che serva, la si chiede prima a Enthony.
+- `composer architecture` (regola `one-stylesheet`) blocca: altri file `.css`/`.scss` nel plugin; `assets/admin.css`
+  oltre 4 KB, con `!important` o con selettori che non iniziano con `.easyrankly-admin `; `wp_enqueue_style()`,
+  `wp_register_style()` e `wp_add_inline_style()` fuori da `src/Admin/Assets.php`; `style="…"` e `<style>` nel PHP;
+  stili inline e import di CSS negli script di `assets/src/`. Unica eccezione: `assets/src/editor/index.js`
+  (anteprima dell'immagine social nel pannello dell'editor a blocchi, dove il foglio admin non si carica).
+- Le schermate dei termini e l'editor a blocchi restano come il core: niente foglio nostro.
 
 ## Sicurezza
 

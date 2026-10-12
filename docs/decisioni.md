@@ -110,6 +110,10 @@ documenti indicati.
 - **Stile WordPress classico** (9 ottobre 2026, Fase 4): Settings API su più pagine brevi, `WP_List_Table`, markup
   del core, nessun `wp-components` né CSS nostri sulle schermate del plugin. Perché: le prime schermate React avevano
   un aspetto diverso dal resto dell'admin e pesavano di più (`docs/piano.md`, sezione 3).
+- **Uno stile admin unico** (12 ottobre 2026): un solo foglio `assets/admin.css` (circa 3 KB, nessun JS) veste il
+  markup del core come le vecchie Beta e Alpha (box titolati, campi al 100%, interruttori on/off), sostituendo il
+  "nessun CSS nostro" della voce sopra. Perché: aspetto più curato a costo quasi nullo, e uno stile deciso una volta
+  sola. `composer architecture` impedisce che ogni modifica aggiunga regole nuove (CLAUDE.md, "Stile admin").
 - **Pagina articoli con un contesto suo** nelle impostazioni, separato dagli archivi dei tipi di contenuto
   (12 ottobre 2026, PR #64).
 - **Campi SEO nel form "Aggiungi" dei termini**: non si fanno (12 ottobre 2026): restano solo in "Modifica".

@@ -1,6 +1,6 @@
 <?php
 /**
- * Loads the admin scripts compiled by `npm run build`.
+ * Loads the admin scripts compiled by `npm run build` and the admin stylesheet.
  *
  * @package EasyRankly
  */
@@ -13,14 +13,20 @@ use const EasyRankly\VERSION;
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Enqueues one entry point from build/ with the dependencies listed in its asset file.
+ * Enqueues one entry point from build/ with the dependencies listed in its asset file, and the one stylesheet of
+ * the plugin screens.
  */
 final class Assets {
 
 	/**
+	 * Handle of `assets/admin.css`, the only stylesheet of the plugin (see CLAUDE.md, "Stile admin").
+	 */
+	public const STYLE = 'easyrankly-admin';
+
+	/**
 	 * Enqueues `build/{entry}.js` as `easyrankly-{entry}`, with translations and no stylesheet: the screens of
-	 * the plugin use the admin classes of the core, and in the block editor the core already loads the
-	 * `wp-components` styles (a dependency of `wp-edit-post`).
+	 * the plugin get theirs from style(), and in the block editor the core already loads the `wp-components`
+	 * styles (a dependency of `wp-edit-post`).
 	 *
 	 * @param string $entry Entry point name from webpack.config.js (e.g. "editor").
 	 * @return bool False when the build is missing; a notice then explains how to build it.
@@ -47,6 +53,14 @@ final class Assets {
 		wp_set_script_translations( $handle, 'easyrankly' );
 
 		return true;
+	}
+
+	/**
+	 * Enqueues `assets/admin.css`, which dresses the core markup inside `<div class="wrap easyrankly-admin">`.
+	 * Hooked on `admin_enqueue_scripts` by the plugin screens only.
+	 */
+	public static function style(): void {
+		wp_enqueue_style( self::STYLE, plugins_url( 'assets/admin.css', PLUGIN_FILE ), array(), VERSION );
 	}
 
 	/**
