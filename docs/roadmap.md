@@ -195,6 +195,98 @@ repository del Pro. Nome nel codice: `erankly-pro`; richiede il gratuito (`Requi
 - Piano editoriale, brief, bozze, link interni, report mensile
 - Noindex su pagine povere tra le azioni proponibili (rischio alto): l'AI propone, l'utente sceglie
 
+## In sospeso
+
+Elenco unico di ciò che resta aperto, aggiornato al 12 ottobre 2026. Dove un punto è già descritto altrove, qui c'è
+solo il rimando: i dettagli restano in quel documento.
+
+### Pubblicazione della 2.0.0 su WordPress.org
+
+Lo slug `easyrankly` ha già la 1.0.0 pubblicata (codice del branch `main`, meno di 10 installazioni): la riscrittura
+esce come aggiornamento 2.0.0, con un commit SVN su `trunk` e `tags/2.0.0`, senza una nuova revisione. Per chi
+aggiorna dalla 1.0.0 non si fa niente (decisione del 12 ottobre 2026): meta `_erankly_*`, option, tabelle e cron della
+1.0.0 restano orfani. Già fatti: link al sorgente JS nel readme e soglia `unfiltered_html` sugli snippet (PR #67).
+
+- [ ] Readme per la scheda pubblica: togliere "not ready for production sites", descrivere cosa fa e cosa non fa,
+      aggiungere `== Installation ==`, `== Upgrade Notice ==` e il changelog 2.0.0 ("le impostazioni della 1.0.0 non
+      vengono importate"); nella FAQ chi può usare gli snippet PHP (`edit_plugins`, mai con `DISALLOW_FILE_EDIT`) e la
+      modalità sicura
+- [ ] Versione da 3.0.0 a 2.0.0: header di `easyrankly.php`, costante `VERSION`, `Stable tag`, changelog,
+      `tests/PluginTest.php`; nei documenti "EasyRankly 3" diventa 2.0
+- [ ] Plugin Check completo, una volta, a mano: tutte le categorie, con i warning e senza escludere
+      `src/CustomCode/PhpRunner.php`; annotare l'elenco esatto dei messaggi (serve anche a CC-10 di `docs/sicurezza.md`)
+- [ ] Controllare che `easyrankly.com` (`Plugin URI` e `Author URI`) risponda e che l'account `easyrankly` dei
+      `Contributors` abbia accesso in scrittura all'SVN
+- [ ] Prova a mano su Studio con lo zip di `tools/build-dist.sh`, compreso l'aggiornamento da una 1.0.0 installata
+      (vedi "Verifiche a mano su Studio" qui sotto)
+- [ ] Commit SVN su `trunk` e `tags/2.0.0`
+
+Miglioramenti non bloccanti, da fare quando capita:
+
+- [ ] Icona, banner e screenshot della scheda (cartella `assets/` dell'SVN)
+- [ ] Plugin Check completo come job CI manuale (`workflow_dispatch`), per ripeterlo a ogni rilascio
+- [ ] `Plugin URI` diverso da `Author URI` (toglie un warning di Plugin Check)
+- [ ] Dependabot anche per Composer e npm (oggi solo GitHub Actions)
+
+### Verifiche a mano su Studio
+
+I test automatici sono verdi, ma nel cloud non c'è un sito WordPress: queste cose non sono mai state viste in un
+browser dopo le PR che le hanno toccate.
+
+- [ ] Query Monitor: nessuna query in più su articolo singolo, pagina, archivi e home (criterio di uscita della Fase 1;
+      l'eccezione nota è in `CLAUDE.md`, sezione Prestazioni)
+- [ ] Schermate admin: Impostazioni (Titoli, Indicizzazione con la "Pagina articoli", Schema e social con Local
+      Business), Redirect e Custom code con il campo Note, pagina Lingue con le tabelle Lingue e Strings
+- [ ] Pannello SEO dell'editor ("Search appearance" e "Social sharing", anteprima dell'immagine social), pannello
+      Lingua e campi SEO dei termini (dopo `npm run build`)
+- [ ] Multilingua nel Site Editor: template part `{slug}-{lingua}`, pattern sincronizzati per lingua, blocco
+      Navigation dentro `header-{lingua}`, selettore di lingua; avviso della pagina Lingue con un tema classico
+- [ ] Custom code: snippet "Ovunque" che rompe l'admin e recupero (vedi `docs/custom-code.md`, "Da verificare a mano")
+- [ ] Contenuti protetti da password, archivi vuoti in noindex, ProfilePage degli autori con il Rich Results Test di
+      Google
+- [ ] WooCommerce e ACF attivi (riga già nella sezione "Compatibilità con WooCommerce e ACF")
+
+### Da decidere
+
+- Le due della sezione "Decisioni aperte" qui sotto (modelli decisionali, multilingua sui siti che non lo usano).
+- Le tre ancora aperte del piano di sicurezza: firma della cache degli snippet, spegnimento avviato da un visitatore,
+  strumenti esterni (`docs/sicurezza.md`, sezione 7).
+- Le eccezioni chieste da W1 e W5 (sezione "Compatibilità con WooCommerce e ACF" e `docs/compatibilita.md`).
+- Termine vuoto con descrizione: resta indicizzabile ma la sitemap del core non lo elenca (usa `hide_empty`).
+  Accettarlo, perché è raro, oppure filtrare i termini vuoti senza descrizione al costo di una query in più solo nella
+  sitemap.
+- Disinstallazione in multisite: `uninstall.php` pulisce solo il sito su cui gira, per la regola "nessuna funzione
+  multisite"; sugli altri siti della rete restano option, meta, snippet e redirect. Lasciarlo così o ciclare su
+  `get_sites()`.
+
+### Funzioni decise ma non ancora fatte
+
+- [ ] Import da Yoast e Rank Math: solo meta e redirect, a lotti dall'admin, senza cron (`docs/piano.md`, sezione 7)
+- [ ] Compatibilità W1, W4, W5, A1, A2 (sezione "Compatibilità con WooCommerce e ACF")
+- [ ] Prima di vendere il Pro: i punti di `docs/piano.md`, "Da verificare prima di vendere"
+
+### Debito tecnico residuo
+
+Dalla seconda analisi del 10 ottobre 2026 sono stati corretti i punti scelti (PR #62). Restano, nessuno bloccante:
+
+- [ ] Una sola definizione di "indicizzabile" per sitemap, hreflang e robots: oggi l'hreflang non esclude i contenuti
+      con un redirect forzato, che restano tra le alternate delle traduzioni (il più utile)
+- [ ] Nelle lingue non predefinite si caricano tutti i pattern sincronizzati e fino a 100 template part a ogni pagina:
+      pesa sugli hosting senza cache persistente; prima va esteso il test "nessuna query in più"
+- [ ] Ogni salvataggio di un redirect ricostruisce le liste anche quando non serve
+- [ ] `CustomCode::disable()` ricostruisce la cache degli snippet due volte
+- [ ] Piccole duplicazioni e smell da sistemare quando si tocca il file: regola "è un articolo" in Social e Schema,
+      reset della query var `post_type` in Context e Canonical, impianto REST e admin comune a Redirect e Custom code,
+      hook registrati come closure, rinomina dei termini lingua dentro il filtro di sanitize, nome dell'entry webpack
+      `languages`, stile inline nel JS dell'editor
+
+### Controllo di sicurezza
+
+- [ ] Controllo di sicurezza completo da fare, secondo il piano in `docs/sicurezza.md` (CC-01…CC-10, poi RD, ML, HD,
+      ST, SM, AD). Finora ci sono stati solo controlli mirati; come da regola del piano, i risultati restano fuori dal
+      repository finché non sono corretti
+- [ ] Testo per il team di WordPress.org che giustifica gli snippet PHP (CC-10)
+
 ## Decisioni aperte
 
 - Modelli decisionali (es. Jev di typesafe.ai): rimandati. Con l'AI pagata dall'utente, un modello sul backend
