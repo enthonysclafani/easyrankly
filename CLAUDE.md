@@ -222,10 +222,14 @@ Prima di scrivere codice, verifica se WordPress lo fa già. Se lo fa, usa o filt
 - Ogni option, meta, post type e tassonomia è registrato in un unico punto e documentato in `docs/data-model.md`.
 - Nessuna migrazione per ora. Con la prima arriverà l'option `easyrankly_db_version` (versione dello schema dati):
   le migrazioni gireranno su `admin_init` se la versione è vecchia, idempotenti e a lotti (vedi invariante 2).
-- `uninstall.php` rimuove **tutto** ciò che il plugin ha creato sul sito. Un test lo verifica.
-- **Multisite: nessuna funzione dedicata, ma nessun conflitto.** Niente impostazioni di rete, niente codice che
-  cicla sui siti, niente `*_site_option()`, niente `switch_to_blog()`. Usando solo API per sito (`get_option()`,
-  meta, post type) il plugin funziona da solo su ogni sito del network senza codice aggiuntivo.
+- `uninstall.php` rimuove **tutto** ciò che il plugin ha creato sul sito e, in multisite, su ogni sito della rete
+  (`get_sites()` a lotti + `switch_to_blog()`): WordPress lo esegue una volta sola, quindi pulire solo il sito
+  corrente lascerebbe i dati degli altri. Un test lo verifica, anche in multisite.
+- **Multisite: nessuna funzione dedicata, ma nessun conflitto.** Niente impostazioni di rete, niente
+  `*_site_option()`, niente codice che cicla sui siti durante il funzionamento normale. Usando solo API per sito
+  (`get_option()`, meta, post type) il plugin funziona da solo su ogni sito del network senza codice aggiuntivo.
+  La regola serve a non aggiungere funzioni, non a lasciare lavoro a metà: l'unica eccezione è la disinstallazione,
+  che deve essere completa.
 
 ## Servizi esterni
 
@@ -261,7 +265,7 @@ Search Console e DataForSEO stanno in EasyRankly Pro.
 
 **Fuori** (non implementare senza decisione esplicita): qualsiasi funzione AI, log dei 404, contatori di hit,
 punteggio SEO/analisi leggibilità in tempo reale, indice dei link in tabella, sitemap news/video, migrazioni con job in
-background, form, pulizia "bloat", qualsiasi funzione dedicata a multisite, Google Indexing API, IndexNow,
+background, form, pulizia "bloat", qualsiasi funzione dedicata a multisite (la pulizia completa in `uninstall.php` non lo è), Google Indexing API, IndexNow,
 pubblicazione automatica.
 
 ## Test e verifica
@@ -285,7 +289,8 @@ composer check          # tutto quanto sopra: deve passare prima di dire "fatto"
 - Ogni funzionalità ha test di integrazione sul comportamento visibile (HTML in `<head>`, risposta HTTP, XML della sitemap),
   non sui dettagli interni.
 - I test coprono: permalink semplici e "pretty", utente senza capability.
-  La CI esegue la suite anche su un'installazione multisite, solo per garantire che non ci siano conflitti.
+  La CI esegue la suite anche su un'installazione multisite, per garantire che non ci siano conflitti e che la
+  disinstallazione pulisca ogni sito della rete.
 
 ## Definizione di "fatto"
 

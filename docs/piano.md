@@ -22,7 +22,9 @@ testata (meta, schema, sitemap, matching dei redirect, editor del multilingua). 
 5. **Nessun sistema a moduli.** Il plugin gratuito è unico e definito. L'unica estensione è EasyRankly Pro,
    un plugin separato e autonomo: nel gratuito non c'è nessun codice per il Pro, nemmeno punti di estensione dedicati
    (decisione di ottobre 2026, sezione 6).
-6. **Nessuna funzione dedicata a multisite**, ma nessun conflitto: solo API per sito.
+6. **Nessuna funzione dedicata a multisite**, ma nessun conflitto: solo API per sito. Eccezione: la disinstallazione
+   pulisce ogni sito della rete con `get_sites()`, perché una disinstallazione incompleta lascerebbe dati ovunque
+   (decisione del 12 ottobre 2026).
 7. **L'AI non scrive mai direttamente**: ogni modifica è una proposta che un umano approva.
 
 Conseguenza principale: ciò che costa (dati di DataForSEO) o richiede un server (OAuth di Search Console, licenze,
@@ -49,7 +51,7 @@ Search Console tiene già 16 mesi.
 | Punteggio SEO / analisi di leggibilità in tempo reale | Molto JS, valore discutibile; le proposte dell'agente del Pro fanno meglio lo stesso lavoro |
 | Indice dei link in tabella | Sostituito da una tassonomia nascosta (vedi sezione 5) |
 | Sitemap news e video, form, pulizia "bloat" | Fuori dalla direzione del prodotto |
-| Funzioni multisite | Decisione esplicita: nessun codice dedicato |
+| Funzioni multisite | Decisione esplicita: nessun codice dedicato, tranne la pulizia di ogni sito in `uninstall.php` |
 | Google Indexing API | Google la consente solo per offerte di lavoro e dirette |
 | IndexNow | Decisione di ottobre 2026: non interessa. Le sitemap del core bastano per la scoperta dei contenuti |
 | Pubblicazione automatica | Rischio "scaled content abuse": i contenuti AI nascono bozze |

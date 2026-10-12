@@ -154,7 +154,7 @@ export WXR (cap `export`), `get_posts()` pubblico tramite query var (`?post_type
 
 ### CC-09. Disinstallazione
 
-`uninstall.php` elimina snippet, revisioni, meta e option. Verificare che non resti codice eseguibile
+`uninstall.php` elimina snippet, revisioni, meta e option, in multisite su ogni sito della rete. Verificare che non resti codice eseguibile
 (option `easyrankly_snippets` inclusa) e che `UninstallTest.php` lo copra.
 
 ### CC-10. Revisione di WordPress.org (non serve)

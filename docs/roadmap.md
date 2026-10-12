@@ -11,7 +11,7 @@ I riferimenti ad Alpha indicano file del vecchio plugin (branch `Alpha` di quest
 - [x] Repository, `CLAUDE.md`, bootstrap minimo con autoloader PSR-4
 - [x] `composer check`: architettura, PHPCS, PHPStan, PHPUnit
 - [x] `tools/check-architecture.php` con test sui casi vietati e consentiti
-- [x] CI su GitHub: controlli statici su PHP 8.1 e 8.4, test anche su multisite (solo anti-conflitto), Plugin Check
+- [x] CI su GitHub: controlli statici su PHP 8.1 e 8.4, test anche su multisite (anti-conflitto e disinstallazione su tutta la rete), Plugin Check
 - [x] `composer.lock` generato e committato
 - [x] Primo run verde della CI su GitHub (branch `Refactory`)
 - [x] Branch autonomo: piano in `docs/piano.md`, preparazione automatica delle sessioni cloud (`tools/cloud-setup.sh`)
@@ -252,9 +252,6 @@ browser dopo le PR che le hanno toccate.
 - Le tre ancora aperte del piano di sicurezza: firma della cache degli snippet, spegnimento avviato da un visitatore,
   strumenti esterni (`docs/sicurezza.md`, sezione 7).
 - Le eccezioni chieste da W1 e W5 (sezione "Compatibilità con WooCommerce e ACF" e `docs/compatibilita.md`).
-- Disinstallazione in multisite: `uninstall.php` pulisce solo il sito su cui gira, per la regola "nessuna funzione
-  multisite"; sugli altri siti della rete restano option, meta, snippet e redirect. Lasciarlo così o ciclare su
-  `get_sites()`.
 
 ### Funzioni decise ma non ancora fatte
 

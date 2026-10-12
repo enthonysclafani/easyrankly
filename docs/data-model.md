@@ -1,7 +1,7 @@
 # Modello dati
 
 Ogni dato che il plugin salva è elencato qui. Se non è in questa pagina, il plugin non deve crearlo.
-`uninstall.php` rimuove tutto ciò che è elencato, e `tests/UninstallTest.php` lo verifica.
+`uninstall.php` rimuove tutto ciò che è elencato, in multisite su ogni sito della rete, e `tests/UninstallTest.php` lo verifica.
 
 Regola: zero tabelle custom. Solo Options API, post meta, term meta, user meta, post type non pubblici e tassonomie nascoste.
 
