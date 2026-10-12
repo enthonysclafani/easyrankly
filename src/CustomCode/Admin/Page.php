@@ -326,7 +326,7 @@ final class Page extends RecordsPage {
 			printf(
 				'<strong id="easyrankly-type">%1$s</strong><p class="description">%2$s</p>',
 				esc_html( strtoupper( (string) $values['type'] ) ),
-				esc_html__( 'The type cannot change after the snippet is created.', 'easyrankly' )
+				esc_html__( 'Cannot be changed.', 'easyrankly' )
 			);
 		}
 		echo '</td></tr>';
@@ -336,11 +336,11 @@ final class Page extends RecordsPage {
 		$all = null === $post && $php;
 
 		if ( $all ) {
-			$help = __( 'HTML is printed as it is on every page of the site. PHP goes without the opening tag: it is checked for syntax errors before it can be active, and turned off at the first runtime error.', 'easyrankly' );
+			$help = __( 'HTML is printed as it is on every page. PHP goes without the opening tag; it must pass a syntax check to be active and is turned off at the first error.', 'easyrankly' );
 		} elseif ( $php ) {
-			$help = __( 'PHP without the opening tag. It is checked for syntax errors before it can be active, and turned off at the first runtime error.', 'easyrankly' );
+			$help = __( 'Without the opening tag. It must pass a syntax check to be active and is turned off at the first error.', 'easyrankly' );
 		} else {
-			$help = __( 'HTML is printed as it is on every page of the site.', 'easyrankly' );
+			$help = __( 'Printed as it is on every page.', 'easyrankly' );
 		}
 
 		printf(
@@ -361,7 +361,7 @@ final class Page extends RecordsPage {
 		if ( $php ) {
 			printf(
 				'<p class="description">%s</p>',
-				esc_html__( 'Everywhere runs the PHP as soon as the plugins are loaded, on every request, admin included, but never on this screen. What it prints is dropped: use it to add or remove hooks. If it locks you out, add define( \'EASYRANKLY_SAFE_MODE\', true ); to wp-config.php.', 'easyrankly' )
+				esc_html__( 'Everywhere runs on every request once plugins are loaded, admin included, never on this screen; output is dropped. Locked out? Add define( \'EASYRANKLY_SAFE_MODE\', true ); to wp-config.php.', 'easyrankly' )
 			);
 		}
 		echo '</td></tr>';
@@ -384,7 +384,7 @@ final class Page extends RecordsPage {
 			'<tr><th scope="row"><label for="easyrankly-notes">%1$s</label></th><td><textarea id="easyrankly-notes" name="notes" rows="3" class="large-text">%2$s</textarea><p class="description">%3$s</p></td></tr>',
 			esc_html__( 'Notes', 'easyrankly' ),
 			esc_textarea( (string) $values['notes'] ),
-			esc_html__( 'Only for you: what the snippet is for, who asked for it. Never printed on the site.', 'easyrankly' )
+			esc_html__( 'Private: never printed on the site.', 'easyrankly' )
 		);
 	}
 }

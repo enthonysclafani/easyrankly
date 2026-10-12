@@ -264,7 +264,7 @@ final class PageTest extends WP_UnitTestCase {
 
 		$this->assertFalse( wp_is_block_theme() );
 		$classic = $this->page( 'easyrankly-languages' );
-		$this->assertStringContainsString( 'Multilingual needs a block theme.', $classic );
+		$this->assertStringContainsString( 'Multilingual needs a block theme:', $classic );
 		$this->assertStringNotContainsString( 'Banner - EN', $classic );
 		$this->assertStringNotContainsString( '>Theme texts</h2>', $classic );
 
@@ -273,7 +273,7 @@ final class PageTest extends WP_UnitTestCase {
 		switch_theme( 'twentytwentyfive' );
 		$block = $this->page( 'easyrankly-languages' );
 
-		$this->assertStringContainsString( 'header-en for header', $block );
+		$this->assertStringContainsString( 'e.g. header-en, replaces header', $block );
 		$this->assertStringContainsString( '&quot;Banner - EN&quot; replaces &quot;Banner&quot;', $block );
 		$this->assertStringContainsString( 'site-editor.php?p=/pattern', $block );
 		$this->assertStringContainsString( '>Theme texts</h2>', $block );

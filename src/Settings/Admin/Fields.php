@@ -222,7 +222,7 @@ final class Fields {
 				'key'         => 'title_separator',
 				'input_class' => 'small-text',
 				'maxlength'   => 10,
-				'description' => __( 'Inserted by the {{sep}} variable in title templates.', 'easyrankly' ),
+				'description' => __( 'Used by the {{sep}} variable.', 'easyrankly' ),
 			)
 		);
 
@@ -231,7 +231,7 @@ final class Fields {
 			self::label( 'breadcrumb_taxonomies' ),
 			array( self::class, 'paragraph' ),
 			$page,
-			array( 'paragraph' => __( 'These options change the WordPress Breadcrumbs block. The structured data follows the trail the block shows, in block themes only: classic themes render the block after the page head.', 'easyrankly' ) )
+			array( 'paragraph' => __( 'For the WordPress Breadcrumbs block. Its structured data is printed in block themes only.', 'easyrankly' ) )
 		);
 		add_settings_field(
 			'breadcrumb_home_label',
@@ -243,7 +243,7 @@ final class Fields {
 				'label_for'   => self::id( 'breadcrumb_home_label' ),
 				'key'         => 'breadcrumb_home_label',
 				'maxlength'   => 60,
-				'placeholder' => __( 'Empty keeps the WordPress label (Home)', 'easyrankly' ),
+				'placeholder' => __( 'Home', 'easyrankly' ),
 			)
 		);
 
@@ -280,9 +280,9 @@ final class Fields {
 		$templates    = '' === $language ? $base : (array) ( $by_lang[ $language ] ?? array() );
 		$placeholders = '' === $language ? array() : $base;
 
-		$intro = __( 'Empty title: WordPress builds it. Empty description: none is printed. A value set on a single post or term always wins.', 'easyrankly' );
+		$intro = __( 'Empty title: the WordPress one. Empty description: none. Values set on a post or term win.', 'easyrankly' );
 		if ( '' !== $language ) {
-			$intro = __( 'Templates of one language are used on its pages. Empty fields use the templates of all languages. Categories and tags are not translated: in this language their pages ignore the title, description and social texts written on the term, and the term description, which are in the default language.', 'easyrankly' );
+			$intro = __( 'Empty fields use the templates of all languages. Texts written on categories and tags are in the default language: here they are ignored.', 'easyrankly' );
 		}
 
 		add_settings_section( 'templates', '', array( self::class, 'templates_intro' ), $page, array( 'paragraph' => $intro ) );
@@ -293,7 +293,7 @@ final class Fields {
 			__( 'Per content type and taxonomy', 'easyrankly' ),
 			array( self::class, 'paragraph' ),
 			$page,
-			array( 'paragraph' => __( 'Leave empty to use the general template above.', 'easyrankly' ) )
+			array( 'paragraph' => __( 'Empty fields use the templates above.', 'easyrankly' ) )
 		);
 		self::add_template_fields( self::type_contexts(), 'type_templates', $templates, $placeholders );
 	}
@@ -335,7 +335,7 @@ final class Fields {
 			'',
 			array( self::class, 'paragraph' ),
 			$page,
-			array( 'paragraph' => __( 'Ask search engines not to index these pages (noindex) and leave them out of the sitemaps. Search results are never indexed. A single post or term can also be excluded from its own SEO settings.', 'easyrankly' ) )
+			array( 'paragraph' => __( 'Checked pages get noindex and leave the sitemaps. A single post or term can be excluded from its own SEO settings.', 'easyrankly' ) )
 		);
 		add_settings_field( 'noindex', self::label( 'noindex' ), array( self::class, 'noindex' ), $page, 'noindex' );
 		add_settings_field( 'attachment_pages', __( 'Attachment pages', 'easyrankly' ), array( self::class, 'attachment_pages' ), $page, 'noindex', array( 'label_for' => self::id( 'attachment_pages' ) ) );
@@ -352,7 +352,7 @@ final class Fields {
 				'key'         => 'robots_txt',
 				'input_class' => 'large-text code',
 				'rows'        => 6,
-				'description' => __( 'Appended to the robots.txt WordPress generates (which already lists the sitemap). Ignored while the site discourages search engines.', 'easyrankly' ),
+				'description' => __( 'Added to the WordPress robots.txt, which already lists the sitemap. Ignored while search engines are discouraged.', 'easyrankly' ),
 				'link'        => home_url( '/robots.txt' ),
 				'link_text'   => __( 'View robots.txt', 'easyrankly' ),
 			)
@@ -365,7 +365,7 @@ final class Fields {
 	private static function add_schema(): void {
 		$page = Page::SCHEMA;
 
-		add_settings_section( 'identity', __( 'Site identity (structured data)', 'easyrankly' ), '__return_null', $page );
+		add_settings_section( 'identity', __( 'Site identity', 'easyrankly' ), '__return_null', $page );
 		add_settings_field( 'identity_type', self::label( 'identity_type' ), array( self::class, 'identity_type' ), $page, 'identity' );
 		add_settings_field(
 			'identity_name',
@@ -387,9 +387,8 @@ final class Fields {
 			$page,
 			'identity',
 			array(
-				'label_for'   => self::id( 'identity_logo' ),
-				'key'         => 'identity_logo',
-				'description' => __( 'The logo of the organization, or the photo of the person.', 'easyrankly' ),
+				'label_for' => self::id( 'identity_logo' ),
+				'key'       => 'identity_logo',
 			)
 		);
 		add_settings_field(
@@ -406,7 +405,7 @@ final class Fields {
 			self::label( 'local_business' ),
 			array( self::class, 'paragraph' ),
 			$page,
-			array( 'paragraph' => __( 'Used only when the site represents a local business. Google needs at least the address; fill in what applies.', 'easyrankly' ) )
+			array( 'paragraph' => __( 'Only for a local business. Google needs at least the address.', 'easyrankly' ) )
 		);
 		add_settings_field( 'local_business_type', __( 'Type of business', 'easyrankly' ), array( self::class, 'business_type' ), $page, 'local_business', array( 'label_for' => self::id( 'local_business', 'type' ) ) );
 		add_settings_field( 'local_business_address', __( 'Address', 'easyrankly' ), array( self::class, 'business_address' ), $page, 'local_business' );
@@ -424,7 +423,7 @@ final class Fields {
 			array(
 				'label_for'   => self::id( 'social_image' ),
 				'key'         => 'social_image',
-				'description' => __( 'Shared when a page has neither its own social image nor a featured image.', 'easyrankly' ),
+				'description' => __( 'Used when a page has no social or featured image.', 'easyrankly' ),
 			)
 		);
 		add_settings_field(
@@ -437,7 +436,7 @@ final class Fields {
 				'label_for'   => self::id( 'x_username' ),
 				'key'         => 'x_username',
 				'maxlength'   => 16,
-				'description' => __( 'Without @. Printed as twitter:site.', 'easyrankly' ),
+				'description' => __( 'Without @.', 'easyrankly' ),
 			)
 		);
 	}
@@ -589,7 +588,7 @@ final class Fields {
 			esc_html__( 'Redirect attachment pages to the file', 'easyrankly' )
 		);
 		self::description(
-			array( 'description' => __( 'WordPress gives every uploaded file a page that shows only the file: a thin page for search engines. This is the WordPress setting, off by default on sites created with WordPress 6.4 or later.', 'easyrankly' ) )
+			array( 'description' => __( 'A page with only the file is worthless to search engines. WordPress setting, already on for sites created since WordPress 6.4.', 'easyrankly' ) )
 		);
 	}
 
@@ -602,7 +601,7 @@ final class Fields {
 		printf( '<fieldset><legend class="screen-reader-text">%s</legend>', esc_html( self::label( 'identity_type' ) ) );
 		foreach ( array(
 			'organization'   => __( 'An organization', 'easyrankly' ),
-			'local_business' => __( 'A local business (shop, restaurant, office…)', 'easyrankly' ),
+			'local_business' => __( 'A local business', 'easyrankly' ),
 			'person'         => __( 'A person', 'easyrankly' ),
 		) as $value => $label ) {
 			printf(
@@ -630,7 +629,7 @@ final class Fields {
 		echo '</datalist>';
 		printf(
 			'<p class="description">%1$s <a href="https://schema.org/LocalBusiness#subtypes">%2$s</a></p>',
-			esc_html__( 'A schema.org type, in English and without spaces. LocalBusiness fits any business.', 'easyrankly' ),
+			esc_html__( 'schema.org type. LocalBusiness fits any business.', 'easyrankly' ),
 			esc_html__( 'All types', 'easyrankly' )
 		);
 	}
@@ -645,7 +644,7 @@ final class Fields {
 			'postal_code'    => array( __( 'Postal code', 'easyrankly' ), 20 ),
 			'locality'       => array( __( 'City', 'easyrankly' ), 100 ),
 			'region'         => array( __( 'Region or province', 'easyrankly' ), 100 ),
-			'country'        => array( __( 'Country (two-letter code, e.g. IT)', 'easyrankly' ), 2 ),
+			'country'        => array( __( 'Country code (e.g. IT)', 'easyrankly' ), 2 ),
 		) as $field => list( $label, $max ) ) {
 			printf( '<p><label for="%1$s">%2$s</label><br />', esc_attr( self::id( 'local_business', $field ) ), esc_html( $label ) );
 			self::business_input( $field, 'text', array( 'maxlength' => (string) $max ) );
@@ -659,7 +658,7 @@ final class Fields {
 	 */
 	public static function business_telephone(): void {
 		self::business_input( 'telephone', 'tel', array( 'maxlength' => '30' ) );
-		printf( '<p class="description">%s</p>', esc_html__( 'With the international prefix, e.g. +39 02 1234567.', 'easyrankly' ) );
+		printf( '<p class="description">%s</p>', esc_html__( 'E.g. +39 02 1234567.', 'easyrankly' ) );
 	}
 
 	/**
@@ -676,7 +675,7 @@ final class Fields {
 			echo ' ';
 		}
 		echo '</fieldset>';
-		printf( '<p class="description">%s</p>', esc_html__( 'Decimal degrees, e.g. 45.4642 and 9.19. On Google Maps, right-click the place to copy them.', 'easyrankly' ) );
+		printf( '<p class="description">%s</p>', esc_html__( 'E.g. 45.4642 and 9.19: right-click the place on Google Maps to copy them.', 'easyrankly' ) );
 	}
 
 	/**
@@ -719,7 +718,7 @@ final class Fields {
 			echo '</tr>';
 		}
 		echo '</tbody></table></fieldset>';
-		printf( '<p class="description">%s</p>', esc_html__( 'Leave a day empty when the business is closed. Use the second range for a lunch break; 00:00 to 23:59 means open all day.', 'easyrankly' ) );
+		printf( '<p class="description">%s</p>', esc_html__( 'Empty day: closed. 00:00 to 23:59: open all day. The second range is for a lunch break.', 'easyrankly' ) );
 	}
 
 	/**

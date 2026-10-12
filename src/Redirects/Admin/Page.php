@@ -270,13 +270,13 @@ final class Page extends RecordsPage {
 			'<tr><th scope="row"><label for="easyrankly-source">%1$s</label></th><td><input type="text" id="easyrankly-source" name="source" value="%2$s" class="regular-text code" required /><p class="description">%3$s</p>',
 			esc_html__( 'Source', 'easyrankly' ),
 			esc_attr( (string) $values['source'] ),
-			esc_html__( 'Path on this site, for example /old-page. Query strings are ignored.', 'easyrankly' )
+			esc_html__( 'Path, e.g. /old-page. Query strings are ignored.', 'easyrankly' )
 		);
 		printf(
 			'<p><label><input type="checkbox" name="regex" value="1"%1$s /> %2$s</label></p><p class="description">%3$s</p></td></tr>',
 			checked( (bool) $values['regex'], true, false ),
 			esc_html__( 'Regular expression', 'easyrankly' ),
-			esc_html__( 'The source becomes a pattern, so one rule covers many addresses. For example ^/blog/(.*)$ with the target /news/$1 sends /blog/any-post to /news/any-post. It is matched against the lowercase path, without the query string.', 'easyrankly' )
+			esc_html__( 'E.g. ^/blog/(.*)$ with target /news/$1. Matched against the lowercase path, without query string.', 'easyrankly' )
 		);
 
 		printf( '<tr><th scope="row"><label for="easyrankly-code">%s</label></th><td><select id="easyrankly-code" name="code">', esc_html__( 'Type', 'easyrankly' ) );
@@ -289,13 +289,13 @@ final class Page extends RecordsPage {
 			'<tr><th scope="row"><label for="easyrankly-target">%1$s</label></th><td><input type="text" id="easyrankly-target" name="target" value="%2$s" class="regular-text code" /><p class="description">%3$s</p>',
 			esc_html__( 'Target', 'easyrankly' ),
 			esc_attr( (string) $values['target'] ),
-			esc_html__( 'Path on this site or full URL. Ignored for 410 and 451.', 'easyrankly' )
+			esc_html__( 'Path or full URL. Ignored for 410 and 451.', 'easyrankly' )
 		);
 		printf(
 			'<p><label><input type="checkbox" name="query" value="1"%1$s /> %2$s</label></p><p class="description">%3$s</p></td></tr>',
 			checked( (bool) $values['query'], true, false ),
 			esc_html__( 'Keep the query string', 'easyrankly' ),
-			esc_html__( 'Adds the parameters of the visited address, such as ?utm_source=newsletter, to the target, so campaigns keep their tracking. Not when the target has parameters of its own.', 'easyrankly' )
+			esc_html__( 'Passes parameters such as ?utm_source to the target, unless it has its own.', 'easyrankly' )
 		);
 
 		printf(
@@ -306,14 +306,14 @@ final class Page extends RecordsPage {
 			checked( (bool) $values['forced'], true, false ),
 			esc_html__( 'Apply even when the page exists', 'easyrankly' ),
 			/* translators: %d: maximum number of forced redirects. */
-			esc_html( sprintf( __( 'Without this option the redirect works only when the address does not exist anymore (404), so it never hides a page that is still published. With it, visitors are sent to the target even if the page is still there, for example a page you are replacing but do not want to delete yet. At most %d redirects can be forced.', 'easyrankly' ), Redirects::MAX_FORCED ) )
+			esc_html( sprintf( __( 'Otherwise it works only on 404, so it never hides a published page. At most %d.', 'easyrankly' ), Redirects::MAX_FORCED ) )
 		);
 
 		printf(
 			'<tr><th scope="row"><label for="easyrankly-notes">%1$s</label></th><td><textarea id="easyrankly-notes" name="notes" rows="3" class="large-text">%2$s</textarea><p class="description">%3$s</p></td></tr>',
 			esc_html__( 'Notes', 'easyrankly' ),
 			esc_textarea( (string) $values['notes'] ),
-			esc_html__( 'Only for you: why the redirect exists, until when it is needed. Never shown to visitors.', 'easyrankly' )
+			esc_html__( 'Private: never shown to visitors.', 'easyrankly' )
 		);
 	}
 }

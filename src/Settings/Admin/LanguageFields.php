@@ -26,13 +26,13 @@ final class LanguageFields {
 		if ( ! wp_is_block_theme() ) {
 			printf(
 				'<div class="notice notice-warning inline"><p>%s</p></div>',
-				esc_html__( 'Multilingual needs a block theme. With a classic theme, contents, addresses, site title and tagline change with the language, but menus, widgets and texts set in the Customizer show the same text in every language.', 'easyrankly' )
+				esc_html__( 'Multilingual needs a block theme: with a classic theme, menus, widgets and Customizer texts do not change with the language.', 'easyrankly' )
 			);
 		}
 
 		printf(
 			'<p>%s</p>',
-			esc_html__( 'Add a second language to publish translations of your content. The first language is the default one: its addresses do not change. The others get their URL prefix, for example /en/.', 'easyrankly' )
+			esc_html__( 'The first language is the default one: its addresses do not change. The others get their URL prefix, e.g. /en/.', 'easyrankly' )
 		);
 
 		$rows   = Languages::all();
@@ -126,11 +126,11 @@ final class LanguageFields {
 		echo '</tbody></table>';
 		printf(
 			'<p class="description">%s</p>',
-			esc_html__( 'The locale (for example en_US or it_IT) sets the language of the pages and their hreflang code. Content without a language belongs to the default language. The language with the lowest order is the default one: another language can take its place only once every content has its language.', 'easyrankly' )
+			esc_html__( 'The locale sets the language of the pages and their hreflang. Content without a language belongs to the default one, so another language can come first only once all content has a language.', 'easyrankly' )
 		);
 		printf(
 			'<p class="description">%s</p>',
-			esc_html__( 'Changing a URL prefix moves the content and title templates of the language to the new prefix; rename its template parts and synced patterns too (for example header-en). Removing a language deletes its title templates and strings, and its content is shown in the default language.', 'easyrankly' )
+			esc_html__( 'Changing a URL prefix keeps content and templates; rename its template parts and synced patterns too (e.g. header-en). Removing a language deletes its templates and strings; its content is shown in the default language.', 'easyrankly' )
 		);
 	}
 
@@ -151,7 +151,7 @@ final class LanguageFields {
 
 		printf(
 			'<p>%s</p>',
-			esc_html__( 'Site title and tagline replace those of Settings > General on the pages of the language, the breadcrumb label the one of the General page. Leave them empty to use the same ones in every language.', 'easyrankly' )
+			esc_html__( 'Empty fields use the value shown.', 'easyrankly' )
 		);
 
 		echo '<table class="widefat striped"><thead><tr>';
@@ -218,7 +218,7 @@ final class LanguageFields {
 			esc_html(
 				sprintf(
 					/* translators: 1: language URL prefix, e.g. "en". */
-					__( 'To change a template part on the pages of a language, create a template part with the same name followed by a hyphen and the URL prefix of the language, for example header-%1$s for header. Without it, the pages of the language show the template part of the default language. A language gets its own menu the same way: the navigation block in its header shows the menu of that language.', 'easyrankly' ),
+					__( 'A template part named with the URL prefix of a language, e.g. header-%1$s, replaces header on the pages of that language. Its navigation block gives the language its own menu.', 'easyrankly' ),
 					$example
 				)
 			)
@@ -228,7 +228,7 @@ final class LanguageFields {
 			esc_html(
 				sprintf(
 					/* translators: 1: language URL prefix in capitals, e.g. "EN". */
-					__( 'Synced patterns work the same way: a synced pattern named "Banner - %1$s" replaces "Banner" on the pages of that language. Unsynced patterns become a copy where they are inserted: translate them in the page of each language, or move their text into a template part or a synced pattern.', 'easyrankly' ),
+					__( 'Same for synced patterns: "Banner - %1$s" replaces "Banner". Unsynced patterns are copies: translate them where they are inserted.', 'easyrankly' ),
 					strtoupper( $example )
 				)
 			),
