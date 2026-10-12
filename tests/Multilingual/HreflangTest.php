@@ -10,6 +10,7 @@ namespace EasyRankly\Tests\Multilingual;
 use EasyRankly\Meta\Meta;
 use EasyRankly\Multilingual\Hreflang;
 use EasyRankly\Multilingual\Translations;
+use EasyRankly\Redirects\Redirects;
 use EasyRankly\Settings\Settings;
 use EasyRankly\Social\Social;
 use WP_UnitTestCase;
@@ -161,6 +162,20 @@ final class HreflangTest extends WP_UnitTestCase {
 		update_post_meta( $map['it'], '_easyrankly_canonical', 'https://example.org/elsewhere/' );
 		$this->go_to( get_permalink( $map['en'] ) );
 		$this->assertSame( array(), Hreflang::alternates() );
+	}
+
+	/**
+	 * A translation that a forced redirect sends elsewhere is left out, as the sitemap leaves it out.
+	 */
+	public function test_translation_redirected_by_forced_rule_is_left_out(): void {
+		( new Redirects() )->register_post_type();
+		$this->group();
+		$forced = Redirects::save_exact( '/fr/post-fr', '/elsewhere' );
+		update_post_meta( $forced, Redirects::meta_key( 'forced' ), true );
+		Redirects::rebuild_lists();
+
+		$this->go_to( 'http://example.org/en/post-en/' );
+		$this->assertSame( array( 'it-IT', 'en-US', 'x-default' ), array_keys( Hreflang::alternates() ) );
 	}
 
 	/**

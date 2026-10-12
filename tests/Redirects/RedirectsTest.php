@@ -225,6 +225,42 @@ final class RedirectsTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Saving or deleting a plain exact rule leaves the lists alone, but still expires the
+	 * cached lookups; a rule that leaves the lists still rebuilds them.
+	 */
+	public function test_plain_rules_do_not_rebuild_lists(): void {
+		$forced = $this->rest( 'POST', $this->body( '/live', '/x', array( 'forced' => true ) ) )->get_data()['id'];
+
+		$rebuilds = 0;
+		add_filter(
+			'pre_update_option_' . Redirects::FORCED_OPTION,
+			static function ( $value ) use ( &$rebuilds ) {
+				++$rebuilds;
+				return $value;
+			}
+		);
+
+		$changed = wp_cache_get_last_changed( Redirects::CACHE_GROUP );
+		$plain   = $this->rest( 'POST', $this->body( '/plain', '/x' ) )->get_data()['id'];
+		$this->rest( 'POST', array( 'meta' => array( Redirects::meta_key( 'target' ) => '/y' ) ), '/' . $plain );
+		Redirects::save_exact( '/other', '/x' );
+		wp_delete_post( $plain, true );
+		$this->assertSame( 0, $rebuilds );
+		$this->assertNotSame( $changed, wp_cache_get_last_changed( Redirects::CACHE_GROUP ) );
+
+		// Saved outside REST with its flag already off: the rule is in the list, so it is rebuilt.
+		update_post_meta( $forced, Redirects::meta_key( 'forced' ), false );
+		wp_update_post(
+			array(
+				'ID'           => $forced,
+				'post_excerpt' => 'No longer forced',
+			)
+		);
+		$this->assertSame( 1, $rebuilds );
+		$this->assertSame( array(), get_option( Redirects::FORCED_OPTION ) );
+	}
+
+	/**
 	 * A rule that would bounce with an existing one is rejected.
 	 */
 	public function test_rest_rejects_loop_between_two_rules(): void {

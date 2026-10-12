@@ -9,6 +9,8 @@ namespace EasyRankly\Robots;
 
 use EasyRankly\Context\Context;
 use EasyRankly\Meta\Meta;
+use EasyRankly\Redirects\Redirects;
+use EasyRankly\Redirects\Rule;
 use EasyRankly\Settings\Settings;
 
 defined( 'ABSPATH' ) || exit;
@@ -104,6 +106,27 @@ final class Robots {
 		}
 
 		return ! ( $queried instanceof \WP_Term && '' !== trim( $queried->description ) );
+	}
+
+	/**
+	 * Whether a post may be listed as a page of its own for search engines: published, without
+	 * password, without its own noindex, its own canonical and not sent elsewhere by an exact
+	 * forced redirect.
+	 *
+	 * This is the one rule for the other places that list posts: hreflang uses it as it is, the
+	 * sitemap applies the same criteria as queries (Sitemap::filter_posts_query_args()), so a
+	 * criterion added here goes there too. The context rules of the settings are not part of it:
+	 * they hold for whole post types, which the sitemap drops as a whole and translations share.
+	 *
+	 * @param \WP_Post $post Post.
+	 * @return bool
+	 */
+	public static function is_indexable_post( \WP_Post $post ): bool {
+		return 'publish' === $post->post_status
+			&& '' === $post->post_password
+			&& ! (bool) Meta::post( $post->ID, 'noindex' )
+			&& '' === (string) Meta::post( $post->ID, 'canonical' )
+			&& ! in_array( Rule::normalize( (string) get_permalink( $post ) ), Redirects::forced_sources(), true );
 	}
 
 	/**
