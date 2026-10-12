@@ -134,7 +134,8 @@ quell'option ottiene esecuzione di PHP. Da verificare:
 `disable()` scrive nel DB su una richiesta del frontend, spesso anonima. Da valutare:
 
 - Un visitatore può spegnere di proposito uno snippet che lancia un'eccezione su certi input (es. legge `$_GET`)?
-  È un modo per togliere al sito, ad esempio, il codice di tracciamento o di consenso cookie. Decidere se è accettabile.
+  È un modo per togliere al sito, ad esempio, il codice di tracciamento o di consenso cookie. Accettato per ora
+  (decisione 2 della sezione 7), da rivedere.
 - `kses_remove_filters()` / `kses_init()`: se `wp_update_post()` lancia un'eccezione, i filtri restano tolti per il
   resto della richiesta? Altri plugin agganciati a `save_post` girano in shutdown con i filtri tolti?
 - `sanitize_text_field()` sul messaggio d'errore e `esc_html()` nell'avviso admin: il messaggio può contenere dati del
@@ -264,9 +265,12 @@ Ogni area può andare in un thread a sé; le correzioni sono PR piccole, una per
    su ogni snippet in cache, controllato da `Runner` prima di eseguirlo. Nessuna option o meta nuova: cambia solo il
    contenuto dell'option `easyrankly_snippets` (una chiave `sig` per snippet). Una cache senza firme (scritta da una
    versione precedente) o con chiavi cambiate in `wp-config.php` viene ricostruita alla prima pagina visitata.
-2. **Spegnimento avviato dai visitatori (CC-06).** Accettarlo (lo snippet è difettoso comunque) o spegnere lo
-   snippet solo per gli errori fatali e limitarsi a registrare le eccezioni. Consiglio: accettarlo e documentarlo.
-   Riguarda solo gli snippet PHP: gli snippet HTML non si spengono mai da soli.
+2. **Spegnimento avviato dai visitatori (CC-06).** Accettato per ora il 12 ottobre 2026, da rivedere: resta annotato
+   in "In sospeso" di `docs/roadmap.md`. Esempio: uno snippet PHP con `echo strtoupper( $_GET['utm_source'] );`
+   aperto con `?utm_source[]=x` riceve un array, lancia un errore e si spegne per tutti finché un admin non lo
+   riattiva. L'alternativa resta spegnere lo snippet solo per gli errori fatali e limitarsi a registrare le eccezioni
+   (ma uno snippet davvero rotto fallirebbe a ogni pagina). Riguarda solo gli snippet PHP: gli snippet HTML non si
+   spengono mai da soli.
 3. **Strumenti esterni.** Decisa il 12 ottobre 2026: solo quelli già presenti (PHPCS con `WordPress.Security`,
    PHPStan, Plugin Check, `composer architecture`). Semgrep aggiungerebbe regole per schemi di codice e un'analisi del
    flusso dei dati dentro una stessa funzione, ma i controlli di sicurezza di WordPress li fa già PHPCS e le regole

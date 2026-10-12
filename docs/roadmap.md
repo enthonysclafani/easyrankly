@@ -249,8 +249,6 @@ browser dopo le PR che le hanno toccate.
 ### Da decidere
 
 - Le due della sezione "Decisioni aperte" qui sotto (modelli decisionali, multilingua sui siti che non lo usano).
-- Spegnimento di uno snippet PHP avviato da un visitatore (CC-06, `docs/sicurezza.md` sezione 7). Firma della cache
-  degli snippet e strumenti esterni decisi il 12 ottobre 2026: firma fatta, si usano solo gli strumenti già presenti.
 - Le eccezioni chieste da W1 e W5 (sezione "Compatibilità con WooCommerce e ACF" e `docs/compatibilita.md`).
 
 ### Funzioni decise ma non ancora fatte
@@ -280,6 +278,9 @@ contenuti con un redirect forzato), liste dei redirect ricostruite solo quando s
 - [ ] Controllo di sicurezza completo da fare, secondo il piano in `docs/sicurezza.md` (CC-01…CC-09, poi RD, ML, HD,
       ST, SM, AD). Finora ci sono stati solo controlli mirati; come da regola del piano, i risultati restano fuori dal
       repository finché non sono corretti
+- [ ] Spegnimento di uno snippet PHP avviato da un visitatore (CC-06): accettato così com'è il 12 ottobre 2026, da
+      rivedere (alternativa: spegnere solo per gli errori fatali). Decise lo stesso giorno la firma HMAC della cache
+      degli snippet (fatta) e gli strumenti di analisi (solo quelli già presenti); `docs/sicurezza.md`, sezione 7
 
 ## Decisioni aperte
 
