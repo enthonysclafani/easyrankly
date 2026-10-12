@@ -108,6 +108,7 @@ final class Runner {
 	 * @param array<mixed> $cached   Cached entries.
 	 * @param string       $position Position key.
 	 * @param bool|null    $all      Set to whether every entry was signed.
+	 * @param-out bool     $all
 	 * @return array<int, array<mixed>>
 	 */
 	private static function signed( array $cached, string $position, ?bool &$all ): array {
