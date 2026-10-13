@@ -215,6 +215,25 @@ final class RunnerTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * A rule saved without the checks of the REST route (XML-RPC, code) whose host comes from a
+	 * capture never sends visitors to a host they choose.
+	 */
+	public function test_unchecked_rule_cannot_take_host_from_capture(): void {
+		$this->rule(
+			'^/x/(.*)$',
+			'https://$1',
+			array(
+				'regex'  => true,
+				'forced' => true,
+			)
+		);
+
+		foreach ( array( '/x/evil.example', '/x/evil.example/x', '/x/@evil.example' ) as $path ) {
+			$this->assertNull( $this->visit( $path ), $path );
+		}
+	}
+
+	/**
 	 * External targets saved by an administrator are followed.
 	 */
 	public function test_external_target(): void {

@@ -19,8 +19,9 @@ defined( 'ABSPATH' ) || exit;
  * Non-hierarchical post types are left to core, which already redirects old slugs
  * through `_wp_old_slug` and wp_old_slug_redirect().
  *
- * Redirects that cannot be saved, and descendants beyond the limit, are kept for a day in a
- * transient of the user who made the change, shown once on their next admin screen.
+ * Redirects that cannot be saved, descendants beyond the limit and new addresses that a forced
+ * redirect still sends elsewhere are kept for a day in a transient of the user who made the
+ * change, shown once on their next admin screen.
  */
 final class SlugChanges {
 
@@ -197,8 +198,9 @@ final class SlugChanges {
 		}
 
 		$problems = array(
-			'failed' => array(),
-			'capped' => array(),
+			'failed'  => array(),
+			'capped'  => array(),
+			'blocked' => array(),
 		);
 
 		if ( count( $descendants ) > self::MAX_DESCENDANTS ) {
@@ -208,7 +210,7 @@ final class SlugChanges {
 
 		Redirects::batch(
 			function () use ( $from, $to, $descendants, &$problems ): void {
-				$error = $this->save( $from, $to );
+				$error = $this->save( $from, $to, $problems );
 				if ( null !== $error ) {
 					$problems['failed'][] = array( $from, $to, $error );
 				}
@@ -217,7 +219,7 @@ final class SlugChanges {
 					$path = Rule::normalize( $link );
 					if ( str_starts_with( $path, $to . '/' ) ) {
 						$source = $from . substr( $path, strlen( $to ) );
-						$error  = $this->save( $source, $path );
+						$error  = $this->save( $source, $path, $problems );
 						if ( null !== $error ) {
 							$problems['failed'][] = array( $source, $path, $error );
 						}
@@ -233,16 +235,16 @@ final class SlugChanges {
 	 * Adds problems to the notice of the current user. Without a user (WP-CLI, cron) nobody
 	 * would see it, so nothing is kept.
 	 *
-	 * @param array{failed: list<array{0: string, 1: string, 2: string}>, capped: list<string>} $problems New problems.
+	 * @param array{failed: list<array{0: string, 1: string, 2: string}>, capped: list<string>, blocked: list<string>} $problems New problems.
 	 */
 	private static function remember( array $problems ): void {
 		$user = get_current_user_id();
-		if ( $user <= 0 || ( array() === $problems['failed'] && array() === $problems['capped'] ) ) {
+		if ( $user <= 0 || ( array() === $problems['failed'] && array() === $problems['capped'] && array() === $problems['blocked'] ) ) {
 			return;
 		}
 
 		$kept = self::notice( $user );
-		foreach ( array( 'failed', 'capped' ) as $kind ) {
+		foreach ( array( 'failed', 'capped', 'blocked' ) as $kind ) {
 			$kept[ $kind ] = array_slice( array_merge( $kept[ $kind ], $problems[ $kind ] ), 0, self::MAX_PROBLEMS );
 		}
 
@@ -253,13 +255,14 @@ final class SlugChanges {
 	 * Problems kept for a user.
 	 *
 	 * @param int $user User ID.
-	 * @return array{failed: list<array{0: string, 1: string, 2: string}>, capped: list<string>}
+	 * @return array{failed: list<array{0: string, 1: string, 2: string}>, capped: list<string>, blocked: list<string>}
 	 */
 	private static function notice( int $user ): array {
 		$stored = get_transient( self::NOTICE . $user );
 		$notice = array(
-			'failed' => array(),
-			'capped' => array(),
+			'failed'  => array(),
+			'capped'  => array(),
+			'blocked' => array(),
 		);
 		if ( ! is_array( $stored ) ) {
 			return $notice;
@@ -270,8 +273,10 @@ final class SlugChanges {
 				$notice['failed'][] = array( (string) $item[0], (string) $item[1], (string) $item[2] );
 			}
 		}
-		foreach ( is_array( $stored['capped'] ?? null ) ? $stored['capped'] : array() as $path ) {
-			$notice['capped'][] = (string) $path;
+		foreach ( array( 'capped', 'blocked' ) as $kind ) {
+			foreach ( is_array( $stored[ $kind ] ?? null ) ? $stored[ $kind ] : array() as $path ) {
+				$notice[ $kind ][] = (string) $path;
+			}
 		}
 
 		return $notice;
@@ -289,7 +294,7 @@ final class SlugChanges {
 		}
 
 		$notice = self::notice( $user );
-		if ( array() === $notice['failed'] && array() === $notice['capped'] ) {
+		if ( array() === $notice['failed'] && array() === $notice['capped'] && array() === $notice['blocked'] ) {
 			return;
 		}
 		delete_transient( self::NOTICE . $user );
@@ -315,8 +320,15 @@ final class SlugChanges {
 				)
 			);
 		}
+		if ( array() !== $notice['blocked'] ) {
+			printf( '<p>%s</p><ul>', esc_html__( 'These new addresses are still sent elsewhere by a forced redirect, so visitors cannot reach them. An administrator can turn that redirect off:', 'easyrankly' ) );
+			foreach ( $notice['blocked'] as $path ) {
+				printf( '<li><code>%s</code></li>', esc_html( $path ) );
+			}
+			echo '</ul>';
+		}
 		if ( current_user_can( 'manage_options' ) ) {
-			printf( '<p><a href="%1$s">%2$s</a></p>', esc_url( admin_url( 'admin.php?page=' . Page::SLUG ) ), esc_html__( 'Add the missing redirects', 'easyrankly' ) );
+			printf( '<p><a href="%1$s">%2$s</a></p>', esc_url( admin_url( 'admin.php?page=' . Page::SLUG ) ), esc_html__( 'Open Redirects', 'easyrankly' ) );
 		}
 		echo '</div>';
 	}
@@ -327,14 +339,22 @@ final class SlugChanges {
 	 * An active rule for the new address (moving back to an old address, or a rule the
 	 * administrator made) would now send visitors away from the page, or loop: it is
 	 * deactivated, not deleted, so it stays in the list. If the new rule cannot be saved,
-	 * the old one is restored as it was.
+	 * the old one is restored as it was. A forced rule is the administrator's choice to send
+	 * that address elsewhere even when content exists there: it stays active, and the user is
+	 * told that the new address is not reachable.
 	 *
-	 * @param string $from Old normalized path.
-	 * @param string $to   New normalized path.
+	 * @param string                                                                                                   $from     Old normalized path.
+	 * @param string                                                                                                   $to       New normalized path.
+	 * @param array{failed: list<array{0: string, 1: string, 2: string}>, capped: list<string>, blocked: list<string>} $problems Problems of this change.
+	 * @param-out array{failed: list<array{0: string, 1: string, 2: string}>, capped: list<string>, blocked: list<string>} $problems
 	 * @return string|null Why the rule was not saved, or null when it was.
 	 */
-	private function save( string $from, string $to ): ?string {
+	private function save( string $from, string $to, array &$problems ): ?string {
 		$stale = Redirects::find_id( Rule::hash( $to ) );
+		if ( null !== $stale && ( Redirects::rule( $stale )['forced'] ?? false ) ) {
+			$problems['blocked'][] = $to;
+			$stale                 = null;
+		}
 		if ( null !== $stale ) {
 			wp_update_post(
 				array(

@@ -20,7 +20,7 @@ final class PluginTest extends WP_UnitTestCase {
 	 */
 	public function test_plugin_is_loaded(): void {
 		$this->assertTrue( class_exists( Plugin::class ) );
-		$this->assertSame( '3.0.0', \EasyRankly\VERSION );
+		$this->assertSame( '2.0.0', \EasyRankly\VERSION );
 	}
 
 	/**

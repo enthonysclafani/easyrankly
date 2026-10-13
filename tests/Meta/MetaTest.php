@@ -120,6 +120,26 @@ final class MetaTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * A canonical on another site is kept only for users who may edit the content of others.
+	 */
+	public function test_external_canonical_needs_edit_others_posts(): void {
+		$author  = self::factory()->user->create( array( 'role' => 'author' ) );
+		$post_id = self::factory()->post->create( array( 'post_author' => $author ) );
+
+		foreach ( array( $author, self::factory()->user->create( array( 'role' => 'editor' ) ) ) as $user ) {
+			wp_set_current_user( $user );
+			foreach ( array( 'https://other.example/page/', home_url( '/own/' ) ) as $url ) {
+				$request = new WP_REST_Request( 'POST', '/wp/v2/posts/' . $post_id );
+				$request->set_body_params( array( 'meta' => array( '_easyrankly_canonical' => $url ) ) );
+				$this->assertSame( 200, rest_do_request( $request )->get_status() );
+
+				$kept = $user !== $author || str_starts_with( $url, home_url() );
+				$this->assertSame( $kept ? $url : '', Meta::post( $post_id, 'canonical' ), $url );
+			}
+		}
+	}
+
+	/**
 	 * The author saves the meta through the core endpoint, sanitized by type.
 	 */
 	public function test_author_saves_sanitized_meta_through_rest(): void {

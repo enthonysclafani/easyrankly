@@ -182,7 +182,7 @@ final class Page extends RecordsPage {
 			case 'status':
 				$status = 'publish' === $post->post_status ? __( 'Active', 'easyrankly' ) : __( 'Inactive', 'easyrankly' );
 				if ( '' !== (string) get_post_meta( $post->ID, CustomCode::meta_key( 'error' ), true ) ) {
-					$status .= ' ' . __( '(turned off by an error)', 'easyrankly' );
+					$status .= ' ' . ( 'publish' === $post->post_status ? __( '(error, see the snippet)', 'easyrankly' ) : __( '(turned off by an error)', 'easyrankly' ) );
 				}
 				return esc_html( $status );
 			case 'notes':
@@ -303,7 +303,7 @@ final class Page extends RecordsPage {
 		if ( '' !== $error ) {
 			printf(
 				'<tr><td colspan="2"><div class="notice notice-warning inline"><p>%1$s <code>%2$s</code></p></div></td></tr>',
-				esc_html__( 'This snippet was turned off after an error:', 'easyrankly' ),
+				null !== $post && 'publish' === $post->post_status ? esc_html__( 'This snippet hit an error and is still active. Saving it clears the message:', 'easyrankly' ) : esc_html__( 'This snippet was turned off after an error:', 'easyrankly' ),
 				esc_html( $error )
 			);
 		}
@@ -336,9 +336,9 @@ final class Page extends RecordsPage {
 		$all = null === $post && $php;
 
 		if ( $all ) {
-			$help = __( 'HTML is printed as it is on every page. PHP goes without the opening tag; it must pass a syntax check to be active and is turned off at the first error.', 'easyrankly' );
+			$help = __( 'HTML is printed as it is on every page. PHP goes without the opening tag; it must pass a syntax check to be active and is turned off after a fatal error.', 'easyrankly' );
 		} elseif ( $php ) {
-			$help = __( 'Without the opening tag. It must pass a syntax check to be active and is turned off at the first error.', 'easyrankly' );
+			$help = __( 'Without the opening tag. It must pass a syntax check to be active and is turned off after a fatal error.', 'easyrankly' );
 		} else {
 			$help = __( 'Printed as it is on every page.', 'easyrankly' );
 		}
