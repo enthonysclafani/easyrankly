@@ -199,11 +199,11 @@ esce come aggiornamento 2.0.0, con un commit SVN su `trunk` e `tags/2.0.0`, senz
 aggiorna dalla 1.0.0 non si fa niente (decisione del 12 ottobre 2026): meta `_erankly_*`, option, tabelle e cron della
 1.0.0 restano orfani. Già fatti: link al sorgente JS nel readme e soglia `unfiltered_html` sugli snippet (PR #67).
 
-- [ ] Readme per la scheda pubblica: togliere "not ready for production sites", descrivere cosa fa e cosa non fa,
+- [x] Readme per la scheda pubblica: togliere "not ready for production sites", descrivere cosa fa e cosa non fa,
       aggiungere `== Installation ==`, `== Upgrade Notice ==` e il changelog 2.0.0 ("le impostazioni della 1.0.0 non
       vengono importate"); nella FAQ chi può usare gli snippet PHP (`edit_plugins`, mai con `DISALLOW_FILE_EDIT`) e la
       modalità sicura
-- [ ] Versione da 3.0.0 a 2.0.0: header di `easyrankly.php`, costante `VERSION`, `Stable tag`, changelog,
+- [x] Versione da 3.0.0 a 2.0.0: header di `easyrankly.php`, costante `VERSION`, `Stable tag`, changelog,
       `tests/PluginTest.php`; nei documenti "EasyRankly 3" diventa 2.0
 - [ ] Plugin Check completo, una volta, a mano: tutte le categorie, con i warning e senza escludere
       `src/CustomCode/PhpRunner.php`; annotare l'elenco esatto dei messaggi

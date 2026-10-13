@@ -1,4 +1,4 @@
-# Piano di EasyRankly 3
+# Piano di EasyRankly 2.0
 
 Questo documento raccoglie la visione del prodotto: perché esiste, i principi, le funzioni, dove vivono i dati, la
 sicurezza e il contratto con EasyRankly Pro. Le singole decisioni, aperte e prese, con data e perché, stanno in

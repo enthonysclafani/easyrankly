@@ -3,10 +3,9 @@
  * Plugin Name:       EasyRankly
  * Plugin URI:        https://easyrankly.com
  * Description:       Lightweight SEO built only on native WordPress APIs: metadata, redirects, sitemaps, custom code and multilingual.
- * Version:           3.0.0
+ * Version:           2.0.0
  * Requires at least: 7.0
  * Requires PHP:      8.0
- * Update URI:        false
  * Author:            EasyRankly
  * Author URI:        https://easyrankly.com/
  * License:           GPL-2.0-or-later
@@ -20,7 +19,7 @@ namespace EasyRankly;
 
 defined( 'ABSPATH' ) || exit;
 
-const VERSION     = '3.0.0';
+const VERSION     = '2.0.0';
 const PLUGIN_FILE = __FILE__;
 
 require_once __DIR__ . '/src/autoload.php';
