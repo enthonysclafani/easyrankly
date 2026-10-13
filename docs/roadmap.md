@@ -3,8 +3,8 @@
 Fonte di verità su cosa è fatto e cosa no. Spunta una casella solo quando il punto rispetta la
 "Definizione di fatto" di `CLAUDE.md`. Un punto = un commit (o pochi commit coerenti).
 
-I riferimenti ad Alpha indicano file del vecchio plugin (branch `Alpha` di questo repository, da leggere con
-`git show origin/Alpha:<percorso>`) per capire la logica già testata. Il codice si riscrive secondo `CLAUDE.md`: niente tabelle, job o moduli.
+I riferimenti Alpha indicano file del vecchio plugin (branch `Decommissioned` di questo repository, ex `Alpha`, da leggere con
+`git show origin/Decommissioned:<percorso>`) per capire la logica già testata. Il codice si riscrive secondo `CLAUDE.md`: niente tabelle, job o moduli.
 
 ## Fase 0 — Fondamenta
 
@@ -13,7 +13,7 @@ I riferimenti ad Alpha indicano file del vecchio plugin (branch `Alpha` di quest
 - [x] `tools/check-architecture.php` con test sui casi vietati e consentiti
 - [x] CI su GitHub: controlli statici su PHP 8.1 e 8.4, test anche su multisite (anti-conflitto e disinstallazione su tutta la rete), Plugin Check
 - [x] `composer.lock` generato e committato
-- [x] Primo run verde della CI su GitHub (branch `Refactory`)
+- [x] Primo run verde della CI su GitHub (branch `pre-release`)
 - [x] Branch autonomo: piano in `docs/piano.md`, preparazione automatica delle sessioni cloud (`tools/cloud-setup.sh`)
 - [x] Prima sessione Claude Code nel cloud con `composer check` verde
 
@@ -64,7 +64,7 @@ Riferimenti Alpha: `includes/multilingual/singlesite/`, `includes/hreflang.php`,
 
 Tutte chiuse. L'agente è stato costruito qui con le chiavi AI dell'utente (Fase 3, 8 ottobre 2026) e reso
 estendibile da un altro plugin (Fase 5); il 9 ottobre 2026 si è deciso che vive tutto nel Pro e la Fase 6 l'ha tolto,
-senza migrazione perché la riscrittura non era pubblicata. Il codice resta nella storia di `Refactory`: commit
+senza migrazione perché la riscrittura non era pubblicata. Il codice resta nella storia di `pre-release`: commit
 `2af2474`, ultimo con l'agente (`src/Agent/`, `assets/src/agent/`, `tests/Agent/`, circa 8.200 righe tra PHP, JS e
 test). Lo porta la Fase 1 della roadmap del Pro.
 

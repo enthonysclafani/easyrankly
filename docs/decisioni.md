@@ -74,7 +74,7 @@ documenti indicati.
 ### Prodotto e perimetro
 
 - **Riscrittura da zero** (7–8 ottobre 2026): il vecchio plugin (circa 36.000 righe, due tabelle custom, job in cron,
-  moduli) costava più da ripulire che da riscrivere. Branch `Refactory`, Alpha solo come riferimento
+  moduli) costava più da ripulire che da riscrivere. Branch `Refactory` (oggi `pre-release`), Alpha (oggi branch `Decommissioned`) solo come riferimento
   (`docs/piano.md`, sezione 1).
 - **Agente AI tutto nel Pro, niente AI nel gratuito** (9 ottobre 2026): costruito nelle Fasi 3 e 5, tolto con la
   Fase 6, senza migrazione perché la riscrittura non era pubblicata. Invariante 7 di `CLAUDE.md`.
@@ -94,7 +94,7 @@ documenti indicati.
   non ha destinazione e mostra il template 404 con il suo codice.
 - **Import da Yoast e Rank Math** (10 ottobre 2026): si fa, più avanti. Solo meta (title, description, robots,
   canonical e social di contenuti e termini) e redirect, non le impostazioni globali; a lotti guidati dall'admin via
-  REST con il cursore in un'option (niente cron). SEOPress e All in One SEO eventualmente dopo. Riferimento Alpha:
+  REST con il cursore in un'option (niente cron). SEOPress e All in One SEO eventualmente dopo. Riferimento Alpha (branch `Decommissioned`):
   `includes/migrations/`. In roadmap, "Funzioni decise ma non ancora fatte".
 - **Funzioni SEO delle versioni precedenti** (12 ottobre 2026), dopo il confronto di `main`, `beta` e `Alpha` con
   questo branch:

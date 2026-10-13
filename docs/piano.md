@@ -7,11 +7,11 @@ cambia, si aggiorna prima `docs/decisioni.md` (e questo file, se tocca un princi
 
 ## 1. Perché un nuovo plugin
 
-Il vecchio EasyRankly (branch `main`, `beta`, `Alpha` di questo stesso repository) è cresciuto per moduli:
+Il vecchio EasyRankly (branch `main` e `Decommissioned`, ex `Alpha`, che contiene anche il vecchio `beta`) è cresciuto per moduli:
 circa 36.000 righe di PHP, due tabelle custom (`erankly_redirects`, `erankly_languages`), job in cron per
 migrazioni e import, form, strumenti database, multisite. Ripulirlo costerebbe più che riscriverlo.
 
-Si riparte da un repository pulito sul branch `Refactory`, usando Alpha **solo come riferimento** per la logica già
+Si riparte da un repository pulito sul branch `pre-release` (nato come `Refactory`), usando Alpha (branch `Decommissioned`) **solo come riferimento** per la logica già
 testata (meta, schema, sitemap, matching dei redirect, editor del multilingua). Obiettivo: circa 10–12.000 righe.
 
 ## 2. Principi non negoziabili

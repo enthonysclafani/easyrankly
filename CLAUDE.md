@@ -23,20 +23,20 @@ Documenti di riferimento (tutti in questo branch):
 - `docs/custom-code.md`: posizioni degli snippet e problemi noti della posizione "Ovunque".
 - `docs/compatibilita.md`: compatibilità con WooCommerce e ACF, cosa è fatto e cosa resta.
 
-Il vecchio EasyRankly vive nel branch `Alpha` di questo stesso repository ed è **solo un riferimento**: leggilo per
+Il vecchio EasyRankly vive nel branch `Decommissioned` (ex `Alpha`) di questo stesso repository ed è **solo un riferimento**: leggilo per
 capire la logica, poi riscrivi secondo queste regole. Non copiare file, tabelle, job o strutture a moduli.
 Per leggerlo senza cambiare branch:
 
 ```bash
-git fetch origin Alpha
-git show origin/Alpha:includes/canonical.php        # un file
-git ls-tree -r --name-only origin/Alpha includes/   # elenco dei file
+git fetch origin Decommissioned
+git show origin/Decommissioned:includes/canonical.php        # un file
+git ls-tree -r --name-only origin/Decommissioned includes/   # elenco dei file
 ```
 
 ## Branch e ambienti
 
-- `Refactory` è il branch del nuovo plugin ed è autonomo: non dipende da file fuori dal repository.
-- Ogni sessione lavora su un branch proprio e apre una pull request verso `Refactory` (mai verso `main`, che contiene
+- `pre-release` è il branch del nuovo plugin ed è autonomo: non dipende da file fuori dal repository.
+- Ogni sessione lavora su un branch proprio e apre una pull request verso `pre-release` (mai verso `main`, che contiene
   il vecchio plugin). La CI gira su ogni pull request.
 - **Cloud (Claude Code)**: all'avvio, `tools/cloud-setup.sh` (hook `SessionStart` in `.claude/settings.json`) installa
   dipendenze Composer, MariaDB e la suite di test di WordPress. Se all'avvio vedi un messaggio `[cloud-setup] ... failed`,
@@ -69,7 +69,7 @@ complesso). Usali per il lavoro lungo e meccanico:
 
 | Subagente | Per cosa |
 |---|---|
-| `ricercatore` | Sola lettura: file di Alpha, codice del core, usi nel repository, documentazione ufficiale |
+| `ricercatore` | Sola lettura: file di Decommissioned, codice del core, usi nel repository, documentazione ufficiale |
 | `esecutore` | Modifiche già specificate: codice ripetitivo da un modello, docblock, `docs/data-model.md`, readme, stile PHPCS |
 | `verificatore` | `composer check` o singoli controlli, log della CI: riporta solo gli errori |
 

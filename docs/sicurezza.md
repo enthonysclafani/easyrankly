@@ -2,11 +2,11 @@
 
 Scritto il 9 ottobre 2026, aggiornato il 12 ottobre 2026. È la lista di controllo della **Fase 8** di
 `docs/roadmap.md`, da chiudere prima della pubblicazione della 2.0.0 (decisione del 12 ottobre 2026). Il controllo
-parte dalla testa di `Refactory` del giorno in cui inizia.
+parte dalla testa di `pre-release` del giorno in cui inizia.
 
 Questo documento dice cosa controllare, come e in che ordine. Modello di minaccia, cosa va protetto e la regola di
 fondo degli snippet stanno in `docs/piano.md`, sezione 5; le regole per chi scrive codice in `CLAUDE.md`. Ogni
-problema trovato diventa una PR separata verso `Refactory` con il suo test di regressione.
+problema trovato diventa una PR separata verso `pre-release` con il suo test di regressione.
 
 ---
 
@@ -237,7 +237,7 @@ Ogni passo è una casella della Fase 8 di `docs/roadmap.md`.
 5. Impostazioni, sitemap, admin generico (ST, SM, AD).
 6. Resoconto finale e aggiornamento di `CLAUDE.md` (rischi accettati).
 
-Ogni area può andare in un thread a sé; le correzioni sono PR piccole, una per problema, verso `Refactory`.
+Ogni area può andare in un thread a sé; le correzioni sono PR piccole, una per problema, verso `pre-release`.
 
 ## 7. Decisioni
 
