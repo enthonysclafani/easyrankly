@@ -151,19 +151,24 @@ come: `docs/sicurezza.md`; modello di minaccia: `docs/piano.md`, sezione 5. Fino
 mirati. I problemi trovati e non ancora corretti restano in note private fuori dal repository; ogni correzione è una
 PR a sé, con il suo test di regressione, che descrive il rinforzo senza la ricetta d'attacco.
 
-- [ ] 8.1 Custom code: CC-01 (matrice dei permessi, resa permanente da un test con data provider in
+- [x] 8.1 Custom code: CC-01 (matrice dei permessi, resa permanente da un test con data provider in
       `tests/CustomCode/`), CC-02 (tutte le strade di scrittura del codice), CC-03 (l'option `easyrankly_snippets`
       come confine di fiducia, firma HMAC compresa)
-- [ ] 8.2 Custom code: CC-04 … CC-09 (sintassi ed errori a runtime, dove girano, spegnimento avviato da un
+- [x] 8.2 Custom code: CC-04 … CC-09 (sintassi ed errori a runtime, dove girano, spegnimento avviato da un
       visitatore, lettura del codice, schermata admin, disinstallazione)
-- [ ] 8.3 Redirect (RD) e uscita nel `<head>` (HD): le aree raggiungibili dai visitatori anonimi
-- [ ] 8.4 Multilingua (ML)
-- [ ] 8.5 Impostazioni (ST), sitemap (SM), admin generico e JS (AD)
+- [x] 8.3 Redirect (RD) e uscita nel `<head>` (HD): le aree raggiungibili dai visitatori anonimi
+- [x] 8.4 Multilingua (ML)
+- [x] 8.5 Impostazioni (ST), sitemap (SM), admin generico e JS (AD)
 - [ ] 8.6 Resoconto finale; rischi accettati scritti in `CLAUDE.md`; correzione dei problemi trovati, compresi quelli
       dei controlli mirati ancora aperti
 
 Criterio di uscita: ogni problema trovato è corretto, oppure accettato con una decisione scritta in
 `docs/decisioni.md`.
+
+Il 13 ottobre 2026 il controllo dei punti 8.1–8.5 è stato fatto leggendo il codice, con PHPCS (sniff di sicurezza
+senza annotazioni) e con prove PHPUnit; la matrice dei permessi degli snippet è in
+`tests/CustomCode/PermissionsTest.php`. Restano le prove che nel cloud non si possono fare (riga "Sicurezza" in
+"Verifiche a mano su Studio").
 
 ## Compatibilità con WooCommerce e ACF
 
@@ -238,6 +243,9 @@ browser dopo le PR che le hanno toccate.
 - [ ] Contenuti protetti da password, archivi vuoti in noindex, ProfilePage degli autori con il Rich Results Test di
       Google
 - [ ] WooCommerce e ACF attivi (riga già nella sezione "Compatibilità con WooCommerce e ACF")
+- [ ] Sicurezza: costanti `DISALLOW_FILE_EDIT`, `DISALLOW_FILE_MODS`, `DISALLOW_UNFILTERED_HTML` ed
+      `EASYRANKLY_SAFE_MODE`; snippet da un file WXR importato; errori fatali veri in uno snippet (memoria, tempo,
+      `exit`); posizioni di pagina nel Customizer e nell'editor del sito (`docs/sicurezza.md`, sezione 5, punto 3)
 
 ### Da decidere
 

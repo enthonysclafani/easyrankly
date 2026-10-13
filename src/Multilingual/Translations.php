@@ -254,8 +254,8 @@ final class Translations {
 	/**
 	 * Creates a draft copy of a post in another language and links it to the post's group.
 	 *
-	 * The copy keeps title, content, excerpt, password, template, featured image, order and terms
-	 * (terms are shared by all languages); its parent is the translation of the source's
+	 * The copy keeps title, content, excerpt, password, template, featured image, order and the
+	 * terms the user may assign (terms are shared by all languages); its parent is the translation of the source's
 	 * parent, if there is one. SEO fields are not copied: they need translating. The password is,
 	 * so that the copy of protected content does not become readable by everyone once published.
 	 * Content passes the same filters as if the current user had typed it.
@@ -307,6 +307,11 @@ final class Translations {
 		}
 
 		foreach ( array_diff( get_object_taxonomies( $source->post_type ), array( self::LANGUAGE, self::GROUP ) ) as $taxonomy ) {
+			// Only terms the user could assign by hand: taxonomies of other plugins may ask for more than editing the post.
+			$object = get_taxonomy( $taxonomy );
+			if ( false === $object || ! current_user_can( $object->cap->assign_terms ) ) {
+				continue;
+			}
 			$terms = wp_get_object_terms( $source->ID, $taxonomy, array( 'fields' => 'ids' ) );
 			if ( is_array( $terms ) && array() !== $terms ) {
 				wp_set_object_terms( $id, array_map( 'intval', $terms ), $taxonomy );

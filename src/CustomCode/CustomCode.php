@@ -570,13 +570,17 @@ final class CustomCode {
 		update_post_meta( $id, self::meta_key( 'error' ), sanitize_text_field( $message ) );
 
 		kses_remove_filters();
-		$updated = wp_update_post(
-			array(
-				'ID'          => $id,
-				'post_status' => 'draft',
-			)
-		);
-		kses_init();
+		try {
+			$updated = wp_update_post(
+				array(
+					'ID'          => $id,
+					'post_status' => 'draft',
+				)
+			);
+		} finally {
+			// Back on even if a save_post callback of another plugin throws.
+			kses_init();
+		}
 
 		// The update fires save_post, whose on_save() rebuilds the cache: rebuild here only if it failed.
 		if ( 0 === $updated ) {

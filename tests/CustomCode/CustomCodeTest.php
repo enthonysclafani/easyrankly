@@ -223,6 +223,26 @@ final class CustomCodeTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * The list shows the code of PHP snippets only to those who may edit them.
+	 */
+	public function test_list_hides_php_without_edit_plugins(): void {
+		$this->rest( 'POST', $this->body( 'php', 'echo "php";' ) );
+		$html = $this->rest( 'POST', $this->body( 'html', '<i>html</i>' ) )->get_data()['id'];
+
+		$user = wp_get_current_user();
+		$user->add_cap( 'edit_plugins', false );
+		if ( is_multisite() ) {
+			revoke_super_admin( $user->ID );
+			$user->add_cap( 'unfiltered_html', true );
+			$this->markTestSkipped( 'On multisite edit_plugins and unfiltered_html belong to super admins only.' );
+		}
+
+		$list = $this->rest( 'GET' );
+		$this->assertSame( 200, $list->get_status() );
+		$this->assertSame( array( $html ), wp_list_pluck( $list->get_data(), 'id' ) );
+	}
+
+	/**
 	 * Without manage_options and unfiltered_html snippets cannot be read, listed or written.
 	 */
 	public function test_permissions(): void {
@@ -456,6 +476,24 @@ final class CustomCodeTest extends WP_UnitTestCase {
 		);
 		$this->assertSame( 'draft', get_post_status( $id ) );
 		$this->assertStringContainsString( 'Cannot redeclare', get_post_meta( $id, CustomCode::meta_key( 'error' ), true ) );
+	}
+
+	/**
+	 * A snippet that runs another one through a hook is still the running one afterwards,
+	 * so a fatal error in the rest of its code turns it off.
+	 */
+	public function test_nested_snippet_leaves_the_outer_one_running(): void {
+		$this->rest( 'POST', $this->body( 'php', 'echo "";', 'publish', 'body_open' ) );
+		$code  = "do_action( 'wp_body_open' );\n";
+		$code .= "\$running = new \\ReflectionProperty( \\EasyRankly\\CustomCode\\PhpRunner::class, 'running' );\n";
+		$code .= "\$running->setAccessible( true );\n";
+		$code .= "\$GLOBALS['easyrankly_test_running'] = \$running->getValue();";
+		$outer = $this->rest( 'POST', $this->body( 'php', $code, 'publish', 'footer' ) )->get_data()['id'];
+
+		$this->output( 'footer' );
+
+		$this->assertSame( $outer, $GLOBALS['easyrankly_test_running'] ?? null );
+		unset( $GLOBALS['easyrankly_test_running'] );
 	}
 
 	/**

@@ -295,6 +295,27 @@ final class RestTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Copies leave out the terms of taxonomies the user may not assign.
+	 */
+	public function test_copy_skips_terms_the_user_cannot_assign(): void {
+		register_taxonomy(
+			'easyrankly_locked',
+			'post',
+			array( 'capabilities' => array( 'assign_terms' => 'manage_options' ) )
+		);
+		$term   = self::factory()->term->create( array( 'taxonomy' => 'easyrankly_locked' ) );
+		$source = self::factory()->post->create( array( 'post_author' => $this->editor ) );
+		wp_set_object_terms( $source, array( $term ), 'easyrankly_locked' );
+
+		wp_set_current_user( $this->editor );
+		$this->request( 'POST', '/' . $source . '/copy', array( 'language' => 'fr' ) );
+		$copied = wp_get_object_terms( Translations::of( $source )['fr'], 'easyrankly_locked', array( 'fields' => 'ids' ) );
+		unregister_taxonomy( 'easyrankly_locked' );
+
+		$this->assertSame( array(), $copied );
+	}
+
+	/**
 	 * A contributor cannot copy someone else's post.
 	 */
 	public function test_copy_requires_edit_rights(): void {

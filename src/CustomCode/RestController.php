@@ -38,6 +38,17 @@ final class RestController extends \WP_REST_Posts_Controller {
 	}
 
 	/**
+	 * Lists, embeds and links show only the snippets the user may edit: the core lets anyone
+	 * who passes the listing check read every published snippet, PHP ones included.
+	 *
+	 * @param \WP_Post $post Snippet.
+	 * @return bool
+	 */
+	public function check_read_permission( $post ) {
+		return current_user_can( (string) get_post_type_object( $this->post_type )?->cap->edit_post, $post->ID ) && parent::check_read_permission( $post );
+	}
+
+	/**
 	 * Error for users who may not see snippets.
 	 *
 	 * @return \WP_Error

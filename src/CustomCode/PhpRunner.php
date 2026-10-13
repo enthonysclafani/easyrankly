@@ -19,7 +19,8 @@ defined( 'ABSPATH' ) || exit;
 final class PhpRunner {
 
 	/**
-	 * Snippet being run right now (0 before the first one, -1 between snippets).
+	 * Snippet being run right now (0 before the first one, -1 between snippets). A snippet that
+	 * fires a hook running another snippet gets its own ID back when that one ends.
 	 *
 	 * Per-request state, read only by shutdown(): not a cache.
 	 *
@@ -38,13 +39,14 @@ final class PhpRunner {
 			register_shutdown_function( array( self::class, 'shutdown' ) );
 		}
 
+		$previous      = self::$running;
 		self::$running = $id;
 		try {
 			eval( $code ); // phpcs:ignore Squiz.PHP.Eval.Discouraged -- Custom code feature; see the rules above.
 		} catch ( \Throwable $error ) {
 			CustomCode::disable( $id, get_class( $error ) . ': ' . $error->getMessage() );
 		}
-		self::$running = -1;
+		self::$running = $previous > 0 ? $previous : -1;
 	}
 
 	/**
