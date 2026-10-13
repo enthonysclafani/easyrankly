@@ -14,7 +14,7 @@ Plugin SEO per WordPress, riscritto da zero su sole API native: niente tabelle c
 
 ## Sviluppo
 
-Il branch `Refactory` è autonomo: contiene tutto il necessario per lavorare in locale o con Claude Code nel cloud.
+Il branch `pre-release` è autonomo: contiene tutto il necessario per lavorare in locale o con Claude Code nel cloud.
 
 - **Cloud (Claude Code)**: all'avvio della sessione `tools/cloud-setup.sh` (hook in `.claude/settings.json`) installa
   dipendenze, MariaDB e la suite di test di WordPress. Basta lanciare `composer check`. PHPStan nel cloud non si
@@ -31,4 +31,4 @@ composer check
 Gli asset admin stanno in `assets/src/` e si compilano in `build/` con `@wordpress/scripts`. `build/` non è nel
 repository: `tools/build-dist.sh` lo compila e lo aggiunge allo zip distribuibile.
 
-La CI su GitHub esegue gli stessi controlli a ogni push su `Refactory` e a ogni pull request.
+La CI su GitHub esegue gli stessi controlli a ogni push su `pre-release` e a ogni pull request.

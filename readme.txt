@@ -43,7 +43,7 @@ EasyRankly covers the SEO basics of a WordPress site with the tools WordPress al
 
 = Source code =
 
-The JavaScript of the admin screens and of the block editor panels ships compiled in the `build` folder. Its source code, with the build tools, is public on GitHub: [github.com/enthonysclafani/easyrankly](https://github.com/enthonysclafani/easyrankly/tree/Refactory), in the `assets/src` folder. To build it yourself, run `npm install` and `npm run build` in a copy of the repository.
+The JavaScript of the admin screens and of the block editor panels ships compiled in the `build` folder. Its source code, with the build tools, is public on GitHub: [github.com/enthonysclafani/easyrankly](https://github.com/enthonysclafani/easyrankly/tree/pre-release), in the `assets/src` folder. To build it yourself, run `npm install` and `npm run build` in a copy of the repository.
 
 == Installation ==
 
