@@ -30,13 +30,13 @@ Decisione di Enthony del 9 ottobre 2026, con l'obbligo di annotare qui ogni prob
   aperto), `admin-post.php`, REST, `wp-login.php`, `xmlrpc.php`, `wp-cron.php`, WP-CLI, feed, sitemap, `robots.txt`,
   anteprima del Customizer, editor del sito. Uno snippet difettoso può rompere tutto questo, non solo le pagine.
 - **Unica eccezione, la schermata Custom code** (`admin.php?page=easyrankly-snippets`, compresi il salvataggio del
-  form e la richiesta REST interna con cui salva): lì gli snippet "Ovunque" non girano, così da lì si può sempre
-  correggere o disattivare uno snippet rotto, purché si riesca a entrare nell'admin.
-- **L'esclusione si legge dalla URL**, perché su `plugins_loaded` WordPress non conosce ancora la schermata. Chiunque
-  può chiedere quella URL: senza login finisce nel redirect alla pagina di accesso, senza permessi in un errore. Su
-  quella richiesta, però, uno snippet "Ovunque" non gira: se lo snippet fa da controllo di sicurezza (blocco di IP,
-  intestazioni di sicurezza), su quella sola risposta di redirect o di errore il controllo manca. Per questo i controlli
-  di sicurezza veri vanno nel server o in un plugin dedicato, non in uno snippet.
+  form e la richiesta REST interna con cui salva), aperta da un utente collegato che può gestire gli snippet: lì gli
+  snippet "Ovunque" non girano, così da lì si può sempre correggere o disattivare uno snippet rotto, purché si riesca
+  a entrare nell'admin.
+- **L'esclusione si legge dalla URL e dal cookie di accesso**, perché su `plugins_loaded` WordPress non conosce ancora
+  la schermata; l'utente si legge in anticipo con `current_user_can()`. Per un visitatore, o un utente senza i
+  permessi degli snippet, quella URL non cambia niente: gli snippet girano come in ogni altra richiesta (dal 13
+  ottobre 2026; prima l'esclusione valeva per chiunque chiedesse la URL).
 - **Anche gli effetti voluti mancano sulla schermata**: uno snippet che cambia l'aspetto o il comportamento dell'admin
   non si vede sulla schermata Custom code. È voluto.
 - **La pagina di accesso non è esclusa**: uno snippet che rompe `wp-login.php` (redirect continui, `exit`, login
@@ -84,9 +84,11 @@ Su `plugins_loaded`, priorità 10: tutti i plugin sono caricati, il tema no.
 
 ### Errori e recupero
 
-- **Eccezioni ed errori PHP catturabili**: lo snippet si spegne da solo come nelle altre posizioni. Può succedere
-  prima di `init`, quando il post type degli snippet non è ancora registrato: lo spegnimento funziona lo stesso (gli
-  stati del core sono già registrati da `wp-settings.php` prima dei plugin).
+- **Eccezioni ed errori PHP catturabili**: come nelle altre posizioni, il primo errore viene salvato sullo snippet e
+  mostrato nell'avviso admin, e lo snippet resta attivo (solo il primo: un visitatore non può far scrivere nel database
+  a ogni richiesta). Uno snippet davvero rotto fallisce quindi a ogni richiesta finché un admin non lo corregge o lo
+  spegne. Può succedere prima di `init`, quando il post type degli snippet non è ancora registrato: il salvataggio
+  dell'errore funziona lo stesso.
 - **Errori fatali** (funzione dichiarata due volte, memoria, tempo massimo): la richiesta fallisce con la schermata
   "errore critico", poi la funzione di shutdown spegne lo snippet e la richiesta successiva funziona. Il gestore di
   errori fatali di WordPress attribuisce l'errore a EasyRankly: manda la mail di modalità di recupero
@@ -102,10 +104,11 @@ Su `plugins_loaded`, priorità 10: tutti i plugin sono caricati, il tema no.
   che scrive nel database (crea post, utenti, opzioni) lo fa ogni volta, anche per i visitatori anonimi.
 - **WP-CLI**: lo snippet gira in ogni comando `wp`. Se rompe WP-CLI: `wp --skip-plugins=easyrankly` oppure la
   modalità sicura.
-- **Spegnimento avviato da chiunque**: come per le altre posizioni (CC-06 di `docs/sicurezza.md`), un visitatore che
-  provoca un'eccezione spegne lo snippet; qui le strade sono di più (REST, AJAX, cron, accesso).
+- **Errori provocati da altri**: un visitatore che provoca un'eccezione (per esempio con un parametro della URL di un
+  tipo inatteso) non spegne più lo snippet (CC-06 di `docs/sicurezza.md`, deciso il 13 ottobre 2026); l'errore resta
+  solo nell'avviso admin.
 - **Richieste in parallelo**: con l'admin aperto (Heartbeat, REST dell'editor) più richieste possono fallire insieme
-  e scrivere lo stesso spegnimento; il risultato finale è comunque lo snippet spento con l'ultimo errore.
+  e scrivere lo stesso errore o lo stesso spegnimento; il risultato finale è comunque uno snippet con un solo errore.
 
 ### Prestazioni
 

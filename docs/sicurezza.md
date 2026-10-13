@@ -112,8 +112,8 @@ quell'option ottiene esecuzione di PHP. Da verificare:
 `disable()` scrive nel DB su una richiesta del frontend, spesso anonima. Da valutare:
 
 - Un visitatore può spegnere di proposito uno snippet che lancia un'eccezione su certi input (es. legge `$_GET`)?
-  È un modo per togliere al sito, ad esempio, il codice di tracciamento o di consenso cookie. Accettato per ora,
-  da rivedere: è la decisione aperta 5 di `docs/decisioni.md`.
+  È un modo per togliere al sito, ad esempio, il codice di tracciamento o di consenso cookie. Corretto il 13 ottobre
+  2026: le eccezioni vengono solo registrate, lo spegnimento resta per gli errori fatali (`docs/decisioni.md`).
 - `kses_remove_filters()` / `kses_init()`: se `wp_update_post()` lancia un'eccezione, i filtri restano tolti per il
   resto della richiesta? Altri plugin agganciati a `save_post` girano in shutdown con i filtri tolti?
 - `sanitize_text_field()` sul messaggio d'errore e `esc_html()` nell'avviso admin: il messaggio può contenere dati del
@@ -242,9 +242,10 @@ Ogni area può andare in un thread a sé; le correzioni sono PR piccole, una per
 ## 7. Decisioni
 
 Le quattro decisioni di questo piano sono state prese; il registro, con il perché, è in `docs/decisioni.md`
-("Sicurezza" tra le decise, CC-06 tra le aperte):
+("Sicurezza" tra le decise):
 
 1. Firma HMAC della cache degli snippet (CC-03): fatta il 12 ottobre 2026 (PR #73).
-2. Spegnimento avviato dai visitatori (CC-06): accettato per ora, da rivedere (decisione aperta 5).
+2. Spegnimento avviato dai visitatori (CC-06): corretto il 13 ottobre 2026, solo gli errori fatali spengono uno
+   snippet.
 3. Strumenti: solo quelli già presenti (PHPCS con `WordPress.Security`, PHPStan, Plugin Check, `composer architecture`).
 4. Il piano sta qui, i risultati in note private fuori dal repository finché non sono corretti (sezione 5).

@@ -159,7 +159,7 @@ PR a sé, con il suo test di regressione, che descrive il rinforzo senza la rice
 - [x] 8.3 Redirect (RD) e uscita nel `<head>` (HD): le aree raggiungibili dai visitatori anonimi
 - [x] 8.4 Multilingua (ML)
 - [x] 8.5 Impostazioni (ST), sitemap (SM), admin generico e JS (AD)
-- [ ] 8.6 Resoconto finale; rischi accettati scritti in `CLAUDE.md`; correzione dei problemi trovati, compresi quelli
+- [x] 8.6 Resoconto finale; rischi accettati scritti in `CLAUDE.md`; correzione dei problemi trovati, compresi quelli
       dei controlli mirati ancora aperti
 
 Criterio di uscita: ogni problema trovato è corretto, oppure accettato con una decisione scritta in
@@ -216,7 +216,7 @@ aggiorna dalla 1.0.0 non si fa niente (decisione del 12 ottobre 2026): meta `_er
       `Contributors` abbia accesso in scrittura all'SVN
 - [ ] Prova a mano su Studio con lo zip di `tools/build-dist.sh`, compreso l'aggiornamento da una 1.0.0 installata
       (vedi "Verifiche a mano su Studio" qui sotto)
-- [ ] Controllo di sicurezza completo e correzione dei problemi trovati (Fase 8)
+- [x] Controllo di sicurezza completo e correzione dei problemi trovati (Fase 8; restano le prove a mano su Studio)
 - [ ] Commit SVN su `trunk` e `tags/2.0.0`
 
 Miglioramenti non bloccanti, da fare quando capita:
@@ -274,5 +274,5 @@ contenuti con un redirect forzato), liste dei redirect ricostruite solo quando s
 
 ### Controllo di sicurezza
 
-È la Fase 8, bloccante per la 2.0.0. Lo spegnimento di uno snippet PHP avviato da un visitatore (CC-06) è tra le
-decisioni aperte.
+Fase 8 chiusa il 13 ottobre 2026: problemi corretti e rischi residui decisi (`docs/decisioni.md`, "Sicurezza" tra le
+decise). Restano le prove a mano su Studio (riga "Sicurezza" in "Verifiche a mano su Studio").

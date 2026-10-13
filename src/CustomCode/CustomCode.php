@@ -25,7 +25,7 @@ final class CustomCode {
 	public const POST_TYPE = 'erankly_snippet';
 
 	/**
-	 * Autoloaded option with the active snippets per position and the snippets disabled by an error.
+	 * Autoloaded option with the active snippets per position and the snippets that hit an error.
 	 */
 	public const OPTION = 'easyrankly_snippets';
 
@@ -485,7 +485,7 @@ final class CustomCode {
 
 	/**
 	 * Rebuilds the autoloaded cache: active snippets per position, sorted by priority, and the
-	 * snippets an error disabled.
+	 * snippets that hit an error.
 	 */
 	public static function rebuild_cache(): void {
 		$cache = array(
@@ -556,7 +556,26 @@ final class CustomCode {
 	}
 
 	/**
-	 * Turns a snippet off after a runtime error and records the error.
+	 * Records the first runtime error of a snippet that stays on, for the administrator.
+	 *
+	 * Runs on the frontend, usually for a visitor: only the first error is written, so a visitor
+	 * cannot make every request write to the database by varying the error. Saving the snippet
+	 * again clears it.
+	 *
+	 * @param int    $id      Snippet ID.
+	 * @param string $message Error message.
+	 */
+	public static function record_error( int $id, string $message ): void {
+		if ( '' !== (string) get_post_meta( $id, self::meta_key( 'error' ), true ) ) {
+			return;
+		}
+
+		update_post_meta( $id, self::meta_key( 'error' ), sanitize_text_field( $message ) );
+		self::rebuild_cache();
+	}
+
+	/**
+	 * Turns a snippet off after a fatal error and records the error.
 	 *
 	 * Runs on the frontend, usually for a visitor without unfiltered_html: the content
 	 * filters are lifted for the update so the code is not stripped. For the `everywhere`
@@ -589,7 +608,7 @@ final class CustomCode {
 	}
 
 	/**
-	 * Tells administrators which snippets an error turned off.
+	 * Tells administrators which snippets hit an error.
 	 */
 	public function error_notice(): void {
 		$cache = get_option( self::OPTION );
@@ -599,7 +618,7 @@ final class CustomCode {
 
 		printf(
 			'<div class="notice notice-error"><p>%1$s %2$s</p></div>',
-			esc_html__( 'EasyRankly turned off these snippets after an error:', 'easyrankly' ),
+			esc_html__( 'These EasyRankly snippets hit an error (see Custom code):', 'easyrankly' ),
 			esc_html( implode( ', ', array_map( 'strval', (array) $cache['errors'] ) ) )
 		);
 	}

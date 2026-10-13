@@ -145,10 +145,12 @@ final class Runner {
 
 	/**
 	 * Whether this request is the Custom code screen (its form posts there too, and saves through
-	 * an internal REST request), where `everywhere` snippets stay off.
+	 * an internal REST request) opened by someone who may manage snippets: there `everywhere`
+	 * snippets stay off, so a broken one can be fixed.
 	 *
 	 * Read from the request because plugins_loaded comes before the screen is known. Anyone can ask
-	 * for this URL, but without the capability the request ends in the login redirect or an error.
+	 * for this URL, so the user is checked too (from the login cookie, already readable here): for
+	 * anyone else the snippets run as on every other request.
 	 *
 	 * @return bool
 	 */
@@ -160,6 +162,6 @@ final class Runner {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Only compared with the screen slug, nothing is saved.
 		$page = isset( $_GET['page'] ) && is_string( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
 
-		return Admin\Page::SLUG === $page;
+		return Admin\Page::SLUG === $page && CustomCode::can_manage();
 	}
 }

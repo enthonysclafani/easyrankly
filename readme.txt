@@ -70,7 +70,7 @@ SEO, sitemap, redirects and custom code work with every theme. Two features need
 
 = What does the "Everywhere" position of Custom code do? =
 
-It runs a PHP snippet as soon as the plugins are loaded, on every request, admin included, like the functions.php of a theme: use it to add or remove hooks. It never runs on the Custom code screen, so a broken snippet can always be fixed there. What the snippet prints at that moment is dropped. If a snippet locks you out, add `define( 'EASYRANKLY_SAFE_MODE', true );` to wp-config.php: no snippet runs until you remove it.
+It runs a PHP snippet as soon as the plugins are loaded, on every request, admin included, like the functions.php of a theme: use it to add or remove hooks. It never runs on the Custom code screen when you open it, so a broken snippet can always be fixed there. What the snippet prints at that moment is dropped. If a snippet locks you out, add `define( 'EASYRANKLY_SAFE_MODE', true );` to wp-config.php: no snippet runs until you remove it.
 
 = Who can use PHP snippets? =
 
@@ -78,7 +78,7 @@ Only users who can edit plugin files (the `edit_plugins` capability, which on a 
 
 = What happens when a PHP snippet breaks? =
 
-The code is checked for syntax errors before it is saved, and a snippet that does not parse can be saved only as inactive. If an active snippet throws an error, it switches itself off and the error is shown on the Custom code screen. If a snippet locks you out anyway, add `define( 'EASYRANKLY_SAFE_MODE', true );` to wp-config.php: no snippet runs until you remove it.
+The code is checked for syntax errors before it is saved, and a snippet that does not parse can be saved only as inactive. If an active snippet throws an error, the error is shown to administrators and the snippet stays on, so visitors cannot switch it off; a fatal error, which breaks the page, switches it off. If a snippet locks you out anyway, add `define( 'EASYRANKLY_SAFE_MODE', true );` to wp-config.php: no snippet runs until you remove it.
 
 = How are password-protected posts handled? =
 

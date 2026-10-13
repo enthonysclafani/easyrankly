@@ -51,7 +51,7 @@ final class Meta {
 			),
 			'canonical'      => array(
 				'type'        => 'string',
-				'description' => __( 'Canonical URL. Empty uses the URL WordPress builds.', 'easyrankly' ),
+				'description' => __( 'Canonical URL. Empty uses the URL WordPress builds. Only editors and administrators can point it to another site.', 'easyrankly' ),
 				'default'     => '',
 			),
 			'noindex'        => array(
@@ -294,11 +294,24 @@ final class Meta {
 	/**
 	 * Absolute http(s) URL, or empty.
 	 *
+	 * A canonical on another site tells search engines to show that site instead of this page:
+	 * only users who may edit the content of others (editors, administrators) can set one. An
+	 * author's own posts are not enough, so it is dropped for them. Code and WP-CLI without a
+	 * user keep it.
+	 *
 	 * @param mixed $value Raw value.
 	 * @return string
 	 */
 	public static function sanitize_url( $value ): string {
-		return is_string( $value ) ? esc_url_raw( trim( $value ), array( 'http', 'https' ) ) : '';
+		$url = is_string( $value ) ? esc_url_raw( trim( $value ), array( 'http', 'https' ) ) : '';
+
+		if ( '' !== $url && is_user_logged_in() && ! current_user_can( 'edit_others_posts' )
+			&& strtolower( (string) wp_parse_url( $url, PHP_URL_HOST ) ) !== strtolower( (string) wp_parse_url( home_url(), PHP_URL_HOST ) )
+		) {
+			return '';
+		}
+
+		return $url;
 	}
 
 	/**

@@ -179,6 +179,9 @@ problema. I problemi di sicurezza non ancora corretti non vanno mai in issue, PR
   include di percorsi dinamici, scrittura di file su disco.
   Unica eccezione: `eval` in `src/CustomCode/PhpRunner.php`, con le regole della sezione "Custom code".
 - **SSRF**: URL forniti dall'utente solo con `wp_safe_remote_*()`.
+- **Rischio accettato** (13 ottobre 2026, Fase 8): chi scrive direttamente nel database ottiene esecuzione di PHP,
+  come con l'option `active_plugins` del core. La firma HMAC degli snippet lo limita a chi conosce anche le chiavi di
+  `wp-config.php` (o le legge dal database, se lì mancano).
 
 ## Custom code (HTML e PHP)
 
@@ -188,13 +191,15 @@ problema. I problemi di sicurezza non ancora corretti non vanno mai in issue, PR
   in automatico con `DISALLOW_FILE_EDIT`.
 - Prima del salvataggio il PHP si valida con `token_get_all( $code, TOKEN_PARSE )`, senza eseguirlo.
   Uno snippet con errori di sintassi non si salva come attivo.
-- In esecuzione ogni snippet PHP gira in `try { } catch ( \Throwable )`: al primo errore lo snippet si disattiva da solo,
-  l'errore viene salvato sullo snippet e l'admin vede un avviso.
+- In esecuzione ogni snippet PHP gira in `try { } catch ( \Throwable )`: il primo errore viene salvato sullo snippet e
+  l'admin vede un avviso, ma lo snippet resta attivo, così l'input di un visitatore non può spegnerlo per tutti. Solo un
+  errore fatale, che rompe la pagina, lo disattiva (dalla funzione di shutdown). Decisione del 13 ottobre 2026.
 - Modalità sicura: con la costante `EASYRANKLY_SAFE_MODE` nessuno snippet viene eseguito. Mai attivabile da URL.
 - Posizioni: `head`, `body_open`, `footer` (solo frontend, mai in `is_admin()`) ed `everywhere` (solo PHP): gira su
   `plugins_loaded` in ogni richiesta, admin, REST, AJAX, cron e WP-CLI compresi, come il `functions.php` di un tema,
-  tranne sulla schermata Custom code (`admin.php?page=easyrankly-snippets`), da cui si rimedia sempre a uno snippet
-  rotto. Quello che stampa viene scartato. Problemi noti e rischi accettati: `docs/custom-code.md`.
+  tranne sulla schermata Custom code (`admin.php?page=easyrankly-snippets`) aperta da chi può gestire gli snippet, da
+  cui si rimedia sempre a uno snippet rotto; per chiunque altro quella URL non cambia niente. Quello che stampa viene
+  scartato. Problemi noti e rischi accettati: `docs/custom-code.md`.
 - Gli snippet attivi stanno in cache in un'unica option autoload, aggiornata al salvataggio: zero query nel frontend.
   Ogni snippet in cache è firmato con un HMAC (`wp_salt( 'auth' )`): `Runner` non esegue ciò che non torna e in quel
   caso ricostruisce la cache dagli snippet. L'option si scrive solo da `CustomCode::rebuild_cache()`.

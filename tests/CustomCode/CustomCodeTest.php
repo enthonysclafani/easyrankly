@@ -172,22 +172,25 @@ final class CustomCodeTest extends WP_UnitTestCase {
 	}
 
 	/**
-	 * A runtime error turns the snippet off, keeps its code intact and is shown to administrators.
+	 * A runtime error that a catch sees leaves the snippet on: a visitor's input cannot turn it
+	 * off for everyone. The first error is kept for administrators until the snippet is saved again.
 	 */
-	public function test_runtime_error_disables_snippet(): void {
-		$code = "echo '<b>before</b>';\nthrow new \\RuntimeException( 'boom' );";
+	public function test_runtime_error_is_recorded_and_snippet_stays_on(): void {
+		$code = "echo '<b>before</b>';\nif ( isset( \$_GET['bad'] ) ) {\n\tthrow new \\RuntimeException( 'boom ' . \$_GET['bad'] );\n}";
 		$id   = $this->rest( 'POST', $this->body( 'php', $code, 'publish', 'footer' ) )->get_data()['id'];
 
-		// A visitor triggers the error: the content filters must not strip the code when it is turned off.
+		// A visitor triggers the error twice, with different input.
 		wp_set_current_user( 0 );
-		kses_init();
+		$_GET['bad'] = 'first';
 		$this->assertSame( '<b>before</b>', $this->output( 'footer' ) );
-		kses_remove_filters();
+		$_GET['bad'] = 'second';
+		$this->output( 'footer' );
+		unset( $_GET['bad'] );
 
-		$this->assertSame( 'draft', get_post_status( $id ) );
+		$this->assertSame( 'publish', get_post_status( $id ) );
 		$this->assertSame( $code, get_post_field( 'post_content', $id, 'raw' ) );
-		$this->assertStringContainsString( 'boom', get_post_meta( $id, CustomCode::meta_key( 'error' ), true ) );
-		$this->assertSame( '', $this->output( 'footer' ) );
+		$this->assertStringContainsString( 'boom first', get_post_meta( $id, CustomCode::meta_key( 'error' ), true ) );
+		$this->assertSame( '<b>before</b>', $this->output( 'footer' ) );
 
 		$this->login_admin();
 		ob_start();
@@ -197,6 +200,26 @@ final class CustomCodeTest extends WP_UnitTestCase {
 		// Saving it again clears the error.
 		$this->rest( 'POST', array( 'content' => "echo 'fixed';" ), '/' . $id );
 		$this->assertSame( '', get_post_meta( $id, CustomCode::meta_key( 'error' ), true ) );
+		ob_start();
+		( new CustomCode() )->error_notice();
+		$this->assertSame( '', (string) ob_get_clean() );
+	}
+
+	/**
+	 * Turning a snippet off after a fatal error keeps its code intact, also when a visitor triggers it.
+	 */
+	public function test_disable_keeps_code(): void {
+		$code = "echo '<b>kept</b>';";
+		$id   = $this->rest( 'POST', $this->body( 'php', $code, 'publish', 'footer' ) )->get_data()['id'];
+
+		wp_set_current_user( 0 );
+		kses_init();
+		CustomCode::disable( $id, 'Fatal error: x' );
+		kses_remove_filters();
+
+		$this->assertSame( 'draft', get_post_status( $id ) );
+		$this->assertSame( $code, get_post_field( 'post_content', $id, 'raw' ) );
+		$this->assertSame( '', $this->output( 'footer' ) );
 	}
 
 	/**
@@ -535,6 +558,17 @@ final class CustomCodeTest extends WP_UnitTestCase {
 		$this->output( 'head' );
 		$this->assertFalse( apply_filters( 'easyrankly_test_everywhere', false ) );
 
+		// Only for those who may fix snippets there: for anyone else the URL changes nothing.
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'editor' ) ) );
+		$this->output( 'everywhere' );
+		$this->assertTrue( apply_filters( 'easyrankly_test_everywhere', false ) );
+		remove_all_filters( 'easyrankly_test_everywhere' );
+		wp_set_current_user( 0 );
+		$this->output( 'everywhere' );
+		$this->assertTrue( apply_filters( 'easyrankly_test_everywhere', false ) );
+		remove_all_filters( 'easyrankly_test_everywhere' );
+
+		$this->login_admin();
 		$_GET['page'] = 'easyrankly-redirects';
 		$this->output( 'everywhere' );
 		$this->assertTrue( apply_filters( 'easyrankly_test_everywhere', false ) );
@@ -546,7 +580,8 @@ final class CustomCodeTest extends WP_UnitTestCase {
 	}
 
 	/**
-	 * An error in an everywhere snippet turns it off even before init registers the post type.
+	 * Errors of an everywhere snippet are recorded, and a fatal one turns it off, even before init
+	 * registers the post type.
 	 */
 	public function test_everywhere_error_before_init(): void {
 		$id = $this->rest( 'POST', $this->body( 'php', "throw new \\RuntimeException( 'early' );", 'publish', 'everywhere' ) )->get_data()['id'];
@@ -554,8 +589,18 @@ final class CustomCodeTest extends WP_UnitTestCase {
 		unregister_post_type( CustomCode::POST_TYPE );
 		$this->output( 'everywhere' );
 
-		$this->assertSame( 'draft', get_post_status( $id ) );
+		$this->assertSame( 'publish', get_post_status( $id ) );
 		$this->assertStringContainsString( 'early', get_post_meta( $id, CustomCode::meta_key( 'error' ), true ) );
+		$this->assertArrayHasKey( $id, get_option( CustomCode::OPTION )['errors'] );
+
+		PhpRunner::handle_fatal(
+			array(
+				'type'    => E_ERROR,
+				'message' => 'early fatal',
+			),
+			$id
+		);
+		$this->assertSame( 'draft', get_post_status( $id ) );
 		$this->assertSame( array(), get_option( CustomCode::OPTION )['positions']['everywhere'] );
 	}
 

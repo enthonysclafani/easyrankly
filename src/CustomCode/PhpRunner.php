@@ -13,8 +13,10 @@ defined( 'ABSPATH' ) || exit;
  * Runs one PHP snippet. Rules (CLAUDE.md, "Custom code"):
  * - the code was written by a user with edit_plugins and parsed with token_get_all() on save;
  * - Runner skips it in safe mode and when file editing is disabled;
- * - any Throwable turns the snippet off and records the error for the administrator;
- * - a fatal error that no catch can see does the same from a shutdown function.
+ * - any Throwable is recorded for the administrator, and the snippet stays on: the input of a
+ *   visitor (a query argument of an unexpected type) must not be able to turn it off for everyone;
+ * - a fatal error that no catch can see breaks the page, so it turns the snippet off from a
+ *   shutdown function.
  */
 final class PhpRunner {
 
@@ -44,7 +46,7 @@ final class PhpRunner {
 		try {
 			eval( $code ); // phpcs:ignore Squiz.PHP.Eval.Discouraged -- Custom code feature; see the rules above.
 		} catch ( \Throwable $error ) {
-			CustomCode::disable( $id, get_class( $error ) . ': ' . $error->getMessage() );
+			CustomCode::record_error( $id, get_class( $error ) . ': ' . $error->getMessage() );
 		}
 		self::$running = $previous > 0 ? $previous : -1;
 	}

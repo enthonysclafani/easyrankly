@@ -42,11 +42,8 @@ Aggiornato al 12 ottobre 2026.
    2. *Pagina Lingue nascosta sui temi classici*, saltando il sottomenu nel ciclo di `Settings\Admin\Page`, solo se il
       tema è classico **e** non ci sono lingue: chi passa a un tema classico con le lingue già attive deve poterle
       ancora gestire o togliere.
-5. **Spegnimento di uno snippet PHP avviato da un visitatore (CC-06).** Accettato così com'è il 12 ottobre 2026, da
-   rivedere. Esempio: uno snippet con `echo strtoupper( $_GET['utm_source'] );` aperto con `?utm_source[]=x` riceve
-   un array, lancia un errore e si spegne per tutti finché un admin non lo riattiva. Alternativa: spegnere solo per
-   gli errori fatali e limitarsi a registrare le eccezioni (ma uno snippet davvero rotto fallirebbe a ogni pagina).
-   Riguarda solo gli snippet PHP. Dettagli: `docs/sicurezza.md`, CC-06, e `docs/custom-code.md`.
+5. *Decisa il 13 ottobre 2026* (spegnimento di uno snippet PHP avviato da un visitatore, CC-06): vedi "Sicurezza"
+   tra le decise. Il numero resta per non cambiare i rimandi alle altre.
 
 ### Pro (dettagli nel `docs/piano.md` del Pro, sezione 5)
 
@@ -198,6 +195,18 @@ documenti indicati.
   posizione e codice di ogni snippet in `easyrankly_snippets` (chiave `sig`); `Runner` non esegue ciò che non torna e
   ricostruisce la cache dagli snippet. Nessuna option o meta nuova; dopo un cambio di chiavi la cache si rifà alla
   prima pagina.
+- **Rischi residui del controllo di sicurezza** (13 ottobre 2026, Fase 8.6, Enthony: "sistemiamoli tutti"):
+  - *Snippet PHP spenti da un visitatore (CC-06)*: un errore catturabile viene solo registrato (il primo) e mostrato
+    all'admin; lo snippet si spegne solo per un errore fatale. Il prezzo: uno snippet davvero rotto fallisce a ogni
+    richiesta finché un admin non lo corregge.
+  - *Redirect forzato e pagina spostata*: un redirect forzato per il nuovo indirizzo di una pagina spostata resta
+    attivo (è una scelta dell'amministratore); chi ha spostato la pagina vede un avviso. Gli altri redirect per quel
+    indirizzo si disattivano come prima.
+  - *Schermata Custom code*: gli snippet "Ovunque" restano fermi lì solo per chi può gestire gli snippet.
+  - *Canonical verso un altro sito*: solo chi può modificare i contenuti altrui (`edit_others_posts`); per gli altri
+    il valore viene scartato. Il noindex sui propri contenuti resta a chi li modifica.
+  - *Accettato*: chi scrive direttamente nel database ottiene esecuzione di PHP, come con `active_plugins` del core;
+    scritto in `CLAUDE.md`, sezione Sicurezza.
 - **Strumenti di analisi: solo quelli già presenti** (12 ottobre 2026): PHPCS con `WordPress.Security`, PHPStan,
   Plugin Check, `composer architecture`. Semgrep no: da riconsiderare solo se il controllo trova un tipo di problema
   che questi strumenti non vedono.

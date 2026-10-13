@@ -229,10 +229,11 @@ final class SlugChangesTest extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Moving a page with children rebuilds the redirect lists once, and the lists still drop
-	 * a forced rule for the new address, which the move deactivates.
+	 * Moving a page with children never rebuilds the redirect lists for its plain rules, and a
+	 * forced rule for the new address, the administrator's choice, stays active: the user who
+	 * moved the page is told the address is not reachable.
 	 */
-	public function test_moving_a_page_with_children_rebuilds_lists_once(): void {
+	public function test_forced_rule_for_new_address_stays_active(): void {
 		$forced = Redirects::save_exact( '/company', '/elsewhere' );
 		update_post_meta( $forced, Redirects::meta_key( 'forced' ), true );
 		Redirects::rebuild_lists();
@@ -243,6 +244,7 @@ final class SlugChangesTest extends WP_UnitTestCase {
 			$this->page( 'child-' . $i, $about );
 		}
 
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'editor' ) ) );
 		$rebuilds = 0;
 		add_filter(
 			'pre_update_option_' . Redirects::FORCED_OPTION,
@@ -258,10 +260,11 @@ final class SlugChangesTest extends WP_UnitTestCase {
 			)
 		);
 
-		$this->assertSame( 1, $rebuilds );
+		$this->assertSame( 0, $rebuilds );
 		$this->assertSame( '/company/child-4', $this->target( '/about/child-4' ) );
-		$this->assertSame( 'draft', get_post_status( $forced ) );
-		$this->assertSame( array(), get_option( Redirects::FORCED_OPTION ) );
+		$this->assertSame( 'publish', get_post_status( $forced ) );
+		$this->assertCount( 1, get_option( Redirects::FORCED_OPTION ) );
+		$this->assertStringContainsString( '<code>/company</code>', $this->notice() );
 	}
 
 	/**
