@@ -157,7 +157,7 @@ final class ClassicPanel {
 
 		$id = 'easyrankly-link-' . $slug;
 		printf( '<label for="%1$s">%2$s</label><br><select id="%1$s" name="easyrankly_link[%3$s]"><option value="0">&mdash;</option>', esc_attr( $id ), esc_html__( 'Link existing content', 'easyrankly' ), esc_attr( $slug ) );
-		foreach ( $query->posts as $candidate ) {
+		foreach ( $query->posts ?? array() as $candidate ) {
 			if ( $candidate instanceof \WP_Post && $candidate->ID !== $post->ID && current_user_can( 'edit_post', $candidate->ID ) ) {
 				printf( '<option value="%1$d">%2$s</option>', (int) $candidate->ID, esc_html( '' === get_the_title( $candidate ) ? '#' . $candidate->ID : get_the_title( $candidate ) ) );
 			}
