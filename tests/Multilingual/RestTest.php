@@ -52,7 +52,10 @@ final class RestTest extends WP_UnitTestCase {
 	 * Resets the screen and the queue.
 	 */
 	public function tear_down(): void {
-		wp_dequeue_script( 'easyrankly-language-panel' );
+		foreach ( array( 'easyrankly-language-panel', 'easyrankly-language-switcher' ) as $handle ) {
+			wp_dequeue_script( $handle );
+			wp_deregister_script( $handle );
+		}
 		set_current_screen( 'front' );
 		parent::tear_down();
 	}
@@ -378,8 +381,8 @@ final class RestTest extends WP_UnitTestCase {
 		if ( is_readable( dirname( __DIR__, 2 ) . '/build/language-panel.asset.php' ) ) {
 			$this->assertTrue( wp_script_is( 'easyrankly-language-panel', 'enqueued' ) );
 			$this->assertStringContainsString( '"slug":"en"', (string) wp_scripts()->get_data( 'easyrankly-language-panel', 'before' )[1] );
-			$switcher = generate_block_asset_handle( 'easyrankly/language-switcher', 'editorScript' );
-			$this->assertFalse( wp_scripts()->get_data( $switcher, 'before' ), 'The languages are printed once.' );
+			$this->assertTrue( wp_script_is( 'easyrankly-language-switcher', 'enqueued' ) );
+			$this->assertFalse( wp_scripts()->get_data( 'easyrankly-language-switcher', 'before' ), 'The languages are printed once.' );
 		} else {
 			$this->assertSame( 10, has_action( 'admin_notices', array( \EasyRankly\Admin\Assets::class, 'missing_build_notice' ) ) );
 		}
@@ -388,5 +391,22 @@ final class RestTest extends WP_UnitTestCase {
 		update_option( Settings::OPTION, array( 'languages' => array() ) );
 		( new EditorPanel() )->enqueue();
 		$this->assertFalse( wp_script_is( 'easyrankly-language-panel', 'enqueued' ) );
+	}
+
+	/**
+	 * Editors without the panel (site editor) load the switcher block script, with the languages before it.
+	 */
+	public function test_switcher_script_loads_in_the_site_editor(): void {
+		set_current_screen( 'site-editor' );
+		( new EditorPanel() )->enqueue();
+
+		if ( ! is_readable( dirname( __DIR__, 2 ) . '/build/language-switcher.asset.php' ) ) {
+			$this->assertSame( 10, has_action( 'admin_notices', array( \EasyRankly\Admin\Assets::class, 'missing_build_notice' ) ) );
+			return;
+		}
+
+		$this->assertFalse( wp_script_is( 'easyrankly-language-panel', 'enqueued' ) );
+		$this->assertTrue( wp_script_is( 'easyrankly-language-switcher', 'enqueued' ) );
+		$this->assertStringContainsString( '"slug":"en"', (string) wp_scripts()->get_data( 'easyrankly-language-switcher', 'before' )[1] );
 	}
 }

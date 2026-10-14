@@ -94,20 +94,24 @@ final class SwitcherTest extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Without a build of the editor script, the block still comes from block.json, supports included.
+	 * Registering the block declares no script, so it does not make the core build its list of
+	 * scripts on requests that print none (REST, redirects, sitemaps); its supports stay.
 	 */
-	public function test_block_keeps_its_supports_without_build(): void {
+	public function test_registering_the_block_does_not_load_the_core_scripts(): void {
+		global $wp_scripts;
+
 		$registry = \WP_Block_Type_Registry::get_instance();
 		$registry->unregister( 'easyrankly/language-switcher' );
+		$scripts    = $wp_scripts;
+		$wp_scripts = null; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Restored below.
 
-		add_filter( 'block_type_metadata', array( Switcher::class, 'drop_editor_script' ) );
-		register_block_type( dirname( __DIR__, 2 ) . '/blocks/language-switcher' );
-		remove_filter( 'block_type_metadata', array( Switcher::class, 'drop_editor_script' ) );
-		$block = $registry->get_registered( 'easyrankly/language-switcher' );
-
-		$registry->unregister( 'easyrankly/language-switcher' );
 		( new Switcher() )->register_block();
+		$built      = $wp_scripts instanceof \WP_Scripts;
+		$wp_scripts = $scripts; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Restores the global.
 
+		$this->assertFalse( $built );
+		$block = $registry->get_registered( 'easyrankly/language-switcher' );
+		$this->assertNotNull( $block );
 		$this->assertSame( array(), $block->editor_script_handles );
 		$this->assertTrue( $block->supports['spacing']['margin'] ?? false );
 	}

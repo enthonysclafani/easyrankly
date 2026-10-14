@@ -17,6 +17,5 @@
 			"margin": true,
 			"padding": true
 		}
-	},
-	"editorScript": "file:../../build/language-switcher.js"
+	}
 }

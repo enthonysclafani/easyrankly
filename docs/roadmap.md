@@ -56,7 +56,8 @@ Riferimenti Alpha: `includes/multilingual/singlesite/`, `includes/hreflang.php`,
 - [x] 2.3 Editor: scelta della lingua e collegamento delle traduzioni
 - [x] 2.4 hreflang e x-default; sitemap per lingua. Le sitemap del core elencano i contenuti di ogni lingua con il
       loro URL e `wp-sitemap-languages-1.xml` le home delle lingue: niente file separati per lingua, che non aggiungono nulla
-- [x] 2.5 Blocco selettore di lingua renderizzato lato server (solo `editorScript`, nessun asset nel frontend)
+- [x] 2.5 Blocco selettore di lingua renderizzato lato server (script solo nell'editor a blocchi, nessun asset nel
+      frontend; dal 14 ottobre 2026 lo script non è più in `block.json`, che lo registrava a ogni richiesta)
 - [x] 2.6 Template SEO per lingua
 - Decisione di ottobre 2026: il multilingua copre anche menu e stringhe del tema, senza tabelle. Lo fa la Fase 7.
 
@@ -194,7 +195,7 @@ decisione (`docs/decisioni.md`).
 
 ## In sospeso
 
-Elenco unico di ciò che resta aperto, aggiornato al 12 ottobre 2026. Dove un punto è già descritto altrove, qui c'è
+Elenco unico di ciò che resta aperto, aggiornato al 14 ottobre 2026. Dove un punto è già descritto altrove, qui c'è
 solo il rimando: i dettagli restano in quel documento.
 
 ### Pubblicazione della 2.0.0 su WordPress.org
@@ -271,6 +272,15 @@ contenuti con un redirect forzato), liste dei redirect ricostruite solo quando s
   condividono già `Admin/RecordsPage`.
 - Lo stile dell'anteprima dell'immagine social nel pannello dell'editor resta inline: il plugin non carica fogli
   di stile propri (`Admin/Assets`), e un file CSS per sette regole costerebbe di più.
+
+### Eccezioni PHPCS
+
+Le righe con `phpcs:ignore` sono 35, quasi tutte giuste (letture di `$_GET` nel frontend, query sulle tassonomie
+delle lingue, snippet, redirect esterni validati). Da fare quando si decide (Enthony, 14 ottobre 2026):
+
+- [ ] Rivedere le eccezioni e togliere quelle che si possono evitare (stimate 5–7: input dei form di Redirect e dei
+      termini sanitizzato nella riga in cui si legge, anteprima dell'immagine in `Admin/MediaField`, campo dei termini
+      in `Meta/Admin/TermFields`), con un test per ognuna
 
 ### Controllo di sicurezza
 
