@@ -14,22 +14,26 @@ defined( 'WP_UNINSTALL_PLUGIN' ) || exit;
 $easyrankly_cleanup = static function (): void {
 	// Redirects (src/Redirects/Redirects.php) and snippets (src/CustomCode/CustomCode.php): posts with
 	// their meta and revisions first, then the caches built from them. Each post is tried once, so
-	// one that cannot be deleted does not stop the others.
-	$easyrankly_tried = array();
+	// one that cannot be deleted does not stop the others: in ID order, the ones left behind are always
+	// the first ones, and the offset skips them.
+	$easyrankly_failed = 0;
 	do {
 		$easyrankly_ids = get_posts(
 			array(
 				'post_type'      => array( 'erankly_redirect', 'erankly_snippet' ),
 				'post_status'    => array_keys( get_post_stati() ),
-				'post__not_in'   => $easyrankly_tried,
+				'orderby'        => 'ID',
+				'order'          => 'ASC',
+				'offset'         => $easyrankly_failed,
 				'posts_per_page' => 100,
 				'fields'         => 'ids',
 				'no_found_rows'  => true,
 			)
 		);
 		foreach ( $easyrankly_ids as $easyrankly_id ) {
-			$easyrankly_tried[] = (int) $easyrankly_id;
-			wp_delete_post( (int) $easyrankly_id, true );
+			if ( ! wp_delete_post( (int) $easyrankly_id, true ) ) {
+				++$easyrankly_failed;
+			}
 		}
 	} while ( array() !== $easyrankly_ids );
 
@@ -39,21 +43,24 @@ $easyrankly_cleanup = static function (): void {
 		if ( ! taxonomy_exists( $easyrankly_taxonomy ) ) {
 			register_taxonomy( $easyrankly_taxonomy, array() );
 		}
-		$easyrankly_tried = array();
+		$easyrankly_failed = 0;
 		do {
 			$easyrankly_terms = get_terms(
 				array(
 					'taxonomy'   => $easyrankly_taxonomy,
 					'hide_empty' => false,
-					'exclude'    => $easyrankly_tried,
+					'orderby'    => 'term_id',
+					'order'      => 'ASC',
+					'offset'     => $easyrankly_failed,
 					'fields'     => 'ids',
 					'number'     => 100,
 				)
 			);
 			$easyrankly_terms = is_array( $easyrankly_terms ) ? $easyrankly_terms : array();
 			foreach ( $easyrankly_terms as $easyrankly_term ) {
-				$easyrankly_tried[] = (int) $easyrankly_term;
-				wp_delete_term( (int) $easyrankly_term, $easyrankly_taxonomy );
+				if ( true !== wp_delete_term( (int) $easyrankly_term, $easyrankly_taxonomy ) ) {
+					++$easyrankly_failed;
+				}
 			}
 		} while ( array() !== $easyrankly_terms );
 	}
