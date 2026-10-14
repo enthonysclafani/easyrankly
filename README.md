@@ -30,5 +30,7 @@ composer check
 
 Gli asset admin stanno in `assets/src/` e si compilano in `build/` con `@wordpress/scripts`. `build/` non è nel
 repository: `tools/build-dist.sh` lo compila e lo aggiunge allo zip distribuibile.
+Lo zip pronto, da installare su un sito di prova senza Node, si scarica da ogni esecuzione della CI
+(GitHub > Actions > l'esecuzione > Artifacts > `easyrankly.zip`).
 
 La CI su GitHub esegue gli stessi controlli a ogni push su `pre-release` e a ogni pull request.

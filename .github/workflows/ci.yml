@@ -126,6 +126,14 @@ jobs:
           test ! -e dist-extracted/easyrankly/tests
           test ! -e dist-extracted/easyrankly/tools
 
+      # The ready zip, to install on a test site without Node: Actions run > Artifacts > easyrankly.zip.
+      # archive: false uploads the zip as is, not zipped again (input since v7: https://github.com/actions/upload-artifact).
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          path: .dist/easyrankly.zip
+          archive: false
+          if-no-files-found: error
+
       - uses: wordpress/plugin-check-action@10857da14b6c2246d15402b3e69f777edcf8c12e # v1.1.9
         with:
           build-dir: ./dist-extracted/easyrankly

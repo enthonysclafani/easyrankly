@@ -215,7 +215,7 @@ aggiorna dalla 1.0.0 non si fa niente (decisione del 12 ottobre 2026): meta `_er
       `src/CustomCode/PhpRunner.php`; annotare l'elenco esatto dei messaggi
 - [ ] Controllare che `easyrankly.com` (`Plugin URI` e `Author URI`) risponda e che l'account `easyrankly` dei
       `Contributors` abbia accesso in scrittura all'SVN
-- [ ] Prova a mano su Studio con lo zip di `tools/build-dist.sh`, compreso l'aggiornamento da una 1.0.0 installata
+- [ ] Prova a mano su Studio con lo zip di `tools/build-dist.sh` (o quello della CI, tra gli Artifacts), compreso l'aggiornamento da una 1.0.0 installata
       (vedi "Verifiche a mano su Studio" qui sotto)
 - [x] Controllo di sicurezza completo e correzione dei problemi trovati (Fase 8; restano le prove a mano su Studio)
 - [ ] Commit SVN su `trunk` e `tags/2.0.0`
