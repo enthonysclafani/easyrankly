@@ -88,7 +88,7 @@ documenti indicati.
   delle impostazioni, stampata nel nodo `#organization`. Niente sedi multiple, niente post type.
 - **WooCommerce e ACF** (10 ottobre 2026): il plugin convive con entrambi senza conflitti; con WooCommerce si sono
   corretti il Negozio (campi SEO, canonical, sitemap) e `og:type`. Il resto si completa più avanti: W4 (carrello,
-  checkout e account fuori dalla sitemap) è deciso e da fare, W1, W5, A1 e A2 sono qui sopra tra le decisioni
+  checkout e account fuori dalla sitemap) è fatto (14 ottobre 2026), W1, W5, A1 e A2 sono qui sopra tra le decisioni
   aperte (`docs/compatibilita.md`).
 - **Redirect 451** (10 ottobre 2026): per le pagine tolte per un ordine legale (DMCA, diritto all'oblio). Come il 410
   non ha destinazione e mostra il template 404 con il suo codice.
@@ -165,7 +165,8 @@ documenti indicati.
   interrogato, che il core lì non carica; nessuna con una cache persistente. Eccezione scritta in `CLAUDE.md`,
   sezione Prestazioni, e contata da `tests/QueriesTest.php`.
 - **WooCommerce nominato nel codice una volta** (12 ottobre 2026): la pagina Negozio senza prodotti esce dalla sitemap
-  leggendo `woocommerce_shop_page_id`, solo nelle richieste di sitemap (W7).
+  leggendo `woocommerce_shop_page_id`, solo nelle richieste di sitemap (W7). Dal 14 ottobre 2026 allo stesso modo
+  escono carrello, checkout e account (W4), con le option `woocommerce_{pagina}_page_id`.
 - **Disinstallazione completa anche in multisite** (12 ottobre 2026, PR #71): `uninstall.php` cicla su ogni sito con
   `get_sites()` a lotti di 100 e `switch_to_blog()`. La regola "nessuna funzione multisite" vale per il
   funzionamento normale. Principio di Enthony: un bisogno importante batte una regola generale; va sollevato, non

@@ -5,7 +5,7 @@ tag 10.2–11.2) e di **ACF 6.8.10**, senza installarli: va confermata su un sit
 I punti aperti sono anche nella roadmap, sezione "Compatibilità con WooCommerce e ACF"; quelli che aspettano una
 decisione (W1, W5, A1, A2) sono in `docs/decisioni.md`, "Da decidere".
 
-In breve: con **WooCommerce** non si rompe niente, ma il supporto non è completo (W1, W4, W5). Con **ACF** non ci sono
+In breve: con **WooCommerce** non si rompe niente, ma il supporto non è completo (W1, W5). Con **ACF** non ci sono
 conflitti tecnici; restano due limiti (A1, A2).
 
 ## WooCommerce
@@ -23,6 +23,10 @@ conflitti tecnici; restano due limiti (A1, A2).
   quindi la sitemap delle pagine la toglie, come la pagina articoli senza articoli. La pagina si legge dall'option
   `woocommerce_shop_page_id`, la stessa di `wc_get_page_id()`, solo nelle richieste di sitemap e solo se esiste il tipo
   di contenuto `product`. È il primo codice che nomina WooCommerce (12 ottobre 2026, scelta di Enthony).
+- **W4. Carrello, checkout e account fuori dalla sitemap.** WooCommerce li mette in noindex (`wc_page_no_robots()` su
+  `wp_robots`), ma la sitemap delle pagine del core li elencava. Ora li toglie leggendo gli ID dalle option
+  `woocommerce_cart_page_id`, `woocommerce_checkout_page_id` e `woocommerce_myaccount_page_id` (autoload, nessuna
+  query), solo nelle richieste di sitemap e solo se esiste il tipo di contenuto `product`, come per il Negozio (W7).
 
 Test: `tests/Canonical/ArchivePageTest.php` riproduce la query di WooCommerce senza WooCommerce.
 
@@ -38,10 +42,6 @@ Test: `tests/Canonical/ArchivePageTest.php` riproduce la query di WooCommerce se
   usa l'editor a blocchi, quindi la pagina di un allegato ha solo template e regole di contesto. Con W1 vanno decisi
   anche i campi in `attachment_fields_to_edit` / `attachment_fields_to_save` (Enthony, 12 ottobre 2026: non ora,
   insieme a W1).
-- **W4. Sitemap.** WooCommerce mette in noindex carrello, checkout e account (filtro `wp_robots`), ma la sitemap delle
-  pagine del core li elenca. Proposta: escludere gli ID nelle option `woocommerce_cart_page_id`,
-  `woocommerce_checkout_page_id` e `woocommerce_myaccount_page_id` (autoload, nessuna query), come già si fa per il
-  Negozio vuoto (W7).
 - **W5. Multilingua e negozio.** Oggi il multilingua non regge un negozio:
   - senza il pannello Lingua (W1) i prodotti restano nella lingua predefinita, quindi il negozio nelle altre lingue
     è vuoto;

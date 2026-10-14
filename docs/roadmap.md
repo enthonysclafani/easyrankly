@@ -180,7 +180,7 @@ Analisi del 10 ottobre 2026, da completare più avanti. Dettagli, motivi e propo
 - [x] W6 — `og:type` `article` solo per gli articoli
 - [x] W7 — Pagina Negozio senza prodotti fuori dalla sitemap
 - [ ] W1 — Campi SEO e lingua dei prodotti (editor classico): richiede un'eccezione alla regola sulle meta box classiche; vale anche per i campi SEO degli allegati
-- [ ] W4 — Carrello, checkout e account fuori dalla sitemap
+- [x] W4 — Carrello, checkout e account fuori dalla sitemap
 - [ ] W5 — Multilingua sui negozi (oggi non supportato)
 - [ ] A1 — Description da un campo personalizzato (ACF e altri)
 - [ ] A2 — "Crea traduzione" copia i meta (campi ACF), da decidere con W5
@@ -255,7 +255,7 @@ Tutte le decisioni aperte, del gratuito e del Pro, stanno in `docs/decisioni.md`
 ### Funzioni decise ma non ancora fatte
 
 - [ ] Import da Yoast e Rank Math: solo meta e redirect, a lotti dall'admin, senza cron (`docs/decisioni.md`)
-- [ ] Compatibilità W4 (deciso); W1, W5, A1, A2 dopo la loro decisione (sezione "Compatibilità con WooCommerce e ACF")
+- [ ] Compatibilità W1, W5, A1, A2 dopo la loro decisione (sezione "Compatibilità con WooCommerce e ACF")
 
 ### Debito tecnico residuo
 

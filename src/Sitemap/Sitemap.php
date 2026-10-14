@@ -252,8 +252,8 @@ final class Sitemap {
 
 	/**
 	 * Posts query: leaves out the password-protected posts (always noindex), the posts with their
-	 * own noindex or a canonical override, the posts redirected by forced rules and the posts or
-	 * shop page when it is empty.
+	 * own noindex or a canonical override, the posts redirected by forced rules, the posts or
+	 * shop page when it is empty and WooCommerce's cart, checkout and account pages.
 	 *
 	 * The first four are Robots::is_indexable_post() written as queries: keep the two in step.
 	 *
@@ -280,7 +280,7 @@ final class Sitemap {
 			)
 		);
 
-		$excluded = array_merge( $excluded, self::redirected_post_ids(), self::empty_listing_pages( $args['post_type'] ) );
+		$excluded = array_merge( $excluded, self::redirected_post_ids(), self::empty_listing_pages( $args['post_type'] ), self::store_pages( $args['post_type'] ) );
 
 		$home_pages = 'page' === $args['post_type'] ? self::home_pages() : null;
 		if ( null !== $home_pages ) {
@@ -342,6 +342,34 @@ final class Sitemap {
 		}
 
 		return $empty;
+	}
+
+	/**
+	 * WooCommerce's cart, checkout and account pages: WooCommerce makes them noindex
+	 * (wc_page_no_robots() on `wp_robots`, woocommerce/includes/wc-template-functions.php),
+	 * so they leave the sitemap too.
+	 *
+	 * The IDs are the `woocommerce_{page}_page_id` options that wc_get_page_id() reads, all
+	 * autoloaded: no query. As for the shop page, they are read only while the `product` post
+	 * type exists.
+	 *
+	 * @param mixed $post_type Post type of the sitemap.
+	 * @return list<int>
+	 */
+	private static function store_pages( $post_type ): array {
+		if ( 'page' !== $post_type || ! post_type_exists( 'product' ) ) {
+			return array();
+		}
+
+		$pages = array();
+		foreach ( array( 'cart', 'checkout', 'myaccount' ) as $page ) {
+			$id = (int) get_option( 'woocommerce_' . $page . '_page_id' );
+			if ( $id > 0 ) {
+				$pages[] = $id;
+			}
+		}
+
+		return $pages;
 	}
 
 	/**
