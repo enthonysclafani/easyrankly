@@ -39,9 +39,11 @@ final class Plugin {
 			( new Settings\Admin\Page() )->register();
 			( new Meta\Admin\EditorPanel() )->register();
 			( new Meta\Admin\TermFields() )->register();
+			( new Meta\Admin\ClassicFields() )->register();
 			( new Redirects\Admin\Page() )->register();
 			( new CustomCode\Admin\Page() )->register();
 			( new Multilingual\Admin\EditorPanel() )->register();
+			( new Multilingual\Admin\ClassicPanel() )->register();
 		}
 	}
 }

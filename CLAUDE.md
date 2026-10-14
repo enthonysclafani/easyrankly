@@ -128,7 +128,7 @@ Prima di scrivere codice, verifica se WordPress lo fa già. Se lo fa, usa o filt
 | Cache | `wp_cache_*()` (gruppo `easyrankly`; `easyrankly_redirects` per i redirect, invalidato dal suo `last_changed`; `easyrankly_request`, non persistente, per ciò che vale una sola richiesta), transient per dati remoti | cache su file, variabili statiche globali |
 | Endpoint | `register_rest_route()` con `permission_callback` e `args` con schema | `admin-ajax.php` |
 | Schermate admin | Stile WordPress classico: Settings API (`add_settings_section()`, `add_settings_field()`, `options.php`) su più pagine brevi, `WP_List_Table` per gli elenchi, markup e classi del core (`wrap`, `form-table`, `wp-list-table`, `notice`, `nav-tab-wrapper`), vestiti dall'unico foglio di stile `assets/admin.css` (vedi "Stile admin"); JS solo dove serve interazione (editor a blocchi, scelta dell'immagine) | pagine lunghe a schede, `wp-components` sulle schermate del plugin, altri fogli di stile, CSS inline, classi CSS per una sola funzione, jQuery, librerie UI esterne |
-| Editor a blocchi | `@wordpress/components` nei pannelli dell'editor (`PluginDocumentSettingPanel`) | meta box classiche |
+| Editor a blocchi | `@wordpress/components` nei pannelli dell'editor (`PluginDocumentSettingPanel`); dove l'editor a blocchi non si usa (prodotti di WooCommerce, Classic Editor) gli stessi campi nei meta box `Meta\Admin\ClassicFields` e `Multilingual\Admin\ClassicPanel`, unica eccezione (14 ottobre 2026) | altre meta box classiche |
 | Build JS | `@wordpress/scripts` (`wp-scripts build`), dipendenze da `*.asset.php` | bundler custom |
 | Traduzioni | `__()`, `_x()`, `_n()`, `wp_set_script_translations()` | stringhe fisse |
 
