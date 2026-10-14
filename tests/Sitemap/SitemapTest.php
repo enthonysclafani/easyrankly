@@ -249,6 +249,33 @@ final class SitemapTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * WooCommerce's cart, checkout and account pages, noindex by WooCommerce, are left out;
+	 * without the product post type their options are not read.
+	 */
+	public function test_store_pages_are_left_out(): void {
+		$pages = array();
+		foreach ( array( 'cart', 'checkout', 'myaccount' ) as $page ) {
+			$pages[ $page ] = self::factory()->post->create( array( 'post_type' => 'page' ) );
+			update_option( 'woocommerce_' . $page . '_page_id', (string) $pages[ $page ] );
+		}
+		$other = self::factory()->post->create( array( 'post_type' => 'page' ) );
+
+		$urls = $this->urls( 'posts', 'page' );
+		foreach ( $pages as $page ) {
+			$this->assertContains( get_permalink( $page ), $urls );
+		}
+
+		register_post_type( 'product', array( 'public' => true ) );
+		$urls = $this->urls( 'posts', 'page' );
+		foreach ( $pages as $page ) {
+			$this->assertNotContains( get_permalink( $page ), $urls );
+		}
+		$this->assertContains( get_permalink( $other ), $urls );
+
+		_unregister_post_type( 'product' );
+	}
+
+	/**
 	 * Without forced redirects the query gets no exclusion list.
 	 */
 	public function test_no_forced_redirects_adds_no_exclusion(): void {

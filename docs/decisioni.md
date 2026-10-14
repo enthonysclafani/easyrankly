@@ -10,25 +10,20 @@ numeri fissi perché la sua roadmap li cita: qui c'è una riga ciascuna con la p
 
 ## Da decidere
 
-Aggiornato al 12 ottobre 2026.
+Aggiornato al 14 ottobre 2026.
 
 ### Gratuito
 
-1. **Campi SEO e lingua nell'editor classico (W1).** I prodotti di WooCommerce, i siti con Classic Editor e i tipi
-   di contenuto senza supporto `editor` non hanno il pannello SEO né il pannello Lingua (i meta funzionano via REST).
-   Proposta: un meta box classico con gli stessi campi, solo per i tipi che non usano l'editor a blocchi, salvato con
-   nonce e `edit_post`. È un'eccezione alla regola "niente meta box classiche" di `CLAUDE.md`. Insieme si decidono i
-   campi SEO degli **allegati** (`attachment_fields_to_edit` / `attachment_fields_to_save`): i meta sono registrati,
-   ma la schermata dei media non ha campi (Enthony, 12 ottobre 2026: non ora, insieme a W1). Dettagli:
-   `docs/compatibilita.md`, W1.
+1. **Campi SEO e lingua nell'editor classico (W1).** Decisa il 14 ottobre 2026: vedi "Interfaccia admin" nel
+   registro. Il numero resta per non spostare gli altri.
 2. **Multilingua sui negozi (W5) e copia dei meta nelle traduzioni (A2).** Oggi il multilingua non regge un negozio:
    prodotti senza lingua (W1), "Crea traduzione" non copia prezzo, SKU, magazzino e varianti, carrello e checkout
    sono una pagina sola. Domande: copiare i meta del post d'origine nelle traduzioni (tranne quelli interni e i
    nostri `_easyrankly_*`, compresi i riferimenti `_campo` → `field_…` di ACF)? Togliere intanto `product` dai tipi
    con lingua, per non svuotare il negozio nelle altre lingue? Dettagli: `docs/compatibilita.md`, W5 e A2.
-3. **Description da un campo personalizzato (A1).** Le pagine fatte solo di campi o blocchi ACF restano senza
-   description automatica. Proposta: una variabile di template (es. `%cf:nome_campo%`) letta con `get_post_meta()`,
-   già in cache, che non nomina ACF. È una funzione nuova. Dettagli: `docs/compatibilita.md`, A1.
+   Enthony, 14 ottobre 2026: resta in sospeso.
+3. **Description da un campo personalizzato (A1).** Decisa il 14 ottobre 2026: vedi "Prodotto e perimetro" nel
+   registro. Il numero resta per non spostare gli altri.
 4. **Multilingua sui siti che non lo usano** (discussa il 10 ottobre 2026, rimandata il 12 ottobre: per ora non si fa
    niente). Con meno di due lingue il multilingua non cambia nulla (`Languages::enabled()`: nessuna query, nessuna
    rewrite rule, nessun pannello), ma restano circa 42 callback che escono dopo un controllo, le due tassonomie
@@ -88,8 +83,12 @@ documenti indicati.
   delle impostazioni, stampata nel nodo `#organization`. Niente sedi multiple, niente post type.
 - **WooCommerce e ACF** (10 ottobre 2026): il plugin convive con entrambi senza conflitti; con WooCommerce si sono
   corretti il Negozio (campi SEO, canonical, sitemap) e `og:type`. Il resto si completa più avanti: W4 (carrello,
-  checkout e account fuori dalla sitemap) è deciso e da fare, W1, W5, A1 e A2 sono qui sopra tra le decisioni
-  aperte (`docs/compatibilita.md`).
+  checkout e account fuori dalla sitemap), W1 e A1 sono fatti (14 ottobre 2026), W5 e A2 restano in sospeso tra le
+  decisioni aperte (`docs/compatibilita.md`).
+- **Variabile `{{cf:nome_campo}}`** (14 ottobre 2026, A1): nei template e negli override di title e description
+  scrive il valore di testo di un campo personalizzato del contenuto o del termine (quello che salvano ACF e plugin
+  simili), letto dai meta già in cache. Non legge chiavi protette (`_…`) né post protetti da password. Perché: le
+  pagine fatte solo di campi o blocchi ACF restavano senza description. Non nomina ACF.
 - **Redirect 451** (10 ottobre 2026): per le pagine tolte per un ordine legale (DMCA, diritto all'oblio). Come il 410
   non ha destinazione e mostra il template 404 con il suo codice.
 - **Import da Yoast e Rank Math** (10 ottobre 2026): si fa, più avanti. Solo meta (title, description, robots,
@@ -127,6 +126,12 @@ documenti indicati.
 - **Pagina articoli con un contesto suo** nelle impostazioni, separato dagli archivi dei tipi di contenuto
   (12 ottobre 2026, PR #64).
 - **Campi SEO nel form "Aggiungi" dei termini**: non si fanno (12 ottobre 2026): restano solo in "Modifica".
+- **Meta box classici SEO e Lingua** (14 ottobre 2026, W1): dove non si usa l'editor a blocchi (prodotti di
+  WooCommerce, plugin Classic Editor, tipi senza `editor` o senza REST) l'editor classico ha un meta box "SEO" con gli
+  stessi campi del pannello e uno "Lingua" con lingua, traduzioni, "Crea bozza", "Collega" e "Scollega". Salvati con
+  nonce, `edit_post` e i controlli delle route REST. È l'unica eccezione alla regola "niente meta box classiche" di
+  `CLAUDE.md`. Perché: senza, quei contenuti non hanno campi SEO. **Allegati**: niente campi SEO nella schermata dei
+  media (Enthony, stesso giorno).
 
 ### Multilingua
 
@@ -165,7 +170,8 @@ documenti indicati.
   interrogato, che il core lì non carica; nessuna con una cache persistente. Eccezione scritta in `CLAUDE.md`,
   sezione Prestazioni, e contata da `tests/QueriesTest.php`.
 - **WooCommerce nominato nel codice una volta** (12 ottobre 2026): la pagina Negozio senza prodotti esce dalla sitemap
-  leggendo `woocommerce_shop_page_id`, solo nelle richieste di sitemap (W7).
+  leggendo `woocommerce_shop_page_id`, solo nelle richieste di sitemap (W7). Dal 14 ottobre 2026 allo stesso modo
+  escono carrello, checkout e account (W4), con le option `woocommerce_{pagina}_page_id`.
 - **Disinstallazione completa anche in multisite** (12 ottobre 2026, PR #71): `uninstall.php` cicla su ogni sito con
   `get_sites()` a lotti di 100 e `switch_to_blog()`. La regola "nessuna funzione multisite" vale per il
   funzionamento normale. Principio di Enthony: un bisogno importante batte una regola generale; va sollevato, non

@@ -20,7 +20,8 @@ final class Template {
 	public const EXCERPT_LENGTH = 160;
 
 	/**
-	 * Replaces every {{name}} with its value; unknown names become empty.
+	 * Replaces every {{name}} with its value; unknown names become empty. {{cf:key}} is the
+	 * custom field `key` of the object, read by $field.
 	 *
 	 * Separators left dangling by empty variables are removed, so
 	 * "{{title}} {{page}} {{sep}} {{site_name}}" never ends up as "Title  - - Site".
@@ -29,13 +30,19 @@ final class Template {
 	 * @param array<string, string|\Closure(): string> $variables Values keyed by variable name; a closure is
 	 *                                                         called only if the template uses it.
 	 * @param string                                   $separator Value of {{sep}}.
+	 * @param (\Closure(string): string)|null          $field     Value of a custom field by key; null when
+	 *                                                         the object has none.
 	 * @return string Plain text, not escaped.
 	 */
-	public static function render( string $template, array $variables, string $separator ): string {
+	public static function render( string $template, array $variables, string $separator, ?\Closure $field = null ): string {
 		$text = (string) preg_replace_callback(
-			'/\{\{\s*([a-z_]+)\s*\}\}/i',
-			static function ( array $matches ) use ( $variables ): string {
-				$name = strtolower( $matches[1] );
+			'/\{\{\s*(?:cf:([a-z0-9_-]+)|([a-z_]+))\s*\}\}/i',
+			static function ( array $matches ) use ( $variables, $field ): string {
+				if ( '' !== $matches[1] ) {
+					return null === $field ? '' : self::plain( (string) $field( $matches[1] ) );
+				}
+
+				$name = strtolower( $matches[2] );
 				if ( 'sep' === $name ) {
 					return "\x1F";
 				}
@@ -98,6 +105,34 @@ final class Template {
 		}
 
 		return $text;
+	}
+
+	/**
+	 * Description-length text of a custom field of a post or term, for {{cf:key}}: the value
+	 * a field plugin such as ACF keeps in the object's meta. Meta are cached with the queried
+	 * object, so this costs no query.
+	 *
+	 * Protected keys (starting with `_`, or marked by `is_protected_meta`) are never read: they
+	 * hold plugin data, and a per-post override, which an editor writes, is a template too.
+	 * Values that are not text (arrays, objects) are empty; shortcodes are removed without
+	 * running them, as in excerpt(). A password-protected post has none, as for its excerpt.
+	 *
+	 * @param \WP_Post|\WP_Term $item Post or term.
+	 * @param string            $key  Meta key.
+	 * @return string
+	 */
+	public static function custom_field( $item, string $key ): string {
+		$type = $item instanceof \WP_Post ? 'post' : 'term';
+		if ( is_protected_meta( $key, $type ) || ( $item instanceof \WP_Post && '' !== $item->post_password ) ) {
+			return '';
+		}
+
+		$value = $item instanceof \WP_Post ? get_post_meta( $item->ID, $key, true ) : get_term_meta( $item->term_id, $key, true );
+		if ( ! is_scalar( $value ) || is_bool( $value ) ) {
+			return '';
+		}
+
+		return self::truncate( self::plain( strip_shortcodes( (string) $value ) ), self::EXCERPT_LENGTH );
 	}
 
 	/**

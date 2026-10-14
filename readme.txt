@@ -94,7 +94,7 @@ Feeds are never indexed: they send an `X-Robots-Tag: noindex, follow` header, so
 
 = Does it work with WooCommerce and ACF? =
 
-Yes, without conflicts. The shop page gives the product archive its SEO title, description and canonical, and WooCommerce keeps printing its own Product structured data. Not supported yet: SEO fields on the product edit screen (WooCommerce uses the classic editor there) and multilingual stores. With ACF, automatic descriptions are built from the post content and excerpt, not from custom fields.
+Yes, without conflicts. The shop page gives the product archive its SEO title, description and canonical, cart, checkout and account pages stay out of the sitemap, and WooCommerce keeps printing its own Product structured data. Products, and any content edited with the classic editor, get the SEO and Language fields in boxes under the editor. Not supported yet: multilingual stores. With ACF, title and description templates can use a custom field with {{cf:field_name}}; values saved inside ACF blocks are not read.
 
 == External services ==
 
