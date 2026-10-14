@@ -37,7 +37,13 @@ final class MediaField {
 			esc_attr__( 'Replace image', 'easyrankly' ),
 			esc_attr__( 'Remove', 'easyrankly' )
 		);
-		printf( '<p class="easyrankly-media-field__preview">%s</p>', $attachment_id > 0 ? wp_get_attachment_image( $attachment_id, 'thumbnail' ) : '' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Markup built and escaped by the core.
+		// The same image the script shows after a choice: the thumbnail with its alternative text.
+		$thumbnail = $attachment_id > 0 ? wp_get_attachment_image_url( $attachment_id, 'thumbnail' ) : false;
+		echo '<p class="easyrankly-media-field__preview">';
+		if ( is_string( $thumbnail ) ) {
+			printf( '<img src="%1$s" alt="%2$s" />', esc_url( $thumbnail ), esc_attr( (string) get_post_meta( $attachment_id, '_wp_attachment_image_alt', true ) ) );
+		}
+		echo '</p>';
 		printf(
 			'<input type="number" min="0" step="1" id="%1$s" name="%2$s" value="%3$s" class="small-text" />',
 			esc_attr( $id ),

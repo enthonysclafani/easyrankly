@@ -205,7 +205,7 @@ final class ClassicPanel {
 
 		if ( isset( $others[ $language ] ) ) {
 			$result = new \WP_Error( 'easyrankly_language_taken' );
-		} elseif ( $others != $before ) { // phpcs:ignore Universal.Operators.StrictComparisons.LooseNotEqual -- Same languages and posts, in any order.
+		} elseif ( self::sorted( $others ) !== self::sorted( $before ) ) {
 			$result = self::can_edit_all( self::with_groups( array_merge( array( $post_id ), array_values( $others ) ) ) )
 				? Translations::link( array( $language => $post_id ) + $others )
 				: new \WP_Error( 'easyrankly_forbidden' );
@@ -243,6 +243,19 @@ final class ClassicPanel {
 			'easyrankly_forbidden'      => __( 'Sorry, you are not allowed to change the translations of this content.', 'easyrankly' ),
 			default                     => __( 'The translations were not changed.', 'easyrankly' ),
 		};
+	}
+
+	/**
+	 * Translations sorted by language, so two sets with the same languages and posts compare
+	 * equal whatever their order.
+	 *
+	 * @param array<int|string, int> $translations Post IDs keyed by language slug.
+	 * @return array<int|string, int>
+	 */
+	private static function sorted( array $translations ): array {
+		ksort( $translations, SORT_STRING );
+
+		return array_map( 'intval', $translations );
 	}
 
 	/**

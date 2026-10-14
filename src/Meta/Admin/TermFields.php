@@ -32,9 +32,12 @@ final class TermFields {
 
 	/**
 	 * Loads the image picker on the edit screen of the taxonomies that show the fields.
+	 *
+	 * The taxonomy of the screen is the one the core worked out from the request (`$taxnow`,
+	 * set by wp-admin/admin.php only for an existing taxonomy).
 	 */
 	public function load(): void {
-		$taxonomy = isset( $_REQUEST['taxonomy'] ) ? sanitize_key( wp_unslash( $_REQUEST['taxonomy'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Only picks the assets of the screen.
+		$taxonomy = isset( $GLOBALS['taxnow'] ) && is_string( $GLOBALS['taxnow'] ) ? $GLOBALS['taxnow'] : '';
 
 		if ( taxonomy_exists( $taxonomy ) && is_taxonomy_viewable( $taxonomy ) ) {
 			add_action( 'admin_enqueue_scripts', array( MediaField::class, 'enqueue' ) );
@@ -108,8 +111,16 @@ final class TermFields {
 			return;
 		}
 
-		// Each value is sanitized below by the callback registered for its key.
-		$input = isset( $_POST['easyrankly'] ) && is_array( $_POST['easyrankly'] ) ? wp_unslash( $_POST['easyrankly'] ) : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitized per key through sanitize_meta().
+		// Read as text (the canonical as a URL, keeping its percent-encoded octets), then
+		// sanitized below by the callback registered for each key.
+		$input = array();
+		foreach ( array_keys( Meta::fields() ) as $name ) {
+			if ( isset( $_POST['easyrankly'][ $name ] ) && is_scalar( $_POST['easyrankly'][ $name ] ) ) {
+				$input[ $name ] = 'canonical' === $name
+					? esc_url_raw( wp_unslash( $_POST['easyrankly'][ $name ] ) )
+					: sanitize_text_field( wp_unslash( $_POST['easyrankly'][ $name ] ) );
+			}
+		}
 
 		$term = get_term( $term_id );
 		if ( ! $term instanceof \WP_Term ) {
@@ -139,16 +150,18 @@ final class TermFields {
 	 * @param bool   $textarea    Whether to print a textarea.
 	 */
 	private function text_row( string $name, string $label, string $value, string $placeholder, bool $textarea = false ): void {
-		$id    = 'easyrankly-' . $name;
-		$field = $textarea
-			? sprintf( '<textarea id="%1$s" name="easyrankly[%2$s]" rows="3" placeholder="%4$s">%3$s</textarea>', esc_attr( $id ), esc_attr( $name ), esc_textarea( $value ), esc_attr( $placeholder ) )
-			: sprintf( '<input type="text" id="%1$s" name="easyrankly[%2$s]" value="%3$s" placeholder="%4$s">', esc_attr( $id ), esc_attr( $name ), esc_attr( $value ), esc_attr( $placeholder ) );
+		$id = 'easyrankly-' . $name;
 
+		printf( '<tr class="form-field"><th scope="row"><label for="%1$s">%2$s</label></th><td>', esc_attr( $id ), esc_html( $label ) );
 		printf(
-			'<tr class="form-field"><th scope="row"><label for="%1$s">%2$s</label></th><td>%3$s</td></tr>',
+			$textarea
+				? '<textarea id="%1$s" name="easyrankly[%2$s]" rows="3" placeholder="%4$s">%3$s</textarea>'
+				: '<input type="text" id="%1$s" name="easyrankly[%2$s]" value="%3$s" placeholder="%4$s">',
 			esc_attr( $id ),
-			esc_html( $label ),
-			$field // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Built above from escaped parts.
+			esc_attr( $name ),
+			$textarea ? esc_textarea( $value ) : esc_attr( $value ),
+			esc_attr( $placeholder )
 		);
+		echo '</td></tr>';
 	}
 }
