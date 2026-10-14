@@ -14,8 +14,8 @@ use EasyRankly\Multilingual\Translations;
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Loads the panel that sets the language of the post and links its translations, and
- * gives the language switcher block the languages for its editor preview.
+ * Loads the panel that sets the language of the post and links its translations, and the
+ * editor script of the language switcher block, with the languages for its preview.
  *
  * The panel talks to the `easyrankly/v1/translations` routes, which check the
  * capabilities on every post involved.
@@ -30,22 +30,25 @@ final class EditorPanel {
 	}
 
 	/**
-	 * Enqueues the panel when the site has two languages and the post type has languages, and
-	 * prints the languages once, before the first script that reads them.
+	 * Enqueues the switcher block script in every block editor, the panel when the site has two
+	 * languages and the post type has languages, and prints the languages once, before the first
+	 * script that reads them.
 	 *
-	 * The switcher block reads them only when it renders, after every editor script ran: in
+	 * The switcher script is enqueued here, not declared in block.json: see Switcher::register_block().
+	 * The block reads the languages only when it renders, after every editor script ran: in
 	 * editors with the panel, the panel's copy serves both.
 	 */
 	public function enqueue(): void {
+		$switcher = Assets::enqueue( 'language-switcher' );
+
 		if ( $this->enqueue_panel() ) {
 			wp_add_inline_script( 'easyrankly-language-panel', self::languages_script(), 'before' );
 			return;
 		}
 
 		// Any other editor (site editor included): the switcher block previews the languages.
-		$handle = generate_block_asset_handle( 'easyrankly/language-switcher', 'editorScript' );
-		if ( wp_script_is( $handle, 'registered' ) ) {
-			wp_add_inline_script( $handle, self::languages_script(), 'before' );
+		if ( $switcher ) {
+			wp_add_inline_script( 'easyrankly-language-switcher', self::languages_script(), 'before' );
 		}
 	}
 

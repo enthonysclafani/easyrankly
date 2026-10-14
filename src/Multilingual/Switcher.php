@@ -34,36 +34,12 @@ final class Switcher {
 	/**
 	 * Registers the block from its block.json, with the server render.
 	 *
-	 * In a development checkout without `npm run build` the editor script is missing and core
-	 * would complain on every request: the block is then registered from block.json without it,
-	 * so existing blocks still render with their supports (the admin notice of Assets explains
-	 * the missing build).
+	 * The block.json declares no script: registering one here would make the core build its whole
+	 * list of scripts on every request, REST, redirects and sitemaps included. The editor script
+	 * is enqueued in the block editors only, by Admin\EditorPanel.
 	 */
 	public function register_block(): void {
-		$built = is_readable( dirname( PLUGIN_FILE ) . '/build/language-switcher.asset.php' );
-		if ( ! $built ) {
-			add_filter( 'block_type_metadata', array( self::class, 'drop_editor_script' ) );
-		}
-
 		register_block_type( dirname( PLUGIN_FILE ) . '/blocks/language-switcher', array( 'render_callback' => array( self::class, 'render' ) ) );
-
-		if ( ! $built ) {
-			remove_filter( 'block_type_metadata', array( self::class, 'drop_editor_script' ) );
-		}
-	}
-
-	/**
-	 * Leaves the editor script out of the block's metadata, for checkouts without a build.
-	 *
-	 * @param mixed $metadata Metadata read from block.json.
-	 * @return mixed
-	 */
-	public static function drop_editor_script( $metadata ) {
-		if ( is_array( $metadata ) && 'easyrankly/language-switcher' === ( $metadata['name'] ?? null ) ) {
-			unset( $metadata['editorScript'] );
-		}
-
-		return $metadata;
 	}
 
 	/**
