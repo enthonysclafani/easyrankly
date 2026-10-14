@@ -91,10 +91,14 @@ documenti indicati.
   pagine fatte solo di campi o blocchi ACF restavano senza description. Non nomina ACF.
 - **Redirect 451** (10 ottobre 2026): per le pagine tolte per un ordine legale (DMCA, diritto all'oblio). Come il 410
   non ha destinazione e mostra il template 404 con il suo codice.
-- **Import da Yoast e Rank Math** (10 ottobre 2026): si fa, più avanti. Solo meta (title, description, robots,
+- **Import da Yoast e Rank Math** (10 ottobre 2026, fatto il 14 ottobre): solo meta (title, description, robots,
   canonical e social di contenuti e termini) e redirect, non le impostazioni globali; a lotti guidati dall'admin via
-  REST con il cursore in un'option (niente cron). SEOPress e All in One SEO eventualmente dopo. Riferimento Alpha (branch `Decommissioned`):
-  `includes/migrations/`. In roadmap, "Funzioni decise ma non ancora fatte".
+  REST con il cursore in un'option (niente cron). SEOPress e All in One SEO eventualmente dopo. Fatto in
+  `src/Import/` (EasyRankly > Import): non sovrascrive i valori già impostati e non tocca i dati dell'altro plugin,
+  quindi si può ripetere; le variabili dei template diventano le nostre, quelle senza equivalente si tolgono; i testi
+  social con variabili si saltano (lì le variabili non si sostituiscono). I redirect di Yoast vengono dall'option di
+  Yoast SEO Premium; quelli di Rank Math stanno in una sua tabella, che si legge solo con `$wpdb`: decisione chiesta a
+  Enthony il 14 ottobre 2026, fino ad allora non si importano.
 - **Funzioni SEO delle versioni precedenti** (12 ottobre 2026), dopo il confronto di `main`, `beta` e `Alpha` con
   questo branch:
   - *Pagine allegato*: si riporta, ma senza un'impostazione nostra. Una casella nella pagina Indicizzazione legge e

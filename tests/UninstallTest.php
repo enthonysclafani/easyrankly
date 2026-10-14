@@ -28,6 +28,7 @@ final class UninstallTest extends WP_UnitTestCase {
 		}
 
 		update_option( 'easyrankly_settings', array( 'title_separator' => '|' ) );
+		update_option( 'easyrankly_import', array( 'yoast' => array( 'stage' => 'terms' ) ), false );
 
 		require dirname( __DIR__ ) . '/uninstall.php';
 

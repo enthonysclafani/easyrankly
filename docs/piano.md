@@ -41,6 +41,7 @@ Search Console tiene già 16 mesi.
 | Sitemap | Estende le sitemap del core | `wp_sitemaps_*`, nessun generatore proprio |
 | Redirect | 301/302/307/410/451, esatti e regex | Post type `erankly_redirect`; hash della sorgente in `post_name` (indicizzato); ricerca solo su 404 più una piccola lista di "forzati" |
 | Custom code | Snippet HTML e PHP in head, apertura del body, footer; PHP anche "ovunque", come `functions.php` | Post type `erankly_snippet`; PHP solo con `edit_plugins`, controllo della sintassi senza esecuzione, disattivazione automatica in caso di errore, modalità sicura |
+| Import | Da Yoast SEO e Rank Math: campi SEO di contenuti e termini e redirect, mai le impostazioni; non sovrascrive | A lotti dall'admin via REST, avanzamento nell'option `easyrankly_import`, niente cron; scrive con i meta registrati e i controlli dei redirect |
 | Multilingua | Singolo sito: lingua per contenuto, gruppi di traduzioni, prefisso nella URL, hreflang, sitemap per lingua; menu e stringhe del tema per lingua (Fase 7) | Tassonomie nascoste (come Polylang); blocco selettore renderizzato lato server; menu e testi per lingua nella option e nei filtri del core, senza tabelle |
 | EasyRankly Pro (plugin a parte) | Agente AI con proposte da approvare e lavoro operativo di un SEO di agenzia: Search Console, parole chiave e cluster, link interni, contenuti, report | Plugin separato e autonomo, fuori da WordPress.org; usa solo ciò che il gratuito espone già (sezione 6) |
 

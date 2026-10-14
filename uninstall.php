@@ -90,6 +90,7 @@ $easyrankly_cleanup = static function (): void {
 	delete_option( 'easyrankly_redirects_forced' );
 	delete_option( 'easyrankly_redirects_regex' );
 	delete_option( 'easyrankly_snippets' );
+	delete_option( 'easyrankly_import' );
 
 	// SEO meta of posts and terms (src/Meta/Meta.php).
 	foreach (
