@@ -114,6 +114,38 @@ final class UninstallTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Records that cannot be deleted, scattered among the others, are skipped and every other one is deleted.
+	 */
+	public function test_uninstall_skips_scattered_records_it_cannot_delete(): void {
+		if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
+			define( 'WP_UNINSTALL_PLUGIN', 'easyrankly/easyrankly.php' );
+		}
+
+		$ids  = self::factory()->post->create_many( 250, array( 'post_type' => 'erankly_redirect' ) );
+		$kept = array();
+		foreach ( $ids as $index => $id ) {
+			if ( 0 === $index % 3 ) {
+				$kept[] = $id;
+			}
+		}
+		add_filter( 'pre_delete_post', static fn( $delete, $post ) => in_array( $post->ID, $kept, true ) ? false : $delete, 10, 2 );
+
+		require dirname( __DIR__ ) . '/uninstall.php';
+
+		$left = get_posts(
+			array(
+				'post_type'      => 'erankly_redirect',
+				'post_status'    => 'any',
+				'posts_per_page' => -1,
+				'fields'         => 'ids',
+				'orderby'        => 'ID',
+				'order'          => 'ASC',
+			)
+		);
+		$this->assertSame( $kept, array_map( 'intval', $left ) );
+	}
+
+	/**
 	 * Snippets, their revisions and meta, and their cache are removed.
 	 */
 	public function test_uninstall_removes_snippets(): void {
