@@ -211,8 +211,9 @@ aggiorna dalla 1.0.0 non si fa niente (decisione del 12 ottobre 2026): meta `_er
       modalità sicura
 - [x] Versione da 3.0.0 a 2.0.0: header di `easyrankly.php`, costante `VERSION`, `Stable tag`, changelog,
       `tests/PluginTest.php`; nei documenti "EasyRankly 3" diventa 2.0
-- [ ] Plugin Check completo, una volta, a mano: tutte le categorie, con i warning e senza escludere
-      `src/CustomCode/PhpRunner.php`; annotare l'elenco esatto dei messaggi
+- [x] Plugin Check completo, una volta, a mano: tutte le categorie, con i warning e senza escludere
+      `src/CustomCode/PhpRunner.php` (14 ottobre 2026: corretti i segnalati con le PR #83 e #84; resta solo
+      l'`eval` di `PhpRunner.php`, eccezione approvata)
 - [ ] Controllare che `easyrankly.com` (`Plugin URI` e `Author URI`) risponda e che l'account `easyrankly` dei
       `Contributors` abbia accesso in scrittura all'SVN
 - [ ] Prova a mano su Studio con lo zip di `tools/build-dist.sh` (o quello della CI, tra gli Artifacts), compreso l'aggiornamento da una 1.0.0 installata

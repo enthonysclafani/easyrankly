@@ -144,8 +144,8 @@ export WXR (cap `export`), `get_posts()` pubblico tramite query var (`?post_type
 
 Tolto il 12 ottobre 2026: lo slug `easyrankly` ha già la 1.0.0 pubblicata e la 2.0.0 esce come aggiornamento, che non
 passa da una revisione del team di WordPress.org. Non serve quindi un testo che giustifichi gli snippet PHP. Le linee
-guida valgono comunque: resta il Plugin Check completo, **anche** su `PhpRunner.php`, prima del rilascio (sezione
-"In sospeso" di `docs/roadmap.md`).
+guida valgono comunque: il Plugin Check completo, **anche** su `PhpRunner.php`, è stato fatto il 14 ottobre 2026
+(sezione "In sospeso" di `docs/roadmap.md`).
 
 ---
 
