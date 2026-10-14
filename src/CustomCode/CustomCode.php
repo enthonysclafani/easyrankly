@@ -495,12 +495,11 @@ final class CustomCode {
 
 		$posts = get_posts(
 			array(
-				'post_type'        => self::POST_TYPE,
-				'post_status'      => array( 'publish', 'draft' ),
-				'posts_per_page'   => -1,
-				'orderby'          => 'ID',
-				'order'            => 'ASC',
-				'suppress_filters' => true,
+				'post_type'      => self::POST_TYPE,
+				'post_status'    => array( 'publish', 'draft' ),
+				'posts_per_page' => -1,
+				'orderby'        => 'ID',
+				'order'          => 'ASC',
 			)
 		);
 
