@@ -508,9 +508,9 @@ abstract class RecordsPage {
 	 */
 	private function ids(): array {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- The callers check the nonce before changing anything.
-		$ids = isset( $_REQUEST['ids'] ) ? (array) wp_unslash( $_REQUEST['ids'] ) : array();
+		$ids = isset( $_REQUEST['ids'] ) ? array_map( 'absint', (array) wp_unslash( $_REQUEST['ids'] ) ) : array();
 
-		return array_values( array_filter( array_map( 'absint', $ids ) ) );
+		return array_values( array_filter( $ids ) );
 	}
 
 	/**

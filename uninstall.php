@@ -19,13 +19,12 @@ $easyrankly_cleanup = static function (): void {
 	do {
 		$easyrankly_ids = get_posts(
 			array(
-				'post_type'        => array( 'erankly_redirect', 'erankly_snippet' ),
-				'post_status'      => array_keys( get_post_stati() ),
-				'post__not_in'     => $easyrankly_tried,
-				'posts_per_page'   => 100,
-				'fields'           => 'ids',
-				'no_found_rows'    => true,
-				'suppress_filters' => true,
+				'post_type'      => array( 'erankly_redirect', 'erankly_snippet' ),
+				'post_status'    => array_keys( get_post_stati() ),
+				'post__not_in'   => $easyrankly_tried,
+				'posts_per_page' => 100,
+				'fields'         => 'ids',
+				'no_found_rows'  => true,
 			)
 		);
 		foreach ( $easyrankly_ids as $easyrankly_id ) {
