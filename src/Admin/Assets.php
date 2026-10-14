@@ -36,6 +36,7 @@ final class Assets {
 
 		if ( ! is_readable( $asset ) ) {
 			add_action( 'admin_notices', array( self::class, 'missing_build_notice' ) );
+			self::missing_build_editor_notice();
 			return false;
 		}
 
@@ -69,7 +70,35 @@ final class Assets {
 	public static function missing_build_notice(): void {
 		printf(
 			'<div class="notice notice-error"><p>%s</p></div>',
-			esc_html__( 'EasyRankly admin assets are missing. Run `npm install && npm run build` in the plugin folder.', 'easyrankly' )
+			esc_html( self::missing_build_message() )
 		);
+	}
+
+	/**
+	 * Shows the same explanation in the block editor, which prints no `admin_notices`: without it the panels just
+	 * vanish. The notice goes through the core notices store, so it needs nothing from build/; it is added once
+	 * even when several entry points are missing.
+	 */
+	private static function missing_build_editor_notice(): void {
+		$after = wp_scripts()->get_data( 'wp-notices', 'after' );
+
+		if ( ! doing_action( 'enqueue_block_editor_assets' ) || ( is_array( $after ) && str_contains( implode( '', $after ), 'easyrankly-missing-build' ) ) ) {
+			return;
+		}
+
+		wp_add_inline_script(
+			'wp-notices',
+			sprintf(
+				'wp.data.dispatch( "core/notices" ).createErrorNotice( %s, { id: "easyrankly-missing-build" } );',
+				wp_json_encode( self::missing_build_message(), JSON_HEX_TAG | JSON_HEX_AMP )
+			)
+		);
+	}
+
+	/**
+	 * The text of both notices.
+	 */
+	private static function missing_build_message(): string {
+		return __( 'EasyRankly admin assets are missing. Run `npm install && npm run build` in the plugin folder.', 'easyrankly' );
 	}
 }

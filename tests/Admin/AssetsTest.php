@@ -136,6 +136,31 @@ final class AssetsTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * A missing build explains itself in the block editor too, once, through the core notices store; elsewhere
+	 * only through `admin_notices`.
+	 */
+	public function test_missing_build_shows_a_notice_in_the_block_editor(): void {
+		wp_default_scripts( wp_scripts() );
+
+		$this->assertFalse( Assets::enqueue( 'no-such-entry' ) );
+		$this->assertSame( 10, has_action( 'admin_notices', array( Assets::class, 'missing_build_notice' ) ) );
+		$this->assertFalse( wp_scripts()->get_data( 'wp-notices', 'after' ), 'Outside the block editor: no editor notice.' );
+
+		$enqueue = static function (): void {
+			Assets::enqueue( 'no-such-entry' );
+			Assets::enqueue( 'another-missing-entry' );
+		};
+		add_action( 'enqueue_block_editor_assets', $enqueue );
+		do_action( 'enqueue_block_editor_assets' );
+		remove_action( 'enqueue_block_editor_assets', $enqueue );
+
+		$after = (array) wp_scripts()->get_data( 'wp-notices', 'after' );
+		$this->assertCount( 1, array_filter( $after ), 'Added once.' );
+		$this->assertStringContainsString( 'createErrorNotice', (string) end( $after ) );
+		$this->assertStringContainsString( 'npm run build', (string) end( $after ) );
+	}
+
+	/**
 	 * Handles that would be printed: the queue with its dependencies.
 	 *
 	 * @param WP_Scripts|WP_Styles $dependencies Scripts or styles.
