@@ -115,7 +115,7 @@ final class TermFields {
 		// sanitized below by the callback registered for each key.
 		$input = array();
 		foreach ( array_keys( Meta::fields() ) as $name ) {
-			if ( isset( $_POST['easyrankly'][ $name ] ) && is_scalar( $_POST['easyrankly'][ $name ] ) ) {
+			if ( isset( $_POST['easyrankly'][ $name ] ) && is_string( $_POST['easyrankly'][ $name ] ) ) {
 				$input[ $name ] = 'canonical' === $name
 					? esc_url_raw( wp_unslash( $_POST['easyrankly'][ $name ] ) )
 					: sanitize_text_field( wp_unslash( $_POST['easyrankly'][ $name ] ) );
