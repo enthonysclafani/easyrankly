@@ -324,4 +324,40 @@ final class TitlesTest extends WP_UnitTestCase {
 		$this->assertSame( 'Shoes', Titles::title() );
 		_unregister_post_type( 'product' );
 	}
+
+	/**
+	 * {{cf:key}} reads a custom field of the post or term, as ACF stores it, in templates and
+	 * overrides; protected keys, values that are not text and protected posts give nothing.
+	 */
+	public function test_custom_field_variable(): void {
+		update_option( Settings::OPTION, array( 'templates' => array( 'single' => array( 'description' => '{{cf:intro}} {{cf:Missing}}' ) ) ) );
+		$post_id = self::factory()->post->create( array( 'post_content' => '<!-- wp:acf/hero /-->' ) );
+		update_post_meta( $post_id, 'intro', '<p>Handmade <b>shoes</b> [gallery] from Italy.</p>' );
+		update_post_meta( $post_id, '_intro', 'field_123' );
+		update_post_meta( $post_id, 'list', array( 'a', 'b' ) );
+
+		$this->go_to( get_permalink( $post_id ) );
+		$this->assertSame( 'Handmade shoes from Italy.', Titles::description() );
+
+		update_post_meta( $post_id, '_easyrankly_description', '{{cf:_intro}}{{cf:list}}' );
+		$this->go_to( get_permalink( $post_id ) );
+		$this->assertSame( '', Titles::description() );
+
+		delete_post_meta( $post_id, '_easyrankly_description' );
+		wp_update_post(
+			array(
+				'ID'            => $post_id,
+				'post_password' => 'secret',
+			)
+		);
+		$this->go_to( get_permalink( $post_id ) );
+		$this->assertSame( '', Titles::description() );
+
+		$term_id = self::factory()->category->create( array( 'name' => 'Shoes' ) );
+		self::factory()->post->create( array( 'post_category' => array( $term_id ) ) );
+		update_term_meta( $term_id, 'intro', 'All our shoes.' );
+		update_term_meta( $term_id, '_easyrankly_title', '{{title}} {{sep}} {{cf:intro}}' );
+		$this->go_to( get_category_link( $term_id ) );
+		$this->assertSame( 'Shoes - All our shoes.', Titles::title() );
+	}
 }

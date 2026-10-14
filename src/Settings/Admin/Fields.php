@@ -459,7 +459,7 @@ final class Fields {
 	 */
 	public static function templates_intro( array $section ): void {
 		self::paragraph( $section );
-		$variables = implode( ' ', array_map( static fn( string $name ): string => '{{' . $name . '}}', Titles::VARIABLES ) );
+		$variables = implode( ' ', array_map( static fn( string $name ): string => '{{' . $name . '}}', array_merge( Titles::VARIABLES, array( 'cf:field_name' ) ) ) );
 		printf( '<p>%1$s <code>%2$s</code></p>', esc_html__( 'Variables:', 'easyrankly' ), esc_html( $variables ) );
 	}
 

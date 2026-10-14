@@ -115,7 +115,7 @@ final class Titles {
 			}
 		}
 
-		return Template::render( $template, self::variables(), (string) $settings['title_separator'] );
+		return Template::render( $template, self::variables(), (string) $settings['title_separator'], self::custom_fields() );
 	}
 
 	/**
@@ -127,6 +127,21 @@ final class Titles {
 	 */
 	private static function override( string $field ): string {
 		return Meta::queried_text( $field );
+	}
+
+	/**
+	 * Reader of {{cf:key}} for the queried post or term. A term's fields, like its own text,
+	 * are in the default language only.
+	 *
+	 * @return (\Closure(string): string)|null
+	 */
+	private static function custom_fields(): ?\Closure {
+		$object = get_queried_object();
+		if ( ! $object instanceof \WP_Post && ! ( $object instanceof \WP_Term && ! Meta::is_other_language() ) ) {
+			return null;
+		}
+
+		return static fn( string $key ): string => Template::custom_field( $object, $key );
 	}
 
 	/**
