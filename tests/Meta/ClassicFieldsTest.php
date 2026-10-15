@@ -161,4 +161,40 @@ final class ClassicFieldsTest extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'value="a&quot;b&amp;c"', $html );
 		$this->assertStringContainsString( 'name="easyrankly[og_image]" value="' . $image_id . '"', $html );
 	}
+
+	/**
+	 * A textarea value is printed escaped.
+	 */
+	public function test_render_escapes_textarea_values(): void {
+		$post_id = self::factory()->post->create();
+		update_post_meta( $post_id, '_easyrankly_description', 'Tom & "Jerry"' );
+
+		$html = get_echo( array( new ClassicFields(), 'render' ), array( get_post( $post_id ) ) );
+
+		$this->assertStringContainsString( '>Tom &amp; &quot;Jerry&quot;</textarea>', $html );
+	}
+
+	/**
+	 * Each field is read on its own: the canonical keeps its percent-encoded octets, text
+	 * loses its tags, and a field sent as a list is ignored.
+	 */
+	public function test_fields_are_read_one_by_one(): void {
+		$post_id = self::factory()->post->create();
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'editor' ) ) );
+
+		$_POST = array(
+			'post_ID'             => (string) $post_id,
+			'easyrankly_post_seo' => wp_create_nonce( 'easyrankly_post_seo' ),
+			'easyrankly'          => array(
+				'canonical'   => 'https://example.com/caff%C3%A8/',
+				'description' => "<b>Two</b>\nlines",
+				'title'       => array( 'Forged' ),
+			),
+		);
+		( new ClassicFields() )->save( $post_id, get_post( $post_id ) );
+
+		$this->assertSame( 'https://example.com/caff%C3%A8/', Meta::post( $post_id, 'canonical' ) );
+		$this->assertSame( 'Two lines', Meta::post( $post_id, 'description' ) );
+		$this->assertFalse( metadata_exists( 'post', $post_id, '_easyrankly_title' ) );
+	}
 }

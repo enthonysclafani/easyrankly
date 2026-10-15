@@ -174,6 +174,44 @@ final class ClassicPanelTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Sending the same translations in another order changes nothing, so it needs no right
+	 * on the other posts: unlinking and linking back the same post is not a change.
+	 */
+	public function test_same_translations_in_another_order_are_no_change(): void {
+		$author  = self::factory()->user->create( array( 'role' => 'author' ) );
+		$post_id = self::factory()->post->create( array( 'post_author' => $author ) );
+		$english = self::factory()->post->create( array( 'post_author' => $this->editor ) );
+		$french  = self::factory()->post->create( array( 'post_author' => $this->editor ) );
+		Translations::link(
+			array(
+				'it' => $post_id,
+				'en' => $english,
+				'fr' => $french,
+			)
+		);
+		wp_set_current_user( $author );
+
+		$this->save(
+			$post_id,
+			array(
+				'easyrankly_language' => 'it',
+				'easyrankly_unlink'   => 'en',
+				'easyrankly_link'     => array( 'en' => (string) $english ),
+			)
+		);
+
+		$this->assertSame(
+			array(
+				'it' => $post_id,
+				'en' => $english,
+				'fr' => $french,
+			),
+			Translations::of( $post_id )
+		);
+		$this->assertStringNotContainsString( 'easyrankly_language_error', $this->redirect( $post_id ) );
+	}
+
+	/**
 	 * An author cannot link a post they cannot edit, nor translate without editing the group.
 	 */
 	public function test_author_cannot_link_others_posts(): void {

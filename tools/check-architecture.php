@@ -40,7 +40,7 @@ final class ArchitectureChecker {
 	 *
 	 * @var list<string>
 	 */
-	private const WPDB_ALLOWLIST = array();
+	private const WPDB_ALLOWLIST = array( 'src/Import/RankMath.php' );
 
 	/**
 	 * The only stylesheet of the plugin, the file that loads it and its size limit in bytes (see CLAUDE.md,

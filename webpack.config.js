@@ -4,7 +4,13 @@
  */
 const defaultConfig = require( '@wordpress/scripts/config/webpack.config' );
 
-const entries = [ 'editor', 'language-panel', 'language-switcher', 'media-field' ];
+const entries = [
+	'editor',
+	'import',
+	'language-panel',
+	'language-switcher',
+	'media-field',
+];
 
 module.exports = {
 	...defaultConfig,

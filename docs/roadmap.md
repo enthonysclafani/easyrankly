@@ -255,7 +255,9 @@ Tutte le decisioni aperte, del gratuito e del Pro, stanno in `docs/decisioni.md`
 
 ### Funzioni decise ma non ancora fatte
 
-- [ ] Import da Yoast e Rank Math: solo meta e redirect, a lotti dall'admin, senza cron (`docs/decisioni.md`)
+- [x] Import da Yoast e Rank Math: solo meta e redirect, a lotti dall'admin, senza cron (`docs/decisioni.md`); i redirect
+      di Rank Math si leggono dalla sua tabella con `$wpdb` in un solo file (decisione del 15 ottobre 2026)
+- [ ] Prova su Studio dell'import con dati veri di Yoast SEO (anche Premium, per i redirect) e di Rank Math
 
 ### Debito tecnico residuo
 
@@ -278,9 +280,12 @@ contenuti con un redirect forzato), liste dei redirect ricostruite solo quando s
 Le righe con `phpcs:ignore` sono 35, quasi tutte giuste (letture di `$_GET` nel frontend, query sulle tassonomie
 delle lingue, snippet, redirect esterni validati). Da fare quando si decide (Enthony, 14 ottobre 2026):
 
-- [ ] Rivedere le eccezioni e togliere quelle che si possono evitare (stimate 5–7: input dei form di Redirect e dei
-      termini sanitizzato nella riga in cui si legge, anteprima dell'immagine in `Admin/MediaField`, campo dei termini
-      in `Meta/Admin/TermFields`), con un test per ognuna
+- [x] Rivedere le eccezioni e togliere quelle che si possono evitare (14 ottobre 2026: tolte 7, da 36 a 29, ognuna con
+      un test: i campi SEO dei termini e dell'editor classico letti uno per uno, già sanitizzati, e stampati senza
+      stringhe preparate prima; la tassonomia della schermata dei termini letta da `$taxnow` del core; l'anteprima
+      dell'immagine costruita con `esc_url()`; il confronto delle traduzioni nel box classico fatto in modo stretto su
+      elenchi ordinati). Restano quelle giustificate; gli input di sorgente e destinazione dei Redirect restano grezzi,
+      perché `sanitize_text_field()` toglierebbe le codifiche `%XX`, e li valida `Redirects::check()`
 
 ### Controllo di sicurezza
 

@@ -142,6 +142,19 @@ final class TermFieldsTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * A textarea value is printed escaped.
+	 */
+	public function test_render_escapes_textarea_values(): void {
+		$term_id = self::factory()->category->create();
+		update_term_meta( $term_id, '_easyrankly_description', 'Tom & "Jerry"' );
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'editor' ) ) );
+
+		$html = get_echo( array( new TermFields(), 'render' ), array( get_term( $term_id ) ) );
+
+		$this->assertStringContainsString( '>Tom &amp; &quot;Jerry&quot;</textarea>', $html );
+	}
+
+	/**
 	 * The social image is chosen from the media library, like the images of the settings.
 	 */
 	public function test_social_image_uses_the_media_picker(): void {
@@ -161,12 +174,49 @@ final class TermFieldsTest extends WP_UnitTestCase {
 			'nav_menu' => false,
 		);
 		foreach ( $expected as $taxonomy => $hooked ) {
-			$_REQUEST['taxonomy'] = $taxonomy;
+			$GLOBALS['taxnow'] = $taxonomy;
 			$fields->load();
 			$this->assertSame( $hooked, has_action( 'admin_enqueue_scripts', array( MediaField::class, 'enqueue' ) ), $taxonomy );
 			remove_action( 'admin_enqueue_scripts', array( MediaField::class, 'enqueue' ) );
 		}
-		unset( $_REQUEST['taxonomy'] );
+		unset( $GLOBALS['taxnow'] );
+	}
+
+	/**
+	 * The picker follows the taxonomy the core accepted ($taxnow), not the raw request: a
+	 * taxonomy that does not exist leaves $taxnow empty.
+	 */
+	public function test_picker_ignores_the_raw_request(): void {
+		$_REQUEST['taxonomy'] = 'category';
+		$GLOBALS['taxnow']    = '';
+
+		( new TermFields() )->load();
+
+		$this->assertFalse( has_action( 'admin_enqueue_scripts', array( MediaField::class, 'enqueue' ) ) );
+		unset( $_REQUEST['taxonomy'], $GLOBALS['taxnow'] );
+	}
+
+	/**
+	 * Each field is read on its own: the canonical keeps its percent-encoded octets, text
+	 * loses its tags, and a field sent as a list is ignored.
+	 */
+	public function test_fields_are_read_one_by_one(): void {
+		$term_id = self::factory()->category->create();
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'editor' ) ) );
+
+		$_POST = array(
+			'easyrankly_term_seo' => wp_create_nonce( 'easyrankly_term_seo' ),
+			'easyrankly'          => array(
+				'canonical'   => 'https://example.com/caff%C3%A8/',
+				'description' => "<b>Two</b>\nlines",
+				'title'       => array( 'Forged' ),
+			),
+		);
+		( new TermFields() )->save( $term_id );
+
+		$this->assertSame( 'https://example.com/caff%C3%A8/', Meta::term( $term_id, 'canonical' ) );
+		$this->assertSame( 'Two lines', Meta::term( $term_id, 'description' ) );
+		$this->assertFalse( metadata_exists( 'term', $term_id, '_easyrankly_title' ) );
 	}
 
 	/**
