@@ -71,6 +71,13 @@ final class Redirects {
 	private bool $rest_saving = false;
 
 	/**
+	 * Redirects created by the WordPress importer under way, checked when it ends.
+	 *
+	 * @var list<int>
+	 */
+	private array $imported = array();
+
+	/**
 	 * IDs saved by the batch under way (see batch()), null outside a batch: the lists are
 	 * refreshed once, at the end.
 	 *
@@ -79,7 +86,7 @@ final class Redirects {
 	private static ?array $batch = null;
 
 	/**
-	 * Hooks registration, validation, list rebuilds, the frontend runner and slug tracking.
+	 * Hooks registration, validation, imports, list rebuilds, the frontend runner and slug tracking.
 	 */
 	public function register(): void {
 		add_action( 'init', array( $this, 'register_post_type' ) );
@@ -92,6 +99,8 @@ final class Redirects {
 		add_filter( 'rest_' . self::POST_TYPE . '_trashable', '__return_false' );
 		add_action( 'rest_after_insert_' . self::POST_TYPE, array( $this, 'after_rest_save' ) );
 		add_filter( 'rest_request_after_callbacks', array( $this, 'after_rest_request' ) );
+		add_action( 'wp_import_insert_post', array( $this, 'on_import' ) );
+		add_action( 'import_end', array( $this, 'check_imported' ) );
 
 		( new Runner() )->register();
 		( new SlugChanges() )->register();
@@ -502,6 +511,49 @@ final class Redirects {
 		update_option( self::FORCED_OPTION, $forced, true );
 		update_option( self::REGEX_OPTION, $regex, false );
 		wp_cache_set_last_changed( self::CACHE_GROUP );
+	}
+
+	/**
+	 * Remembers a redirect created by the WordPress importer: its meta comes after the post.
+	 *
+	 * @param mixed $post_id Imported post ID.
+	 */
+	public function on_import( $post_id ): void {
+		if ( self::POST_TYPE === get_post_type( (int) $post_id ) ) {
+			$this->imported[] = (int) $post_id;
+		}
+	}
+
+	/**
+	 * When the import ends, runs the checks of the Redirects screen on every imported active
+	 * rule and deactivates those that fail, as the screen would have refused them. Then the
+	 * lists are rebuilt: the rules were saved before their meta, so forced and regex ones
+	 * are not in them yet.
+	 */
+	public function check_imported(): void {
+		if ( array() === $this->imported ) {
+			return;
+		}
+
+		$ids            = $this->imported;
+		$this->imported = array();
+
+		self::batch(
+			static function () use ( $ids ): void {
+				foreach ( $ids as $id ) {
+					$rule = self::rule( $id );
+					if ( null !== $rule && 'publish' === get_post_status( $id ) && is_wp_error( self::check( $rule['source'], $rule['target'], $rule['code'], $rule['regex'], $id ) ) ) {
+						wp_update_post(
+							array(
+								'ID'          => $id,
+								'post_status' => 'draft',
+							)
+						);
+					}
+				}
+			}
+		);
+		self::rebuild_lists();
 	}
 
 	/**

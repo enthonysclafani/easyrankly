@@ -167,7 +167,7 @@ final class LanguagesTest extends WP_UnitTestCase {
 			$this->assertFalse( $taxonomy->rewrite );
 			$this->assertFalse( $taxonomy->query_var );
 			$this->assertSame( 'manage_options', $taxonomy->cap->edit_terms );
-			$this->assertSame( 'edit_posts', $taxonomy->cap->assign_terms );
+			$this->assertSame( 'do_not_allow', $taxonomy->cap->assign_terms );
 			$this->assertContains( 'post', $taxonomy->object_type );
 			$this->assertContains( 'page', $taxonomy->object_type );
 			$this->assertNotContains( 'attachment', $taxonomy->object_type );

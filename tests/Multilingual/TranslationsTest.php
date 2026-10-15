@@ -302,4 +302,44 @@ final class TranslationsTest extends WP_UnitTestCase {
 		$this->assertIsInt( $copy );
 		$this->assertSame( 'secret', get_post( $copy )->post_password );
 	}
+
+	/**
+	 * Core write paths (post form, quick and bulk edit, XML-RPC) cannot put a post in a group or
+	 * change its language: only the checked routes go through Translations.
+	 */
+	public function test_core_cannot_assign_language_or_group(): void {
+		$it = self::factory()->post->create();
+		$en = self::factory()->post->create();
+		Translations::link(
+			array(
+				'it' => $it,
+				'en' => $en,
+			)
+		);
+		$group = Translations::group( $it )->name;
+
+		$author = self::factory()->user->create( array( 'role' => 'author' ) );
+		$own    = self::factory()->post->create( array( 'post_author' => $author ) );
+		wp_set_current_user( $author );
+		wp_update_post(
+			array(
+				'ID'        => $own,
+				'tax_input' => array(
+					Translations::GROUP    => $group,
+					Translations::LANGUAGE => 'fr',
+				),
+			)
+		);
+		wp_set_current_user( 0 );
+
+		$this->assertNull( Translations::group( $own ) );
+		$this->assertSame( 'it', Translations::language( $own ) );
+		$this->assertSame(
+			array(
+				'it' => $it,
+				'en' => $en,
+			),
+			Translations::of( $it )
+		);
+	}
 }

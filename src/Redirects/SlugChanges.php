@@ -342,13 +342,25 @@ final class SlugChanges {
 	 * that address elsewhere even when content exists there: it stays active, and the user is
 	 * told that the new address is not reachable.
 	 *
+	 * A rule that already exists for the old address is left as the administrator set it when
+	 * it is forced and active, since it already sends that address where they chose; any other
+	 * one is updated only if the user may replace it (can_replace()), or else reported.
+	 *
 	 * @param string                                                                                                   $from     Old normalized path.
 	 * @param string                                                                                                   $to       New normalized path.
 	 * @param array{failed: list<array{0: string, 1: string, 2: string}>, capped: list<string>, blocked: list<string>} $problems Problems of this change.
 	 * @param-out array{failed: list<array{0: string, 1: string, 2: string}>, capped: list<string>, blocked: list<string>} $problems
-	 * @return string|null Why the rule was not saved, or null when it was.
+	 * @return string|null Why the rule was not saved, or null when it was (or a forced one was kept).
 	 */
 	private function save( string $from, string $to, array &$problems ): ?string {
+		$existing = Redirects::find_id( Rule::hash( $from ), array( 'publish', 'draft' ) );
+		if ( null !== $existing && 'publish' === get_post_status( $existing ) && ( Redirects::rule( $existing )['forced'] ?? false ) ) {
+			return null;
+		}
+		if ( null !== $existing && ! self::can_replace( $existing ) ) {
+			return __( 'A redirect made by an administrator already uses the old address.', 'easyrankly' );
+		}
+
 		$stale = Redirects::find_id( Rule::hash( $to ) );
 		if ( null !== $stale && ( Redirects::rule( $stale )['forced'] ?? false ) ) {
 			$problems['blocked'][] = $to;
@@ -378,5 +390,25 @@ final class SlugChanges {
 		}
 
 		return $saved->get_error_message();
+	}
+
+	/**
+	 * Whether a page or term move by the current user may rewrite an existing rule.
+	 *
+	 * Users who manage redirects may, and so may code and WP-CLI without a user. Others may
+	 * only rewrite rules made by the moves of users who do not manage redirects, so content
+	 * moved back and forth keeps working, while the rules of administrators stay theirs.
+	 *
+	 * @param int $id Redirect ID.
+	 * @return bool
+	 */
+	private static function can_replace( int $id ): bool {
+		if ( ! is_user_logged_in() || current_user_can( 'manage_options' ) ) {
+			return true;
+		}
+
+		$author = (int) get_post_field( 'post_author', $id );
+
+		return $author > 0 && ! user_can( $author, 'manage_options' );
 	}
 }
