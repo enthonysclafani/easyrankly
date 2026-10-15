@@ -519,4 +519,27 @@ final class SlugChangesTest extends WP_UnitTestCase {
 		);
 		$this->assertSame( '/fourth', $this->target( '/third' ) );
 	}
+
+	/**
+	 * An editor moving a page to the source of an administrator's rule leaves the rule active:
+	 * it answers that address again once the page leaves it.
+	 */
+	public function test_editor_move_keeps_admin_rule_for_new_address_active(): void {
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
+		$rule = Redirects::save_exact( '/promo', '/elsewhere' );
+
+		$page = $this->page( 'team' );
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'editor' ) ) );
+		wp_update_post(
+			array(
+				'ID'        => $page,
+				'post_name' => 'promo',
+			)
+		);
+		wp_trash_post( $page );
+
+		$this->assertSame( 'publish', get_post_status( $rule ) );
+		$this->assertSame( '/elsewhere', $this->target( '/promo' ) );
+		$this->assertSame( '/promo', $this->target( '/team' ) );
+	}
 }

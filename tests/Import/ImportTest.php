@@ -9,6 +9,7 @@ namespace EasyRankly\Tests\Import;
 
 use EasyRankly\Import\Admin\Page;
 use EasyRankly\Import\Import;
+use EasyRankly\Import\RankMath;
 use EasyRankly\Meta\Meta;
 use EasyRankly\Redirects\Redirects;
 use WP_REST_Request;
@@ -373,5 +374,36 @@ final class ImportTest extends WP_UnitTestCase {
 		$html = get_echo( array( new Page(), 'render' ) );
 		$this->assertStringContainsString( 'data-easyrankly-import="rankmath"', $html );
 		$this->assertStringNotContainsString( 'data-easyrankly-import="yoast"', $html );
+	}
+
+	/**
+	 * A Rank Math source holding an object is never unserialized, even behind whitespace,
+	 * which maybe_unserialize() trims: the class of the object is never even looked up.
+	 */
+	public function test_rank_math_sources_never_build_objects(): void {
+		$sources = new \ReflectionMethod( RankMath::class, 'sources' );
+		$sources->setAccessible( true );
+		$wanted   = array();
+		$autoload = static function ( string $name ) use ( &$wanted ): void {
+			$wanted[] = $name;
+		};
+		spl_autoload_register( $autoload );
+
+		foreach ( array( '', ' ', "\t", "\n", "\r\n " ) as $prefix ) {
+			$this->assertSame( array(), $sources->invoke( null, $prefix . 'a:1:{i:0;O:20:"EasyRankly_NotLoaded":0:{}}' ) );
+			$this->assertSame( array(), $sources->invoke( null, $prefix . 'O:20:"EasyRankly_NotLoaded":0:{}' ) );
+		}
+		spl_autoload_unregister( $autoload );
+		$this->assertSame( array(), $wanted );
+
+		$this->assertSame(
+			array(
+				array(
+					'source' => '/old',
+					'regex'  => false,
+				),
+			),
+			$sources->invoke( null, "\n" . serialize( array( array( 'pattern' => 'old' ) ) ) ) // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_serialize -- Stored as Rank Math stores it.
+		);
 	}
 }
