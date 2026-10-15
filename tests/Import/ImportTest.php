@@ -223,6 +223,23 @@ final class ImportTest extends WP_UnitTestCase {
 		$this->assertSame( 3, $progress['redirects'] );
 		$this->assertSame( 1, $progress['kept'] );
 		$this->assertSame( 1, $progress['rejected'] );
+
+		// Run again, every redirect is already there: regexes are not added a second time.
+		$again = $this->import( 'yoast' );
+		$this->assertSame( 0, $again['redirects'] );
+		$this->assertSame( 4, $again['kept'] );
+		$this->assertCount(
+			4,
+			get_posts(
+				array(
+					'post_type'   => Redirects::POST_TYPE,
+					'post_status' => 'any',
+					'fields'      => 'ids',
+					'numberposts' => -1,
+				)
+			)
+		);
+		$this->assertCount( 1, (array) get_option( Redirects::REGEX_OPTION ) );
 	}
 
 	/**

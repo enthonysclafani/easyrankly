@@ -272,6 +272,27 @@ final class RedirectsTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Loops through more than two rules, and between regex rules, are rejected too.
+	 */
+	public function test_rest_rejects_longer_and_regex_loops(): void {
+		$this->assertSame( 201, $this->rest( 'POST', $this->body( '/a', '/b' ) )->get_status() );
+		$this->assertSame( 201, $this->rest( 'POST', $this->body( '/b', '/c' ) )->get_status() );
+		$response = $this->rest( 'POST', $this->body( '/c', '/a' ) );
+		$this->assertSame( 'easyrankly_redirect_loop', $response->get_data()['code'] );
+
+		$this->assertSame( 201, $this->rest( 'POST', $this->body( '^/rx-a$', '/rx-b', array( 'regex' => true ) ) )->get_status() );
+		$response = $this->rest( 'POST', $this->body( '^/rx-b$', '/rx-a', array( 'regex' => true ) ) );
+		$this->assertSame( 'easyrankly_redirect_loop', $response->get_data()['code'] );
+
+		// An exact rule into a regex that sends its address back.
+		$response = $this->rest( 'POST', $this->body( '/rx-b', '/rx-a' ) );
+		$this->assertSame( 'easyrankly_redirect_loop', $response->get_data()['code'] );
+
+		// A chain that ends on an address with no rule is fine.
+		$this->assertSame( 201, $this->rest( 'POST', $this->body( '/c', '/d' ) )->get_status() );
+	}
+
+	/**
 	 * Redirects are deleted, never trashed, and a trash done elsewhere rebuilds the lists.
 	 */
 	public function test_trash(): void {

@@ -172,30 +172,28 @@ final class LanguageFields {
 			$fields = array(
 				'site_title'            => array(
 					'maxlength' => 200,
-					'class'     => 'large-text',
 					/* translators: %s: language name. */
 					'aria'      => sprintf( __( 'Site title of %s', 'easyrankly' ), $language['name'] ),
 				),
 				'tagline'               => array(
 					'maxlength' => 400,
-					'class'     => 'large-text',
 					/* translators: %s: language name. */
 					'aria'      => sprintf( __( 'Tagline of %s', 'easyrankly' ), $language['name'] ),
 				),
 				'breadcrumb_home_label' => array(
 					'maxlength' => 60,
-					'class'     => '',
 					/* translators: %s: language name. */
 					'aria'      => sprintf( __( 'Breadcrumb home label of %s', 'easyrankly' ), $language['name'] ),
 				),
 			);
+			// No width class: a percentage width shrinks to a few pixels when the table scrolls on
+			// narrow screens, while size keeps every field readable.
 			foreach ( $fields as $field => $input ) {
 				printf(
-					'<td><input type="text" name="%1$s" value="%2$s" maxlength="%3$d" size="15" class="%4$s" placeholder="%5$s" aria-label="%6$s" /></td>',
+					'<td><input type="text" name="%1$s" value="%2$s" maxlength="%3$d" size="15" placeholder="%4$s" aria-label="%5$s" /></td>',
 					esc_attr( Fields::name( 'languages', (string) $index, $field ) ),
 					esc_attr( $language[ $field ] ),
 					(int) $input['maxlength'],
-					esc_attr( $input['class'] ),
 					esc_attr( $general[ $field ] ),
 					esc_attr( $input['aria'] )
 				);

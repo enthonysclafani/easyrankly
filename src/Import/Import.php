@@ -273,9 +273,9 @@ final class Import {
 	}
 
 	/**
-	 * Imports one batch of redirects. A source that already has a redirect is kept as it is;
-	 * a redirect EasyRankly cannot accept (unsupported code, invalid regex, loop) is counted
-	 * as rejected.
+	 * Imports one batch of redirects. A source that already has a redirect, or a regex that
+	 * EasyRankly already has, is kept as it is; a redirect EasyRankly cannot accept
+	 * (unsupported code, invalid regex, loop) is counted as rejected.
 	 *
 	 * @param Source                                                                                              $source   Source.
 	 * @param array{stage: string, offset: int, posts: int, terms: int, redirects: int, kept: int, rejected: int} $progress Progress, updated.
@@ -288,6 +288,10 @@ final class Import {
 			static function () use ( $entries, &$progress ): void {
 				foreach ( array_merge( array(), ...$entries ) as $redirect ) {
 					$valid = Redirects::check( $redirect['source'], $redirect['target'], $redirect['code'], $redirect['regex'] );
+					// check() allows two regex rules with the same pattern; an import run again must not add it twice.
+					if ( ! is_wp_error( $valid ) && $redirect['regex'] && null !== Redirects::find_id( 'regex-' . md5( $valid['source'] ), array( 'publish', 'draft' ) ) ) {
+						$valid = new \WP_Error( 'easyrankly_redirect_duplicate', '' );
+					}
 					if ( is_wp_error( $valid ) ) {
 						++$progress[ 'easyrankly_redirect_duplicate' === $valid->get_error_code() ? 'kept' : 'rejected' ];
 						continue;
