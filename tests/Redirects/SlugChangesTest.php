@@ -116,7 +116,7 @@ final class SlugChangesTest extends WP_UnitTestCase {
 				'post_name' => 'people',
 			)
 		);
-		$this->assertSame( '/people', $this->target( '/team' ) );
+		$this->assertSame( '/people/', $this->target( '/team' ) );
 
 		wp_update_post(
 			array(
@@ -124,7 +124,7 @@ final class SlugChangesTest extends WP_UnitTestCase {
 				'post_parent' => $parent,
 			)
 		);
-		$this->assertSame( '/about/people', $this->target( '/people' ) );
+		$this->assertSame( '/about/people/', $this->target( '/people' ) );
 	}
 
 	/**
@@ -152,10 +152,10 @@ final class SlugChangesTest extends WP_UnitTestCase {
 		);
 
 		$this->assertNull( $this->target( '/first' ) );
-		$this->assertSame( '/first', $this->target( '/second' ) );
+		$this->assertSame( '/first/', $this->target( '/second' ) );
 		$stale = Redirects::find_id( Rule::hash( '/first' ), array( 'draft' ) );
 		$this->assertNotNull( $stale );
-		$this->assertSame( '/second', Redirects::rule( $stale )['target'] );
+		$this->assertSame( '/second/', Redirects::rule( $stale )['target'] );
 	}
 
 	/**
@@ -177,7 +177,7 @@ final class SlugChangesTest extends WP_UnitTestCase {
 			)
 		);
 
-		$this->assertSame( '/people', $this->target( '/team' ) );
+		$this->assertSame( '/people/', $this->target( '/team' ) );
 		$this->assertSame( 'draft', get_post_status( $rule ) );
 		$this->assertSame( '/elsewhere', Redirects::rule( $rule )['target'] );
 	}
@@ -222,9 +222,9 @@ final class SlugChangesTest extends WP_UnitTestCase {
 			)
 		);
 
-		$this->assertSame( '/company', $this->target( '/about' ) );
-		$this->assertSame( '/company/team', $this->target( '/about/team' ) );
-		$this->assertSame( '/company/team/lead', $this->target( '/about/team/lead' ) );
+		$this->assertSame( '/company/', $this->target( '/about' ) );
+		$this->assertSame( '/company/team/', $this->target( '/about/team' ) );
+		$this->assertSame( '/company/team/lead/', $this->target( '/about/team/lead' ) );
 		$this->assertNull( $this->target( '/about/hidden' ) );
 	}
 
@@ -261,7 +261,7 @@ final class SlugChangesTest extends WP_UnitTestCase {
 		);
 
 		$this->assertSame( 0, $rebuilds );
-		$this->assertSame( '/company/child-4', $this->target( '/about/child-4' ) );
+		$this->assertSame( '/company/child-4/', $this->target( '/about/child-4' ) );
 		$this->assertSame( 'publish', get_post_status( $forced ) );
 		$this->assertCount( 1, get_option( Redirects::FORCED_OPTION ) );
 		$this->assertStringContainsString( '<code>/company</code>', $this->notice() );
@@ -281,8 +281,8 @@ final class SlugChangesTest extends WP_UnitTestCase {
 
 		wp_update_term( $news, 'category', array( 'slug' => 'updates' ) );
 
-		$this->assertSame( '/category/updates', $this->target( '/category/news' ) );
-		$this->assertSame( '/category/updates/local', $this->target( '/category/news/local' ) );
+		$this->assertSame( '/category/updates/', $this->target( '/category/news' ) );
+		$this->assertSame( '/category/updates/local/', $this->target( '/category/news/local' ) );
 		$this->assertSame( home_url( '/category/updates/local/' ), get_term_link( $local, 'category' ) );
 	}
 
@@ -323,7 +323,31 @@ final class SlugChangesTest extends WP_UnitTestCase {
 
 		wp_update_term( $term, 'category', array( 'slug' => 'updates' ) );
 
-		$this->assertSame( '/category/updates', $this->target( '/category/news' ) );
+		$this->assertSame( '/category/updates/', $this->target( '/category/news' ) );
+	}
+
+	/**
+	 * The target is the address as the permalink writes it, so the old address takes one 301:
+	 * with a slash when the permalinks end with one, without when they do not.
+	 */
+	public function test_target_keeps_the_permalink_trailing_slash(): void {
+		$page = $this->page( 'slash-old' );
+		wp_update_post(
+			array(
+				'ID'        => $page,
+				'post_name' => 'slash-new',
+			)
+		);
+		$this->assertSame( wp_make_link_relative( (string) get_permalink( $page ) ), $this->target( '/slash-old' ) );
+
+		$this->set_permalink_structure( '/%postname%' );
+		wp_update_post(
+			array(
+				'ID'        => $page,
+				'post_name' => 'bare-new',
+			)
+		);
+		$this->assertSame( '/bare-new', $this->target( '/slash-new' ) );
 	}
 
 	/**
@@ -394,9 +418,9 @@ final class SlugChangesTest extends WP_UnitTestCase {
 			)
 		);
 
-		$this->assertSame( '/manual/child-0', $this->target( '/docs/child-0' ) );
+		$this->assertSame( '/manual/child-0/', $this->target( '/docs/child-0' ) );
 		$last = SlugChanges::MAX_DESCENDANTS - 1;
-		$this->assertSame( "/manual/child-$last", $this->target( "/docs/child-$last" ) );
+		$this->assertSame( "/manual/child-$last/", $this->target( "/docs/child-$last" ) );
 		$this->assertNull( $this->target( '/docs/child-' . SlugChanges::MAX_DESCENDANTS ) );
 		$this->assertCount( SlugChanges::MAX_DESCENDANTS + 1, $children );
 
@@ -438,7 +462,7 @@ final class SlugChangesTest extends WP_UnitTestCase {
 			)
 		);
 
-		$this->assertSame( '/fine-new', $this->target( '/fine-old' ) );
+		$this->assertSame( '/fine-new/', $this->target( '/fine-old' ) );
 		$this->assertFalse( get_transient( SlugChanges::NOTICE . $user ) );
 		$this->assertSame( '', $this->notice() );
 	}
@@ -500,7 +524,7 @@ final class SlugChangesTest extends WP_UnitTestCase {
 				)
 			);
 		}
-		$this->assertSame( '/second', $this->target( '/first' ) );
+		$this->assertSame( '/second/', $this->target( '/first' ) );
 
 		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
 		$rule = Redirects::save_exact( '/third', '/elsewhere' );
@@ -517,7 +541,7 @@ final class SlugChangesTest extends WP_UnitTestCase {
 				'post_name' => 'fourth',
 			)
 		);
-		$this->assertSame( '/fourth', $this->target( '/third' ) );
+		$this->assertSame( '/fourth/', $this->target( '/third' ) );
 	}
 
 	/**
@@ -540,6 +564,6 @@ final class SlugChangesTest extends WP_UnitTestCase {
 
 		$this->assertSame( 'publish', get_post_status( $rule ) );
 		$this->assertSame( '/elsewhere', $this->target( '/promo' ) );
-		$this->assertSame( '/promo', $this->target( '/team' ) );
+		$this->assertSame( '/promo/', $this->target( '/team' ) );
 	}
 }

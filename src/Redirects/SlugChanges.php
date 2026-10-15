@@ -182,7 +182,9 @@ final class SlugChanges {
 	 * With plain permalinks the addresses differ only in the query string, which redirects
 	 * ignore: nothing is created then. A descendant's old address is its new one with the
 	 * object's new path swapped for the old; descendants whose address does not contain
-	 * the object's (non-hierarchical term links) are skipped.
+	 * the object's (non-hierarchical term links) are skipped. Each rule points to the address
+	 * as the permalink writes it, trailing slash included, so the visitor gets one 301 and not
+	 * a second one from core to add the slash.
 	 *
 	 * @param string   $old         Old URL.
 	 * @param string   $current     New URL.
@@ -208,8 +210,8 @@ final class SlugChanges {
 		}
 
 		Redirects::batch(
-			function () use ( $from, $to, $descendants, &$problems ): void {
-				$error = $this->save( $from, $to, $problems );
+			function () use ( $from, $to, $current, $descendants, &$problems ): void {
+				$error = $this->save( $from, $to, self::target( $current, $to ), $problems );
 				if ( null !== $error ) {
 					$problems['failed'][] = array( $from, $to, $error );
 				}
@@ -218,7 +220,7 @@ final class SlugChanges {
 					$path = Rule::normalize( $link );
 					if ( str_starts_with( $path, $to . '/' ) ) {
 						$source = $from . substr( $path, strlen( $to ) );
-						$error  = $this->save( $source, $path, $problems );
+						$error  = $this->save( $source, $path, self::target( $link, $path ), $problems );
 						if ( null !== $error ) {
 							$problems['failed'][] = array( $source, $path, $error );
 						}
@@ -228,6 +230,17 @@ final class SlugChanges {
 		);
 
 		self::remember( $problems );
+	}
+
+	/**
+	 * Target of a rule: the normalized path, with the trailing slash of the URL if it has one.
+	 *
+	 * @param string $url  New URL.
+	 * @param string $path Its normalized path.
+	 * @return string
+	 */
+	private static function target( string $url, string $path ): string {
+		return str_ends_with( (string) wp_parse_url( $url, PHP_URL_PATH ), '/' ) ? $path . '/' : $path;
 	}
 
 	/**
@@ -351,11 +364,12 @@ final class SlugChanges {
 	 *
 	 * @param string                                                                                                   $from     Old normalized path.
 	 * @param string                                                                                                   $to       New normalized path.
+	 * @param string                                                                                                   $target   Target of the rule: $to as the permalink writes it.
 	 * @param array{failed: list<array{0: string, 1: string, 2: string}>, capped: list<string>, blocked: list<string>} $problems Problems of this change.
 	 * @param-out array{failed: list<array{0: string, 1: string, 2: string}>, capped: list<string>, blocked: list<string>} $problems
 	 * @return string|null Why the rule was not saved, or null when it was (or a forced one was kept).
 	 */
-	private function save( string $from, string $to, array &$problems ): ?string {
+	private function save( string $from, string $to, string $target, array &$problems ): ?string {
 		$existing = Redirects::find_id( Rule::hash( $from ), array( 'publish', 'draft' ) );
 		if ( null !== $existing && 'publish' === get_post_status( $existing ) && ( Redirects::rule( $existing )['forced'] ?? false ) ) {
 			return null;
@@ -381,7 +395,7 @@ final class SlugChanges {
 			);
 		}
 
-		$saved = Redirects::save_exact( $from, $to );
+		$saved = Redirects::save_exact( $from, $target );
 		if ( ! is_wp_error( $saved ) ) {
 			return null;
 		}
