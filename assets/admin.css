@@ -148,3 +148,12 @@
 		background: Highlight;
 	}
 }
+
+/* On narrow screens a list table (Languages, Strings) scrolls by itself, not the whole page. */
+@media screen and (max-width: 782px) {
+
+	.easyrankly-admin .widefat {
+		display: block;
+		overflow-x: auto;
+	}
+}
