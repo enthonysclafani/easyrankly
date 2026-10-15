@@ -333,7 +333,8 @@ final class RunnerTest extends WP_UnitTestCase {
 
 	/**
 	 * Core still finds a child category at its old address after the parent changes slug: the
-	 * rule made for that address answers there, and on its pages and feeds. At its own address, the archive costs no query.
+	 * rule made for that address answers there, and on its pages and feeds (in the path or in
+	 * the query string). At its own address, the archive costs no query.
 	 */
 	public function test_term_archive_at_old_address(): void {
 		global $wpdb;
@@ -359,6 +360,8 @@ final class RunnerTest extends WP_UnitTestCase {
 		$this->assertSame( '301 ' . home_url( '/category/renamed/child/page/2/' ), $this->visit( '/category/parent/child/page/2/' ) );
 		$this->assertSame( '301 ' . home_url( '/category/renamed/child/feed/' ), $this->visit( '/category/parent/child/feed/' ) );
 		$this->assertSame( '301 ' . home_url( '/category/renamed/child/feed/atom/' ), $this->visit( '/category/parent/child/feed/atom/' ) );
+		$this->assertSame( '301 ' . home_url( '/category/renamed/child/page/2/' ), $this->visit( '/category/parent/child/?paged=2' ) );
+		$this->assertSame( '301 ' . home_url( '/category/renamed/child/feed/atom/' ), $this->visit( '/category/parent/child/?feed=atom' ) );
 
 		$this->go_to( (string) get_term_link( $child ) );
 		get_term_link( $child );
@@ -381,5 +384,18 @@ final class RunnerTest extends WP_UnitTestCase {
 		);
 
 		$this->assertNull( $this->visit( '/x/' ) );
+	}
+
+	/**
+	 * Two regexes that send a captured address back and forth: the request is not redirected,
+	 * while an address that leads elsewhere still is.
+	 */
+	public function test_capture_loop_is_not_followed(): void {
+		$this->rule( '^/year-a/([0-9]{4})$', '/year-b/$1', array( 'regex' => true ) );
+		$this->rule( '^/year-b/([0-9]{4})$', '/year-a/$1', array( 'regex' => true ) );
+		$this->rule( '^/plain-a/([0-9]{4})$', '/plain-b/$1', array( 'regex' => true ) );
+
+		$this->assertNull( $this->visit( '/year-a/2026/' ) );
+		$this->assertSame( '301 ' . home_url( '/plain-b/2026' ), $this->visit( '/plain-a/2026/' ) );
 	}
 }

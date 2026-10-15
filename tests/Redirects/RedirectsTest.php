@@ -293,13 +293,12 @@ final class RedirectsTest extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Regex rules that send a captured address back and forth loop too.
+	 * A target built from captures is not judged on sample values when saving: a valid rule is
+	 * never refused because a value it cannot match would loop (Runner checks the real chain).
 	 */
-	public function test_rest_rejects_loop_through_captures(): void {
-		$this->assertSame( 201, $this->rest( 'POST', $this->body( '^/cap-a/(.*)$', '/cap-b/$1', array( 'regex' => true ) ) )->get_status() );
-
-		$response = $this->rest( 'POST', $this->body( '^/cap-b/(.*)$', '/cap-a/$1', array( 'regex' => true ) ) );
-		$this->assertSame( 'easyrankly_redirect_loop', $response->get_data()['code'] );
+	public function test_rest_leaves_capture_targets_to_runner(): void {
+		$this->assertSame( 201, $this->rest( 'POST', $this->body( '/valid-b/x', '/valid-a/2026' ) )->get_status() );
+		$this->assertSame( 201, $this->rest( 'POST', $this->body( '^/valid-a/([0-9]{4})$', '/valid-b/$1', array( 'regex' => true ) ) )->get_status() );
 	}
 
 	/**

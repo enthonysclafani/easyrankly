@@ -54,7 +54,7 @@ final class Redirects {
 	/**
 	 * Most other redirects a target may lead through (loops()): browsers give up after 20.
 	 */
-	private const MAX_HOPS = 10;
+	public const MAX_HOPS = 10;
 
 	/**
 	 * Meta keys, without prefix, with their schema type.
@@ -320,8 +320,8 @@ final class Redirects {
 	 * Follows the target through the active rules as a 404 would (forced, exact, regex).
 	 * Inactive rules are checked again when someone activates them (through REST, so here).
 	 * Rules saved earlier in the same batch (an import) count too, though the lists are only
-	 * rebuilt at its end. A regex target with captures ($1) depends on the address it matched:
-	 * it is followed with each capture set to sample values.
+	 * rebuilt at its end. A regex target with captures ($1) is left to Runner::loops(), which
+	 * follows the chain of the address actually requested.
 	 *
 	 * @param string $source Normalized source, or the pattern of a regex.
 	 * @param bool   $regex  Whether the source is a regex.
@@ -347,30 +347,31 @@ final class Redirects {
 			}
 		}
 
-		$starts = $regex && str_contains( $target, '$' )
-			? array( (string) preg_replace( '/\$\d+/', 'x', $target ), (string) preg_replace( '/\$\d+/', '1', $target ) )
-			: array( $target );
+		// A target with captures ($1) depends on the address the regex matched: no sample
+		// value stands for every address, so Runner follows the real chain before redirecting.
+		if ( $regex && 1 === preg_match( '/\$\d/', $target ) ) {
+			return null;
+		}
 
-		foreach ( $starts as $next ) {
-			for ( $hop = 0; ; $hop++ ) {
-				if ( '' === $next || ! Rule::is_internal( Rule::target_url( $next ) ) ) {
-					break;
-				}
+		$next = $target;
+		for ( $hop = 0; ; $hop++ ) {
+			if ( '' === $next || ! Rule::is_internal( Rule::target_url( $next ) ) ) {
+				break;
+			}
 
-				$path = Rule::normalize( $next );
-				if ( null !== Rule::match( $rule, $path ) ) {
-					return new \WP_Error( 'easyrankly_redirect_loop', __( 'Other redirects already send the target back to this source.', 'easyrankly' ) );
-				}
+			$path = Rule::normalize( $next );
+			if ( null !== Rule::match( $rule, $path ) ) {
+				return new \WP_Error( 'easyrankly_redirect_loop', __( 'Other redirects already send the target back to this source.', 'easyrankly' ) );
+			}
 
-				$next = self::next( $path, $lists, $id );
-				if ( null === $next ) {
-					break;
-				}
+			$next = self::next( $path, $lists, $id );
+			if ( null === $next ) {
+				break;
+			}
 
-				if ( $hop >= self::MAX_HOPS ) {
-					/* translators: %d: number of redirects. */
-					return new \WP_Error( 'easyrankly_redirect_chain', sprintf( __( 'The target leads through more than %d other redirects.', 'easyrankly' ), self::MAX_HOPS ) );
-				}
+			if ( $hop >= self::MAX_HOPS ) {
+				/* translators: %d: number of redirects. */
+				return new \WP_Error( 'easyrankly_redirect_chain', sprintf( __( 'The target leads through more than %d other redirects.', 'easyrankly' ), self::MAX_HOPS ) );
 			}
 		}
 

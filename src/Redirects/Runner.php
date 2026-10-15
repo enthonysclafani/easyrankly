@@ -36,10 +36,13 @@ final class Runner {
 			return;
 		}
 
-		$rule = $this->find( Rule::normalize( Context::request_uri() ) );
-		if ( null !== $rule ) {
-			$this->send( $rule['code'], $rule['query'] ? self::with_query( $rule['target'] ) : $rule['target'] );
+		$path = Rule::normalize( Context::request_uri() );
+		$rule = $this->find( $path );
+		if ( null === $rule || ( $rule['captures'] && $this->loops( $path, $rule['target'] ) ) ) {
+			return;
 		}
+
+		$this->send( $rule['code'], $rule['query'] ? self::with_query( $rule['target'] ) : $rule['target'] );
 	}
 
 	/**
@@ -69,27 +72,77 @@ final class Runner {
 	 * Rule matching a path: forced rules first, then (on 404 only) exact and regex rules, and
 	 * exact ones also for a term archive at an old address (moved_term()).
 	 *
+	 * `captures` tells whether the target was built from regex captures ($1).
+	 *
 	 * @param string $path Normalized request path.
-	 * @return array{code: int, target: string, query: bool}|null
+	 * @return array{code: int, target: string, query: bool, captures: bool}|null
 	 */
 	public function find( string $path ): ?array {
-		// Read the forced list only from the autoloaded options: before the first redirect is
-		// saved the option does not exist, and get_option() would query for it on every page.
-		$forced = isset( wp_load_alloptions()[ Redirects::FORCED_OPTION ] ) ? get_option( Redirects::FORCED_OPTION, array() ) : array();
-		$found  = $this->first_match( $forced, $path );
-		if ( null !== $found ) {
-			return $found;
-		}
-		if ( ! is_404() ) {
-			return $this->moved_term( $path );
+		if ( is_404() ) {
+			return $this->on_404( $path );
 		}
 
-		$exact = $this->exact( $path );
-		if ( null !== $exact ) {
-			return $exact;
+		return $this->first_match( $this->forced(), $path ) ?? $this->moved_term( $path );
+	}
+
+	/**
+	 * Rule matching a path that is not found: forced, then exact, then regex.
+	 *
+	 * @param string $path Normalized path.
+	 * @return array{code: int, target: string, query: bool, captures: bool}|null
+	 */
+	private function on_404( string $path ): ?array {
+		return $this->first_match( $this->forced(), $path )
+			?? $this->exact( $path )
+			?? $this->first_match( get_option( Redirects::REGEX_OPTION, array() ), $path );
+	}
+
+	/**
+	 * Forced rules, read only from the autoloaded options: before the first redirect is saved
+	 * the option does not exist, and get_option() would query for it on every page.
+	 *
+	 * @return mixed
+	 */
+	private function forced() {
+		return isset( wp_load_alloptions()[ Redirects::FORCED_OPTION ] ) ? get_option( Redirects::FORCED_OPTION, array() ) : array();
+	}
+
+	/**
+	 * Whether the redirects that follow a target, as on a 404, come back to an address already
+	 * passed or go on for more than Redirects::MAX_HOPS.
+	 *
+	 * Only for a target built from regex captures ($1): saving the rule could not check every
+	 * address it matches (Redirects::loops()), so the real chain is followed here. It runs only
+	 * on a request that is being redirected, with one cached lookup per hop.
+	 *
+	 * @param string $path   Normalized request path.
+	 * @param string $target Target of the rule found for it.
+	 */
+	private function loops( string $path, string $target ): bool {
+		$seen = array( $path => true );
+		for ( $hop = 0; $hop <= Redirects::MAX_HOPS; $hop++ ) {
+			if ( str_starts_with( $target, '/' ) ) {
+				$target = '/' . ltrim( $target, '/\\' );
+			}
+			$url = Rule::target_url( $target );
+			if ( '' === $target || ! Rule::is_internal( $url ) ) {
+				return false;
+			}
+
+			$next = Rule::normalize( $url );
+			if ( isset( $seen[ $next ] ) ) {
+				return true;
+			}
+			$seen[ $next ] = true;
+
+			$rule = $this->on_404( $next );
+			if ( null === $rule || in_array( $rule['code'], Rule::NO_TARGET, true ) ) {
+				return false;
+			}
+			$target = $rule['target'];
 		}
 
-		return $this->first_match( get_option( Redirects::REGEX_OPTION, array() ), $path );
+		return true;
 	}
 
 	/**
@@ -98,11 +151,11 @@ final class Runner {
 	 * Core finds a category by the last part of its address only, so the old address of a
 	 * child category still answers after its parent changes slug (SlugChanges made a rule for
 	 * it). Comparing with the term link needs no query: core canonical reads the same link.
-	 * Its pages and feeds (/page/2, /feed) use the rule of the archive, with the same ending
-	 * added to the target.
+	 * Its pages and feeds (/page/2, /feed, also as ?paged=2 and ?feed=atom) use the rule of the
+	 * archive, with the same ending added to the target.
 	 *
 	 * @param string $path Normalized request path.
-	 * @return array{code: int, target: string, query: bool}|null
+	 * @return array{code: int, target: string, query: bool, captures: bool}|null
 	 */
 	private function moved_term( string $path ): ?array {
 		if ( ! ( is_category() || is_tag() || is_tax() ) ) {
@@ -122,6 +175,12 @@ final class Runner {
 			&& preg_match( '#^(/.+?)(/' . preg_quote( $wp_rewrite->pagination_base, '#' ) . '/\d+|/(?:' . preg_quote( $wp_rewrite->feed_base, '#' ) . '/)?(?:feed|rdf|rss|rss2|atom))$#', $path, $parts ) ) {
 			$base   = $parts[1];
 			$ending = $parts[2];
+		} elseif ( $wp_rewrite instanceof \WP_Rewrite && (int) get_query_var( 'paged' ) > 1 ) {
+			// The same page or feed asked with ?paged=2 or ?feed=atom.
+			$ending = '/' . $wp_rewrite->pagination_base . '/' . (int) get_query_var( 'paged' );
+		} elseif ( $wp_rewrite instanceof \WP_Rewrite && is_feed() ) {
+			$feed   = sanitize_key( (string) get_query_var( 'feed' ) );
+			$ending = '/' . $wp_rewrite->feed_base . ( '' === $feed || 'feed' === $feed ? '' : '/' . $feed );
 		}
 
 		if ( Rule::normalize( $link ) === $base ) {
@@ -144,7 +203,7 @@ final class Runner {
 	 * Exact rule for a path, cached until a redirect changes.
 	 *
 	 * @param string $path Normalized request path.
-	 * @return array{code: int, target: string, query: bool}|null
+	 * @return array{code: int, target: string, query: bool, captures: bool}|null
 	 */
 	private function exact( string $path ): ?array {
 		$key    = Rule::hash( $path ) . ':' . wp_cache_get_last_changed( Redirects::CACHE_GROUP );
@@ -152,18 +211,20 @@ final class Runner {
 
 		if ( is_array( $cached ) ) {
 			return array() === $cached ? null : array(
-				'code'   => (int) $cached['code'],
-				'target' => (string) $cached['target'],
-				'query'  => ! empty( $cached['query'] ),
+				'code'     => (int) $cached['code'],
+				'target'   => (string) $cached['target'],
+				'query'    => ! empty( $cached['query'] ),
+				'captures' => false,
 			);
 		}
 
 		$id   = Redirects::find_id( Rule::hash( $path ) );
 		$rule = null !== $id ? Redirects::rule( $id ) : null;
 		$hit  = null !== $rule ? array(
-			'code'   => $rule['code'],
-			'target' => $rule['target'],
-			'query'  => $rule['query'],
+			'code'     => $rule['code'],
+			'target'   => $rule['target'],
+			'query'    => $rule['query'],
+			'captures' => false,
 		) : null;
 
 		// Every distinct address without a rule adds an entry: misses expire sooner than hits.
@@ -177,7 +238,7 @@ final class Runner {
 	 *
 	 * @param mixed  $rules Stored list of rules.
 	 * @param string $path  Normalized request path.
-	 * @return array{code: int, target: string, query: bool}|null
+	 * @return array{code: int, target: string, query: bool, captures: bool}|null
 	 */
 	private function first_match( $rules, string $path ): ?array {
 		if ( ! is_array( $rules ) ) {
@@ -214,9 +275,10 @@ final class Runner {
 
 			if ( null !== $target ) {
 				return array(
-					'code'   => (int) $rule['code'],
-					'target' => $target,
-					'query'  => ! empty( $rule['query'] ),
+					'code'     => (int) $rule['code'],
+					'target'   => $target,
+					'query'    => ! empty( $rule['query'] ),
+					'captures' => ! empty( $rule['regex'] ) && 1 === preg_match( '/\$\d/', (string) $rule['target'] ),
 				);
 			}
 		}
