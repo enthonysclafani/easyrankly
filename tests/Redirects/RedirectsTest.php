@@ -286,4 +286,72 @@ final class RedirectsTest extends WP_UnitTestCase {
 		wp_publish_post( $id );
 		$this->assertSame( array( '/live' ), array_column( get_option( Redirects::FORCED_OPTION ), 'source' ) );
 	}
+
+	/**
+	 * Imports a redirect as the WordPress importer does: the post first, then its meta.
+	 *
+	 * @param string               $source Source as stored.
+	 * @param array<string, mixed> $meta   Meta (without prefix).
+	 * @return int
+	 */
+	private function import( string $source, array $meta ): int {
+		$id = wp_insert_post(
+			array(
+				'post_type'   => Redirects::POST_TYPE,
+				'post_status' => 'publish',
+				'post_title'  => $source,
+				'post_name'   => md5( $source ),
+			)
+		);
+		do_action( 'wp_import_insert_post', $id, 0, array(), array() );
+		foreach ( $meta as $key => $value ) {
+			add_post_meta( $id, Redirects::meta_key( $key ), $value );
+		}
+
+		return $id;
+	}
+
+	/**
+	 * Imported rules go through the checks of the Redirects screen: those it would refuse
+	 * arrive inactive, the others stay active and reach the lists.
+	 */
+	public function test_import_checks_rules(): void {
+		$capture  = $this->import(
+			'^/go/(.*)$',
+			array(
+				'target' => 'https://$1.example.org/',
+				'code'   => 301,
+				'regex'  => true,
+			)
+		);
+		$local    = $this->import(
+			'/old',
+			array(
+				'target' => 'http://127.0.0.1/admin',
+				'code'   => 302,
+			)
+		);
+		$external = $this->import(
+			'/partner',
+			array(
+				'target' => 'https://example.org/page',
+				'code'   => 301,
+				'forced' => true,
+			)
+		);
+		$internal = $this->import(
+			'/before',
+			array(
+				'target' => '/after',
+				'code'   => 301,
+			)
+		);
+		do_action( 'import_end' );
+
+		$this->assertSame( 'draft', get_post_status( $capture ) );
+		$this->assertSame( 'draft', get_post_status( $local ) );
+		$this->assertSame( 'publish', get_post_status( $external ) );
+		$this->assertSame( 'publish', get_post_status( $internal ) );
+		$this->assertSame( array( '/partner' ), array_column( get_option( Redirects::FORCED_OPTION ), 'source' ) );
+	}
 }

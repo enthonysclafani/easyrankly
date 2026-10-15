@@ -46,8 +46,9 @@ final class Multilingual {
 	/**
 	 * Registers both taxonomies on every post type with languages.
 	 *
-	 * Hidden everywhere: no UI, no URLs, no REST. Only administrators manage the terms;
-	 * anyone who can edit posts can assign them.
+	 * Hidden everywhere: no UI, no URLs, no REST. Only administrators manage the terms, and
+	 * nobody assigns them through core (post form, quick and bulk edit, XML-RPC): Translations
+	 * does, after the REST routes and the classic panel have checked every post involved.
 	 */
 	public function register_taxonomies(): void {
 		$args = array(
@@ -65,7 +66,7 @@ final class Multilingual {
 				'manage_terms' => 'manage_options',
 				'edit_terms'   => 'manage_options',
 				'delete_terms' => 'manage_options',
-				'assign_terms' => 'edit_posts',
+				'assign_terms' => 'do_not_allow',
 			),
 		);
 

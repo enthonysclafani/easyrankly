@@ -442,4 +442,81 @@ final class SlugChangesTest extends WP_UnitTestCase {
 		$this->assertFalse( get_transient( SlugChanges::NOTICE . $user ) );
 		$this->assertSame( '', $this->notice() );
 	}
+
+	/**
+	 * A page move by an editor never rewrites the rules an administrator made for the old
+	 * address: a forced one keeps sending it where it did, any other one is reported.
+	 */
+	public function test_editor_move_keeps_admin_rules_for_old_address(): void {
+		$admin = self::factory()->user->create( array( 'role' => 'administrator' ) );
+		wp_set_current_user( $admin );
+		$forced = Redirects::save_exact( '/team', '/elsewhere' );
+		update_post_meta( $forced, Redirects::meta_key( 'forced' ), true );
+		$inactive = Redirects::save_exact( '/staff', '/other' );
+		wp_update_post(
+			array(
+				'ID'          => $inactive,
+				'post_status' => 'draft',
+			)
+		);
+		Redirects::rebuild_lists();
+
+		$team  = $this->page( 'team' );
+		$staff = $this->page( 'staff' );
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'editor' ) ) );
+		wp_update_post(
+			array(
+				'ID'        => $team,
+				'post_name' => 'people',
+			)
+		);
+		wp_update_post(
+			array(
+				'ID'        => $staff,
+				'post_name' => 'crew',
+			)
+		);
+
+		$this->assertSame( 'publish', get_post_status( $forced ) );
+		$this->assertSame( '/elsewhere', Redirects::rule( $forced )['target'] );
+		$this->assertTrue( Redirects::rule( $forced )['forced'] );
+		$this->assertSame( 'draft', get_post_status( $inactive ) );
+		$this->assertSame( '/other', Redirects::rule( $inactive )['target'] );
+		$this->assertStringContainsString( '<code>/staff</code>', $this->notice() );
+	}
+
+	/**
+	 * An editor moving a page back and forth reuses the rules their own moves made, and an
+	 * administrator may rewrite any rule that is not forced.
+	 */
+	public function test_moves_rewrite_rules_of_moves(): void {
+		$page = $this->page( 'first' );
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'editor' ) ) );
+		foreach ( array( 'second', 'first', 'second' ) as $name ) {
+			wp_update_post(
+				array(
+					'ID'        => $page,
+					'post_name' => $name,
+				)
+			);
+		}
+		$this->assertSame( '/second', $this->target( '/first' ) );
+
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
+		$rule = Redirects::save_exact( '/third', '/elsewhere' );
+		wp_update_post(
+			array(
+				'ID'          => $rule,
+				'post_status' => 'draft',
+			)
+		);
+		$other = $this->page( 'third' );
+		wp_update_post(
+			array(
+				'ID'        => $other,
+				'post_name' => 'fourth',
+			)
+		);
+		$this->assertSame( '/fourth', $this->target( '/third' ) );
+	}
 }
