@@ -293,6 +293,31 @@ final class RedirectsTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Regex rules that send a captured address back and forth loop too.
+	 */
+	public function test_rest_rejects_loop_through_captures(): void {
+		$this->assertSame( 201, $this->rest( 'POST', $this->body( '^/cap-a/(.*)$', '/cap-b/$1', array( 'regex' => true ) ) )->get_status() );
+
+		$response = $this->rest( 'POST', $this->body( '^/cap-b/(.*)$', '/cap-a/$1', array( 'regex' => true ) ) );
+		$this->assertSame( 'easyrankly_redirect_loop', $response->get_data()['code'] );
+	}
+
+	/**
+	 * A chain longer than the check can follow is refused, not taken for a chain without a loop.
+	 */
+	public function test_rest_rejects_too_long_chain(): void {
+		for ( $i = 0; $i < 11; $i++ ) {
+			$this->assertSame( 201, $this->rest( 'POST', $this->body( '/long-' . $i, '/long-' . ( $i + 1 ) ) )->get_status() );
+		}
+
+		$response = $this->rest( 'POST', $this->body( '/long-11', '/long-0' ) );
+		$this->assertSame( 'easyrankly_redirect_chain', $response->get_data()['code'] );
+
+		// Ten redirects after the target are still fine.
+		$this->assertSame( 201, $this->rest( 'POST', $this->body( '/start', '/long-1' ) )->get_status() );
+	}
+
+	/**
 	 * Redirects are deleted, never trashed, and a trash done elsewhere rebuilds the lists.
 	 */
 	public function test_trash(): void {
@@ -374,5 +399,32 @@ final class RedirectsTest extends WP_UnitTestCase {
 		$this->assertSame( 'publish', get_post_status( $external ) );
 		$this->assertSame( 'publish', get_post_status( $internal ) );
 		$this->assertSame( array( '/partner' ), array_column( get_option( Redirects::FORCED_OPTION ), 'source' ) );
+	}
+
+	/**
+	 * Two imported rules that would loop together: the first stays active, the second does not.
+	 */
+	public function test_import_rejects_loop_between_imported_rules(): void {
+		$first  = $this->import(
+			'^/imp-a$',
+			array(
+				'target' => '/imp-b',
+				'code'   => 301,
+				'regex'  => true,
+			)
+		);
+		$second = $this->import(
+			'^/imp-b$',
+			array(
+				'target' => '/imp-a',
+				'code'   => 301,
+				'regex'  => true,
+			)
+		);
+		do_action( 'import_end' );
+
+		$this->assertSame( 'publish', get_post_status( $first ) );
+		$this->assertSame( 'draft', get_post_status( $second ) );
+		$this->assertSame( array( '^/imp-a$' ), array_column( get_option( Redirects::REGEX_OPTION ), 'source' ) );
 	}
 }

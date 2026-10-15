@@ -52,7 +52,7 @@ final class Redirects {
 	public const MAX_FORCED = 50;
 
 	/**
-	 * Most redirects followed from a target when looking for a loop (loops()).
+	 * Most other redirects a target may lead through (loops()): browsers give up after 20.
 	 */
 	private const MAX_HOPS = 10;
 
@@ -304,8 +304,9 @@ final class Redirects {
 			}
 		}
 
-		if ( self::loops( $valid['source'], $regex, $valid['target'], $id ) ) {
-			return new \WP_Error( 'easyrankly_redirect_loop', __( 'Other redirects already send the target back to this source.', 'easyrankly' ) );
+		$loop = self::loops( $valid['source'], $regex, $valid['target'], $id );
+		if ( null !== $loop ) {
+			return $loop;
 		}
 
 		return $valid;
@@ -313,25 +314,22 @@ final class Redirects {
 
 	/**
 	 * Whether the active rules would send the target back to the source, so the visitor would
-	 * bounce between them forever: A → B with B → A, B → C → A, or two regex rules that send
-	 * their addresses to each other.
+	 * bounce between them forever (A → B with B → A, B → C → A, two regex rules that send
+	 * their addresses to each other), or through more than MAX_HOPS redirects.
 	 *
-	 * Follows the target through the active rules as a 404 would (forced, exact, regex), up to
-	 * MAX_HOPS redirects. Inactive rules are checked again when someone activates them (through
-	 * REST, so here). A regex target with captures ($1) depends on the address it matched: only
-	 * the rule itself is checked for it, when it runs (Runner::first_match()).
+	 * Follows the target through the active rules as a 404 would (forced, exact, regex).
+	 * Inactive rules are checked again when someone activates them (through REST, so here).
+	 * Rules saved earlier in the same batch (an import) count too, though the lists are only
+	 * rebuilt at its end. A regex target with captures ($1) depends on the address it matched:
+	 * it is followed with each capture set to sample values.
 	 *
 	 * @param string $source Normalized source, or the pattern of a regex.
 	 * @param bool   $regex  Whether the source is a regex.
 	 * @param string $target Target as stored.
 	 * @param int    $id     ID of the redirect being updated (0 for a new one), left out of the chain.
-	 * @return bool
+	 * @return \WP_Error|null Why the rule cannot be saved, or null.
 	 */
-	private static function loops( string $source, bool $regex, string $target, int $id ): bool {
-		if ( $regex && str_contains( $target, '$' ) ) {
-			return false;
-		}
-
+	private static function loops( string $source, bool $regex, string $target, int $id ): ?\WP_Error {
 		$rule  = array(
 			'source' => $source,
 			'regex'  => $regex,
@@ -342,24 +340,41 @@ final class Redirects {
 			$list    = get_option( $option, array() );
 			$lists[] = is_array( $list ) ? $list : array();
 		}
-
-		for ( $hop = 0; $hop < self::MAX_HOPS; $hop++ ) {
-			if ( '' === $target || ! Rule::is_internal( Rule::target_url( $target ) ) ) {
-				return false;
-			}
-
-			$path = Rule::normalize( $target );
-			if ( null !== Rule::match( $rule, $path ) ) {
-				return true;
-			}
-
-			$target = self::next( $path, $lists, $id );
-			if ( null === $target ) {
-				return false;
+		foreach ( self::$batch ?? array() as $saved ) {
+			$pending = self::rule( $saved );
+			if ( null !== $pending && $saved !== $id && ( $pending['forced'] || $pending['regex'] ) && 'publish' === get_post_status( $saved ) ) {
+				$lists[ $pending['forced'] ? 0 : 1 ][] = $pending;
 			}
 		}
 
-		return false;
+		$starts = $regex && str_contains( $target, '$' )
+			? array( (string) preg_replace( '/\$\d+/', 'x', $target ), (string) preg_replace( '/\$\d+/', '1', $target ) )
+			: array( $target );
+
+		foreach ( $starts as $next ) {
+			for ( $hop = 0; ; $hop++ ) {
+				if ( '' === $next || ! Rule::is_internal( Rule::target_url( $next ) ) ) {
+					break;
+				}
+
+				$path = Rule::normalize( $next );
+				if ( null !== Rule::match( $rule, $path ) ) {
+					return new \WP_Error( 'easyrankly_redirect_loop', __( 'Other redirects already send the target back to this source.', 'easyrankly' ) );
+				}
+
+				$next = self::next( $path, $lists, $id );
+				if ( null === $next ) {
+					break;
+				}
+
+				if ( $hop >= self::MAX_HOPS ) {
+					/* translators: %d: number of redirects. */
+					return new \WP_Error( 'easyrankly_redirect_chain', sprintf( __( 'The target leads through more than %d other redirects.', 'easyrankly' ), self::MAX_HOPS ) );
+				}
+			}
+		}
+
+		return null;
 	}
 
 	/**
@@ -633,14 +648,20 @@ final class Redirects {
 			static function () use ( $ids ): void {
 				foreach ( $ids as $id ) {
 					$rule = self::rule( $id );
-					if ( null !== $rule && 'publish' === get_post_status( $id ) && is_wp_error( self::check( $rule['source'], $rule['target'], $rule['code'], $rule['regex'], $id ) ) ) {
+					if ( null === $rule || 'publish' !== get_post_status( $id ) ) {
+						continue;
+					}
+					if ( is_wp_error( self::check( $rule['source'], $rule['target'], $rule['code'], $rule['regex'], $id ) ) ) {
 						wp_update_post(
 							array(
 								'ID'          => $id,
 								'post_status' => 'draft',
 							)
 						);
+						continue;
 					}
+					// Accepted: the next rules are checked against it, as if it were in the lists.
+					self::$batch[] = $id;
 				}
 			}
 		);

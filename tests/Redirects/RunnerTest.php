@@ -333,7 +333,7 @@ final class RunnerTest extends WP_UnitTestCase {
 
 	/**
 	 * Core still finds a child category at its old address after the parent changes slug: the
-	 * rule made for that address answers there. At its own address, the archive costs no query.
+	 * rule made for that address answers there, and on its pages and feeds. At its own address, the archive costs no query.
 	 */
 	public function test_term_archive_at_old_address(): void {
 		global $wpdb;
@@ -349,10 +349,16 @@ final class RunnerTest extends WP_UnitTestCase {
 				'parent' => $parent,
 			)
 		);
-		self::factory()->post->create( array( 'post_category' => array( $child ) ) );
+		self::factory()->post->create_many( 3, array( 'post_category' => array( $child ) ) );
+		update_option( 'posts_per_page', 2 );
 		$this->rule( '/category/parent/child', '/category/renamed/child/' );
 
 		$this->assertSame( '301 ' . home_url( '/category/renamed/child/' ), $this->visit( '/category/parent/child/' ) );
+
+		// Its pages and feeds follow, keeping their ending.
+		$this->assertSame( '301 ' . home_url( '/category/renamed/child/page/2/' ), $this->visit( '/category/parent/child/page/2/' ) );
+		$this->assertSame( '301 ' . home_url( '/category/renamed/child/feed/' ), $this->visit( '/category/parent/child/feed/' ) );
+		$this->assertSame( '301 ' . home_url( '/category/renamed/child/feed/atom/' ), $this->visit( '/category/parent/child/feed/atom/' ) );
 
 		$this->go_to( (string) get_term_link( $child ) );
 		get_term_link( $child );
