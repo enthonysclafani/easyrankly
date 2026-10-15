@@ -255,8 +255,8 @@ Tutte le decisioni aperte, del gratuito e del Pro, stanno in `docs/decisioni.md`
 
 ### Funzioni decise ma non ancora fatte
 
-- [x] Import da Yoast e Rank Math: solo meta e redirect, a lotti dall'admin, senza cron (`docs/decisioni.md`); manca
-      solo la lettura dei redirect di Rank Math, in attesa di decisione
+- [x] Import da Yoast e Rank Math: solo meta e redirect, a lotti dall'admin, senza cron (`docs/decisioni.md`); i redirect
+      di Rank Math si leggono dalla sua tabella con `$wpdb` in un solo file (decisione del 15 ottobre 2026)
 - [ ] Prova su Studio dell'import con dati veri di Yoast SEO (anche Premium, per i redirect) e di Rank Math
 
 ### Debito tecnico residuo

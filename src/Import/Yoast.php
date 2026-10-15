@@ -97,11 +97,11 @@ final class Yoast extends Source {
 	}
 
 	/**
-	 * One page of the Premium redirects.
+	 * One page of the Premium redirects, each in a list of its own.
 	 *
 	 * @param int $offset Redirects already read.
 	 * @param int $limit  Most redirects to return.
-	 * @return list<array{source: string, target: string, code: int, regex: bool, active: bool}>
+	 * @return list<list<array{source: string, target: string, code: int, regex: bool, active: bool}>>
 	 */
 	public function redirects( int $offset, int $limit ): array {
 		$all       = get_option( self::REDIRECT_OPTION );
@@ -110,11 +110,13 @@ final class Yoast extends Source {
 		foreach ( array_slice( is_array( $all ) ? array_values( $all ) : array(), $offset, $limit ) as $entry ) {
 			$regex       = is_array( $entry ) && 'regex' === ( $entry['format'] ?? '' );
 			$redirects[] = array(
-				'source' => is_array( $entry ) && is_string( $entry['origin'] ?? null ) ? self::path( $entry['origin'], $regex ) : '',
-				'target' => is_array( $entry ) && is_string( $entry['url'] ?? null ) ? self::path( $entry['url'] ) : '',
-				'code'   => is_array( $entry ) && is_numeric( $entry['type'] ?? null ) ? (int) $entry['type'] : 301,
-				'regex'  => $regex,
-				'active' => true,
+				array(
+					'source' => is_array( $entry ) && is_string( $entry['origin'] ?? null ) ? self::path( $entry['origin'], $regex ) : '',
+					'target' => is_array( $entry ) && is_string( $entry['url'] ?? null ) ? self::path( $entry['url'] ) : '',
+					'code'   => is_array( $entry ) && is_numeric( $entry['type'] ?? null ) ? (int) $entry['type'] : 301,
+					'regex'  => $regex,
+					'active' => true,
+				),
 			);
 		}
 

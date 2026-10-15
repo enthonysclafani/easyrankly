@@ -97,8 +97,10 @@ documenti indicati.
   `src/Import/` (EasyRankly > Import): non sovrascrive i valori già impostati e non tocca i dati dell'altro plugin,
   quindi si può ripetere; le variabili dei template diventano le nostre, quelle senza equivalente si tolgono; i testi
   social con variabili si saltano (lì le variabili non si sostituiscono). I redirect di Yoast vengono dall'option di
-  Yoast SEO Premium; quelli di Rank Math stanno in una sua tabella, che si legge solo con `$wpdb`: decisione chiesta a
-  Enthony il 14 ottobre 2026, fino ad allora non si importano.
+  Yoast SEO Premium; quelli di Rank Math stanno in una sua tabella, che nessuna API legge: Enthony il 15 ottobre 2026
+  ha approvato di leggerla con `$wpdb` in un solo file, `src/Import/RankMath.php` (unico nell'allowlist di
+  `composer architecture`), in sola lettura, con `prepare()` e `%i`. La colonna serializzata si legge solo se non
+  contiene oggetti.
 - **Funzioni SEO delle versioni precedenti** (12 ottobre 2026), dopo il confronto di `main`, `beta` e `Alpha` con
   questo branch:
   - *Pagine allegato*: si riporta, ma senza un'impostazione nostra. Una casella nella pagina Indicizzazione legge e

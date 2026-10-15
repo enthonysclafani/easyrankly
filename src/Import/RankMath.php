@@ -17,7 +17,10 @@ defined( 'ABSPATH' ) || exit;
  *   `rank_math_facebook_title`, `rank_math_facebook_description`, `rank_math_facebook_image_id`
  *   (and `rank_math_facebook_image`, its URL), and `rank_math_robots`, a list such as
  *   array( 'noindex', 'nofollow' ) (includes/admin/importers/class-yoast.php);
- * - variables: `%name%`, custom fields as `%customfield(name)%` (includes/replace-variables/).
+ * - variables: `%name%`, custom fields as `%customfield(name)%` (includes/replace-variables/);
+ * - redirects: table `{prefix}rank_math_redirections` (includes/modules/redirections/class-db.php),
+ *   with `sources` (a serialized list of `pattern` and `comparison`: exact, contains, start, end
+ *   or regex), `url_to`, `header_code` and `status` (active, inactive or trashed).
  */
 final class RankMath extends Source {
 
@@ -60,14 +63,103 @@ final class RankMath extends Source {
 	}
 
 	/**
-	 * Rank Math redirects live in a table of their own: not imported (see docs/decisioni.md).
+	 * One page of the redirects, one list per row: a Rank Math redirect can have several sources.
 	 *
-	 * @param int $offset Redirects already read.
-	 * @param int $limit  Most redirects to return.
-	 * @return list<array{source: string, target: string, code: int, regex: bool, active: bool}>
+	 * The redirects are in a table of Rank Math, which has no API once Rank Math is inactive: this
+	 * is the only place where EasyRankly reads the database directly (approved by Enthony on
+	 * 15 October 2026). Read only, from the import that an administrator runs.
+	 *
+	 * @param int $offset Rows already read.
+	 * @param int $limit  Most rows to return.
+	 * @return list<list<array{source: string, target: string, code: int, regex: bool, active: bool}>>
 	 */
 	public function redirects( int $offset, int $limit ): array {
-		return array();
+		global $wpdb;
+
+		// No table (Rank Math never had its redirects on) is an error to keep quiet, not to print.
+		$suppress = $wpdb->suppress_errors();
+		$rows     = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Table of another plugin, read once per import batch.
+			$wpdb->prepare(
+				"SELECT sources, url_to, header_code, status FROM %i WHERE status <> 'trashed' ORDER BY id ASC LIMIT %d OFFSET %d",
+				$wpdb->prefix . 'rank_math_redirections',
+				$limit,
+				$offset
+			),
+			ARRAY_A
+		);
+		$wpdb->suppress_errors( $suppress );
+
+		$redirects = array();
+		foreach ( is_array( $rows ) ? $rows : array() as $row ) {
+			$target = is_string( $row['url_to'] ?? null ) ? self::path( $row['url_to'] ) : '';
+			$code   = is_numeric( $row['header_code'] ?? null ) ? (int) $row['header_code'] : 301;
+			$active = 'active' === ( $row['status'] ?? '' );
+			$group  = array();
+
+			foreach ( self::sources( $row['sources'] ?? null ) as $source ) {
+				$group[] = array(
+					'source' => $source['source'],
+					'target' => $target,
+					'code'   => $code,
+					'regex'  => $source['regex'],
+					'active' => $active,
+				);
+			}
+
+			$redirects[] = $group;
+		}
+
+		return $redirects;
+	}
+
+	/**
+	 * Sources of a redirect row, as EasyRankly paths or regexes.
+	 *
+	 * The column is serialized by Rank Math; a value that holds an object is not read, so nothing
+	 * but arrays and strings is ever unserialized.
+	 *
+	 * @param mixed $raw Value of the `sources` column.
+	 * @return list<array{source: string, regex: bool}>
+	 */
+	private static function sources( mixed $raw ): array {
+		if ( ! is_string( $raw ) || ! is_serialized( $raw ) || 1 === preg_match( '/(?:^|[;{])[OC]:\d+:/', $raw ) ) {
+			return array();
+		}
+
+		$entries = maybe_unserialize( $raw );
+		$sources = array();
+
+		foreach ( is_array( $entries ) ? $entries : array() as $entry ) {
+			$pattern = is_array( $entry ) && is_string( $entry['pattern'] ?? null ) ? trim( $entry['pattern'] ) : '';
+			if ( '' === $pattern ) {
+				continue;
+			}
+
+			$sources[] = match ( $entry['comparison'] ?? 'exact' ) {
+				'regex' => array(
+					'source' => self::path( $pattern, true ),
+					'regex'  => true,
+				),
+				'contains' => array(
+					'source' => preg_quote( $pattern, '#' ),
+					'regex'  => true,
+				),
+				'start' => array(
+					'source' => '^/' . preg_quote( ltrim( $pattern, '/' ), '#' ),
+					'regex'  => true,
+				),
+				'end' => array(
+					'source' => preg_quote( rtrim( $pattern, '/' ), '#' ) . '/?$',
+					'regex'  => true,
+				),
+				default => array(
+					'source' => self::path( $pattern ),
+					'regex'  => false,
+				),
+			};
+		}
+
+		return $sources;
 	}
 
 	/**

@@ -225,6 +225,104 @@ final class ImportTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Rank Math redirects come from its table: one row can have several sources, every comparison
+	 * becomes a path or a regex, inactive rows become drafts, trashed rows and rows holding an
+	 * object are skipped.
+	 */
+	public function test_rank_math_redirects(): void {
+		global $wpdb;
+		$table = $wpdb->prefix . 'rank_math_redirections';
+		$wpdb->query( $wpdb->prepare( "CREATE TABLE %i ( id bigint(20) unsigned NOT NULL AUTO_INCREMENT, sources text NOT NULL, url_to text NOT NULL, header_code smallint(4) unsigned NOT NULL, status varchar(25) NOT NULL DEFAULT 'active', PRIMARY KEY (id) )", $table ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Fixture: the table Rank Math creates.
+		$rows = array(
+			array(
+				array(
+					array(
+						'pattern'    => 'old',
+						'comparison' => 'exact',
+					),
+					array(
+						'pattern'    => 'shop/',
+						'comparison' => 'start',
+					),
+				),
+				'new/',
+				301,
+				'active',
+			),
+			array(
+				array(
+					array(
+						'pattern'    => '^cat/(.*)',
+						'comparison' => 'regex',
+					),
+				),
+				'c/$1',
+				302,
+				'inactive',
+			),
+			array(
+				array(
+					array(
+						'pattern'    => 'promo',
+						'comparison' => 'contains',
+					),
+					array(
+						'pattern'    => '.pdf',
+						'comparison' => 'end',
+					),
+				),
+				'',
+				410,
+				'active',
+			),
+			array(
+				array(
+					array(
+						'pattern'    => 'trashed',
+						'comparison' => 'exact',
+					),
+				),
+				'x',
+				301,
+				'trashed',
+			),
+			array( new \ArrayObject( array( 'pattern' => 'object' ) ), 'x', 301, 'active' ),
+		);
+		foreach ( $rows as $row ) {
+			$wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Fixture rows.
+				$table,
+				array(
+					'sources'     => serialize( $row[0] ), // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_serialize -- Stored as Rank Math stores it.
+					'url_to'      => $row[1],
+					'header_code' => $row[2],
+					'status'      => $row[3],
+				)
+			);
+		}
+
+		$progress = $this->import( 'rankmath' );
+		$wpdb->query( $wpdb->prepare( 'DROP TABLE %i', $table ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Fixture cleanup.
+
+		$this->assertSame( '/new/', Redirects::rule( (int) Redirects::find_id( md5( '/old' ) ) )['target'] ?? null );
+		$this->assertNull( Redirects::find_id( md5( '/trashed' ) ) );
+
+		$regexes = get_posts(
+			array(
+				'post_type'   => Redirects::POST_TYPE,
+				'post_status' => array( 'publish', 'draft' ),
+				'meta_key'    => Redirects::meta_key( 'regex' ), // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key
+				'meta_value'  => '1', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value
+				'orderby'     => 'ID',
+				'order'       => 'ASC',
+			)
+		);
+		$this->assertSame( array( '^/shop/', '^/cat/(.*)', 'promo', '\.pdf/?$' ), wp_list_pluck( $regexes, 'post_title' ) );
+		$this->assertSame( array( 'publish', 'draft', 'publish', 'publish' ), wp_list_pluck( $regexes, 'post_status' ) );
+		$this->assertSame( 410, Redirects::rule( $regexes[3]->ID )['code'] ?? null );
+		$this->assertSame( 5, $progress['redirects'] );
+	}
+
+	/**
 	 * Each request handles one batch and saves where it stopped; the stages follow each other.
 	 */
 	public function test_batches_resume_where_they_stopped(): void {

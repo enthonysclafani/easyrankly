@@ -78,11 +78,12 @@ abstract class Source {
 	abstract public function term_fields( \WP_Term $term ): array;
 
 	/**
-	 * One page of redirects, in a stable order.
+	 * One page of redirects, in a stable order: one list per entry of the other plugin, since an
+	 * entry can have several sources.
 	 *
-	 * @param int $offset Redirects already read.
-	 * @param int $limit  Most redirects to return; fewer means there are no more.
-	 * @return list<array{source: string, target: string, code: int, regex: bool, active: bool}>
+	 * @param int $offset Entries already read.
+	 * @param int $limit  Most entries to return; fewer means there are no more.
+	 * @return list<list<array{source: string, target: string, code: int, regex: bool, active: bool}>>
 	 */
 	abstract public function redirects( int $offset, int $limit ): array;
 

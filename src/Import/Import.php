@@ -279,31 +279,34 @@ final class Import {
 	 *
 	 * @param Source                                                                                              $source   Source.
 	 * @param array{stage: string, offset: int, posts: int, terms: int, redirects: int, kept: int, rejected: int} $progress Progress, updated.
-	 * @return int Redirects read.
+	 * @return int Entries of the other plugin read.
 	 */
 	private static function redirects( Source $source, array &$progress ): int {
-		$redirects = $source->redirects( $progress['offset'], self::BATCH );
+		$entries = $source->redirects( $progress['offset'], self::BATCH );
 
 		Redirects::batch(
-			static function () use ( $redirects, &$progress ): void {
-				foreach ( $redirects as $redirect ) {
+			static function () use ( $entries, &$progress ): void {
+				foreach ( array_merge( array(), ...$entries ) as $redirect ) {
 					$valid = Redirects::check( $redirect['source'], $redirect['target'], $redirect['code'], $redirect['regex'] );
 					if ( is_wp_error( $valid ) ) {
 						++$progress[ 'easyrankly_redirect_duplicate' === $valid->get_error_code() ? 'kept' : 'rejected' ];
 						continue;
 					}
 
+					// wp_insert_post() unslashes its data: slashed here, a regex keeps its backslashes.
 					$id = wp_insert_post(
-						array(
-							'post_type'   => Redirects::POST_TYPE,
-							'post_status' => $redirect['active'] ? 'publish' : 'draft',
-							'post_title'  => $valid['source'],
-							'post_name'   => $redirect['regex'] ? 'regex-' . md5( $valid['source'] ) : Rule::hash( $valid['source'] ),
-							'meta_input'  => array(
-								Redirects::meta_key( 'target' ) => $valid['target'],
-								Redirects::meta_key( 'code' )   => $redirect['code'],
-								Redirects::meta_key( 'regex' )  => $redirect['regex'],
-								Redirects::meta_key( 'forced' ) => false,
+						wp_slash(
+							array(
+								'post_type'   => Redirects::POST_TYPE,
+								'post_status' => $redirect['active'] ? 'publish' : 'draft',
+								'post_title'  => $valid['source'],
+								'post_name'   => $redirect['regex'] ? 'regex-' . md5( $valid['source'] ) : Rule::hash( $valid['source'] ),
+								'meta_input'  => array(
+									Redirects::meta_key( 'target' ) => $valid['target'],
+									Redirects::meta_key( 'code' )   => $redirect['code'],
+									Redirects::meta_key( 'regex' )  => $redirect['regex'],
+									Redirects::meta_key( 'forced' ) => false,
+								),
 							),
 						),
 						true
@@ -314,7 +317,7 @@ final class Import {
 			}
 		);
 
-		return count( $redirects );
+		return count( $entries );
 	}
 
 	/**
