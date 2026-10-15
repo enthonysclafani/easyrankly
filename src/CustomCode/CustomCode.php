@@ -123,7 +123,7 @@ final class CustomCode {
 				'supports'              => array( 'title', 'editor', 'excerpt', 'revisions', 'custom-fields' ),
 				'rewrite'               => false,
 				'query_var'             => false,
-				'can_export'            => true,
+				'can_export'            => false,
 				'delete_with_user'      => false,
 				'map_meta_cap'          => false,
 				// Per-snippet capabilities get their own names, resolved in map_meta_cap().

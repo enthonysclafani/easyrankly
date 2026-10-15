@@ -341,6 +341,36 @@ final class ImportTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Two regexes of the same batch that send their addresses to each other: the second is
+	 * refused, though the lists are rebuilt only at the end of the batch.
+	 */
+	public function test_redirects_of_one_batch_never_loop(): void {
+		update_option(
+			'wpseo-premium-redirects-base',
+			array(
+				array(
+					'origin' => '^loop-a$',
+					'url'    => 'loop-b',
+					'type'   => 301,
+					'format' => 'regex',
+				),
+				array(
+					'origin' => '^loop-b$',
+					'url'    => 'loop-a',
+					'type'   => 301,
+					'format' => 'regex',
+				),
+			)
+		);
+
+		$progress = $this->import( 'yoast' );
+
+		$this->assertSame( 1, $progress['redirects'] );
+		$this->assertSame( 1, $progress['rejected'] );
+		$this->assertSame( array( '^/loop-a$' ), array_column( (array) get_option( Redirects::REGEX_OPTION ), 'source' ) );
+	}
+
+	/**
 	 * Each request handles one batch and saves where it stopped; the stages follow each other.
 	 */
 	public function test_batches_resume_where_they_stopped(): void {

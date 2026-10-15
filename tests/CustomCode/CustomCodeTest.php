@@ -372,6 +372,14 @@ final class CustomCodeTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Tools > Export, which asks only for the export capability, leaves snippets out, whether
+	 * chosen alone or with all content (export_wp() reads the same list).
+	 */
+	public function test_export_leaves_snippets_out(): void {
+		$this->assertNotContains( CustomCode::POST_TYPE, get_post_types( array( 'can_export' => true ) ) );
+	}
+
+	/**
 	 * Revisions keep the history of the code.
 	 */
 	public function test_revisions(): void {

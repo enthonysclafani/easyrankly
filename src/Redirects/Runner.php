@@ -81,7 +81,7 @@ final class Runner {
 			return $found;
 		}
 		if ( ! is_404() ) {
-			return self::moved_term( $path ) ? $this->exact( $path ) : null;
+			return $this->moved_term( $path );
 		}
 
 		$exact = $this->exact( $path );
@@ -93,24 +93,51 @@ final class Runner {
 	}
 
 	/**
-	 * Whether the request is a term archive reached by an address that is not the term's own.
+	 * Exact rule for a term archive reached by an address that is not the term's own.
 	 *
 	 * Core finds a category by the last part of its address only, so the old address of a
 	 * child category still answers after its parent changes slug (SlugChanges made a rule for
 	 * it). Comparing with the term link needs no query: core canonical reads the same link.
+	 * Its pages and feeds (/page/2, /feed) use the rule of the archive, with the same ending
+	 * added to the target.
 	 *
 	 * @param string $path Normalized request path.
-	 * @return bool
+	 * @return array{code: int, target: string, query: bool}|null
 	 */
-	private static function moved_term( string $path ): bool {
-		if ( is_paged() || is_feed() || ! ( is_category() || is_tag() || is_tax() ) ) {
-			return false;
+	private function moved_term( string $path ): ?array {
+		if ( ! ( is_category() || is_tag() || is_tax() ) ) {
+			return null;
 		}
 
 		$term = get_queried_object();
 		$link = $term instanceof \WP_Term ? get_term_link( $term ) : null;
+		if ( ! is_string( $link ) ) {
+			return null;
+		}
 
-		return is_string( $link ) && Rule::normalize( $link ) !== $path;
+		global $wp_rewrite;
+		$ending = '';
+		$base   = $path;
+		if ( ( is_paged() || is_feed() ) && $wp_rewrite instanceof \WP_Rewrite
+			&& preg_match( '#^(/.+?)(/' . preg_quote( $wp_rewrite->pagination_base, '#' ) . '/\d+|/(?:' . preg_quote( $wp_rewrite->feed_base, '#' ) . '/)?(?:feed|rdf|rss|rss2|atom))$#', $path, $parts ) ) {
+			$base   = $parts[1];
+			$ending = $parts[2];
+		}
+
+		if ( Rule::normalize( $link ) === $base ) {
+			return null;
+		}
+
+		$rule = $this->exact( $base );
+		// The ending is added only to a plain path: a URL or a query string is the administrator's.
+		if ( null === $rule || '' === $ending || ! str_starts_with( $rule['target'], '/' ) || 1 === preg_match( '/[?#]/', $rule['target'] ) ) {
+			return $rule;
+		}
+
+		$slash          = str_ends_with( $rule['target'], '/' );
+		$rule['target'] = untrailingslashit( $rule['target'] ) . $ending . ( $slash ? '/' : '' );
+
+		return $rule;
 	}
 
 	/**
