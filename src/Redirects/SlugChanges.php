@@ -337,10 +337,13 @@ final class SlugChanges {
 	 *
 	 * An active rule for the new address (moving back to an old address, or a rule the
 	 * administrator made) would now send visitors away from the page, or loop: it is
-	 * deactivated, not deleted, so it stays in the list. If the new rule cannot be saved,
-	 * the old one is restored as it was. A forced rule is the administrator's choice to send
-	 * that address elsewhere even when content exists there: it stays active, and the user is
-	 * told that the new address is not reachable.
+	 * deactivated, not deleted, so it stays in the list, if the user may replace it
+	 * (can_replace()). Otherwise it stays active: a rule that is not forced only answers an
+	 * address with no content, so it waits for the page to leave, and one that would loop
+	 * with the new rule makes the save fail, which is reported. If the new rule cannot be
+	 * saved, the old one is restored as it was. A forced rule is the administrator's choice
+	 * to send that address elsewhere even when content exists there: it stays active, and
+	 * the user is told that the new address is not reachable.
 	 *
 	 * A rule that already exists for the old address is left as the administrator set it when
 	 * it is forced and active, since it already sends that address where they chose; any other
@@ -365,6 +368,9 @@ final class SlugChanges {
 		if ( null !== $stale && ( Redirects::rule( $stale )['forced'] ?? false ) ) {
 			$problems['blocked'][] = $to;
 			$stale                 = null;
+		}
+		if ( null !== $stale && ! self::can_replace( $stale ) ) {
+			$stale = null;
 		}
 		if ( null !== $stale ) {
 			wp_update_post(

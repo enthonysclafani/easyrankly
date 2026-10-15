@@ -116,13 +116,15 @@ final class RankMath extends Source {
 	 * Sources of a redirect row, as EasyRankly paths or regexes.
 	 *
 	 * The column is serialized by Rank Math; a value that holds an object is not read, so nothing
-	 * but arrays and strings is ever unserialized.
+	 * but arrays and strings is ever unserialized. The check runs on the trimmed value, as
+	 * maybe_unserialize() reads it.
 	 *
 	 * @param mixed $raw Value of the `sources` column.
 	 * @return list<array{source: string, regex: bool}>
 	 */
 	private static function sources( mixed $raw ): array {
-		if ( ! is_string( $raw ) || ! is_serialized( $raw ) || 1 === preg_match( '/(?:^|[;{])[OC]:\d+:/', $raw ) ) {
+		$raw = is_string( $raw ) ? trim( $raw ) : '';
+		if ( ! is_serialized( $raw ) || 1 === preg_match( '/(?:^|[;{])[OC]:\d+:/', $raw ) ) {
 			return array();
 		}
 
