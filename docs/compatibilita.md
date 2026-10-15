@@ -50,7 +50,8 @@ Test: `tests/Canonical/ArchivePageTest.php` riproduce la query di WooCommerce se
   - carrello, checkout e account sono una pagina sola per WooCommerce: i suoi link portano alla lingua predefinita e
     la lingua cambia a metà acquisto; le email seguono la lingua del sito.
   Finché non si decide, il multilingua non è supportato sui negozi. Da valutare: togliere `product` dai tipi con
-  lingua, per non svuotare il negozio. In sospeso per scelta di Enthony (14 ottobre 2026), insieme ad A2.
+  lingua, per non svuotare il negozio. In sospeso per scelta di Enthony (14 ottobre 2026), insieme ad A2; il 15 ottobre 2026 rimandato a una versione
+  successiva (ipotesi 2.1.0), con la scelta del modello dei prodotti come prima decisione (`docs/decisioni.md`, punto 2).
 
 ### Lasciati così, di proposito
 
@@ -92,7 +93,7 @@ Test: `tests/Canonical/ArchivePageTest.php` riproduce la query di WooCommerce se
   fatta di campi ACF nasce vuota. Proposta: copiare i meta del post d'origine tranne quelli interni (`_edit_lock`,
   `_edit_last`, `_wp_old_slug`, `_thumbnail_id`, i nostri `_easyrankly_*`), compresi i riferimenti `_campo` →
   `field_…` che ACF usa per leggere i valori. Insieme a W5 (per i prodotti copierebbe anche lo SKU): in sospeso per
-  scelta di Enthony (14 ottobre 2026).
+  scelta di Enthony (14 ottobre 2026), rimandato con W5 (ipotesi 2.1.0).
 
 ### Nessun conflitto
 

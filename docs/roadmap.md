@@ -181,9 +181,9 @@ Analisi del 10 ottobre 2026, da completare più avanti. Dettagli, motivi e propo
 - [x] W7 — Pagina Negozio senza prodotti fuori dalla sitemap
 - [x] W1 — Campi SEO e lingua dei prodotti (meta box nell'editor classico; allegati esclusi)
 - [x] W4 — Carrello, checkout e account fuori dalla sitemap
-- [ ] W5 — Multilingua sui negozi (oggi non supportato; in sospeso)
+- [ ] W5 — Multilingua sui negozi (oggi non supportato; rimandato, ipotesi 2.1.0)
 - [x] A1 — Description da un campo personalizzato (ACF e altri): variabile `{{cf:nome_campo}}`
-- [ ] A2 — "Crea traduzione" copia i meta (campi ACF), in sospeso con W5
+- [ ] A2 — "Crea traduzione" copia i meta (campi ACF), rimandato con W5 (ipotesi 2.1.0)
 - [ ] Verifica su Studio con WooCommerce e ACF attivi
 
 ## EasyRankly Pro
