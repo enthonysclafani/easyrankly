@@ -52,6 +52,11 @@ final class Redirects {
 	public const MAX_FORCED = 50;
 
 	/**
+	 * Most redirects followed from a target when looking for a loop (loops()).
+	 */
+	private const MAX_HOPS = 10;
+
+	/**
 	 * Meta keys, without prefix, with their schema type.
 	 */
 	public const META = array(
@@ -288,26 +293,112 @@ final class Redirects {
 	public static function check( string $source, string $target, int $code, bool $regex, int $id = 0 ) {
 		$valid = Rule::validate( $source, $target, $code, $regex );
 
-		if ( is_wp_error( $valid ) || $regex ) {
+		if ( is_wp_error( $valid ) ) {
 			return $valid;
 		}
 
-		$other = self::find_id( Rule::hash( $valid['source'] ), array( 'publish', 'draft' ) );
-		if ( null !== $other && $other !== $id ) {
-			return new \WP_Error( 'easyrankly_redirect_duplicate', __( 'A redirect for this source already exists.', 'easyrankly' ) );
-		}
-
-		// A → B while an active B → A exists would bounce the visitor between the two forever.
-		// An inactive B → A is checked again when someone activates it (through REST, so here).
-		if ( '' !== $valid['target'] && Rule::is_internal( Rule::target_url( $valid['target'] ) ) ) {
-			$back = self::find_id( Rule::hash( Rule::normalize( $valid['target'] ) ) );
-			$rule = null !== $back && $back !== $id ? self::rule( $back ) : null;
-			if ( null !== $rule && '' !== $rule['target'] && Rule::is_internal( Rule::target_url( $rule['target'] ) ) && Rule::normalize( $rule['target'] ) === $valid['source'] ) {
-				return new \WP_Error( 'easyrankly_redirect_loop', __( 'Another redirect already sends the target back to this source.', 'easyrankly' ) );
+		if ( ! $regex ) {
+			$other = self::find_id( Rule::hash( $valid['source'] ), array( 'publish', 'draft' ) );
+			if ( null !== $other && $other !== $id ) {
+				return new \WP_Error( 'easyrankly_redirect_duplicate', __( 'A redirect for this source already exists.', 'easyrankly' ) );
 			}
 		}
 
+		if ( self::loops( $valid['source'], $regex, $valid['target'], $id ) ) {
+			return new \WP_Error( 'easyrankly_redirect_loop', __( 'Other redirects already send the target back to this source.', 'easyrankly' ) );
+		}
+
 		return $valid;
+	}
+
+	/**
+	 * Whether the active rules would send the target back to the source, so the visitor would
+	 * bounce between them forever: A → B with B → A, B → C → A, or two regex rules that send
+	 * their addresses to each other.
+	 *
+	 * Follows the target through the active rules as a 404 would (forced, exact, regex), up to
+	 * MAX_HOPS redirects. Inactive rules are checked again when someone activates them (through
+	 * REST, so here). A regex target with captures ($1) depends on the address it matched: only
+	 * the rule itself is checked for it, when it runs (Runner::first_match()).
+	 *
+	 * @param string $source Normalized source, or the pattern of a regex.
+	 * @param bool   $regex  Whether the source is a regex.
+	 * @param string $target Target as stored.
+	 * @param int    $id     ID of the redirect being updated (0 for a new one), left out of the chain.
+	 * @return bool
+	 */
+	private static function loops( string $source, bool $regex, string $target, int $id ): bool {
+		if ( $regex && str_contains( $target, '$' ) ) {
+			return false;
+		}
+
+		$rule  = array(
+			'source' => $source,
+			'regex'  => $regex,
+			'target' => $target,
+		);
+		$lists = array();
+		foreach ( array( self::FORCED_OPTION, self::REGEX_OPTION ) as $option ) {
+			$list    = get_option( $option, array() );
+			$lists[] = is_array( $list ) ? $list : array();
+		}
+
+		for ( $hop = 0; $hop < self::MAX_HOPS; $hop++ ) {
+			if ( '' === $target || ! Rule::is_internal( Rule::target_url( $target ) ) ) {
+				return false;
+			}
+
+			$path = Rule::normalize( $target );
+			if ( null !== Rule::match( $rule, $path ) ) {
+				return true;
+			}
+
+			$target = self::next( $path, $lists, $id );
+			if ( null === $target ) {
+				return false;
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * Target of the active rule that answers a path on a 404, other than the one being saved.
+	 *
+	 * @param string                        $path  Normalized path.
+	 * @param array<int, array<int, mixed>> $lists Forced and regex lists, as stored.
+	 * @param int                           $id    ID of the redirect being saved.
+	 * @return string|null
+	 */
+	private static function next( string $path, array $lists, int $id ): ?string {
+		foreach ( array( $lists[0], null, $lists[1] ) as $list ) {
+			if ( null === $list ) {
+				$exact = self::find_id( Rule::hash( $path ) );
+				$found = null !== $exact && $exact !== $id ? self::rule( $exact ) : null;
+				if ( null !== $found ) {
+					return $found['target'];
+				}
+				continue;
+			}
+
+			foreach ( $list as $item ) {
+				if ( ! is_array( $item ) || ! isset( $item['source'], $item['target'] ) || (int) ( $item['id'] ?? 0 ) === $id ) {
+					continue;
+				}
+				$rule   = array(
+					'source' => (string) $item['source'],
+					'regex'  => ! empty( $item['regex'] ),
+					'target' => (string) $item['target'],
+				);
+				$target = Rule::match( $rule, $path );
+				// Runner::first_match() skips a regex whose target matches it again.
+				if ( null !== $target && ( ! $rule['regex'] || null === Rule::match( $rule, Rule::normalize( $target ) ) ) ) {
+					return $target;
+				}
+			}
+		}
+
+		return null;
 	}
 
 	/**
