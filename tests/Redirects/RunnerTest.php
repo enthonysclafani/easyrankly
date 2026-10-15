@@ -332,6 +332,36 @@ final class RunnerTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Core still finds a child category at its old address after the parent changes slug: the
+	 * rule made for that address answers there. At its own address, the archive costs no query.
+	 */
+	public function test_term_archive_at_old_address(): void {
+		global $wpdb;
+
+		// Category rewrite rules follow the permalink structure set in set_up().
+		create_initial_taxonomies();
+		flush_rewrite_rules();
+
+		$parent = self::factory()->category->create( array( 'slug' => 'renamed' ) );
+		$child  = self::factory()->category->create(
+			array(
+				'slug'   => 'child',
+				'parent' => $parent,
+			)
+		);
+		self::factory()->post->create( array( 'post_category' => array( $child ) ) );
+		$this->rule( '/category/parent/child', '/category/renamed/child/' );
+
+		$this->assertSame( '301 ' . home_url( '/category/renamed/child/' ), $this->visit( '/category/parent/child/' ) );
+
+		$this->go_to( (string) get_term_link( $child ) );
+		get_term_link( $child );
+		$before = $wpdb->num_queries;
+		$this->assertNull( ( new Runner() )->find( '/category/renamed/child' ) );
+		$this->assertSame( $before, $wpdb->num_queries );
+	}
+
+	/**
 	 * A regex whose target would match it again is skipped instead of chaining.
 	 */
 	public function test_regex_never_chains(): void {

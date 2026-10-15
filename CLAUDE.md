@@ -218,6 +218,9 @@ problema. I problemi di sicurezza non ancora corretti non vanno mai in issue, PR
   `tests/QueriesTest.php` la conta: qualsiasi altra query in più fa fallire il test.
 - **Redirect**: la ricerca avviene solo su `template_redirect` quando `is_404()`, più una lista piccola di
   "redirect forzati" nell'option autoload. Ricerca per hash della sorgente normalizzata in `post_name` (colonna indicizzata).
+  **Eccezione approvata (15 ottobre 2026)**: sull'archivio di un termine raggiunto da un indirizzo diverso dal suo
+  (il core trova la categoria figlia anche dal vecchio percorso del padre) si cerca anche la regola esatta; il confronto
+  con il link del termine non fa query, quindi l'archivio al suo indirizzo resta senza query in più.
 - **Autoload**: solo dati piccoli e letti a ogni richiesta. Tutto il resto con `autoload = false`.
 - **Caricamento pigro**: il codice admin si carica solo in admin; gli asset admin solo sulle schermate che li usano
   (controlla `get_current_screen()` / hook suffix).

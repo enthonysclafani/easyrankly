@@ -15,7 +15,8 @@ defined( 'ABSPATH' ) || exit;
  * Sends the redirect for the current request, at most one hop.
  *
  * Cost on a normal page: reading the autoloaded list of forced rules, no query.
- * On a 404: one cached lookup by hash (indexed post_name) and the regex option.
+ * On a 404, and on a term archive reached by an address that is not the term's own: one
+ * cached lookup by hash (indexed post_name); on a 404 the regex option too.
  */
 final class Runner {
 
@@ -65,7 +66,8 @@ final class Runner {
 	}
 
 	/**
-	 * Rule matching a path: forced rules first, then (on 404 only) exact and regex rules.
+	 * Rule matching a path: forced rules first, then (on 404 only) exact and regex rules, and
+	 * exact ones also for a term archive at an old address (moved_term()).
 	 *
 	 * @param string $path Normalized request path.
 	 * @return array{code: int, target: string, query: bool}|null
@@ -75,8 +77,11 @@ final class Runner {
 		// saved the option does not exist, and get_option() would query for it on every page.
 		$forced = isset( wp_load_alloptions()[ Redirects::FORCED_OPTION ] ) ? get_option( Redirects::FORCED_OPTION, array() ) : array();
 		$found  = $this->first_match( $forced, $path );
-		if ( null !== $found || ! is_404() ) {
+		if ( null !== $found ) {
 			return $found;
+		}
+		if ( ! is_404() ) {
+			return self::moved_term( $path ) ? $this->exact( $path ) : null;
 		}
 
 		$exact = $this->exact( $path );
@@ -85,6 +90,27 @@ final class Runner {
 		}
 
 		return $this->first_match( get_option( Redirects::REGEX_OPTION, array() ), $path );
+	}
+
+	/**
+	 * Whether the request is a term archive reached by an address that is not the term's own.
+	 *
+	 * Core finds a category by the last part of its address only, so the old address of a
+	 * child category still answers after its parent changes slug (SlugChanges made a rule for
+	 * it). Comparing with the term link needs no query: core canonical reads the same link.
+	 *
+	 * @param string $path Normalized request path.
+	 * @return bool
+	 */
+	private static function moved_term( string $path ): bool {
+		if ( is_paged() || is_feed() || ! ( is_category() || is_tag() || is_tax() ) ) {
+			return false;
+		}
+
+		$term = get_queried_object();
+		$link = $term instanceof \WP_Term ? get_term_link( $term ) : null;
+
+		return is_string( $link ) && Rule::normalize( $link ) !== $path;
 	}
 
 	/**
