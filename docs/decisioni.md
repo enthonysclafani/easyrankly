@@ -21,7 +21,11 @@ Aggiornato al 14 ottobre 2026.
    sono una pagina sola. Domande: copiare i meta del post d'origine nelle traduzioni (tranne quelli interni e i
    nostri `_easyrankly_*`, compresi i riferimenti `_campo` → `field_…` di ACF)? Togliere intanto `product` dai tipi
    con lingua, per non svuotare il negozio nelle altre lingue? Dettagli: `docs/compatibilita.md`, W5 e A2.
-   Enthony, 14 ottobre 2026: resta in sospeso.
+   Enthony, 14 ottobre 2026: resta in sospeso. Enthony, 15 ottobre 2026: rimandata a una versione successiva
+   (ipotesi 2.1.0). Prima domanda da decidere allora: quale modello per i prodotti. Oggi ogni traduzione è un post a sé
+   (come WPML e Polylang): prezzo, SKU, magazzino e report si dividono per lingua e vanno sincronizzati. In alternativa,
+   un solo prodotto con i testi tradotti dentro (come TranslatePress e Shopify): un magazzino e un report, niente da
+   sincronizzare, ma fuori dal principio "ogni lingua è un oggetto del core". Enthony propende per il secondo.
 3. **Description da un campo personalizzato (A1).** Decisa il 14 ottobre 2026: vedi "Prodotto e perimetro" nel
    registro. Il numero resta per non spostare gli altri.
 4. **Multilingua sui siti che non lo usano** (discussa il 10 ottobre 2026, rimandata il 12 ottobre: per ora non si fa
