@@ -54,7 +54,7 @@ final class Redirects {
 	/**
 	 * Most other redirects a target may lead through (loops()): browsers give up after 20.
 	 */
-	public const MAX_HOPS = 10;
+	private const MAX_HOPS = 10;
 
 	/**
 	 * Meta keys, without prefix, with their schema type.
@@ -320,8 +320,9 @@ final class Redirects {
 	 * Follows the target through the active rules as a 404 would (forced, exact, regex).
 	 * Inactive rules are checked again when someone activates them (through REST, so here).
 	 * Rules saved earlier in the same batch (an import) count too, though the lists are only
-	 * rebuilt at its end. A regex target with captures ($1) is left to Runner::loops(), which
-	 * follows the chain of the address actually requested.
+	 * rebuilt at its end. A regex target with captures ($1) is not checked: whether it loops
+	 * depends on the address it matched, which no check at saving time can know (decided
+	 * 16 October 2026, docs/decisioni.md).
 	 *
 	 * @param string $source Normalized source, or the pattern of a regex.
 	 * @param bool   $regex  Whether the source is a regex.
@@ -347,8 +348,7 @@ final class Redirects {
 			}
 		}
 
-		// A target with captures ($1) depends on the address the regex matched: no sample
-		// value stands for every address, so Runner follows the real chain before redirecting.
+		// A target with captures ($1) depends on the address the regex matched: not checked.
 		if ( $regex && 1 === preg_match( '/\$\d/', $target ) ) {
 			return null;
 		}
