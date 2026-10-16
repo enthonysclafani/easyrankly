@@ -392,19 +392,6 @@ final class RunnerTest extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Two regexes that send a captured address back and forth: the request is not redirected,
-	 * while an address that leads elsewhere still is.
-	 */
-	public function test_capture_loop_is_not_followed(): void {
-		$this->rule( '^/year-a/([0-9]{4})$', '/year-b/$1', array( 'regex' => true ) );
-		$this->rule( '^/year-b/([0-9]{4})$', '/year-a/$1', array( 'regex' => true ) );
-		$this->rule( '^/plain-a/([0-9]{4})$', '/plain-b/$1', array( 'regex' => true ) );
-
-		$this->assertNull( $this->visit( '/year-a/2026/' ) );
-		$this->assertSame( '301 ' . home_url( '/plain-b/2026' ), $this->visit( '/plain-a/2026/' ) );
-	}
-
-	/**
 	 * A rule that would send the target back answers only on a 404: when the target is
 	 * published it never runs, so the first redirect is sent, with GET and HEAD alike.
 	 */

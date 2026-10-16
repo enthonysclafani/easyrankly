@@ -293,10 +293,10 @@ final class RedirectsTest extends WP_UnitTestCase {
 	}
 
 	/**
-	 * A target built from captures is not judged on sample values when saving: a valid rule is
-	 * never refused because a value it cannot match would loop (Runner checks the real chain).
+	 * A target built from captures is not judged when saving: a valid rule is never refused
+	 * because a value it cannot match would loop.
 	 */
-	public function test_rest_leaves_capture_targets_to_runner(): void {
+	public function test_rest_does_not_judge_capture_targets(): void {
 		$this->assertSame( 201, $this->rest( 'POST', $this->body( '/valid-b/x', '/valid-a/2026' ) )->get_status() );
 		$this->assertSame( 201, $this->rest( 'POST', $this->body( '^/valid-a/([0-9]{4})$', '/valid-b/$1', array( 'regex' => true ) ) )->get_status() );
 	}

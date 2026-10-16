@@ -123,6 +123,12 @@ documenti indicati.
   senza modificare file. Rischi: `docs/custom-code.md`.
 - **Plugin Check in CI esclude solo `src/CustomCode/PhpRunner.php`** (8 ottobre 2026): segnala ogni `eval` come
   errore. Prima del rilascio si fa comunque un Plugin Check completo anche su quel file.
+- **Cicli tra redirect regex con catture** (16 ottobre 2026): al salvataggio si rifiutano solo i cicli che si possono
+  accertare (regole esatte, regex senza `$1`, regole della stessa importazione, catene oltre dieci salti). Una regex
+  con `$1` non si giudica: se forma un ciclo dipende dall'indirizzo che ha trovato e dalla risposta di WordPress su un
+  altro indirizzo, che nessun controllo può prevedere. Tre previsioni successive (valori di esempio, "tutto è 404",
+  `url_to_postid()`) lasciavano sempre un caso scoperto o un falso allarme. Due regex con `$1` che si rimandano a
+  vicenda sono un errore di configurazione: il browser segnala troppi reindirizzamenti e l'amministratore le corregge.
 
 ### Interfaccia admin
 
