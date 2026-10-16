@@ -352,6 +352,7 @@ final class RunnerTest extends WP_UnitTestCase {
 		);
 		self::factory()->post->create_many( 3, array( 'post_category' => array( $child ) ) );
 		update_option( 'posts_per_page', 2 );
+		update_option( 'posts_per_rss', 2 );
 		$this->rule( '/category/parent/child', '/category/renamed/child/' );
 
 		$this->assertSame( '301 ' . home_url( '/category/renamed/child/' ), $this->visit( '/category/parent/child/' ) );
@@ -362,6 +363,10 @@ final class RunnerTest extends WP_UnitTestCase {
 		$this->assertSame( '301 ' . home_url( '/category/renamed/child/feed/atom/' ), $this->visit( '/category/parent/child/feed/atom/' ) );
 		$this->assertSame( '301 ' . home_url( '/category/renamed/child/page/2/' ), $this->visit( '/category/parent/child/?paged=2' ) );
 		$this->assertSame( '301 ' . home_url( '/category/renamed/child/feed/atom/' ), $this->visit( '/category/parent/child/?feed=atom' ) );
+
+		// A page of a feed, in either form: core has no pretty address for it.
+		$this->assertSame( '301 ' . home_url( '/category/renamed/child/feed/atom/?paged=2' ), $this->visit( '/category/parent/child/?feed=atom&paged=2' ) );
+		$this->assertSame( '301 ' . home_url( '/category/renamed/child/feed/atom/?paged=2' ), $this->visit( '/category/parent/child/feed/atom/?paged=2' ) );
 
 		$this->go_to( (string) get_term_link( $child ) );
 		get_term_link( $child );
@@ -397,5 +402,61 @@ final class RunnerTest extends WP_UnitTestCase {
 
 		$this->assertNull( $this->visit( '/year-a/2026/' ) );
 		$this->assertSame( '301 ' . home_url( '/plain-b/2026' ), $this->visit( '/plain-a/2026/' ) );
+	}
+
+	/**
+	 * A rule that would send the target back answers only on a 404: when the target is
+	 * published it never runs, so the first redirect is sent, with GET and HEAD alike.
+	 */
+	public function test_capture_rule_into_published_page(): void {
+		$parent = self::factory()->post->create(
+			array(
+				'post_type' => 'page',
+				'post_name' => 'land',
+			)
+		);
+		self::factory()->post->create(
+			array(
+				'post_type'   => 'page',
+				'post_name'   => 'target-2026',
+				'post_parent' => $parent,
+			)
+		);
+		$this->rule( '^/start/entry-([0-9]{4})$', '/land/target-$1/', array( 'regex' => true ) );
+		$this->rule( '^/land/target-([0-9]{4})$', '/start/entry-$1/', array( 'regex' => true ) );
+
+		$this->assertSame( '301 ' . home_url( '/land/target-2026/' ), $this->visit( '/start/entry-2026/' ) );
+
+		$_SERVER['REQUEST_METHOD'] = 'HEAD';
+		$this->assertSame( '301 ' . home_url( '/land/target-2026/' ), $this->visit( '/start/entry-2026/' ) );
+	}
+
+	/**
+	 * 410 and 451 stay as chosen: core does not replace them with a redirect to a post with
+	 * the same slug, to the post that had the address as an old slug, or to the admin.
+	 */
+	public function test_gone_is_not_turned_into_a_redirect(): void {
+		self::factory()->post->create(
+			array(
+				'post_type' => 'page',
+				'post_name' => 'kept-2026',
+			)
+		);
+		$moved = self::factory()->post->create( array( 'post_name' => 'moved-post' ) );
+		add_post_meta( $moved, '_wp_old_slug', 'old-post' );
+		$this->rule( '/gone/kept-2026', '', array( 'code' => 410 ) );
+		$this->rule( '/blocked/kept-2026', '', array( 'code' => 451 ) );
+		$this->rule( '/old-post', '', array( 'code' => 410 ) );
+
+		foreach ( array( '/gone/kept-2026/', '/blocked/kept-2026/', '/old-post/' ) as $path ) {
+			$this->assertNull( $this->visit( $path ) );
+			try {
+				redirect_canonical();
+				wp_old_slug_redirect();
+			} catch ( \RuntimeException $redirect ) {
+				$this->fail( $path . ' redirected to ' . $redirect->getMessage() );
+			}
+		}
+		$this->assertFalse( has_action( 'template_redirect', 'wp_redirect_admin_locations' ) );
 	}
 }
