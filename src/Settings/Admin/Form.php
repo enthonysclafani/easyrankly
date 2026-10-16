@@ -200,7 +200,8 @@ final class Form {
 		if ( isset( $value['same_as'] ) && is_string( $value['same_as'] ) ) {
 			$lines               = preg_split( '/\R/', $value['same_as'] );
 			$lines               = array_map( 'trim', false === $lines ? array() : $lines );
-			$settings['same_as'] = array_values( array_unique( array_filter( $lines, static fn( string $line ): bool => '' !== $line ) ) );
+			$lines               = array_values( array_unique( array_filter( $lines, static fn( string $line ): bool => '' !== $line ) ) );
+			$settings['same_as'] = self::profiles( $lines );
 		}
 
 		if ( isset( $value['local_business'] ) && is_array( $value['local_business'] ) ) {
@@ -208,6 +209,39 @@ final class Form {
 		}
 
 		return $settings;
+	}
+
+	/**
+	 * Profile URLs the schema accepts, line by line: a line it refuses (not a web address, or past
+	 * the maximum number) is left out and named, so the valid lines typed with it are not lost.
+	 *
+	 * @param string[] $lines Non-empty, distinct lines.
+	 * @return string[]
+	 */
+	private static function profiles( array $lines ): array {
+		$valid   = array();
+		$skipped = array();
+		foreach ( $lines as $line ) {
+			if ( Settings::is_valid( 'same_as', array_merge( $valid, array( $line ) ) ) ) {
+				$valid[] = $line;
+			} else {
+				$skipped[] = $line;
+			}
+		}
+
+		if ( array() !== $skipped ) {
+			self::error(
+				'same_as',
+				sprintf(
+					/* translators: 1: name of the setting, 2: lines left out. */
+					__( '%1$s: only web addresses starting with http:// or https:// are saved, up to 20. Left out: %2$s', 'easyrankly' ),
+					Fields::label( 'same_as' ),
+					esc_html( implode( ', ', $skipped ) )
+				)
+			);
+		}
+
+		return $valid;
 	}
 
 	/**

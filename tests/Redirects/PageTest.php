@@ -473,4 +473,13 @@ final class PageTest extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'name="target" value="/new-page"', $html );
 		$this->assertMatchesRegularExpression( '/value="302"\s*selected/', $html );
 	}
+
+	/**
+	 * The regex help says that loops through a captured target are not checked (accepted limit).
+	 */
+	public function test_regex_help_names_the_unchecked_loops(): void {
+		$this->load( array( 'action' => 'new' ) );
+
+		$this->assertStringContainsString( 'Loops through a target with $1 are not checked', $this->render() );
+	}
 }

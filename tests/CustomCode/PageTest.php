@@ -204,6 +204,7 @@ final class PageTest extends WP_UnitTestCase {
 
 		$this->assertSame( '', $location );
 		$this->assertStringContainsString( 'notice-error', $html );
+		$this->assertStringContainsString( 'Not saved:', $html );
 		$this->assertStringContainsString( 'echo (</textarea>', $html );
 		$this->assertSame( array(), self::snippets( 'Broken' ) );
 

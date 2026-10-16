@@ -350,7 +350,7 @@ final class CustomCode {
 			$error = self::syntax_error( $code );
 			if ( null !== $error && 'publish' === $status ) {
 				/* translators: %s: PHP syntax error. */
-				return new \WP_Error( 'easyrankly_snippet_syntax', sprintf( __( 'The code has a syntax error and cannot be active: %s', 'easyrankly' ), $error ), array( 'status' => 400 ) );
+				return new \WP_Error( 'easyrankly_snippet_syntax', sprintf( __( 'Not saved: code with a syntax error cannot be active. Fix it, or save it turned off. %s', 'easyrankly' ), $error ), array( 'status' => 400 ) );
 			}
 			if ( isset( $prepared->post_content ) ) {
 				$prepared->post_content = $code;

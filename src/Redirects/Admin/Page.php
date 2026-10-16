@@ -276,7 +276,7 @@ final class Page extends RecordsPage {
 			'<p><label><input type="checkbox" name="regex" value="1"%1$s /> %2$s</label></p><p class="description">%3$s</p></td></tr>',
 			checked( (bool) $values['regex'], true, false ),
 			esc_html__( 'Regular expression', 'easyrankly' ),
-			esc_html__( 'E.g. ^/blog/(.*)$ with target /news/$1. Matched against the lowercase path, without query string.', 'easyrankly' )
+			esc_html__( 'E.g. ^/blog/(.*)$ with target /news/$1. Matched against the lowercase path, without query string. Loops through a target with $1 are not checked: follow the chain once after turning the rule on.', 'easyrankly' )
 		);
 
 		printf( '<tr><th scope="row"><label for="easyrankly-code">%s</label></th><td><select id="easyrankly-code" name="code">', esc_html__( 'Type', 'easyrankly' ) );

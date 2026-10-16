@@ -323,25 +323,33 @@ final class FormTest extends WP_UnitTestCase {
 		$stored = $this->save(
 			'easyrankly-schema',
 			array(
-				'same_as'    => "https://example.org/ok\njavascript:alert(1)",
 				'x_username' => 'not a username!',
 			)
 		);
 
-		$this->assertSame( array( 'https://example.org/me' ), $stored['same_as'] );
 		$this->assertSame( '', $stored['x_username'] );
-		$this->assertSame( array( 'easyrankly_x_username', 'easyrankly_same_as' ), $this->sorted_desc( $this->errors() ) );
+		$this->assertSame( array( 'easyrankly_x_username' ), $this->errors() );
 	}
 
 	/**
-	 * Sorts error codes so the assertion does not depend on field order.
-	 *
-	 * @param string[] $codes Codes.
-	 * @return string[]
+	 * Profiles: the valid lines are saved, the others (not a web address, past the maximum) are
+	 * left out and named, escaped, in the error.
 	 */
-	private function sorted_desc( array $codes ): array {
-		rsort( $codes );
-		return $codes;
+	public function test_schema_page_keeps_valid_profiles_and_names_the_others(): void {
+		$lines = array( 'https://example.org/ok', 'javascript:alert(1)', '<b>bold</b>' );
+		for ( $i = 1; $i <= 20; $i++ ) {
+			$lines[] = 'https://example.org/p' . $i;
+		}
+
+		$stored = $this->save( 'easyrankly-schema', array( 'same_as' => implode( "\n", $lines ) ) );
+
+		$expected = array_merge( array( 'https://example.org/ok' ), array_map( static fn( int $i ): string => 'https://example.org/p' . $i, range( 1, 19 ) ) );
+		$this->assertSame( $expected, $stored['same_as'] );
+		$this->assertSame( array( 'easyrankly_same_as' ), $this->errors() );
+
+		$message = (string) ( get_settings_errors( Settings::OPTION )[0]['message'] ?? '' );
+		$this->assertStringContainsString( 'javascript:alert(1), &lt;b&gt;bold&lt;/b&gt;, https://example.org/p20', $message );
+		$this->assertStringNotContainsString( '<b>', $message );
 	}
 
 	/**

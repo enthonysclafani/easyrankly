@@ -139,6 +139,9 @@ documenti indicati.
   markup del core come le vecchie Beta e Alpha (box titolati, campi al 100%, interruttori on/off), sostituendo il
   "nessun CSS nostro" della voce sopra. Perché: aspetto più curato a costo quasi nullo, e uno stile deciso una volta
   sola. `composer architecture` impedisce che ogni modifica aggiunga regole nuove (CLAUDE.md, "Stile admin").
+- **Testi d'aiuto sotto la tabella Lingue senza margine** (16 ottobre 2026, test visivo dello zip 2.0.0): nella
+  pagina Lingue il testo sotto la tabella delle lingue è attaccato al suo bordo. Resta così: correggerlo vorrebbe una
+  regola CSS nuova solo per estetica, contro la regola "una funzione nuova non aggiunge regole" dello stile admin.
 - **Pagina articoli con un contesto suo** nelle impostazioni, separato dagli archivi dei tipi di contenuto
   (12 ottobre 2026, PR #64).
 - **Campi SEO nel form "Aggiungi" dei termini**: non si fanno (12 ottobre 2026): restano solo in "Modifica".
