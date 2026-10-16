@@ -108,12 +108,13 @@ final class Runner {
 	}
 
 	/**
-	 * Whether the redirects that follow a target, as on a 404, come back to an address already
-	 * passed or go on for more than Redirects::MAX_HOPS.
+	 * Whether the redirects that follow a target come back to an address already passed or go
+	 * on for more than Redirects::MAX_HOPS.
 	 *
 	 * Only for a target built from regex captures ($1): saving the rule could not check every
-	 * address it matches (Redirects::loops()), so the real chain is followed here. It runs only
-	 * on a request that is being redirected, with one cached lookup per hop.
+	 * address it matches (Redirects::loops()), so the real chain is followed here, with the
+	 * rules that would really answer each address (next()). It runs only on a request that is
+	 * being redirected, with at most two lookups per hop.
 	 *
 	 * @param string $path   Normalized request path.
 	 * @param string $target Target of the rule found for it.
@@ -135,7 +136,7 @@ final class Runner {
 			}
 			$seen[ $next ] = true;
 
-			$rule = $this->on_404( $next );
+			$rule = $this->next( $next );
 			if ( null === $rule || in_array( $rule['code'], Rule::NO_TARGET, true ) ) {
 				return false;
 			}
@@ -146,13 +147,33 @@ final class Runner {
 	}
 
 	/**
+	 * Rule that answers an address reached by a redirect: a forced rule always, the others only
+	 * when nothing is published there (exact and regex rules run on a 404 only).
+	 *
+	 * Content is recognised with url_to_postid(), as core does for its own guesses: an
+	 * address it cannot resolve (an archive, a feed) counts as missing, so a loop through
+	 * it is stopped rather than followed.
+	 *
+	 * @param string $path Normalized path.
+	 * @return array{code: int, target: string, query: bool, captures: bool}|null
+	 */
+	private function next( string $path ): ?array {
+		$forced = $this->first_match( $this->forced(), $path );
+		if ( null !== $forced || '/' === $path || 0 !== url_to_postid( home_url( $path ) ) ) {
+			return $forced;
+		}
+
+		return $this->exact( $path ) ?? $this->first_match( get_option( Redirects::REGEX_OPTION, array() ), $path );
+	}
+
+	/**
 	 * Exact rule for a term archive reached by an address that is not the term's own.
 	 *
 	 * Core finds a category by the last part of its address only, so the old address of a
 	 * child category still answers after its parent changes slug (SlugChanges made a rule for
 	 * it). Comparing with the term link needs no query: core canonical reads the same link.
-	 * Its pages and feeds (/page/2, /feed, also as ?paged=2 and ?feed=atom) use the rule of the
-	 * archive, with the same ending added to the target.
+	 * Its pages and feeds (/page/2, /feed/atom, ?paged=2, ?feed=atom, or a feed and a page
+	 * together) use the rule of the archive, with the same page and feed added to the target.
 	 *
 	 * @param string $path Normalized request path.
 	 * @return array{code: int, target: string, query: bool, captures: bool}|null
@@ -169,18 +190,25 @@ final class Runner {
 		}
 
 		global $wp_rewrite;
-		$ending = '';
 		$base   = $path;
-		if ( ( is_paged() || is_feed() ) && $wp_rewrite instanceof \WP_Rewrite
-			&& preg_match( '#^(/.+?)(/' . preg_quote( $wp_rewrite->pagination_base, '#' ) . '/\d+|/(?:' . preg_quote( $wp_rewrite->feed_base, '#' ) . '/)?(?:feed|rdf|rss|rss2|atom))$#', $path, $parts ) ) {
-			$base   = $parts[1];
-			$ending = $parts[2];
-		} elseif ( $wp_rewrite instanceof \WP_Rewrite && (int) get_query_var( 'paged' ) > 1 ) {
-			// The same page or feed asked with ?paged=2 or ?feed=atom.
-			$ending = '/' . $wp_rewrite->pagination_base . '/' . (int) get_query_var( 'paged' );
-		} elseif ( $wp_rewrite instanceof \WP_Rewrite && is_feed() ) {
-			$feed   = sanitize_key( (string) get_query_var( 'feed' ) );
-			$ending = '/' . $wp_rewrite->feed_base . ( '' === $feed || 'feed' === $feed ? '' : '/' . $feed );
+		$ending = '';
+		$query  = '';
+		if ( ( is_paged() || is_feed() ) && $wp_rewrite instanceof \WP_Rewrite ) {
+			// The page and the feed may come in the path (/page/2, /feed/atom) or in the query
+			// string (?paged=2, ?feed=atom), alone or together: the query vars hold both.
+			if ( preg_match( '#^(/.+?)(?:/' . preg_quote( $wp_rewrite->pagination_base, '#' ) . '/\d+|/(?:' . preg_quote( $wp_rewrite->feed_base, '#' ) . '/)?(?:feed|rdf|rss|rss2|atom))$#', $path, $parts ) ) {
+				$base = $parts[1];
+			}
+
+			$page = (int) get_query_var( 'paged' );
+			if ( is_feed() ) {
+				$feed   = sanitize_key( (string) get_query_var( 'feed' ) );
+				$ending = '/' . $wp_rewrite->feed_base . ( '' === $feed || 'feed' === $feed ? '' : '/' . $feed );
+				// Core has no pretty address for a page of a feed.
+				$query = $page > 1 ? '?paged=' . $page : '';
+			} elseif ( $page > 1 ) {
+				$ending = '/' . $wp_rewrite->pagination_base . '/' . $page;
+			}
 		}
 
 		if ( Rule::normalize( $link ) === $base ) {
@@ -194,7 +222,7 @@ final class Runner {
 		}
 
 		$slash          = str_ends_with( $rule['target'], '/' );
-		$rule['target'] = untrailingslashit( $rule['target'] ) . $ending . ( $slash ? '/' : '' );
+		$rule['target'] = untrailingslashit( $rule['target'] ) . $ending . ( $slash ? '/' : '' ) . $query;
 
 		return $rule;
 	}
@@ -299,6 +327,12 @@ final class Runner {
 	private function send( int $code, string $target ): void {
 		if ( in_array( $code, Rule::NO_TARGET, true ) ) {
 			global $wp_query;
+			// Core would turn the chosen status into a redirect: its guess of a post with the
+			// same slug (redirect_canonical), an old slug of a post (wp_old_slug_redirect), or
+			// the admin for /admin and /login (wp_redirect_admin_locations).
+			add_filter( 'redirect_canonical', '__return_false' );
+			add_filter( 'old_slug_redirect_url', '__return_false' );
+			remove_action( 'template_redirect', 'wp_redirect_admin_locations', 1000 );
 			$wp_query->set_404();
 			status_header( $code );
 			nocache_headers();
