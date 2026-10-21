@@ -1,0 +1,159 @@
+/*
+ * The only stylesheet of EasyRankly, on the plugin screens. It dresses the core markup
+ * (the h2 and form-table of the Settings API, the core input classes), so a new field
+ * needs no new rule. Limits checked by `composer architecture`.
+ */
+
+/* The whole page, intro texts and tables included, stays 760px wide. */
+.easyrankly-admin {
+	max-width: 760px;
+}
+
+.easyrankly-admin form > h2 {
+	color: #646970;
+	font-size: 12px;
+	letter-spacing: 0.04em;
+	margin: 2em 0 8px;
+	text-transform: uppercase;
+}
+
+/* A section becomes a box: label above the field, as the core does on narrow screens. */
+.easyrankly-admin .form-table {
+	background: #fff;
+	border: 1px solid #dcdcde;
+	border-radius: 4px;
+	box-sizing: border-box;
+	display: block;
+	margin-bottom: 24px;
+	padding: 8px 24px;
+}
+
+.easyrankly-admin .form-table > tbody,
+.easyrankly-admin .form-table > tbody > tr,
+.easyrankly-admin .form-table > tbody > tr > th,
+.easyrankly-admin .form-table > tbody > tr > td {
+	display: block;
+	padding-left: 0;
+	padding-right: 0;
+	width: auto;
+}
+
+.easyrankly-admin .form-table > tbody > tr > th {
+	padding: 16px 0 6px;
+}
+
+.easyrankly-admin .form-table > tbody > tr > td {
+	margin: 0;
+	padding: 0 0 16px;
+}
+
+/* Every field fills the box, .small-text too. */
+.easyrankly-admin .form-table :is(input[type="text"], input[type="url"], input[type="email"], input[type="tel"], input[type="number"], textarea, select) {
+	box-sizing: border-box;
+	max-width: none;
+	width: 100%;
+}
+
+/* A table inside a field (opening hours) fills the box too, two time fields per cell. */
+.easyrankly-admin .form-table td table {
+	width: 100%;
+}
+
+.easyrankly-admin .form-table td td input[type="time"] {
+	width: calc(50% - 4px);
+}
+
+/* A label of its own (not around a checkbox) goes above its field. */
+.easyrankly-admin .form-table td label:not(:has(input)) {
+	display: block;
+	margin: 8px 0 4px;
+}
+
+.easyrankly-admin .form-table td label:not(:has(input)):first-child {
+	margin-top: 0;
+}
+
+.easyrankly-admin .form-table td label:not(:has(input)) + br {
+	display: none;
+}
+
+/* Every checkbox is an on/off switch: still a native checkbox for keyboard and screen readers. */
+.easyrankly-admin .form-table input[type="checkbox"] {
+	appearance: none;
+	background: #8c8f94;
+	border: 0;
+	border-radius: 10px;
+	box-shadow: none;
+	cursor: pointer;
+	height: 20px;
+	margin: 3px 8px 3px 0;
+	position: relative;
+	transition: background-color 0.15s ease-in-out;
+	vertical-align: middle;
+	width: 36px;
+}
+
+.easyrankly-admin .form-table input[type="checkbox"]::before,
+.easyrankly-admin .form-table input[type="checkbox"]:checked::before {
+	background: #fff;
+	border-radius: 50%;
+	content: "";
+	height: 16px;
+	left: 2px;
+	margin: 0;
+	position: absolute;
+	top: 2px;
+	transition: left 0.15s ease-in-out;
+	width: 16px;
+}
+
+.easyrankly-admin .form-table input[type="checkbox"]:checked {
+	background: #00a32a;
+}
+
+.easyrankly-admin .form-table input[type="checkbox"]:checked::before {
+	left: 18px;
+}
+
+.easyrankly-admin .form-table input[type="checkbox"]:focus-visible {
+	box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--wp-admin-theme-color, #3858e9);
+	outline: 2px solid transparent;
+}
+
+.easyrankly-admin .form-table input[type="checkbox"]:disabled {
+	cursor: not-allowed;
+	opacity: 0.5;
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+	.easyrankly-admin .form-table input[type="checkbox"],
+	.easyrankly-admin .form-table input[type="checkbox"]::before {
+		transition: none;
+	}
+}
+
+@media (forced-colors: active) {
+
+	.easyrankly-admin .form-table input[type="checkbox"] {
+		border: 1px solid CanvasText;
+		forced-color-adjust: none;
+	}
+
+	.easyrankly-admin .form-table input[type="checkbox"]::before {
+		background: CanvasText;
+	}
+
+	.easyrankly-admin .form-table input[type="checkbox"]:checked {
+		background: Highlight;
+	}
+}
+
+/* On narrow screens a list table (Languages, Strings) scrolls by itself, not the whole page. */
+@media screen and (max-width: 782px) {
+
+	.easyrankly-admin .widefat {
+		display: block;
+		overflow-x: auto;
+	}
+}

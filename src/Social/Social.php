@@ -1,0 +1,191 @@
+<?php
+/**
+ * Open Graph and X (Twitter) tags.
+ *
+ * @package EasyRankly
+ */
+
+namespace EasyRankly\Social;
+
+use EasyRankly\Canonical\Canonical;
+use EasyRankly\Context\Context;
+use EasyRankly\Meta\Meta;
+use EasyRankly\Multilingual\Hreflang;
+use EasyRankly\Settings\Settings;
+use EasyRankly\Titles\Titles;
+
+defined( 'ABSPATH' ) || exit;
+
+/**
+ * Prints Open Graph tags for sharing, plus the X (Twitter) card tags.
+ *
+ * X can read og:title, og:description and og:image itself, but validators and other
+ * readers of twitter:* tags report them as missing: the card repeats the Open Graph values,
+ * with no fields of its own. Title and description fall back to the SEO ones (1.3); the
+ * image to the featured image and then to the default image of the settings.
+ */
+final class Social {
+
+	/**
+	 * Hooks the tags into <head>, after title and description.
+	 */
+	public function register(): void {
+		add_action( 'wp_head', array( $this, 'print_tags' ), 2 );
+	}
+
+	/**
+	 * Prints the tags of the current page. Search results and 404 pages get none.
+	 */
+	public function print_tags(): void {
+		foreach ( self::tags() as $tag ) {
+			printf( '<meta %1$s="%2$s" content="%3$s" />' . "\n", esc_attr( $tag[0] ), esc_attr( $tag[1] ), esc_attr( $tag[2] ) );
+		}
+	}
+
+	/**
+	 * Tags of the current page as [attribute, name, content], in output order.
+	 *
+	 * @return list<array{string, string, string}>
+	 */
+	public static function tags(): array {
+		$keys = Context::keys();
+		if ( array() === $keys || is_search() || is_404() ) {
+			return array();
+		}
+
+		$object = get_queried_object();
+		$post   = $object instanceof \WP_Post ? $object : null;
+
+		$article = Context::is_article();
+
+		$title = Meta::queried_text( 'og_title' );
+		if ( '' === $title ) {
+			$title = Titles::title();
+		}
+		if ( '' === $title ) {
+			$title = html_entity_decode( wp_get_document_title(), ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+		}
+
+		$description = Meta::queried_text( 'og_description' );
+		if ( '' === $description ) {
+			$description = Titles::description();
+		}
+
+		$tags = array( array( 'property', 'og:locale', get_locale() ) );
+
+		// The other languages of the page: those of its hreflang links, already worked out and cached.
+		foreach ( array_keys( Hreflang::alternates() ) as $code ) {
+			$locale = str_replace( '-', '_', $code );
+			if ( 'x-default' !== $code && Hreflang::code( get_locale() ) !== $code ) {
+				$tags[] = array( 'property', 'og:locale:alternate', $locale );
+			}
+		}
+
+		$tags[] = array( 'property', 'og:site_name', html_entity_decode( (string) get_bloginfo( 'name' ), ENT_QUOTES | ENT_HTML5, 'UTF-8' ) );
+		$tags[] = array( 'property', 'og:type', $article ? 'article' : 'website' );
+		$tags[] = array( 'property', 'og:title', $title );
+
+		if ( '' !== $description ) {
+			$tags[] = array( 'property', 'og:description', $description );
+		}
+
+		$url = null !== $post && is_singular() ? (string) wp_get_canonical_url( $post ) : Canonical::archive_url();
+		if ( '' === $url && null !== $post && is_singular() ) {
+			// Noindex is for search engines, not for sharing: a noindex post keeps its own address, as in the schema.
+			$url = (string) get_permalink( $post );
+		}
+		if ( '' !== $url ) {
+			$tags[] = array( 'property', 'og:url', $url );
+		}
+
+		$image = self::image( $post );
+		if ( null !== $image ) {
+			$tags[] = array( 'property', 'og:image', $image['url'] );
+			if ( $image['width'] > 0 && $image['height'] > 0 ) {
+				$tags[] = array( 'property', 'og:image:width', (string) $image['width'] );
+				$tags[] = array( 'property', 'og:image:height', (string) $image['height'] );
+			}
+			if ( '' !== $image['alt'] ) {
+				$tags[] = array( 'property', 'og:image:alt', $image['alt'] );
+			}
+		}
+
+		if ( $article && null !== $post ) {
+			$tags[] = array( 'property', 'article:published_time', (string) get_post_time( 'c', true, $post ) );
+			$tags[] = array( 'property', 'article:modified_time', (string) get_post_modified_time( 'c', true, $post ) );
+		}
+
+		$tags[] = array( 'name', 'twitter:card', null !== $image ? 'summary_large_image' : 'summary' );
+
+		$username = (string) Settings::value( 'x_username' );
+		if ( '' !== $username ) {
+			$tags[] = array( 'name', 'twitter:site', '@' . $username );
+		}
+
+		$tags[] = array( 'name', 'twitter:title', $title );
+		if ( '' !== $description ) {
+			$tags[] = array( 'name', 'twitter:description', $description );
+		}
+		if ( null !== $image ) {
+			$tags[] = array( 'name', 'twitter:image', $image['url'] );
+			if ( '' !== $image['alt'] ) {
+				$tags[] = array( 'name', 'twitter:image:alt', $image['alt'] );
+			}
+		}
+
+		return $tags;
+	}
+
+	/**
+	 * Per-object social field of the queried post or term.
+	 *
+	 * @param string $name Field name without prefix.
+	 * @return mixed
+	 */
+	private static function override( string $name ): mixed {
+		return Meta::queried( $name );
+	}
+
+	/**
+	 * Image to share: the page's own image (see own_image()), then the default one.
+	 *
+	 * The default image is copied in the settings: no query.
+	 *
+	 * @param \WP_Post|null $post Queried post, if any.
+	 * @return array{url: string, width: int, height: int, alt: string}|null
+	 */
+	private static function image( ?\WP_Post $post ): ?array {
+		return self::own_image( $post ) ?? Settings::image( 'social_image' );
+	}
+
+	/**
+	 * Image of the page itself: the object's social image, the image of an attachment page, then
+	 * the featured image of the queried post (also the posts page and a page standing for an
+	 * archive, like WooCommerce's shop page). The schema uses the same image.
+	 *
+	 * Loading the featured image costs the same queries the theme makes to show it, and
+	 * they are cached for it.
+	 *
+	 * @param \WP_Post|null $post Queried post, if any.
+	 * @return array{url: string, width: int, height: int, alt: string}|null
+	 */
+	public static function own_image( ?\WP_Post $post ): ?array {
+		$candidates = array( (int) self::override( 'og_image' ) );
+
+		if ( null !== $post && is_attachment() && wp_attachment_is_image( $post ) ) {
+			$candidates[] = $post->ID;
+		}
+		if ( null !== $post && ( is_singular() || is_home() || is_post_type_archive() ) ) {
+			$candidates[] = (int) get_post_thumbnail_id( $post );
+		}
+
+		foreach ( $candidates as $attachment_id ) {
+			$image = Meta::image( $attachment_id );
+			if ( null !== $image ) {
+				return $image;
+			}
+		}
+
+		return null;
+	}
+}

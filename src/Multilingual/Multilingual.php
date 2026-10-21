@@ -1,0 +1,126 @@
+<?php
+/**
+ * Multilingual content on a single site.
+ *
+ * @package EasyRankly
+ */
+
+namespace EasyRankly\Multilingual;
+
+use EasyRankly\Settings\Settings;
+
+defined( 'ABSPATH' ) || exit;
+
+/**
+ * Registers the hidden taxonomies that store the language of each post and its translations.
+ *
+ * Languages themselves live in the `languages` setting (see Languages). Nothing here runs
+ * on the frontend beyond the registrations.
+ */
+final class Multilingual {
+
+	/**
+	 * Hooks the registrations, the cleanup of groups and the routing by language.
+	 */
+	public function register(): void {
+		wp_cache_add_non_persistent_groups( array( Languages::CACHE_GROUP ) );
+		foreach ( array( 'add_option_', 'update_option_', 'delete_option_' ) as $hook ) {
+			add_action( $hook . Settings::OPTION, array( Languages::class, 'forget' ), 1 );
+		}
+
+		// Late priority: every viewable post type must exist.
+		add_action( 'init', array( $this, 'register_taxonomies' ), 99 );
+		add_action( 'before_delete_post', array( Translations::class, 'on_delete_post' ) );
+
+		$requests = new Requests();
+		$requests->register();
+		( new Links( $requests ) )->register();
+		( new Rest() )->register();
+		( new Hreflang() )->register();
+		( new Switcher() )->register();
+		( new SiteIdentity() )->register();
+		add_filter( 'render_block_data', array( $this, 'filter_block' ) );
+		add_action( 'wp_sitemaps_init', array( $this, 'register_sitemap' ) );
+	}
+
+	/**
+	 * Registers both taxonomies on every post type with languages.
+	 *
+	 * Hidden everywhere: no UI, no URLs, no REST. Only administrators manage the terms, and
+	 * nobody assigns them through core (post form, quick and bulk edit, XML-RPC): Translations
+	 * does, after the REST routes and the classic panel have checked every post involved.
+	 */
+	public function register_taxonomies(): void {
+		$args = array(
+			'public'            => false,
+			'show_ui'           => false,
+			'show_in_menu'      => false,
+			'show_in_nav_menus' => false,
+			'show_in_rest'      => false,
+			'show_tagcloud'     => false,
+			'show_admin_column' => false,
+			'hierarchical'      => false,
+			'rewrite'           => false,
+			'query_var'         => false,
+			'capabilities'      => array(
+				'manage_terms' => 'manage_options',
+				'edit_terms'   => 'manage_options',
+				'delete_terms' => 'manage_options',
+				'assign_terms' => 'do_not_allow',
+			),
+		);
+
+		register_taxonomy(
+			Translations::LANGUAGE,
+			Languages::post_types(),
+			$args + array(
+				'labels' => array(
+					'name'          => __( 'Languages', 'easyrankly' ),
+					'singular_name' => __( 'Language', 'easyrankly' ),
+				),
+			)
+		);
+
+		register_taxonomy(
+			Translations::GROUP,
+			Languages::post_types(),
+			$args + array(
+				'labels' => array(
+					'name'          => __( 'Translation groups', 'easyrankly' ),
+					'singular_name' => __( 'Translation group', 'easyrankly' ),
+				),
+			)
+		);
+	}
+
+	/**
+	 * On the pages of a language, points template part and synced pattern blocks to the version
+	 * of that language (see TemplateParts and SyncedPatterns).
+	 *
+	 * One filter for the two blocks: every other block leaves after one comparison.
+	 *
+	 * @param mixed $block Parsed block.
+	 * @return mixed
+	 */
+	public function filter_block( $block ) {
+		$name = is_array( $block ) ? ( $block['blockName'] ?? null ) : null;
+		if ( ! in_array( $name, array( 'core/template-part', 'core/block' ), true ) || ! Languages::enabled() || ! Routing::is_frontend() ) {
+			return $block;
+		}
+
+		$language = Routing::current();
+
+		return 'core/template-part' === $name ? TemplateParts::filter_block( $block, $language ) : SyncedPatterns::filter_block( $block, $language );
+	}
+
+	/**
+	 * Adds the sitemap of the language homes to the core sitemaps.
+	 *
+	 * @param mixed $sitemaps Core sitemaps server.
+	 */
+	public function register_sitemap( $sitemaps ): void {
+		if ( $sitemaps instanceof \WP_Sitemaps ) {
+			$sitemaps->registry->add_provider( HomesSitemap::NAME, new HomesSitemap() );
+		}
+	}
+}

@@ -1,0 +1,812 @@
+<?php
+/**
+ * Sections and fields of the settings pages.
+ *
+ * @package EasyRankly
+ */
+
+namespace EasyRankly\Settings\Admin;
+
+use EasyRankly\Admin\MediaField;
+use EasyRankly\Context\Context;
+use EasyRankly\Multilingual\Languages;
+use EasyRankly\Settings\Settings;
+use EasyRankly\Titles\Titles;
+
+defined( 'ABSPATH' ) || exit;
+
+/**
+ * Registers each page's sections and fields with the Settings API and prints them with the
+ * markup of the WordPress settings screens (`form-table`, `regular-text`, `description`).
+ *
+ * Field names follow the shape Form::normalize() reads: `easyrankly_settings[key]`.
+ */
+final class Fields {
+
+	/**
+	 * Registers the sections and fields of one page.
+	 *
+	 * @param string $slug Page slug.
+	 */
+	public static function add( string $slug ): void {
+		switch ( $slug ) {
+			case Page::SLUG:
+				self::add_general();
+				break;
+			case Page::TITLES:
+				self::add_titles();
+				break;
+			case Page::INDEXING:
+				self::add_indexing();
+				break;
+			case Page::SCHEMA:
+				self::add_schema();
+				break;
+			case Page::LANGUAGES:
+				add_settings_section( 'languages', '', array( LanguageFields::class, 'languages_table' ), $slug );
+				// Posted with the languages: shown whenever a language is saved, so saving keeps them.
+				if ( array() !== Languages::all() ) {
+					add_settings_section( 'strings', __( 'Strings', 'easyrankly' ), array( LanguageFields::class, 'strings_table' ), $slug );
+				}
+				// Theme texts change language only in block themes.
+				if ( Languages::enabled() && wp_is_block_theme() ) {
+					add_settings_section( 'theme_texts', __( 'Theme texts', 'easyrankly' ), array( LanguageFields::class, 'theme_texts_section' ), $slug );
+				}
+				break;
+		}
+	}
+
+	/**
+	 * Label of a setting, as its field shows it and as error messages name it.
+	 *
+	 * @param string $key Setting key.
+	 * @return string
+	 */
+	public static function label( string $key ): string {
+		$labels = array(
+			'title_separator'       => __( 'Title separator', 'easyrankly' ),
+			'breadcrumb_home_label' => __( 'Label of the first item', 'easyrankly' ),
+			'breadcrumb_taxonomies' => __( 'Breadcrumbs', 'easyrankly' ),
+			'templates'             => __( 'Titles and descriptions', 'easyrankly' ),
+			'language_templates'    => __( 'Titles and descriptions', 'easyrankly' ),
+			'noindex'               => __( 'Do not index', 'easyrankly' ),
+			'robots_txt'            => __( 'Extra rules', 'easyrankly' ),
+			'identity_type'         => __( 'This site represents', 'easyrankly' ),
+			'identity_name'         => __( 'Name', 'easyrankly' ),
+			'identity_logo'         => __( 'Logo or photo', 'easyrankly' ),
+			'same_as'               => __( 'Profiles on other sites', 'easyrankly' ),
+			'local_business'        => __( 'Local business', 'easyrankly' ),
+			'social_image'          => __( 'Default image', 'easyrankly' ),
+			'x_username'            => __( 'X username', 'easyrankly' ),
+			'languages'             => __( 'Languages', 'easyrankly' ),
+		);
+
+		return $labels[ $key ] ?? $key;
+	}
+
+	/**
+	 * Language whose templates the Titles page edits: empty for the templates of all languages.
+	 *
+	 * @return string
+	 */
+	public static function language(): string {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only choice of what to show; saving goes through options.php.
+		$language = isset( $_GET['language'] ) ? sanitize_key( wp_unslash( $_GET['language'] ) ) : '';
+
+		return Languages::enabled() && Languages::exists( $language ) ? $language : '';
+	}
+
+	/**
+	 * Generic contexts of the templates (Context::GENERIC, in its order), with their labels.
+	 *
+	 * PHP turns the key "404" into an integer: callers cast keys to strings where it matters.
+	 *
+	 * @return array<int|string, string>
+	 */
+	public static function generic_contexts(): array {
+		$labels = array(
+			'home'    => __( 'Home page', 'easyrankly' ),
+			'single'  => __( 'Single content (all types)', 'easyrankly' ),
+			'archive' => __( 'Post type archives', 'easyrankly' ),
+			'term'    => __( 'Category, tag and term archives', 'easyrankly' ),
+			'author'  => __( 'Author archives', 'easyrankly' ),
+			'date'    => __( 'Date archives', 'easyrankly' ),
+			'search'  => __( 'Search results', 'easyrankly' ),
+			'404'     => __( 'Page not found', 'easyrankly' ),
+		);
+
+		$contexts = array();
+		foreach ( Context::GENERIC as $key ) {
+			$contexts[ $key ] = $labels[ $key ] ?? $key;
+		}
+
+		return $contexts;
+	}
+
+	/**
+	 * Contexts of each viewable post type and public taxonomy, with their labels, plus the
+	 * posts page when the site has one.
+	 *
+	 * @return array<string, string>
+	 */
+	public static function type_contexts(): array {
+		$contexts = array();
+
+		foreach ( get_post_types( array(), 'objects' ) as $type ) {
+			if ( ! is_post_type_viewable( $type ) ) {
+				continue;
+			}
+			/* translators: %s: post type name. */
+			$contexts[ 'single-' . $type->name ] = sprintf( __( 'Single: %s', 'easyrankly' ), $type->labels->name );
+			if ( $type->has_archive ) {
+				/* translators: %s: post type name. */
+				$contexts[ 'archive-' . $type->name ] = sprintf( __( 'Archive: %s', 'easyrankly' ), $type->labels->name );
+			} elseif ( 'post' === $type->name && 'page' === get_option( 'show_on_front' ) && (int) get_option( 'page_for_posts' ) > 0 ) {
+				// The static posts page is the archive of posts (Context).
+				$contexts['archive-post'] = __( 'Posts page', 'easyrankly' );
+			}
+		}
+
+		foreach ( get_taxonomies( array( 'publicly_queryable' => true ), 'objects' ) as $taxonomy ) {
+			/* translators: %s: taxonomy name. */
+			$contexts[ 'term-' . $taxonomy->name ] = sprintf( __( 'Taxonomy: %s', 'easyrankly' ), $taxonomy->labels->name );
+		}
+
+		// Keys the settings schema cannot store (very long names) are left out.
+		$pattern = '/' . Context::KEY_PATTERN . '/';
+
+		return array_filter( $contexts, static fn( string $key ): bool => 1 === preg_match( $pattern, $key ), ARRAY_FILTER_USE_KEY );
+	}
+
+	/**
+	 * Contexts that can be excluded from indexing, with their labels.
+	 *
+	 * Left out of the generic ones: the home page, which is never excluded; search results
+	 * and "page not found", which are never indexed; and "single", which would exclude every
+	 * content of every type at once (each type has its own "Single:" context instead).
+	 *
+	 * @return array<int|string, string>
+	 */
+	public static function noindex_contexts(): array {
+		$generic = array_intersect_key( self::generic_contexts(), array_flip( array( 'archive', 'term', 'author', 'date' ) ) );
+
+		return $generic + self::type_contexts();
+	}
+
+	/**
+	 * Viewable post types with at least one public taxonomy, for the breadcrumb trail.
+	 *
+	 * @return array<string, array{name: string, taxonomies: array<string, string>}> Post type => name and taxonomies.
+	 */
+	public static function breadcrumb_types(): array {
+		$types = array();
+
+		foreach ( get_post_types( array(), 'objects' ) as $type ) {
+			if ( ! is_post_type_viewable( $type ) ) {
+				continue;
+			}
+
+			$taxonomies = array();
+			foreach ( get_object_taxonomies( $type->name, 'objects' ) as $taxonomy ) {
+				if ( $taxonomy->publicly_queryable ) {
+					$taxonomies[ $taxonomy->name ] = $taxonomy->labels->name;
+				}
+			}
+
+			if ( array() !== $taxonomies ) {
+				$types[ $type->name ] = array(
+					'name'       => $type->labels->name,
+					'taxonomies' => $taxonomies,
+				);
+			}
+		}
+
+		return $types;
+	}
+
+	/**
+	 * General: title separator and breadcrumb.
+	 */
+	private static function add_general(): void {
+		$page = Page::SLUG;
+
+		add_settings_section( 'general', '', '__return_null', $page );
+		add_settings_field(
+			'title_separator',
+			self::label( 'title_separator' ),
+			array( self::class, 'text' ),
+			$page,
+			'general',
+			array(
+				'label_for'   => self::id( 'title_separator' ),
+				'key'         => 'title_separator',
+				'input_class' => 'small-text',
+				'maxlength'   => 10,
+				'description' => __( 'Used by the {{sep}} variable.', 'easyrankly' ),
+			)
+		);
+
+		add_settings_section(
+			'breadcrumbs',
+			self::label( 'breadcrumb_taxonomies' ),
+			array( self::class, 'paragraph' ),
+			$page,
+			array( 'paragraph' => __( 'For the WordPress Breadcrumbs block. Its structured data is printed in block themes only.', 'easyrankly' ) )
+		);
+		add_settings_field(
+			'breadcrumb_home_label',
+			self::label( 'breadcrumb_home_label' ),
+			array( self::class, 'text' ),
+			$page,
+			'breadcrumbs',
+			array(
+				'label_for'   => self::id( 'breadcrumb_home_label' ),
+				'key'         => 'breadcrumb_home_label',
+				'maxlength'   => 60,
+				'placeholder' => __( 'Home', 'easyrankly' ),
+			)
+		);
+
+		$current = (array) Settings::value( 'breadcrumb_taxonomies' );
+		foreach ( self::breadcrumb_types() as $type => $item ) {
+			$id = self::id( 'breadcrumb_taxonomies', $type );
+			add_settings_field(
+				$id,
+				esc_html( $item['name'] ),
+				array( self::class, 'select' ),
+				$page,
+				'breadcrumbs',
+				array(
+					'label_for' => $id,
+					'name'      => self::name( 'breadcrumb_taxonomies', $type ),
+					'value'     => (string) ( $current[ $type ] ?? '' ),
+					'options'   => array( '' => __( 'First taxonomy with terms', 'easyrankly' ) ) + $item['taxonomies'],
+				)
+			);
+		}
+	}
+
+	/**
+	 * Titles: the templates of each context, for all languages or for the language chosen.
+	 */
+	private static function add_titles(): void {
+		$page     = Page::TITLES;
+		$language = self::language();
+		$settings = Settings::get();
+		$base     = (array) $settings['templates'];
+		$by_lang  = (array) $settings['language_templates'];
+
+		// A language edits its own templates; those of all languages show as placeholders.
+		$templates    = '' === $language ? $base : (array) ( $by_lang[ $language ] ?? array() );
+		$placeholders = '' === $language ? array() : $base;
+
+		$intro = __( 'Empty title: the WordPress one. Empty description: none. Values set on a post or term win.', 'easyrankly' );
+		if ( '' !== $language ) {
+			$intro = __( 'Empty fields use the templates of all languages. Texts written on categories and tags are in the default language: here they are ignored.', 'easyrankly' );
+		}
+
+		add_settings_section( 'templates', '', array( self::class, 'templates_intro' ), $page, array( 'paragraph' => $intro ) );
+		self::add_template_fields( self::generic_contexts(), 'templates', $templates, $placeholders );
+
+		add_settings_section(
+			'type_templates',
+			__( 'Per content type and taxonomy', 'easyrankly' ),
+			array( self::class, 'paragraph' ),
+			$page,
+			array( 'paragraph' => __( 'Empty fields use the templates above.', 'easyrankly' ) )
+		);
+		self::add_template_fields( self::type_contexts(), 'type_templates', $templates, $placeholders );
+	}
+
+	/**
+	 * One field per context, with its title and description templates.
+	 *
+	 * @param array<int|string, string> $contexts     Context key => label.
+	 * @param string                    $section      Section ID.
+	 * @param array<mixed>              $templates    Templates being edited.
+	 * @param array<mixed>              $placeholders Templates shown when a field is empty.
+	 */
+	private static function add_template_fields( array $contexts, string $section, array $templates, array $placeholders ): void {
+		foreach ( $contexts as $key => $label ) {
+			add_settings_field(
+				'template-' . $key,
+				esc_html( $label ),
+				array( self::class, 'template' ),
+				Page::TITLES,
+				$section,
+				array(
+					'context'     => $key,
+					'label'       => $label,
+					'value'       => is_array( $templates[ $key ] ?? null ) ? $templates[ $key ] : array(),
+					'placeholder' => is_array( $placeholders[ $key ] ?? null ) ? $placeholders[ $key ] : array(),
+				)
+			);
+		}
+	}
+
+	/**
+	 * Indexing: noindex per context and extra robots.txt rules.
+	 */
+	private static function add_indexing(): void {
+		$page = Page::INDEXING;
+
+		add_settings_section(
+			'noindex',
+			'',
+			array( self::class, 'paragraph' ),
+			$page,
+			array( 'paragraph' => __( 'Checked pages get noindex and leave the sitemaps. A single post or term can be excluded from its own SEO settings.', 'easyrankly' ) )
+		);
+		add_settings_field( 'noindex', self::label( 'noindex' ), array( self::class, 'noindex' ), $page, 'noindex' );
+		add_settings_field( 'attachment_pages', __( 'Attachment pages', 'easyrankly' ), array( self::class, 'attachment_pages' ), $page, 'noindex', array( 'label_for' => self::id( 'attachment_pages' ) ) );
+
+		add_settings_section( 'robots', __( 'robots.txt', 'easyrankly' ), '__return_null', $page );
+		add_settings_field(
+			'robots_txt',
+			self::label( 'robots_txt' ),
+			array( self::class, 'textarea' ),
+			$page,
+			'robots',
+			array(
+				'label_for'   => self::id( 'robots_txt' ),
+				'key'         => 'robots_txt',
+				'input_class' => 'large-text code',
+				'rows'        => 6,
+				'description' => __( 'Added to the WordPress robots.txt, which already lists the sitemap. Ignored while search engines are discouraged.', 'easyrankly' ),
+				'link'        => home_url( '/robots.txt' ),
+				'link_text'   => __( 'View robots.txt', 'easyrankly' ),
+			)
+		);
+	}
+
+	/**
+	 * Schema and social: who the site represents and the defaults for sharing.
+	 */
+	private static function add_schema(): void {
+		$page = Page::SCHEMA;
+
+		add_settings_section( 'identity', __( 'Site identity', 'easyrankly' ), '__return_null', $page );
+		add_settings_field( 'identity_type', self::label( 'identity_type' ), array( self::class, 'identity_type' ), $page, 'identity' );
+		add_settings_field(
+			'identity_name',
+			self::label( 'identity_name' ),
+			array( self::class, 'text' ),
+			$page,
+			'identity',
+			array(
+				'label_for'   => self::id( 'identity_name' ),
+				'key'         => 'identity_name',
+				'maxlength'   => 200,
+				'placeholder' => get_bloginfo( 'name' ),
+			)
+		);
+		add_settings_field(
+			'identity_logo',
+			self::label( 'identity_logo' ),
+			array( self::class, 'media' ),
+			$page,
+			'identity',
+			array(
+				'label_for' => self::id( 'identity_logo' ),
+				'key'       => 'identity_logo',
+			)
+		);
+		add_settings_field(
+			'same_as',
+			self::label( 'same_as' ),
+			array( self::class, 'same_as' ),
+			$page,
+			'identity',
+			array( 'label_for' => self::id( 'same_as' ) )
+		);
+
+		add_settings_section(
+			'local_business',
+			self::label( 'local_business' ),
+			array( self::class, 'paragraph' ),
+			$page,
+			array( 'paragraph' => __( 'Only for a local business. Google needs at least the address.', 'easyrankly' ) )
+		);
+		add_settings_field( 'local_business_type', __( 'Type of business', 'easyrankly' ), array( self::class, 'business_type' ), $page, 'local_business', array( 'label_for' => self::id( 'local_business', 'type' ) ) );
+		add_settings_field( 'local_business_address', __( 'Address', 'easyrankly' ), array( self::class, 'business_address' ), $page, 'local_business' );
+		add_settings_field( 'local_business_telephone', __( 'Phone', 'easyrankly' ), array( self::class, 'business_telephone' ), $page, 'local_business', array( 'label_for' => self::id( 'local_business', 'telephone' ) ) );
+		add_settings_field( 'local_business_geo', __( 'Coordinates', 'easyrankly' ), array( self::class, 'business_geo' ), $page, 'local_business' );
+		add_settings_field( 'local_business_hours', __( 'Opening hours', 'easyrankly' ), array( self::class, 'business_hours' ), $page, 'local_business' );
+
+		add_settings_section( 'social', __( 'Social sharing', 'easyrankly' ), '__return_null', $page );
+		add_settings_field(
+			'social_image',
+			self::label( 'social_image' ),
+			array( self::class, 'media' ),
+			$page,
+			'social',
+			array(
+				'label_for'   => self::id( 'social_image' ),
+				'key'         => 'social_image',
+				'description' => __( 'Used when a page has no social or featured image.', 'easyrankly' ),
+			)
+		);
+		add_settings_field(
+			'x_username',
+			self::label( 'x_username' ),
+			array( self::class, 'text' ),
+			$page,
+			'social',
+			array(
+				'label_for'   => self::id( 'x_username' ),
+				'key'         => 'x_username',
+				'maxlength'   => 16,
+				'description' => __( 'Without @.', 'easyrankly' ),
+			)
+		);
+	}
+
+	/**
+	 * A paragraph under a section title.
+	 *
+	 * @param array<string, mixed> $section Section arguments, with `paragraph`.
+	 */
+	public static function paragraph( array $section ): void {
+		if ( isset( $section['paragraph'] ) && is_string( $section['paragraph'] ) ) {
+			printf( '<p>%s</p>', esc_html( $section['paragraph'] ) );
+		}
+	}
+
+	/**
+	 * Introduction of the templates, with the variables they understand.
+	 *
+	 * @param array<string, mixed> $section Section arguments, with `paragraph`.
+	 */
+	public static function templates_intro( array $section ): void {
+		self::paragraph( $section );
+		$variables = implode( ' ', array_map( static fn( string $name ): string => '{{' . $name . '}}', array_merge( Titles::VARIABLES, array( 'cf:field_name' ) ) ) );
+		printf( '<p>%1$s <code>%2$s</code></p>', esc_html__( 'Variables:', 'easyrankly' ), esc_html( $variables ) );
+	}
+
+	/**
+	 * A text input.
+	 *
+	 * @param array<string, mixed> $args Field arguments: key, input_class, maxlength, placeholder, description.
+	 */
+	public static function text( array $args ): void {
+		$key = (string) $args['key'];
+
+		printf(
+			'<input type="text" id="%1$s" name="%2$s" value="%3$s" class="%4$s" maxlength="%5$d" placeholder="%6$s" />',
+			esc_attr( self::id( $key ) ),
+			esc_attr( self::name( $key ) ),
+			esc_attr( (string) Settings::value( $key ) ),
+			esc_attr( (string) ( $args['input_class'] ?? 'regular-text' ) ),
+			(int) ( $args['maxlength'] ?? 200 ),
+			esc_attr( (string) ( $args['placeholder'] ?? '' ) )
+		);
+		self::description( $args );
+	}
+
+	/**
+	 * A textarea.
+	 *
+	 * @param array<string, mixed> $args Field arguments: key, input_class, rows, description, link, link_text.
+	 */
+	public static function textarea( array $args ): void {
+		$key = (string) $args['key'];
+
+		printf(
+			'<textarea id="%1$s" name="%2$s" class="%3$s" rows="%4$d">%5$s</textarea>',
+			esc_attr( self::id( $key ) ),
+			esc_attr( self::name( $key ) ),
+			esc_attr( (string) ( $args['input_class'] ?? 'large-text' ) ),
+			(int) ( $args['rows'] ?? 4 ),
+			esc_textarea( (string) Settings::value( $key ) )
+		);
+		self::description( $args );
+
+		if ( isset( $args['link'], $args['link_text'] ) && is_string( $args['link'] ) && is_string( $args['link_text'] ) ) {
+			printf( '<p><a href="%1$s">%2$s</a></p>', esc_url( $args['link'] ), esc_html( $args['link_text'] ) );
+		}
+	}
+
+	/**
+	 * A select.
+	 *
+	 * @param array<string, mixed> $args Field arguments: label_for, name, value, options (value => label).
+	 */
+	public static function select( array $args ): void {
+		printf( '<select id="%1$s" name="%2$s">', esc_attr( (string) $args['label_for'] ), esc_attr( (string) $args['name'] ) );
+		foreach ( (array) $args['options'] as $value => $label ) {
+			printf(
+				'<option value="%1$s"%2$s>%3$s</option>',
+				esc_attr( (string) $value ),
+				selected( (string) $value, (string) $args['value'], false ),
+				esc_html( (string) $label )
+			);
+		}
+		echo '</select>';
+	}
+
+	/**
+	 * Title and description templates of one context.
+	 *
+	 * @param array<string, mixed> $args Field arguments: context, label, value, placeholder.
+	 */
+	public static function template( array $args ): void {
+		$context  = (string) $args['context'];
+		$value    = (array) $args['value'];
+		$fallback = (array) $args['placeholder'];
+
+		printf( '<fieldset><legend class="screen-reader-text">%s</legend>', esc_html( (string) $args['label'] ) );
+		foreach ( array(
+			'title'       => __( 'Title', 'easyrankly' ),
+			'description' => __( 'Meta description', 'easyrankly' ),
+		) as $field => $label ) {
+			$id = self::id( 'templates', $context, $field );
+			printf(
+				'<p><label for="%1$s">%2$s</label><br /><input type="text" id="%1$s" name="%3$s" value="%4$s" placeholder="%5$s" class="large-text" maxlength="%6$d" /></p>',
+				esc_attr( $id ),
+				esc_html( $label ),
+				esc_attr( self::name( 'templates', $context, $field ) ),
+				esc_attr( is_string( $value[ $field ] ?? null ) ? $value[ $field ] : '' ),
+				esc_attr( is_string( $fallback[ $field ] ?? null ) ? $fallback[ $field ] : '' ),
+				'title' === $field ? 200 : 400
+			);
+		}
+		echo '</fieldset>';
+	}
+
+	/**
+	 * Checkboxes of the contexts not to index.
+	 */
+	public static function noindex(): void {
+		$rules = (array) Settings::value( 'noindex' );
+
+		printf( '<fieldset><legend class="screen-reader-text">%s</legend>', esc_html( self::label( 'noindex' ) ) );
+		foreach ( self::noindex_contexts() as $key => $label ) {
+			$key = (string) $key;
+			printf(
+				'<label><input type="checkbox" name="%1$s" value="1"%2$s /> %3$s</label><br />',
+				esc_attr( self::name( 'noindex', $key ) ),
+				checked( in_array( $key, $rules, true ), true, false ),
+				esc_html( $label )
+			);
+		}
+		echo '</fieldset>';
+	}
+
+	/**
+	 * Checkbox of the core option that turns attachment pages off.
+	 *
+	 * Not an EasyRankly setting: `wp_attachment_pages_enabled` belongs to WordPress (since 6.4), which
+	 * then sends attachment pages to the file. New sites start with it off; older ones keep the pages
+	 * and the core has no screen for it. Form::indexing() saves it.
+	 */
+	public static function attachment_pages(): void {
+		printf(
+			'<label><input type="checkbox" id="%1$s" name="%2$s" value="1"%3$s /> %4$s</label>',
+			esc_attr( self::id( 'attachment_pages' ) ),
+			esc_attr( self::name( 'attachment_pages' ) ),
+			checked( (bool) get_option( 'wp_attachment_pages_enabled' ), false, false ),
+			esc_html__( 'Redirect attachment pages to the file', 'easyrankly' )
+		);
+		self::description(
+			array( 'description' => __( 'A page with only the file is worthless to search engines. WordPress setting, already on for sites created since WordPress 6.4.', 'easyrankly' ) )
+		);
+	}
+
+	/**
+	 * Whether the site represents an organization or a person.
+	 */
+	public static function identity_type(): void {
+		$current = (string) Settings::value( 'identity_type' );
+
+		printf( '<fieldset><legend class="screen-reader-text">%s</legend>', esc_html( self::label( 'identity_type' ) ) );
+		foreach ( array(
+			'organization'   => __( 'An organization', 'easyrankly' ),
+			'local_business' => __( 'A local business', 'easyrankly' ),
+			'person'         => __( 'A person', 'easyrankly' ),
+		) as $value => $label ) {
+			printf(
+				'<label><input type="radio" name="%1$s" value="%2$s"%3$s /> %4$s</label><br />',
+				esc_attr( self::name( 'identity_type' ) ),
+				esc_attr( $value ),
+				checked( $current, $value, false ),
+				esc_html( $label )
+			);
+		}
+		echo '</fieldset>';
+	}
+
+	/**
+	 * Type of the local business: a schema.org type, with the common ones suggested.
+	 */
+	public static function business_type(): void {
+		$types = array( 'LocalBusiness', 'Store', 'ClothingStore', 'Restaurant', 'CafeOrCoffeeShop', 'BarOrPub', 'Bakery', 'Hotel', 'HairSalon', 'BeautySalon', 'ExerciseGym', 'Dentist', 'Physician', 'MedicalClinic', 'Pharmacy', 'LegalService', 'AccountingService', 'RealEstateAgent', 'AutoRepair', 'Electrician', 'Plumber' );
+
+		self::business_input( 'type', 'text', array( 'list' => self::id( 'local_business', 'types' ) ) );
+		printf( '<datalist id="%s">', esc_attr( self::id( 'local_business', 'types' ) ) );
+		foreach ( $types as $type ) {
+			printf( '<option value="%s"></option>', esc_attr( $type ) );
+		}
+		echo '</datalist>';
+		printf(
+			'<p class="description">%1$s <a href="https://schema.org/LocalBusiness#subtypes">%2$s</a></p>',
+			esc_html__( 'schema.org type. LocalBusiness fits any business.', 'easyrankly' ),
+			esc_html__( 'All types', 'easyrankly' )
+		);
+	}
+
+	/**
+	 * Postal address of the local business.
+	 */
+	public static function business_address(): void {
+		printf( '<fieldset><legend class="screen-reader-text">%s</legend>', esc_html__( 'Address', 'easyrankly' ) );
+		foreach ( array(
+			'street_address' => array( __( 'Street and number', 'easyrankly' ), 200 ),
+			'postal_code'    => array( __( 'Postal code', 'easyrankly' ), 20 ),
+			'locality'       => array( __( 'City', 'easyrankly' ), 100 ),
+			'region'         => array( __( 'Region or province', 'easyrankly' ), 100 ),
+			'country'        => array( __( 'Country code (e.g. IT)', 'easyrankly' ), 2 ),
+		) as $field => list( $label, $max ) ) {
+			printf( '<p><label for="%1$s">%2$s</label><br />', esc_attr( self::id( 'local_business', $field ) ), esc_html( $label ) );
+			self::business_input( $field, 'text', array( 'maxlength' => (string) $max ) );
+			echo '</p>';
+		}
+		echo '</fieldset>';
+	}
+
+	/**
+	 * Phone of the local business.
+	 */
+	public static function business_telephone(): void {
+		self::business_input( 'telephone', 'tel', array( 'maxlength' => '30' ) );
+		printf( '<p class="description">%s</p>', esc_html__( 'E.g. +39 02 1234567.', 'easyrankly' ) );
+	}
+
+	/**
+	 * Latitude and longitude of the local business.
+	 */
+	public static function business_geo(): void {
+		printf( '<fieldset><legend class="screen-reader-text">%s</legend>', esc_html__( 'Coordinates', 'easyrankly' ) );
+		foreach ( array(
+			'latitude'  => __( 'Latitude', 'easyrankly' ),
+			'longitude' => __( 'Longitude', 'easyrankly' ),
+		) as $field => $label ) {
+			printf( '<label for="%1$s">%2$s</label> ', esc_attr( self::id( 'local_business', $field ) ), esc_html( $label ) );
+			self::business_input( $field, 'text', array( 'inputmode' => 'decimal' ), 'small-text' );
+			echo ' ';
+		}
+		echo '</fieldset>';
+		printf( '<p class="description">%s</p>', esc_html__( 'E.g. 45.4642 and 9.19: right-click the place on Google Maps to copy them.', 'easyrankly' ) );
+	}
+
+	/**
+	 * Opening hours: up to two time ranges per day, in the order of the site's week.
+	 */
+	public static function business_hours(): void {
+		global $wp_locale;
+
+		$hours = (array) ( ( (array) Settings::value( 'local_business' ) )['hours'] ?? array() );
+		$start = (int) get_option( 'start_of_week', 1 );
+		$days  = array();
+		for ( $i = 0; $i < 7; $i++ ) {
+			$days[] = ( $start + $i ) % 7; // 0 is Sunday, as in core.
+		}
+
+		printf( '<fieldset><legend class="screen-reader-text">%s</legend><table role="presentation"><tbody>', esc_html__( 'Opening hours', 'easyrankly' ) );
+		foreach ( $days as $index ) {
+			$day    = Settings::WEEKDAYS[ ( $index + 6 ) % 7 ];
+			$ranges = is_array( $hours[ $day ] ?? null ) ? array_values( $hours[ $day ] ) : array();
+			$name   = $wp_locale instanceof \WP_Locale ? $wp_locale->get_weekday( $index ) : $day;
+
+			printf( '<tr><td>%s</td>', esc_html( $name ) );
+			for ( $slot = 0; $slot < 2; $slot++ ) {
+				echo '<td>';
+				$parts = is_string( $ranges[ $slot ] ?? null ) ? explode( '-', $ranges[ $slot ] ) : array( '', '' );
+				foreach ( array(
+					'opens'  => __( 'opens', 'easyrankly' ),
+					'closes' => __( 'closes', 'easyrankly' ),
+				) as $edge => $edge_label ) {
+					printf(
+						'<input type="time" name="%1$s" value="%2$s" aria-label="%3$s" /> ',
+						esc_attr( self::name( 'local_business', 'hours', $day, (string) $slot, $edge ) ),
+						esc_attr( (string) ( 'opens' === $edge ? $parts[0] : ( $parts[1] ?? '' ) ) ),
+						/* translators: 1: weekday name, 2: the word opens or closes, 3: number of the time range. */
+						esc_attr( sprintf( __( '%1$s, %2$s (%3$d)', 'easyrankly' ), $name, $edge_label, $slot + 1 ) )
+					);
+				}
+				echo '</td>';
+			}
+			echo '</tr>';
+		}
+		echo '</tbody></table></fieldset>';
+		printf( '<p class="description">%s</p>', esc_html__( 'Empty day: closed. 00:00 to 23:59: open all day. The second range is for a lunch break.', 'easyrankly' ) );
+	}
+
+	/**
+	 * One input of the local business details.
+	 *
+	 * @param string                $field Key inside local_business.
+	 * @param string                $type  Input type.
+	 * @param array<string, string> $attrs Extra attributes.
+	 * @param string                $input_class Input class.
+	 */
+	private static function business_input( string $field, string $type, array $attrs = array(), string $input_class = 'regular-text' ): void {
+		$business = (array) Settings::value( 'local_business' );
+		$value    = $business[ $field ] ?? '';
+
+		printf(
+			'<input type="%1$s" id="%2$s" name="%3$s" value="%4$s" class="%5$s"',
+			esc_attr( $type ),
+			esc_attr( self::id( 'local_business', $field ) ),
+			esc_attr( self::name( 'local_business', $field ) ),
+			esc_attr( is_scalar( $value ) ? (string) $value : '' ),
+			esc_attr( $input_class )
+		);
+		foreach ( $attrs as $name => $attr ) {
+			printf( ' %1$s="%2$s"', esc_attr( $name ), esc_attr( $attr ) );
+		}
+		echo ' />';
+	}
+
+	/**
+	 * Profiles on other sites, one URL per line.
+	 *
+	 * @param array<string, mixed> $args Field arguments: label_for.
+	 */
+	public static function same_as( array $args ): void {
+		printf(
+			'<textarea id="%1$s" name="%2$s" class="large-text code" rows="4">%3$s</textarea>',
+			esc_attr( (string) $args['label_for'] ),
+			esc_attr( self::name( 'same_as' ) ),
+			esc_textarea( implode( "\n", (array) Settings::value( 'same_as' ) ) )
+		);
+		printf( '<p class="description">%s</p>', esc_html__( 'One URL per line (social profiles, Wikipedia…).', 'easyrankly' ) );
+	}
+
+	/**
+	 * An image from the media library, saved as its attachment ID.
+	 *
+	 * Without JavaScript it is a number field; the media-field script turns it into
+	 * "Choose image" and "Remove" buttons with the media library modal.
+	 *
+	 * @param array<string, mixed> $args Field arguments: key, description.
+	 */
+	public static function media( array $args ): void {
+		$key = (string) $args['key'];
+
+		MediaField::render( self::id( $key ), self::name( $key ), (int) Settings::value( $key ) );
+		self::description( $args );
+	}
+
+	/**
+	 * Description under a field.
+	 *
+	 * @param array<string, mixed> $args Field arguments, with an optional `description`.
+	 */
+	private static function description( array $args ): void {
+		if ( isset( $args['description'] ) && is_string( $args['description'] ) ) {
+			printf( '<p class="description">%s</p>', esc_html( $args['description'] ) );
+		}
+	}
+
+	/**
+	 * Name attribute of a field: `easyrankly_settings[key][part]…`.
+	 *
+	 * @param string $key   Setting key.
+	 * @param string ...$path Nested keys.
+	 * @return string
+	 */
+	public static function name( string $key, string ...$path ): string {
+		return Settings::OPTION . '[' . $key . ']' . implode( '', array_map( static fn( string $part ): string => '[' . $part . ']', $path ) );
+	}
+
+	/**
+	 * ID attribute of a field.
+	 *
+	 * @param string $key   Setting key.
+	 * @param string ...$path Nested keys.
+	 * @return string
+	 */
+	private static function id( string $key, string ...$path ): string {
+		return 'easyrankly-' . implode( '-', array_merge( array( $key ), $path ) );
+	}
+}

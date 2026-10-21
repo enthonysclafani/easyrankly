@@ -1,0 +1,759 @@
+<?php
+/**
+ * Plugin settings stored in the single autoloaded option.
+ *
+ * @package EasyRankly
+ */
+
+namespace EasyRankly\Settings;
+
+use EasyRankly\Context\Context;
+use EasyRankly\Meta\Meta;
+use EasyRankly\Multilingual\Languages;
+
+use const EasyRankly\PLUGIN_FILE;
+
+defined( 'ABSPATH' ) || exit;
+
+/**
+ * Registers `easyrankly_settings` and reads it with defaults filled in.
+ *
+ * The schema below is the only description of the settings: REST validation,
+ * sanitization and defaults all derive from it.
+ */
+final class Settings {
+
+	/**
+	 * Option name.
+	 */
+	public const OPTION = 'easyrankly_settings';
+
+	/**
+	 * Object cache group that lives for one request only (registered as non-persistent).
+	 */
+	public const REQUEST_GROUP = 'easyrankly_request';
+
+	/**
+	 * Settings whose attachment is copied into `images`: see image().
+	 */
+	public const IMAGES = array( 'identity_logo', 'social_image' );
+
+	/**
+	 * Days of the opening hours, as schema.org names them.
+	 */
+	public const WEEKDAYS = array( 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday' );
+
+	/**
+	 * A schema.org type name, such as LocalBusiness, Restaurant or Dentist.
+	 */
+	public const BUSINESS_TYPE_PATTERN = '^[A-Z][A-Za-z]{1,49}$';
+
+	/**
+	 * Attachment meta that changes what a copied image shows.
+	 */
+	private const IMAGE_META = array( '_wp_attached_file', '_wp_attachment_metadata', '_wp_attachment_image_alt' );
+
+	/**
+	 * Default of every setting, the same as in the schema.
+	 *
+	 * Kept apart from the schema so reading the settings never builds its translated
+	 * descriptions: get() runs many times on every page, and inside the locale filter.
+	 */
+	public const DEFAULTS = array(
+		'title_separator'       => '-',
+		'social_image'          => 0,
+		'x_username'            => '',
+		'identity_type'         => 'organization',
+		'identity_name'         => '',
+		'identity_logo'         => 0,
+		'same_as'               => array(),
+		'local_business'        => array(
+			'type'           => 'LocalBusiness',
+			'street_address' => '',
+			'locality'       => '',
+			'region'         => '',
+			'postal_code'    => '',
+			'country'        => '',
+			'telephone'      => '',
+			'latitude'       => null,
+			'longitude'      => null,
+			'hours'          => array(),
+		),
+		'breadcrumb_home_label' => '',
+		'breadcrumb_taxonomies' => array(),
+		'robots_txt'            => '',
+		'noindex'               => array(),
+		'languages'             => array(),
+		'templates'             => array(
+			'home'    => array(
+				'title'       => '{{site_name}} {{page}} {{sep}} {{tagline}}',
+				'description' => '{{tagline}}',
+			),
+			'single'  => array(
+				'title'       => '{{title}} {{page}} {{sep}} {{site_name}}',
+				'description' => '{{excerpt}}',
+			),
+			'archive' => array(
+				'title'       => '{{title}} {{page}} {{sep}} {{site_name}}',
+				'description' => '{{post_type_description}}',
+			),
+			'term'    => array(
+				'title'       => '{{title}} {{page}} {{sep}} {{site_name}}',
+				'description' => '{{term_description}}',
+			),
+			'author'  => array(
+				'title'       => '{{title}} {{page}} {{sep}} {{site_name}}',
+				'description' => '{{author_description}}',
+			),
+			'date'    => array(
+				'title'       => '{{title}} {{page}} {{sep}} {{site_name}}',
+				'description' => '',
+			),
+			'search'  => array(
+				'title'       => '{{title}} {{page}} {{sep}} {{site_name}}',
+				'description' => '',
+			),
+			'404'     => array(
+				'title'       => '{{title}} {{sep}} {{site_name}}',
+				'description' => '',
+			),
+		),
+		'language_templates'    => array(),
+		'images'                => array(),
+	);
+
+	/**
+	 * Registers the setting once post types and taxonomies exist, and keeps the copied
+	 * images in step with their attachments.
+	 */
+	public function register(): void {
+		wp_cache_add_non_persistent_groups( array( self::REQUEST_GROUP ) );
+		foreach ( array( 'add_option_', 'update_option_', 'delete_option_' ) as $hook ) {
+			add_action( $hook . self::OPTION, array( self::class, 'forget' ), 0 );
+		}
+		// What the page shows can change with a new main query or new content.
+		foreach ( array( 'wp', 'clean_post_cache', 'clean_term_cache', 'added_post_meta', 'updated_post_meta', 'deleted_post_meta', 'added_term_meta', 'updated_term_meta', 'deleted_term_meta' ) as $hook ) {
+			add_action( $hook, array( self::class, 'forget_page' ), 0 );
+		}
+
+		// Late priority: later sections of the schema list post types and taxonomies.
+		add_action( 'init', array( $this, 'register_setting' ), 99 );
+		register_activation_hook( PLUGIN_FILE, array( self::class, 'create' ) );
+		add_action( 'admin_init', array( self::class, 'create' ) );
+		add_action( 'added_post_meta', array( $this, 'on_attachment_meta' ), 10, 3 );
+		add_action( 'updated_post_meta', array( $this, 'on_attachment_meta' ), 10, 3 );
+		add_action( 'deleted_post_meta', array( $this, 'on_attachment_meta' ), 10, 3 );
+		// wp_delete_attachment() fires deleted_post, never after_delete_post.
+		add_action( 'deleted_post', array( $this, 'on_attachment_deleted' ) );
+	}
+
+	/**
+	 * Stores the default settings when the option does not exist yet.
+	 *
+	 * An option that is not stored is looked for in the database on every page, since only
+	 * stored options are autoloaded: this keeps the settings in the autoloaded options from
+	 * activation on (admin_init covers sites activated before this existed).
+	 */
+	public static function create(): void {
+		if ( false === get_option( self::OPTION, false ) ) {
+			add_option( self::OPTION, array(), '', true );
+		}
+	}
+
+	/**
+	 * Registers the option with its schema, so `/wp/v2/settings` can read and write it.
+	 */
+	public function register_setting(): void {
+		register_setting(
+			'easyrankly',
+			self::OPTION,
+			array(
+				'type'              => 'object',
+				'label'             => __( 'EasyRankly settings', 'easyrankly' ),
+				'description'       => __( 'Settings of the EasyRankly SEO plugin.', 'easyrankly' ),
+				'default'           => self::defaults(),
+				'sanitize_callback' => array( self::class, 'sanitize' ),
+				'show_in_rest'      => array( 'schema' => self::schema() ),
+			)
+		);
+	}
+
+	/**
+	 * JSON schema of the option. Every property has a default.
+	 *
+	 * @return array<string, mixed>
+	 */
+	public static function schema(): array {
+		return array(
+			'type'                 => 'object',
+			'additionalProperties' => false,
+			'properties'           => self::properties(),
+		);
+	}
+
+	/**
+	 * Schema of each setting, keyed by property name.
+	 *
+	 * @return array<string, array<string, mixed>>
+	 */
+	private static function properties(): array {
+		return array(
+			'title_separator'       => array(
+				'description' => __( 'Separator used by the {{sep}} template variable.', 'easyrankly' ),
+				'type'        => 'string',
+				'format'      => 'text-field',
+				'maxLength'   => 10,
+				'default'     => self::DEFAULTS['title_separator'],
+			),
+			'social_image'          => array(
+				'description' => __( 'Attachment ID of the image shared when a page has no image of its own.', 'easyrankly' ),
+				'type'        => 'integer',
+				'minimum'     => 0,
+				'default'     => self::DEFAULTS['social_image'],
+			),
+			'x_username'            => array(
+				'description' => __( 'X (Twitter) username of the site, without @.', 'easyrankly' ),
+				'type'        => 'string',
+				'pattern'     => '^[A-Za-z0-9_]{0,15}$',
+				'default'     => self::DEFAULTS['x_username'],
+			),
+			'identity_type'         => array(
+				'description' => __( 'Whether the site represents an organization, a local business or a person (schema.org).', 'easyrankly' ),
+				'type'        => 'string',
+				'enum'        => array( 'organization', 'local_business', 'person' ),
+				'default'     => self::DEFAULTS['identity_type'],
+			),
+			'identity_name'         => array(
+				'description' => __( 'Name of the organization or person. Empty uses the site title.', 'easyrankly' ),
+				'type'        => 'string',
+				'format'      => 'text-field',
+				'maxLength'   => 200,
+				'default'     => self::DEFAULTS['identity_name'],
+			),
+			'identity_logo'         => array(
+				'description' => __( 'Attachment ID of the logo (organization) or photo (person).', 'easyrankly' ),
+				'type'        => 'integer',
+				'minimum'     => 0,
+				'default'     => self::DEFAULTS['identity_logo'],
+			),
+			'same_as'               => array(
+				'description' => __( 'Profiles of the organization or person on other sites (schema.org sameAs).', 'easyrankly' ),
+				'type'        => 'array',
+				'items'       => array(
+					'type'    => 'string',
+					'format'  => 'uri',
+					'pattern' => '^https?://[^\\s]+$',
+				),
+				'maxItems'    => 20,
+				'uniqueItems' => true,
+				'default'     => self::DEFAULTS['same_as'],
+			),
+			'local_business'        => self::local_business_schema(),
+			'breadcrumb_home_label' => array(
+				'description' => __( 'Label of the first item of the breadcrumb block. Empty keeps the WordPress label.', 'easyrankly' ),
+				'type'        => 'string',
+				'format'      => 'text-field',
+				'maxLength'   => 60,
+				'default'     => self::DEFAULTS['breadcrumb_home_label'],
+			),
+			'breadcrumb_taxonomies' => array(
+				'description'          => __( 'Taxonomy used in the breadcrumb of each post type (post type => taxonomy).', 'easyrankly' ),
+				'type'                 => 'object',
+				'patternProperties'    => array(
+					'^[a-z0-9_-]{1,20}$' => array(
+						'type'    => 'string',
+						'pattern' => '^[a-z0-9_-]{1,32}$',
+					),
+				),
+				'additionalProperties' => false,
+				'default'              => self::DEFAULTS['breadcrumb_taxonomies'],
+			),
+			'robots_txt'            => array(
+				'description' => __( 'Extra rules appended to the robots.txt that WordPress generates.', 'easyrankly' ),
+				'type'        => 'string',
+				'format'      => 'textarea-field',
+				'maxLength'   => 5000,
+				'default'     => self::DEFAULTS['robots_txt'],
+			),
+			'noindex'               => array(
+				'description' => __( 'Contexts whose pages ask search engines not to index them (same keys as the templates).', 'easyrankly' ),
+				'type'        => 'array',
+				'items'       => array(
+					'type'    => 'string',
+					'pattern' => Context::KEY_PATTERN,
+				),
+				'uniqueItems' => true,
+				'default'     => self::DEFAULTS['noindex'],
+			),
+			'languages'             => array(
+				'description'          => __( 'Languages of the content, keyed by URL prefix, in display order. The first one is the default: its URLs have no prefix. Multilingual features start with two languages.', 'easyrankly' ),
+				'type'                 => 'object',
+				'patternProperties'    => array(
+					Languages::SLUG_PATTERN => array(
+						'type'                 => 'object',
+						'additionalProperties' => false,
+						'required'             => array( 'locale', 'name' ),
+						'properties'           => array(
+							'locale'                => array(
+								'description' => __( 'WordPress locale of the language, e.g. en_US.', 'easyrankly' ),
+								'type'        => 'string',
+								'pattern'     => Languages::LOCALE_PATTERN,
+							),
+							'name'                  => array(
+								'description' => __( 'Name of the language shown to visitors.', 'easyrankly' ),
+								'type'        => 'string',
+								'format'      => 'text-field',
+								'minLength'   => 1,
+								'maxLength'   => 50,
+							),
+							'site_title'            => array(
+								'description' => __( 'Site title on the pages of the language. Empty uses the site title in Settings > General.', 'easyrankly' ),
+								'type'        => 'string',
+								'format'      => 'text-field',
+								'maxLength'   => 200,
+							),
+							'tagline'               => array(
+								'description' => __( 'Tagline on the pages of the language. Empty uses the tagline in Settings > General.', 'easyrankly' ),
+								'type'        => 'string',
+								'format'      => 'text-field',
+								'maxLength'   => 400,
+							),
+							'breadcrumb_home_label' => array(
+								'description' => __( 'Label of the first item of the breadcrumb block on the pages of the language. Empty uses the label of all languages.', 'easyrankly' ),
+								'type'        => 'string',
+								'format'      => 'text-field',
+								'maxLength'   => 60,
+							),
+						),
+					),
+				),
+				'additionalProperties' => false,
+				'maxProperties'        => 20,
+				'default'              => self::DEFAULTS['languages'],
+			),
+			'templates'             => array(
+				'description'          => __( 'Title and description templates per context. Keys: home, single, archive, term, author, date, search, 404, or single-{post type}, archive-{post type}, term-{taxonomy}.', 'easyrankly' ),
+				'type'                 => 'object',
+				'patternProperties'    => array( Context::KEY_PATTERN => self::template_schema() ),
+				'additionalProperties' => false,
+				'default'              => self::DEFAULTS['templates'],
+			),
+			'language_templates'    => array(
+				'description'          => __( 'Title and description templates of one language (language slug => context => template). Empty fields use the templates of all languages.', 'easyrankly' ),
+				'type'                 => 'object',
+				'patternProperties'    => array(
+					Languages::SLUG_PATTERN => array(
+						'type'                 => 'object',
+						'patternProperties'    => array( Context::KEY_PATTERN => self::template_schema() ),
+						'additionalProperties' => false,
+					),
+				),
+				'additionalProperties' => false,
+				'maxProperties'        => 20,
+				'default'              => self::DEFAULTS['language_templates'],
+			),
+			'images'                => array(
+				'description'          => __( 'Copy of the logo and of the default social image (address, size, alternative text), refreshed when they or their attachments change, so pages show them without loading the attachments. Read only.', 'easyrankly' ),
+				'type'                 => 'object',
+				'readonly'             => true,
+				'properties'           => array_fill_keys( self::IMAGES, self::image_schema() ),
+				'additionalProperties' => false,
+				'default'              => self::DEFAULTS['images'],
+			),
+		);
+	}
+
+	/**
+	 * Schema of the title and description templates of one context.
+	 *
+	 * @return array<string, mixed>
+	 */
+	private static function template_schema(): array {
+		return array(
+			'type'                 => 'object',
+			'additionalProperties' => false,
+			'properties'           => array(
+				'title'       => array(
+					'type'      => 'string',
+					'format'    => 'text-field',
+					'maxLength' => 200,
+				),
+				'description' => array(
+					'type'      => 'string',
+					'format'    => 'text-field',
+					'maxLength' => 400,
+				),
+			),
+		);
+	}
+
+	/**
+	 * Schema of the local business details, used when identity_type is local_business.
+	 *
+	 * Opening hours: weekday => up to two "HH:MM-HH:MM" ranges (a lunch break splits the day);
+	 * a day without ranges is closed.
+	 *
+	 * @return array<string, mixed>
+	 */
+	private static function local_business_schema(): array {
+		$text  = static fn( int $max ): array => array(
+			'type'      => 'string',
+			'format'    => 'text-field',
+			'maxLength' => $max,
+		);
+		$range = array(
+			'type'     => 'array',
+			'items'    => array(
+				'type'    => 'string',
+				'pattern' => '^([01][0-9]|2[0-3]):[0-5][0-9]-([01][0-9]|2[0-3]):[0-5][0-9]$',
+			),
+			'maxItems' => 2,
+		);
+
+		return array(
+			'description'          => __( 'Type, address, phone, coordinates and opening hours of the local business (schema.org LocalBusiness).', 'easyrankly' ),
+			'type'                 => 'object',
+			'additionalProperties' => false,
+			'properties'           => array(
+				'type'           => array(
+					'type'    => 'string',
+					'pattern' => self::BUSINESS_TYPE_PATTERN,
+				),
+				'street_address' => $text( 200 ),
+				'locality'       => $text( 100 ),
+				'region'         => $text( 100 ),
+				'postal_code'    => $text( 20 ),
+				'country'        => array(
+					'type'    => 'string',
+					'pattern' => '^([A-Z]{2})?$',
+				),
+				'telephone'      => array(
+					'type'    => 'string',
+					'pattern' => '^[0-9+()./ -]{0,30}$',
+				),
+				'latitude'       => array(
+					'type'    => array( 'number', 'null' ),
+					'minimum' => -90,
+					'maximum' => 90,
+				),
+				'longitude'      => array(
+					'type'    => array( 'number', 'null' ),
+					'minimum' => -180,
+					'maximum' => 180,
+				),
+				'hours'          => array(
+					'type'                 => 'object',
+					'properties'           => array_fill_keys( self::WEEKDAYS, $range ),
+					'additionalProperties' => false,
+				),
+			),
+			'default'              => self::DEFAULTS['local_business'],
+		);
+	}
+
+	/**
+	 * Schema of one copied image.
+	 *
+	 * @return array<string, mixed>
+	 */
+	private static function image_schema(): array {
+		return array(
+			'type'                 => 'object',
+			'additionalProperties' => false,
+			'properties'           => array(
+				'id'     => array(
+					'type'    => 'integer',
+					'minimum' => 0,
+				),
+				'url'    => array( 'type' => 'string' ),
+				'file'   => array( 'type' => 'string' ),
+				'width'  => array(
+					'type'    => 'integer',
+					'minimum' => 0,
+				),
+				'height' => array(
+					'type'    => 'integer',
+					'minimum' => 0,
+				),
+				'alt'    => array( 'type' => 'string' ),
+			),
+		);
+	}
+
+	/**
+	 * Default value of every setting.
+	 *
+	 * @return array<string, mixed>
+	 */
+	public static function defaults(): array {
+		return self::DEFAULTS;
+	}
+
+	/**
+	 * Current settings with defaults for anything missing.
+	 *
+	 * The option is autoloaded, so this costs no query.
+	 *
+	 * @return array<string, mixed>
+	 */
+	public static function get(): array {
+		$cached = wp_cache_get( 'settings', self::REQUEST_GROUP );
+		if ( is_array( $cached ) ) {
+			return $cached;
+		}
+
+		$defaults = self::defaults();
+		$stored   = get_option( self::OPTION, array() );
+		$settings = array_replace( $defaults, is_array( $stored ) ? array_intersect_key( $stored, $defaults ) : array() );
+
+		// Object settings merge one level deep, so a stored map only overrides the keys it has.
+		foreach ( $defaults as $key => $default ) {
+			if ( is_array( $default ) && is_array( $settings[ $key ] ) ) {
+				$settings[ $key ] = array_replace( $default, $settings[ $key ] );
+			}
+		}
+
+		wp_cache_set( 'settings', $settings, self::REQUEST_GROUP );
+
+		return $settings;
+	}
+
+	/**
+	 * Drops the settings kept for the request, and what was worked out from them: they changed.
+	 */
+	public static function forget(): void {
+		wp_cache_delete( 'settings', self::REQUEST_GROUP );
+		self::forget_page();
+	}
+
+	/**
+	 * Drops the values worked out for the current page (see remember()).
+	 */
+	public static function forget_page(): void {
+		$generation = (int) wp_cache_get( 'generation', self::REQUEST_GROUP );
+		wp_cache_set( 'generation', $generation + 1, self::REQUEST_GROUP );
+	}
+
+	/**
+	 * A value about the current page, worked out once per request.
+	 *
+	 * Title, description, robots and canonical are each asked for by several tags of the head.
+	 * Kept only on the frontend once the main query has run, and dropped when the main query,
+	 * the settings or any content change (see register()).
+	 *
+	 * @param string   $key     Name of the value.
+	 * @param callable $compute Works the value out.
+	 * @return mixed
+	 */
+	public static function remember( string $key, callable $compute ): mixed {
+		if ( is_admin() || ! did_action( 'wp' ) || ! isset( $GLOBALS['wp_query'], $GLOBALS['wp_the_query'] ) || $GLOBALS['wp_query'] !== $GLOBALS['wp_the_query'] ) {
+			return $compute();
+		}
+
+		$key   = $key . ':' . (int) wp_cache_get( 'generation', self::REQUEST_GROUP );
+		$found = false;
+		$value = wp_cache_get( $key, self::REQUEST_GROUP, false, $found );
+		if ( $found ) {
+			return $value;
+		}
+
+		$value = $compute();
+		wp_cache_set( $key, $value, self::REQUEST_GROUP );
+
+		return $value;
+	}
+
+	/**
+	 * Reads one setting.
+	 *
+	 * @param string $key Property name from the schema.
+	 * @return mixed
+	 */
+	public static function value( string $key ): mixed {
+		return self::get()[ $key ] ?? null;
+	}
+
+	/**
+	 * Whether a value is valid for one setting, with the same check as REST and sanitize().
+	 *
+	 * @param string $key   Property name from the schema.
+	 * @param mixed  $value Value to check.
+	 * @return bool
+	 */
+	public static function is_valid( string $key, mixed $value ): bool {
+		$properties = self::properties();
+
+		return isset( $properties[ $key ] ) && true === rest_validate_value_from_schema( $value, $properties[ $key ], $key );
+	}
+
+	/**
+	 * Keeps only valid properties; anything invalid falls back to its current value or default.
+	 *
+	 * @param mixed $value Raw value, from REST, options.php or update_option().
+	 * @return array<string, mixed>
+	 */
+	public static function sanitize( mixed $value ): array {
+		$value = is_array( $value ) ? $value : array();
+		$clean = self::get();
+
+		foreach ( self::properties() as $key => $property ) {
+			if ( ! empty( $property['readonly'] ) || ! array_key_exists( $key, $value ) || true !== rest_validate_value_from_schema( $value[ $key ], $property, $key ) ) {
+				continue;
+			}
+
+			$sanitized = rest_sanitize_value_from_schema( $value[ $key ], $property, $key );
+			if ( ! is_wp_error( $sanitized ) ) {
+				$clean[ $key ] = $sanitized;
+			}
+		}
+
+		// Templates of a language that is gone go with it (Form moves those of a renamed one).
+		$languages                   = array_keys( (array) $clean['languages'] );
+		$clean['language_templates'] = array_intersect_key( (array) $clean['language_templates'], array_flip( $languages ) );
+
+		$clean['images'] = self::copy_images( $clean );
+
+		return $clean;
+	}
+
+	/**
+	 * Image of a setting in IMAGES, without loading its attachment on the page.
+	 *
+	 * Reads the copy saved with the settings. Settings saved before the copy existed have
+	 * none: the attachment is loaded then, until the settings are saved again.
+	 *
+	 * @param string $key Setting in IMAGES.
+	 * @return array{url: string, width: int, height: int, alt: string}|null Null without an image.
+	 */
+	public static function image( string $key ): ?array {
+		$id = (int) self::value( $key );
+		if ( $id <= 0 ) {
+			return null;
+		}
+
+		$images = self::value( 'images' );
+		$stored = is_array( $images ) && is_array( $images[ $key ] ?? null ) ? $images[ $key ] : array();
+		$copy   = (int) ( $stored['id'] ?? 0 ) === $id ? $stored : self::copy_image( $id );
+
+		$url  = (string) ( $copy['url'] ?? '' );
+		$file = (string) ( $copy['file'] ?? '' );
+		if ( '' !== $file ) {
+			// Built from the current uploads address: a new site address or CDN path applies at once.
+			$url = wp_get_upload_dir()['baseurl'] . '/' . $file;
+		}
+		if ( '' === $url ) {
+			return null;
+		}
+
+		return array(
+			'url'    => $url,
+			'width'  => (int) ( $copy['width'] ?? 0 ),
+			'height' => (int) ( $copy['height'] ?? 0 ),
+			'alt'    => (string) ( $copy['alt'] ?? '' ),
+		);
+	}
+
+	/**
+	 * Copies of the images the settings point to.
+	 *
+	 * @param array<string, mixed> $settings Settings.
+	 * @return array<string, array{id: int, url: string, file: string, width: int, height: int, alt: string}>
+	 */
+	private static function copy_images( array $settings ): array {
+		$images = array();
+
+		foreach ( self::IMAGES as $key ) {
+			$id = (int) ( $settings[ $key ] ?? 0 );
+			if ( $id > 0 ) {
+				$images[ $key ] = self::copy_image( $id );
+			}
+		}
+
+		return $images;
+	}
+
+	/**
+	 * Address, full size and alternative text of an attachment; an empty address when it is
+	 * not an image (anymore).
+	 *
+	 * An image in the uploads folder also keeps its path inside it, so pages build its address
+	 * from the current uploads address instead of keeping the host it had when copied.
+	 *
+	 * @param int $id Attachment ID.
+	 * @return array{id: int, url: string, file: string, width: int, height: int, alt: string}
+	 */
+	private static function copy_image( int $id ): array {
+		$image = Meta::image( $id ) ?? array(
+			'url'    => '',
+			'width'  => 0,
+			'height' => 0,
+			'alt'    => '',
+		);
+		$base  = wp_get_upload_dir()['baseurl'] . '/';
+		$file  = '' !== $image['url'] && str_starts_with( $image['url'], $base ) ? substr( $image['url'], strlen( $base ) ) : '';
+
+		return array(
+			'id'   => $id,
+			'file' => $file,
+		) + $image;
+	}
+
+	/**
+	 * Refreshes the copied images when the file, size or alternative text of one of them changes.
+	 *
+	 * @param mixed $meta_id   Meta ID(s).
+	 * @param mixed $object_id Post ID.
+	 * @param mixed $meta_key  Meta key.
+	 */
+	public function on_attachment_meta( $meta_id, $object_id, $meta_key ): void {
+		if ( in_array( $meta_key, self::IMAGE_META, true ) && self::uses_image( (int) $object_id ) ) {
+			self::refresh_images();
+		}
+	}
+
+	/**
+	 * Copies a deleted image as "no image".
+	 *
+	 * @param mixed $post_id Deleted post ID.
+	 */
+	public function on_attachment_deleted( $post_id ): void {
+		if ( self::uses_image( (int) $post_id ) ) {
+			// The row is gone but still cached until core cleans it, right after this action.
+			clean_post_cache( (int) $post_id );
+			self::refresh_images();
+		}
+	}
+
+	/**
+	 * Whether an attachment is one of the images of the settings.
+	 *
+	 * @param int $id Attachment ID.
+	 * @return bool
+	 */
+	private static function uses_image( int $id ): bool {
+		if ( $id <= 0 ) {
+			return false;
+		}
+
+		$settings = self::get();
+		foreach ( self::IMAGES as $key ) {
+			if ( $id === (int) $settings[ $key ] ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * Saves the settings again with fresh copies of the images.
+	 *
+	 * Copied here too, not only in sanitize(): that runs only once the setting is registered.
+	 */
+	private static function refresh_images(): void {
+		$settings           = self::get();
+		$settings['images'] = self::copy_images( $settings );
+
+		update_option( self::OPTION, $settings );
+	}
+}

@@ -1,0 +1,76 @@
+<?php
+/**
+ * The only place where EasyRankly runs code with eval.
+ *
+ * @package EasyRankly
+ */
+
+namespace EasyRankly\CustomCode;
+
+defined( 'ABSPATH' ) || exit;
+
+/**
+ * Runs one PHP snippet. Rules:
+ * - the code was written by a user with edit_plugins and parsed with token_get_all() on save;
+ * - Runner skips it in safe mode and when file editing is disabled;
+ * - any Throwable is recorded for the administrator, and the snippet stays on: the input of a
+ *   visitor (a query argument of an unexpected type) must not be able to turn it off for everyone;
+ * - a fatal error that no catch can see breaks the page, so it turns the snippet off from a
+ *   shutdown function.
+ */
+final class PhpRunner {
+
+	/**
+	 * Snippet being run right now (0 before the first one, -1 between snippets). A snippet that
+	 * fires a hook running another snippet gets its own ID back when that one ends.
+	 *
+	 * Per-request state, read only by shutdown(): not a cache.
+	 *
+	 * @var int
+	 */
+	private static int $running = 0;
+
+	/**
+	 * Runs a snippet's code.
+	 *
+	 * @param int    $id   Snippet ID.
+	 * @param string $code Code without the opening tag.
+	 */
+	public static function run( int $id, string $code ): void {
+		if ( 0 === self::$running ) {
+			register_shutdown_function( array( self::class, 'shutdown' ) );
+		}
+
+		$previous      = self::$running;
+		self::$running = $id;
+		try {
+			eval( $code ); // phpcs:ignore Squiz.PHP.Eval.Discouraged -- Custom code feature; see the rules above.
+		} catch ( \Throwable $error ) {
+			CustomCode::record_error( $id, get_class( $error ) . ': ' . $error->getMessage() );
+		}
+		self::$running = $previous > 0 ? $previous : -1;
+	}
+
+	/**
+	 * Runs at the end of every request that ran a snippet: a fatal error (redeclared
+	 * function, memory, time limit) skips the catch above but still reaches here.
+	 */
+	public static function shutdown(): void {
+		self::handle_fatal( error_get_last(), self::$running );
+	}
+
+	/**
+	 * Turns off the snippet that was running when a fatal error stopped the request.
+	 *
+	 * @param array<string, mixed>|null $error Last PHP error.
+	 * @param int                       $id    Snippet running at that moment (-1 or 0 when none).
+	 */
+	public static function handle_fatal( ?array $error, int $id ): void {
+		$fatal = E_ERROR | E_PARSE | E_CORE_ERROR | E_COMPILE_ERROR | E_USER_ERROR | E_RECOVERABLE_ERROR;
+		if ( $id <= 0 || null === $error || 0 === ( (int) ( $error['type'] ?? 0 ) & $fatal ) ) {
+			return;
+		}
+
+		CustomCode::disable( $id, 'Fatal error: ' . (string) ( $error['message'] ?? '' ) );
+	}
+}
